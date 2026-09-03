@@ -36,7 +36,7 @@ After certifying the template, assess each existing repository against it and mi
 Completed work:
 
 - canonical `.editorconfig`, `.gitattributes` and `.gitignore` created in `GITHUB-TEMPLATE`;
-- canonical template-oriented root `README.md` with profile selection, generation and first-use guidance;
+- canonical template-oriented root `README.md`, benchmarked across all seven portfolio repositories, with premium navigation, profile selection, generation, first-use, architecture and assurance guidance;
 - project-specific adaptations propagated across the seven existing repositories;
 - evidence-based eight-axis audit completed and frozen in `docs/PORTFOLIO_AUDIT.md`;
 - canonical `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `INSTALLATION.md`, `RELEASING.md`, `VERSION` and MIT `LICENSE` added to the template and standardized across the portfolio;
