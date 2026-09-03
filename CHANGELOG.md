@@ -106,6 +106,8 @@ messages. Replace all bracketed placeholders before publishing.
 
 - Added a profile-driven, dependency-free repository-quality gate with
   deterministic JSON and Markdown evidence plus positive and degraded self-tests.
+- Added the canonical root README with profile selection, generated-repository
+  initialization, structure, source policy and quality boundaries.
 
 ### Changed
 

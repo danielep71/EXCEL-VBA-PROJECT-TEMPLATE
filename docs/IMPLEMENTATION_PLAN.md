@@ -36,6 +36,7 @@ After certifying the template, assess each existing repository against it and mi
 Completed work:
 
 - canonical `.editorconfig`, `.gitattributes` and `.gitignore` created in `GITHUB-TEMPLATE`;
+- canonical template-oriented root `README.md` with profile selection, generation and first-use guidance;
 - project-specific adaptations propagated across the seven existing repositories;
 - evidence-based eight-axis audit completed and frozen in `docs/PORTFOLIO_AUDIT.md`;
 - canonical `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `INSTALLATION.md`, `RELEASING.md`, `VERSION` and MIT `LICENSE` added to the template and standardized across the portfolio;
@@ -54,7 +55,7 @@ Completed work:
 
 Known incomplete items:
 
-- the template root `README.md` and post-creation settings checklist remain to be created;
+- the post-creation settings checklist remains to be created;
 - placeholder syntax/category standardization and issue forms remain to be implemented;
 - the generic release gate, reusable VBA headers, neutral modules and regression harness remain to be built;
 - a clean repository generated from the template has not yet been certified;
@@ -93,11 +94,11 @@ The evidence, scores, exclusions and rationale are frozen in `docs/PORTFOLIO_AUD
 | Work package | Status | Remaining boundary |
 | --- | --- | --- |
 | P1.1 Portfolio audit | **Complete** | Frozen audit is the authoritative donor decision record |
-| P1.2 Identity and documentation | **In progress** | Root `README.md` and post-creation checklist |
+| P1.2 Identity and documentation | **In progress** | Post-creation checklist remains |
 | P1.3 Canonical structure | **Complete** | No retroactive renaming of existing repositories |
 | P1.4 Placeholder governance | **In progress** | Scanner/catalogue exist; one syntax, optional/profile categories and documentation remain |
 | P1.5 Collaboration files | **In progress** | Issue forms and issue-template configuration; label sub-gate passes |
-| P1.6 Repository-quality gate | **Complete** | Live baseline remains red until the P1.2 root README blocker is resolved |
+| P1.6 Repository-quality gate | **Complete** | Canonical checker, fixtures, reports and workflow are green |
 | P1.7 Release controls | **In progress** | Documentation exists; executable release gate and fixtures do not |
 | P1.8 Reusable VBA assets | **Not started** | Neutral headers, façade/core samples and harness |
 | P1.9 Governance policy | **In progress** | Live state verified; post-creation policy not yet written |
@@ -144,7 +145,7 @@ The evidence, scores, exclusions and rationale are frozen in `docs/PORTFOLIO_AUD
 
 - [x] Add an MIT `LICENSE`.
 - [x] Add `VERSION` at the neutral generated-repository baseline `0.0.0`; advance the template release to `0.1.0` only at certification.
-- [ ] Create a template-oriented `README.md` explaining profiles, generation and first-use steps.
+- [x] Create a template-oriented `README.md` explaining profiles, generation and first-use steps.
 - [x] Create `CHANGELOG.md` using Keep a Changelog conventions.
 - [x] Create `CONTRIBUTING.md` with branch, commit, testing and pull-request expectations.
 - [x] Create `SECURITY.md` with supported-version and private-reporting guidance.
@@ -226,7 +227,7 @@ Suggested required placeholders:
 
 **Acceptance gate:** Positive fixtures pass, negative fixtures fail for the intended reason, and two consecutive runs on the same tree are byte-for-byte equivalent apart from timestamps explicitly excluded from comparison.
 
-**P1.6 verdict: PASS.** The dependency-free gate executes 19 named rules. One positive fixture and 19 rule-specific degraded fixtures pass their expected outcomes; repeated JSON and Markdown reports are byte-for-byte identical; and before/after tree hashes prove read-only execution. The current construction tree separately reports three broken links to the not-yet-created root `README.md`, preserving that P1.2 blocker instead of weakening link validation.
+**P1.6 verdict: PASS.** The dependency-free gate executes 19 named rules. One positive fixture and 19 rule-specific degraded fixtures pass their expected outcomes; repeated JSON and Markdown reports are byte-for-byte identical; before/after tree hashes prove read-only execution; and the current template tree passes all 19 rules.
 
 ## P1.7 Add release controls
 

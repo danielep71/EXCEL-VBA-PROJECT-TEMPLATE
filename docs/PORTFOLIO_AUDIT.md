@@ -17,11 +17,11 @@ The evidence cut, original scores and donor decisions in Sections 1–9 remain f
 | Area | Implemented delta | Audit consequence |
 |---|---|---|
 | Canonical root policy | The template's canonical `.editorconfig`, `.gitattributes` and `.gitignore` were adapted across all seven repositories. | Dotfile differences now reflect repository needs rather than unmanaged drift. |
-| Root governance documents | `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `INSTALLATION.md`, `RELEASING.md`, `VERSION` and MIT `LICENSE` were created or standardized across the eight repositories. Reciprocal navigation and repository-specific statements were reviewed. | The original documentation and release scores remain historical; this work is credited in the implementation plan and the later conformance rescore. |
+| Root governance documents | A template-oriented root `README.md` now explains profiles, generation, first use, structure and quality boundaries. `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `INSTALLATION.md`, `RELEASING.md`, `VERSION` and MIT `LICENSE` were created or standardized across the eight repositories. Reciprocal navigation and repository-specific statements were reviewed. | The root README sub-gate and reciprocal links pass. The original documentation and release scores remain historical; this work is credited in the implementation plan and the later conformance rescore. |
 | Canonical structure | `GITHUB-TEMPLATE` now contains `src/`, `tests/`, `examples/`, `assets/`, `docs/` and `tools/`, each with an instructional README where needed. `docs/REPOSITORY_STRUCTURE.md` defines ownership, canonical separation, legitimate legacy alternatives and non-duplication rules. | P1.3 passes. Existing repositories are not renamed merely to imitate the new template. |
 | Pull-request intake | A canonical `.github/PULL_REQUEST_TEMPLATE.md` was selected after portfolio comparison and installed in all eight repositories. The implementations score 9.6–9.9/10, share exact-source, test/evidence, risk, rollback, security, provenance, documentation and release checks, and retain justified specialist blocks. | The PR portion of P1.5 is complete. Issue forms remain separate open work. |
 | Issue labels | `GITHUB-TEMPLATE` now declares the frozen 20-label core in `.github/labels.json`, with `schema_version`, explicit `prune`, and separate profile/domain overlay arrays. A pinned, least-privilege workflow performs read-only pull-request validation and trusted reconciliation; the dependency-free reconciler self-tests, creates/updates/prunes deterministically and verifies an exact post-run match without a hard-coded label count. | The label portion of P1.5 passes. The audit scores and donor decision remain frozen; this implementation becomes the baseline for the later conformance assessment. |
-| Repository quality | `tools/check_repo.py` combines the reusable KPR and Excel UI patterns as 19 generic, profile-driven rules configured by `.github/repository-profile.json`. It emits readable console, deterministic JSON and Markdown evidence; a positive fixture, 19 degraded fixtures and read-only hashes self-certify the tool. The pinned least-privilege workflow runs both the self-test and repository gate. | P1.6 passes. Domain-specific Excel, UI, numerical and release certification remains additive. The live tree continues to expose the independently open P1.2 root-README link blocker. |
+| Repository quality | `tools/check_repo.py` combines the reusable KPR and Excel UI patterns as 19 generic, profile-driven rules configured by `.github/repository-profile.json`. It emits readable console, deterministic JSON and Markdown evidence; a positive fixture, 19 degraded fixtures and read-only hashes self-certify the tool. The pinned least-privilege workflow runs both the self-test and repository gate. | P1.6 passes, including all 19 rules against the current template tree. Domain-specific Excel, UI, numerical and release certification remains additive. |
 | Repository settings | Merge, squash and rebase remain enabled; auto-merge remains disabled; merged branches are deleted; Update branch is enabled. The live protection matrix was rechecked without weakening documented exceptions. | Provisioning remains separate from file-template inheritance and still requires a post-creation contract. |
 | Execution control | `docs/IMPLEMENTATION_PLAN.md` now records completed work, remaining P1–P3 tasks, dependencies and acceptance gates. | The plan is temporary and will be deleted after the programme definition of done is satisfied. |
 
@@ -34,6 +34,7 @@ Completed:
 - P1.1 portfolio audit;
 - P1.3 canonical directory structure;
 - canonical dotfiles and most root governance/release documents;
+- canonical root README with profile and generated-repository initialization guidance;
 - portfolio-wide pull-request template standardization;
 - canonical 20-label manifest, overlays and idempotent synchronization in `GITHUB-TEMPLATE`;
 - canonical profile-driven repository checker, fixture certification and required workflow;
@@ -41,7 +42,6 @@ Completed:
 
 Still required before P1 certification:
 
-- the template root `README.md`;
 - `docs/POST_CREATION_CHECKLIST.md`;
 - one placeholder syntax, optional/profile categories and template-facing documentation;
 - bug, feature and documentation issue forms plus issue-template configuration;
