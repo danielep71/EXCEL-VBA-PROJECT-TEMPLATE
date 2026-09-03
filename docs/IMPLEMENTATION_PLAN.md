@@ -125,15 +125,15 @@ and **a proven generated VBA repository**.
 P1 findings must close before the template is tagged `v0.1.0` or used as the
 formal benchmark for portfolio migration.
 
-### P1-01 — VBA starter implemented; Excel certification pending
+### P1-01 — Reusable VBA starter and harness — **complete**
 
 **Original evidence:** `src/` and `tests/` contained instructional READMEs only.
 The quality report said “All 0 VBA components” and “Observed 0 public
 declarations.” The component map in repository policy was empty.
 
-**Impact:** The repository documents a VBA architecture without demonstrating
-that its exported format, headers, façade/core boundary, assertions, error
-handling and cleanup contract compile together.
+**Original impact:** The repository documented a VBA architecture without
+demonstrating that its exported format, headers, façade/core boundary,
+assertions, error handling and cleanup contract compiled together.
 
 **Required implementation:**
 
@@ -151,15 +151,18 @@ without editing and reports zero failures; source and test exports have distinct
 identities; the static report validates at least one public, one internal and one
 test component.
 
-**Implementation status — 2026-09-03:** Source work is complete. The repository
-now contains fixed-identifier `ProjectFacade`, `ProjectCore`, `ProjectTests`, and
-`ProjectExample` exports, a two-declaration public API manifest, exact import and
-test instructions, and policy roles for one public, one internal, one test, and
-one example component. The 19-rule checker, its 19 degraded fixtures, and all
-three generated-profile initializer fixtures pass. The current environment has
-no Excel/VBE host, so clean import, compilation, and the expected four-case,
-six-assertion runtime result remain unverified; P1-01 and its issue stay open
-until that evidence is attached to the exact committed source SHA.
+**Completion evidence — 2026-09-03:** Commit
+`179024b0d29ae40775662bd582bebc82e710bd68` contains fixed-identifier
+`ProjectFacade`, `ProjectCore`, `ProjectTests`, and `ProjectExample` exports, a
+two-declaration public API manifest, exact import/test instructions, and policy
+roles for one public, one internal, one test, and one example component. All
+four exports were imported without edits into a clean VBE project and the
+project compiled. `ProjectTests.RunProjectTests` then passed on Microsoft Excel
+16.0, Windows 64-bit, Office 64-bit, VBA7+, with four cases, six assertions,
+zero failures, complete execution, and cleanup passing. The separate example
+returned `ProjectRatio(12, 4) = 3`. Hosted static checks passed 19/19 at the same
+source SHA; all checker degradation fixtures and all three initialized-profile
+fixtures also passed.
 
 ### P1-02 — Generated profiles can pass structure checks without substantive VBA
 
@@ -389,7 +392,7 @@ domain-specific gate is replaced by a weaker generic check.
 | Sequence | Work package | Findings closed | Dependency | Estimated effort |
 | ---: | --- | --- | --- | ---: |
 | 1 | Finalize placeholder schema and deterministic initializer — **complete** | P1-03 | None | 1.5–2.5 days |
-| 2 | Add neutral VBA façade/core modules, premium headers and harness | P1-01 | Placeholder identifier policy | 2.5–4 days |
+| 2 | Add neutral VBA façade/core modules, premium headers and harness — **complete** | P1-01 | Placeholder identifier policy | 2.5–4 days |
 | 3 | Enforce substantive generated-profile contracts and full-tree fixtures | P1-02 | Starter assets | 1.5–2.5 days |
 | 4 | Add issue forms and post-creation checklist; wire label profile selection | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
 | 5 | Add authoritative workflow validation and close checker false negatives | P1-06, P2-01–P2-07 | Stable checker/profile schema | 2–3.5 days |
@@ -415,7 +418,7 @@ are the largest uncertainties.
 | Collaboration files | **In progress** | PR and labels strong; issue forms/config absent |
 | Repository-quality checker | **Strong / reopened** | Measured 19-rule pass is valid; generated-mode, authoritative YAML and identified false negatives remain |
 | Release controls | **In progress** | Documentation exists; executable gate/tag policy absent |
-| Reusable VBA assets | **Source complete / certification pending** | Four governed exports and API manifest pass static checks; exact-SHA Excel compile/regression evidence remains required |
+| Reusable VBA assets | **Complete** | Four governed exports, public API manifest, clean import/compile, 4-case/6-assertion Excel pass, and exact-SHA hosted checks evidenced |
 | Live governance | **In progress** | Merge settings/basic protection exist; required PR/check/tag policy absent |
 | Pilot and v0.1.0 | **Not started** | No generated or Excel certification evidence |
 | Portfolio migration | **Pre-alignment only** | Starts formally after v0.1.0 |
@@ -433,8 +436,8 @@ P1 passes only when all statements below are true:
 - [x] One token grammar and category schema governs every reusable placeholder.
 - [x] The initializer is dry-run-first, atomic and idempotent for all profiles.
 - [x] Generated changelog and documentation contain no template-construction history.
-- [ ] Neutral façade, core and test modules import and compile without editing.
-- [ ] The deterministic harness passes and reports exact environment/count evidence.
+- [x] Neutral façade, core and test modules import and compile without editing.
+- [x] The deterministic harness passes and reports exact environment/count evidence.
 - [ ] Generated mode rejects repositories with no substantive production/test VBA.
 - [ ] Bug, feature and documentation forms plus configuration are valid.
 - [ ] Profile/domain labels resolve from versioned repository policy.
@@ -459,8 +462,7 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Certify **P1-01** against the exact committed source in a clean Excel/VBE
-project: import `ProjectCore`, `ProjectFacade`, and `ProjectTests`, compile, run
-`ProjectTests.RunProjectTests`, and retain the environment plus the expected
-four-case, six-assertion, zero-failure, complete, cleanup-passing verdict. After
-that host gate closes, implement **P1-02** generated-profile invariants.
+Implement **P1-02** next: make substantive production and test components a
+generated-mode invariant, require the starter façade/core relationship without
+forcing unused profile-specific UI assets, and exercise removal failures plus
+complete `library`, `ui-component`, and `application` fixtures.
