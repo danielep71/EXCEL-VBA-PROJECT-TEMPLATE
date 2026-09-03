@@ -221,7 +221,7 @@ Suggested required placeholders:
   - VBA file encoding, exported-name consistency and required headers;
   - absence of prohibited generated, temporary or credential files;
   - workflow syntax and action pinning policy.
-- [x] Add `.github/workflows/repository-quality.yml` for pushes and pull requests.
+- [x] Add `.github/workflows/static-checks.yml` for pushes and pull requests.
 - [x] Keep domain-specific checks outside the generic gate.
 - [x] Produce both readable console output and a machine-readable report.
 

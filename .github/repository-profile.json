@@ -11,7 +11,7 @@
     ".github/repository-profile.json",
     ".github/scripts/labels-sync.mjs",
     ".github/workflows/labels-sync.yml",
-    ".github/workflows/repository-quality.yml",
+    ".github/workflows/static-checks.yml",
     ".gitignore",
     "assets/README.md",
     "CHANGELOG.md",

@@ -23,8 +23,8 @@ Run the same commands locally that the hosted workflow runs:
 ```bash
 python3 tools/check_repo.py --root . --self-test
 python3 tools/check_repo.py --root . \
-  --output test-results/repository-quality.json \
-  --summary test-results/repository-quality.md
+  --output test-results/static-checks.json \
+  --summary test-results/static-checks.md
 ```
 
 The first command exercises a passing fixture, one deliberately degraded

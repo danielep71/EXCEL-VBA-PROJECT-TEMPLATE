@@ -2196,7 +2196,7 @@ def _fixture_configuration() -> dict[str, object]:
             ".editorconfig",
             ".gitattributes",
             ".github/labels.json",
-            ".github/workflows/repository-quality.yml",
+            ".github/workflows/static-checks.yml",
             ".gitignore",
             "CHANGELOG.md",
             "README.md",
@@ -2323,8 +2323,8 @@ test-results/
         json.dumps(_fixture_labels(), indent=2, ensure_ascii=False) + "\n",
     )
     _write_fixture(
-        root / ".github/workflows/repository-quality.yml",
-        f"""name: Repository quality
+        root / ".github/workflows/static-checks.yml",
+        f"""name: Static repository checks
 
 on:
   pull_request:
@@ -2456,7 +2456,7 @@ def _degrade_label_manifest(root: Path) -> None:
 
 
 def _degrade_workflow_actions(root: Path) -> None:
-    path = root / ".github/workflows/repository-quality.yml"
+    path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
     text = re.sub(r"actions/checkout@[0-9a-f]{40}", "actions/checkout@v4", text)
     _write_fixture(path, text)

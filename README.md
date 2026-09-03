@@ -4,7 +4,7 @@
 
 ### [PROJECT_TAGLINE]
 
-[![Repository quality](https://github.com/[REPOSITORY PATH]/actions/workflows/repository-quality.yml/badge.svg)](https://github.com/[REPOSITORY PATH]/actions/workflows/repository-quality.yml)
+[![Static checks](https://github.com/[REPOSITORY PATH]/actions/workflows/static-checks.yml/badge.svg)](https://github.com/[REPOSITORY PATH]/actions/workflows/static-checks.yml)
 [![VBA](https://img.shields.io/badge/VBA-source--first-217346?style=flat-square)](src/)
 [![Profiles](https://img.shields.io/badge/profiles-library%20%7C%20UI%20%7C%20application-0969da?style=flat-square)](#supported-profiles)
 [![License](https://img.shields.io/badge/license-MIT-6f42c1?style=flat-square)](LICENSE)
@@ -77,8 +77,8 @@ common documentation, security, source-integrity or workflow rules.
    ~~~bash
    python3 tools/check_repo.py --root . --self-test
    python3 tools/check_repo.py --root . \
-     --output test-results/repository-quality.json \
-     --summary test-results/repository-quality.md
+     --output test-results/static-checks.json \
+     --summary test-results/static-checks.md
    ~~~
 
 8. Run the label synchronization workflow, configure repository metadata and
@@ -122,7 +122,7 @@ ownership, VBA separation and legitimate profile-specific alternatives.
 
 ## Quality boundaries
 
-The [repository-quality workflow](.github/workflows/repository-quality.yml)
+The [static-check workflow](.github/workflows/static-checks.yml)
 checks required structure, placeholder and donor leakage, local Markdown links,
 structured files, dotfile policy, line endings, forbidden artifacts, immutable
 workflow actions, version/changelog consistency and exported VBA structure.

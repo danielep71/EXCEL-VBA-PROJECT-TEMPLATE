@@ -111,7 +111,9 @@ messages. Replace all bracketed placeholders before publishing.
 
 ### Changed
 
-- [CHANGED BEHAVIOR, CONTRACT, TOOLING, OR DOCUMENTATION.]
+- Upgraded the canonical static-check workflow with bounded execution,
+  non-persistent checkout credentials, deterministic JSON and Markdown
+  artifacts, rerun-safe evidence names and an explicit terminal verdict.
 
 ### Fixed
 
