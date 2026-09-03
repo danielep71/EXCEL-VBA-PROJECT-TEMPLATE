@@ -18,6 +18,7 @@
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
     "docs/INITIALIZATION.md",
+    "docs/PUBLIC_API.txt",
     "docs/README.md",
     "docs/REPOSITORY_STRUCTURE.md",
     "examples/README.md",
@@ -48,6 +49,7 @@
       ],
       "required_directories": [
         "src/classes",
+        "src/core",
         "src/modules",
         "src/workbook",
         "tests/modules"
@@ -58,6 +60,7 @@
         ".github/initialization.json"
       ],
       "required_directories": [
+        "src/core",
         "src/modules",
         "tests/modules"
       ]
@@ -68,6 +71,7 @@
       ],
       "required_directories": [
         "src/classes",
+        "src/core",
         "src/modules",
         "tests/modules"
       ]
@@ -199,7 +203,12 @@
     "test_roots": [
       "tests"
     ],
-    "components": {},
-    "public_api_manifest": null
+    "components": {
+      "examples/modules/ProjectExample.bas": "example",
+      "src/core/ProjectCore.bas": "internal",
+      "src/modules/ProjectFacade.bas": "public",
+      "tests/modules/ProjectTests.bas": "test"
+    },
+    "public_api_manifest": "docs/PUBLIC_API.txt"
   }
 }

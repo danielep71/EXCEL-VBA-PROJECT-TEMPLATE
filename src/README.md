@@ -15,6 +15,17 @@ Create only the subdirectories the project actually needs:
 
 A small project may keep production components directly in `src/` when further subdivision would add no clarity. If it does, document each component's role in `INSTALLATION.md`.
 
+## Neutral starter
+
+| Import order | Path | Component | Role |
+| ---: | --- | --- | --- |
+| 1 | `core/ProjectCore.bas` | `ProjectCore` | Internal implementation guarded by `Option Private Module` |
+| 2 | `modules/ProjectFacade.bas` | `ProjectFacade` | Supported public façade recorded in `docs/PUBLIC_API.txt` |
+
+The starter implements one stateless ratio operation only to prove the
+façade/core, error, import, and test contracts. Replace it with real project
+behavior before release, or document why the sample remains supported.
+
 ## Rules
 
 - Preserve exported VBE component names, headers, and text encoding.

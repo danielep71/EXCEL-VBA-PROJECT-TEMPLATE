@@ -10,6 +10,24 @@ Use subdirectories only when they contain real material:
 | `tests/fixtures/` | Deterministic inputs, manifests, and reusable test workbooks |
 | `tests/expected/` | Reviewed expected outputs or golden files |
 
+## Neutral regression harness
+
+Import `modules/ProjectTests.bas` after `ProjectCore` and `ProjectFacade`, compile
+the VBA project, and run `ProjectTests.RunProjectTests`. The baseline executes
+four deterministic cases and six assertions covering exact equality, tolerance,
+the public expected-error contract, and repeatability. It reports environment,
+case/assertion/failure counts, completeness, and cleanup to the Immediate window.
+
+Success ends with:
+
+```text
+RESULT=PASS; completeness=COMPLETE; cases=4; assertions=6; failures=0; cleanup=PASS
+```
+
+Any assertion, unexpected error, dirty start, incomplete execution, or cleanup
+failure is non-passing. The harness changes no Excel state; cleanup verifies its
+owned module state only.
+
 ## Rules
 
 - Test modules are never part of the production import set.

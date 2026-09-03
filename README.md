@@ -151,10 +151,15 @@ Choose <code>library</code>, <code>ui-component</code>, or
 failure-safe procedures.
 <!-- template:remove:end -->
 
-## 1. Add authoritative source and tests
+## 1. Review the starter source and tests
 
-- Add the authoritative exported production source.
-- Document and test the required import order.
+- Import `ProjectCore`, then `ProjectFacade`, from the tracked starter source.
+- Import `ProjectTests` only into a development workbook and run
+  `ProjectTests.RunProjectTests`.
+- Run `ProjectExample.RunProjectExample` for the minimal supported-API example.
+- Replace or deliberately retain the neutral ratio example before release;
+  synchronize component identities, policy, API manifest, documentation, and
+  tests when renaming it.
 - Keep production components under [src/](src/).
 - Keep regression components, independent fixtures and test documentation under
   [tests/](tests/).
@@ -282,6 +287,21 @@ flowchart LR
 The diagram is a dependency guide, not a mandatory module count. Record any
 justified alternative in the project architecture documentation.
 
+## Neutral starter contract
+
+| Component | Role | Contract |
+| --- | --- | --- |
+| [`ProjectFacade`](src/modules/ProjectFacade.bas) | Public façade | `ProjectRatio` and its fixed zero-denominator error number |
+| [`ProjectCore`](src/core/ProjectCore.bas) | Internal core | Host-independent division and input rejection behind `Option Private Module` |
+| [`ProjectTests`](tests/modules/ProjectTests.bas) | Regression harness | `RunProjectTests`; four cases, six assertions, expected-error checks, environment and cleanup report |
+| [`ProjectExample`](examples/modules/ProjectExample.bas) | Example | One scalar façade call with Immediate-window output and no Excel state mutation |
+
+The starter proves the repository shape; it is not project-specific business
+logic. Its fixed component and member identifiers are intentionally valid VBA,
+not initializer tokens. A generated project may rename or replace them only as
+one coherent change across source, tests, examples, the component map, the
+[public API manifest](docs/PUBLIC_API.txt), and installation documentation.
+
 ## Source contract
 
 - Exported <code>.bas</code>, <code>.cls</code> and <code>.frm</code> files are
@@ -292,6 +312,7 @@ justified alternative in the project architecture documentation.
 - VBA source uses Windows-1252-compatible text, CRLF line endings and
   <code>Option Explicit</code>.
 - Internal standard modules declare <code>Option Private Module</code>.
+- Public declarations match the tracked [API manifest](docs/PUBLIC_API.txt).
 - UserForm <code>.frx</code> companions are tracked only with their authoritative
   <code>.frm</code> export.
 - Generated Office packages remain untracked unless the profile and release

@@ -142,7 +142,10 @@ Capture commands, tool versions, timestamps, and complete results. Rerun affecte
 
 - Open the exact candidate in each supported Excel environment.
 - Run **Debug → Compile VBAProject**.
-- Run the documented Excel regression entry point and record the result.
+- Run the documented Excel regression entry point and record the result. The
+  neutral baseline is `ProjectTests.RunProjectTests`; it must report four cases,
+  six assertions, zero failures, complete execution, and passing cleanup until
+  the generated project deliberately replaces that starter contract.
 - Exercise every required UI, lifecycle, platform, or manual smoke test.
 
 Certification rules:

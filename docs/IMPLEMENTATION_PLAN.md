@@ -125,11 +125,11 @@ and **a proven generated VBA repository**.
 P1 findings must close before the template is tagged `v0.1.0` or used as the
 formal benchmark for portfolio migration.
 
-### P1-01 — The template contains no reusable VBA implementation or harness
+### P1-01 — VBA starter implemented; Excel certification pending
 
-**Evidence:** `src/` and `tests/` contain instructional READMEs only. The current
-quality report says “All 0 VBA components” and “Observed 0 public declarations.”
-The component map in the repository profile is empty.
+**Original evidence:** `src/` and `tests/` contained instructional READMEs only.
+The quality report said “All 0 VBA components” and “Observed 0 public
+declarations.” The component map in repository policy was empty.
 
 **Impact:** The repository documents a VBA architecture without demonstrating
 that its exported format, headers, façade/core boundary, assertions, error
@@ -150,6 +150,16 @@ handling and cleanup contract compile together.
 without editing and reports zero failures; source and test exports have distinct
 identities; the static report validates at least one public, one internal and one
 test component.
+
+**Implementation status — 2026-09-03:** Source work is complete. The repository
+now contains fixed-identifier `ProjectFacade`, `ProjectCore`, `ProjectTests`, and
+`ProjectExample` exports, a two-declaration public API manifest, exact import and
+test instructions, and policy roles for one public, one internal, one test, and
+one example component. The 19-rule checker, its 19 degraded fixtures, and all
+three generated-profile initializer fixtures pass. The current environment has
+no Excel/VBE host, so clean import, compilation, and the expected four-case,
+six-assertion runtime result remain unverified; P1-01 and its issue stay open
+until that evidence is attached to the exact committed source SHA.
 
 ### P1-02 — Generated profiles can pass structure checks without substantive VBA
 
@@ -405,7 +415,7 @@ are the largest uncertainties.
 | Collaboration files | **In progress** | PR and labels strong; issue forms/config absent |
 | Repository-quality checker | **Strong / reopened** | Measured 19-rule pass is valid; generated-mode, authoritative YAML and identified false negatives remain |
 | Release controls | **In progress** | Documentation exists; executable gate/tag policy absent |
-| Reusable VBA assets | **Not started** | Zero VBA exports at review snapshot |
+| Reusable VBA assets | **Source complete / certification pending** | Four governed exports and API manifest pass static checks; exact-SHA Excel compile/regression evidence remains required |
 | Live governance | **In progress** | Merge settings/basic protection exist; required PR/check/tag policy absent |
 | Pilot and v0.1.0 | **Not started** | No generated or Excel certification evidence |
 | Portfolio migration | **Pre-alignment only** | Starts formally after v0.1.0 |
@@ -449,6 +459,8 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Implement **P1-01 next**: add the neutral public façade, internal/core module,
-premium reusable headers and deterministic regression harness. Keep identifiers
-fixed and compile-safe under the placeholder policy established by P1-03.
+Certify **P1-01** against the exact committed source in a clean Excel/VBE
+project: import `ProjectCore`, `ProjectFacade`, and `ProjectTests`, compile, run
+`ProjectTests.RunProjectTests`, and retain the environment plus the expected
+four-case, six-assertion, zero-failure, complete, cleanup-passing verdict. After
+that host gate closes, implement **P1-02** generated-profile invariants.

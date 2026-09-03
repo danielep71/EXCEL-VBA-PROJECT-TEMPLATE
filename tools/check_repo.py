@@ -2060,7 +2060,13 @@ def check_vba_visibility(
         "vba-visibility",
         "VBA component roles and visibility",
         failures,
-        f"Validated {len(components)} configured component roles",
+        "Validated "
+        f"{len(components)} configured component roles "
+        f"(public={sum(role == 'public' for role in components.values())}, "
+        f"internal={sum(role == 'internal' for role in components.values())}, "
+        f"test={sum(role == 'test' for role in components.values())}, "
+        f"example={sum(role == 'example' for role in components.values())}, "
+        f"ui={sum(role == 'ui' for role in components.values())})",
     )
 
 

@@ -113,6 +113,10 @@ messages. Replace every registered template token before publishing.
   deterministic JSON and Markdown evidence plus positive and degraded self-tests.
 - Added the canonical root README with profile selection, generated-repository
   initialization, structure, source policy and quality boundaries.
+- Added a neutral, importable VBA façade/core starter, a fixed public API
+  manifest, a state-safe example, and a deterministic four-case regression
+  harness with equality, tolerance, expected-error, environment, completeness,
+  and cleanup reporting.
 
 ### Changed
 

@@ -1,0 +1,4 @@
+# Supported VBA declarations: <component><TAB><kind><TAB><name>
+# Keep this manifest synchronized with public-role components in repository policy.
+ProjectFacade	Const	PROJECT_ERROR_ZERO_DENOMINATOR
+ProjectFacade	Function	ProjectRatio

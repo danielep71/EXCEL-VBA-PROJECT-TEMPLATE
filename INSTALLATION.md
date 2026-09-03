@@ -67,13 +67,15 @@ or copied workbooks.
 
 | Order | Repository source | VBE component | Responsibility |
 |---:|---|---|---|
-| Define dependency order | Tracked path under `src/` | Exported component name | Public, internal, UI, or host responsibility |
+| 1 | `src/core/ProjectCore.bas` | `ProjectCore` | Internal, host-independent implementation; `Option Private Module` |
+| 2 | `src/modules/ProjectFacade.bas` | `ProjectFacade` | Supported public façade and stable error contract |
 
 Optional material is not part of the normal runtime unless stated otherwise:
 
 | Source | Purpose |
 |---|---|
-| Tracked optional path | Test, demo, Ribbon, resource, or tooling purpose |
+| `tests/modules/ProjectTests.bas` | Development-only regression harness; never part of the production package |
+| `examples/modules/ProjectExample.bas` | Optional minimal consumer example; never required by production source |
 
 > [!CAUTION]
 > A `.frm` and its `.frx` companion are one logical component. Keep them in
@@ -116,6 +118,19 @@ A successful import is not sufficient evidence that the installation is correct.
 - Run the documented startup or public-API smoke test.
 - Exercise one expected-error path and verify cleanup.
 - Run every applicable platform, bitness, UI, lifecycle, or numerical check.
+
+For the neutral starter, import `ProjectTests` after the two production modules,
+run **Debug → Compile VBAProject**, and execute
+`ProjectTests.RunProjectTests`. A passing run ends with:
+
+~~~text
+RESULT=PASS; completeness=COMPLETE; cases=4; assertions=6; failures=0; cleanup=PASS
+~~~
+
+The harness reports the Excel host, version, operating system, Office bitness,
+VBA generation, named cases, and cleanup detail immediately before the verdict.
+Run `ProjectExample.RunProjectExample` separately for the consumer smoke; it
+prints `ProjectRatio(12, 4) = 3` without reading or changing Excel state.
 
 ### Minimum installation evidence
 

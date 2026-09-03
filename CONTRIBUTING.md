@@ -243,6 +243,12 @@ under review.
 Maintain the project-specific test order, commands, entry points and evidence
 requirements beside the source they govern.
 
+The neutral baseline entry point is `ProjectTests.RunProjectTests`. Import
+`ProjectCore`, `ProjectFacade`, and `ProjectTests` into a clean VBA project,
+compile, run the entry point, and retain its environment, case, assertion,
+failure, completeness, and cleanup lines. Static checks cannot substitute for
+that Excel-host evidence.
+
 ### Evidence principles
 
 - Test the behavior, not only the implementation path.
