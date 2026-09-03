@@ -111,6 +111,9 @@ messages. Replace all bracketed placeholders before publishing.
 
 ### Changed
 
+- Replaced the progress-oriented implementation plan with an exact-snapshot code
+  review, weighted template-readiness score, P1/P2/P3 finding register and
+  findings-driven certification sequence.
 - Rebuilt the canonical README from a seven-repository benchmark, combining a
   premium identity block, quick navigation, profile-aware initialization,
   architecture, assurance boundaries, recovery, security and release guidance.
