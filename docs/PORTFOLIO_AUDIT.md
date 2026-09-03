@@ -1,12 +1,75 @@
 # Portfolio audit — canonical repository baseline
 
-> **Status:** Frozen for P1.1
+> **Status:** P1.1 frozen and passed; post-audit implementation delta maintained in Section 0
 >
 > **Evidence cut:** 2026-09-03 11:19 UTC
 >
 > **Scope:** seven portfolio repositories; `GITHUB-TEMPLATE` is the target and is not scored
 >
 > **Decision rule:** evidence quality and reusability take precedence over recency
+
+## 0. Post-audit implementation delta — 2026-09-03
+
+The evidence cut, original scores and donor decisions in Sections 1–9 remain frozen. They describe the portfolio before canonical construction began and must not be silently rewritten as repositories change. This section records implementation completed after that cut. Current-quality scores will be recalculated only after P1 certification, when the baseline is stable.
+
+### 0.1 Completed after the evidence cut
+
+| Area | Implemented delta | Audit consequence |
+|---|---|---|
+| Canonical root policy | The template's canonical `.editorconfig`, `.gitattributes` and `.gitignore` were adapted across all seven repositories. | Dotfile differences now reflect repository needs rather than unmanaged drift. |
+| Root governance documents | `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `INSTALLATION.md`, `RELEASING.md`, `VERSION` and MIT `LICENSE` were created or standardized across the eight repositories. Reciprocal navigation and repository-specific statements were reviewed. | The original documentation and release scores remain historical; this work is credited in the implementation plan and the later conformance rescore. |
+| Canonical structure | `GITHUB-TEMPLATE` now contains `src/`, `tests/`, `examples/`, `assets/`, `docs/` and `tools/`, each with an instructional README where needed. `docs/REPOSITORY_STRUCTURE.md` defines ownership, canonical separation, legitimate legacy alternatives and non-duplication rules. | P1.3 passes. Existing repositories are not renamed merely to imitate the new template. |
+| Pull-request intake | A canonical `.github/PULL_REQUEST_TEMPLATE.md` was selected after portfolio comparison and installed in all eight repositories. The implementations score 9.6–9.9/10, share exact-source, test/evidence, risk, rollback, security, provenance, documentation and release checks, and retain justified specialist blocks. | The PR portion of P1.5 is complete. Issue forms and labels remain separate open work. |
+| Repository settings | Merge, squash and rebase remain enabled; auto-merge remains disabled; merged branches are deleted; Update branch is enabled. The live protection matrix was rechecked without weakening documented exceptions. | Provisioning remains separate from file-template inheritance and still requires a post-creation contract. |
+| Execution control | `docs/IMPLEMENTATION_PLAN.md` now records completed work, remaining P1–P3 tasks, dependencies and acceptance gates. | The plan is temporary and will be deleted after the programme definition of done is satisfied. |
+
+No production VBA, workbook runtime behavior, numerical contract or release history was changed as part of this foundation standardization.
+
+### 0.2 Current construction boundary
+
+Completed:
+
+- P1.1 portfolio audit;
+- P1.3 canonical directory structure;
+- canonical dotfiles and most root governance/release documents;
+- portfolio-wide pull-request template standardization;
+- repository-settings normalization and live protection review.
+
+Still required before P1 certification:
+
+- the template root `README.md`;
+- `docs/POST_CREATION_CHECKLIST.md`;
+- placeholder vocabulary, manifest and scanners;
+- bug, feature and documentation issue forms plus issue-template configuration;
+- declarative labels, overlays and idempotent synchronization;
+- the generic profile-driven repository checker, fixtures and required workflow;
+- executable release gates and release fixtures;
+- neutral VBA façade/core modules, premium headers and deterministic test harness;
+- a generated-repository pilot and the template v0.1.0 certification.
+
+### 0.3 Blocking donor defects after standardization
+
+| Audit ID | Current state | Required disposition |
+|---|---|---|
+| `AUD-P1-01` — Logistic Regression source/test identity | **Still open.** Production and test paths still resolve to the same blob and declare the test module. Root governance and PR intake are improved, but functional certification would still be false. | Restore the production export and independently validate source and harness before using either as template evidence. |
+| `AUD-P1-02` — Progress Bar inherited identity | **Still open.** Tracked production, test and demo content still exposes `cPerformanceManager`/`M_cPM_*` identity and Performance Manager artifacts. Root governance and PR intake are improved, but runtime provenance remains unresolved. | Reconcile the source manifest and reconstruct the actual Progress Bar export before any functional or release certification. |
+| `AUD-P1-03` — Probability accuracy evidence | **Unchanged as frozen evidence.** The red run at the audit cut remains relevant to what was certifiable at that SHA. | Reassess only against a later exact source SHA; do not retroactively rewrite the audit verdict. |
+
+The two code-identity defects are P2 repository-repair blockers, not reasons to import contaminated donor code into P1. The template must continue to use neutral VBA assets.
+
+### 0.4 Score interpretation
+
+The comparison matrix below is the **pre-standardization donor-selection baseline**, not a current portfolio league table. Root-document and PR-template improvements would change several present-day scores, but rescoring now would mix a partially built template with repositories at different migration stages. The next formal score replaces nothing: it will appear in `docs/PORTFOLIO_CONFORMANCE.md` after P1 certification and P2 migration.
+
+The frozen donor decisions remain unchanged:
+
+- DateTimePicker for documentation coverage;
+- KPR for generic workflows, static checks and labels-as-code;
+- Performance Manager for intake and release provenance;
+- Excel UI for metadata/protection and generic VBA modularity;
+- Probability Distributions for optional numerical and Excel assurance.
+
+---
 
 ## 1. Executive conclusion
 
