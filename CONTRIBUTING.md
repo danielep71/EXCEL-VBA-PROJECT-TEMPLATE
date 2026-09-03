@@ -294,6 +294,8 @@ Remove non-applicable fields, but do not omit a material limitation.
 
 ## 📖 Documentation and release notes
 
+Installation or packaging changes must keep [INSTALLATION.md](INSTALLATION.md) current. Release preparation must follow [RELEASING.md](RELEASING.md).
+
 Update the README and every affected contract, example, API reference, and release note. Define the repository's changelog policy before publishing.
 
 Documentation must say:
