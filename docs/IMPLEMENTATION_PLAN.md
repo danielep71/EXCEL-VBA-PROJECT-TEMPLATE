@@ -2,7 +2,7 @@
 
 **Owner:** Daniele Penza  
 **Portfolio:** Seven existing Excel/VBA repositories plus `GITHUB-TEMPLATE`  
-**Plan revision:** 2  
+**Plan revision:** 3  
 **Plan status:** Active — P1 in progress  
 **Baseline date:** 3 September 2026  
 
@@ -43,6 +43,7 @@ Completed work:
 - canonical `src/`, `tests/`, `examples/`, `assets/`, `docs/` and `tools/` structure created in the template with instructional READMEs;
 - canonical-versus-legacy directory policy documented in `docs/REPOSITORY_STRUCTURE.md`;
 - `.github/PULL_REQUEST_TEMPLATE.md` benchmarked, standardized and installed across all eight repositories while retaining repository-specific evidence sections;
+- declarative issue-label manifest, profile/domain overlay model and idempotent synchronization workflow implemented in `GITHUB-TEMPLATE`;
 - merge commits, squash merges and rebase merges enabled consistently;
 - auto-merge disabled consistently;
 - automatic deletion of merged branches and the **Update branch** capability enabled;
@@ -53,7 +54,7 @@ Completed work:
 Known incomplete items:
 
 - the template root `README.md` and post-creation settings checklist remain to be created;
-- placeholder governance, issue forms, labels-as-code and label synchronization remain to be implemented;
+- placeholder governance and issue forms remain to be implemented;
 - the generic repository-quality workflow and checker remain to be built;
 - the generic release gate, reusable VBA headers, neutral modules and regression harness remain to be built;
 - a clean repository generated from the template has not yet been certified;
@@ -95,7 +96,7 @@ The evidence, scores, exclusions and rationale are frozen in `docs/PORTFOLIO_AUD
 | P1.2 Identity and documentation | **In progress** | Root `README.md` and post-creation checklist |
 | P1.3 Canonical structure | **Complete** | No retroactive renaming of existing repositories |
 | P1.4 Placeholder governance | **Not started** | Manifest, token rules and scanners |
-| P1.5 Collaboration files | **In progress** | Issue forms, labels manifest and label synchronization |
+| P1.5 Collaboration files | **In progress** | Issue forms and issue-template configuration; label sub-gate passes |
 | P1.6 Repository-quality gate | **Not started** | Generic checker, fixtures and workflow |
 | P1.7 Release controls | **In progress** | Documentation exists; executable release gate and fixtures do not |
 | P1.8 Reusable VBA assets | **Not started** | Neutral headers, façade/core samples and harness |
@@ -195,12 +196,14 @@ Suggested required placeholders:
 - [ ] Add issue-template configuration with valid support and security links.
 - [x] Add a pull-request template covering scope, tests, documentation, compatibility, evidence, risk, rollback and release impact.
 - [x] Standardize the PR template across all seven existing repositories, retaining justified repository-specific sections.
-- [ ] Adopt a declarative `labels.json` catalogue and synchronization workflow based on KPR.
+- [x] Adopt a declarative `labels.json` catalogue and synchronization workflow based on KPR.
 - [x] Freeze the 20-label core taxonomy and overlay model in the portfolio audit.
-- [ ] Ensure template labels contain descriptions and accessible colors.
+- [x] Ensure template labels contain descriptions and accessible colors.
 - [ ] Document the default rule that portfolio issues are assigned to `danielep71` only after repository creation, not hard-coded into reusable issue forms.
 
 **Acceptance gate:** Label synchronization is idempotent; issue forms create valid issues; no form points to a donor repository.
+
+**P1.5 label sub-gate: PASS.** The 20-label core is declared in `.github/labels.json`; profile/domain overlays are explicit; validation and reconciliation are self-tested; pull requests are read-only; trusted runs reconcile with least privilege and verify an exact post-run match. The overall package remains open until the issue forms and configuration are complete.
 
 ## P1.6 Build the generic repository-quality gate
 
@@ -482,7 +485,7 @@ Early, low-risk pre-alignment is already complete for the canonical dotfiles, ro
 | ---: | --- | --- |
 | 1 | Finish P1.2 root `README.md` and post-creation checklist | P1.1 audit — complete |
 | 2 | P1.4 placeholder vocabulary, manifest and scanners | P1.2 documentation |
-| 3 | Finish P1.5 issue forms, labels manifest and synchronization | Frozen intake/label decisions |
+| 3 | Finish the remaining P1.5 issue forms and issue-template configuration | Frozen intake decision; label sub-gate complete |
 | 4 | P1.6 generic checker, fixtures and required workflow | P1.4–P1.5 contracts |
 | 5 | Finish P1.7 release gate and evidence fixtures | Generic checker |
 | 6 | P1.8 reusable VBA headers, neutral modules and harness | Profile and checker contracts |
@@ -507,4 +510,4 @@ The programme is complete only when:
 
 ## 8. Immediate next action
 
-Finish **P1.2** by creating the template root `README.md` and `docs/POST_CREATION_CHECKLIST.md`. Then implement **P1.4 placeholder governance** before adding issue forms, labels and executable gates, so every later artifact uses one validated token vocabulary from its first commit.
+Finish **P1.2** by creating the template root `README.md` and `docs/POST_CREATION_CHECKLIST.md`. Then implement **P1.4 placeholder governance** before adding the remaining issue forms and executable gates, so every later artifact uses one validated token vocabulary from its first commit. The P1.5 label sub-gate is already complete.

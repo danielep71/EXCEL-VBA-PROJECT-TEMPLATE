@@ -19,7 +19,8 @@ The evidence cut, original scores and donor decisions in Sections 1–9 remain f
 | Canonical root policy | The template's canonical `.editorconfig`, `.gitattributes` and `.gitignore` were adapted across all seven repositories. | Dotfile differences now reflect repository needs rather than unmanaged drift. |
 | Root governance documents | `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `INSTALLATION.md`, `RELEASING.md`, `VERSION` and MIT `LICENSE` were created or standardized across the eight repositories. Reciprocal navigation and repository-specific statements were reviewed. | The original documentation and release scores remain historical; this work is credited in the implementation plan and the later conformance rescore. |
 | Canonical structure | `GITHUB-TEMPLATE` now contains `src/`, `tests/`, `examples/`, `assets/`, `docs/` and `tools/`, each with an instructional README where needed. `docs/REPOSITORY_STRUCTURE.md` defines ownership, canonical separation, legitimate legacy alternatives and non-duplication rules. | P1.3 passes. Existing repositories are not renamed merely to imitate the new template. |
-| Pull-request intake | A canonical `.github/PULL_REQUEST_TEMPLATE.md` was selected after portfolio comparison and installed in all eight repositories. The implementations score 9.6–9.9/10, share exact-source, test/evidence, risk, rollback, security, provenance, documentation and release checks, and retain justified specialist blocks. | The PR portion of P1.5 is complete. Issue forms and labels remain separate open work. |
+| Pull-request intake | A canonical `.github/PULL_REQUEST_TEMPLATE.md` was selected after portfolio comparison and installed in all eight repositories. The implementations score 9.6–9.9/10, share exact-source, test/evidence, risk, rollback, security, provenance, documentation and release checks, and retain justified specialist blocks. | The PR portion of P1.5 is complete. Issue forms remain separate open work. |
+| Issue labels | `GITHUB-TEMPLATE` now declares the frozen 20-label core in `.github/labels.json`, with `schema_version`, explicit `prune`, and separate profile/domain overlay arrays. A pinned, least-privilege workflow performs read-only pull-request validation and trusted reconciliation; the dependency-free reconciler self-tests, creates/updates/prunes deterministically and verifies an exact post-run match without a hard-coded label count. | The label portion of P1.5 passes. The audit scores and donor decision remain frozen; this implementation becomes the baseline for the later conformance assessment. |
 | Repository settings | Merge, squash and rebase remain enabled; auto-merge remains disabled; merged branches are deleted; Update branch is enabled. The live protection matrix was rechecked without weakening documented exceptions. | Provisioning remains separate from file-template inheritance and still requires a post-creation contract. |
 | Execution control | `docs/IMPLEMENTATION_PLAN.md` now records completed work, remaining P1–P3 tasks, dependencies and acceptance gates. | The plan is temporary and will be deleted after the programme definition of done is satisfied. |
 
@@ -33,6 +34,7 @@ Completed:
 - P1.3 canonical directory structure;
 - canonical dotfiles and most root governance/release documents;
 - portfolio-wide pull-request template standardization;
+- canonical 20-label manifest, overlays and idempotent synchronization in `GITHUB-TEMPLATE`;
 - repository-settings normalization and live protection review.
 
 Still required before P1 certification:
@@ -41,7 +43,6 @@ Still required before P1 certification:
 - `docs/POST_CREATION_CHECKLIST.md`;
 - placeholder vocabulary, manifest and scanners;
 - bug, feature and documentation issue forms plus issue-template configuration;
-- declarative labels, overlays and idempotent synchronization;
 - the generic profile-driven repository checker, fixtures and required workflow;
 - executable release gates and release fixtures;
 - neutral VBA façade/core modules, premium headers and deterministic test harness;
