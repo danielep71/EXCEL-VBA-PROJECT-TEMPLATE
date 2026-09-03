@@ -370,10 +370,16 @@ The [static-check workflow](.github/workflows/static-checks.yml):
 - runs against the exact SHA under review;
 - uses pinned external actions and read-only repository permissions;
 - self-tests one passing fixture and one degraded fixture per rule;
+- resolves the selected profile's mandatory façade, core, and test contract;
 - validates the configured repository tree;
 - publishes a readable job summary;
 - uploads deterministic JSON and Markdown evidence; and
 - enforces every intermediate outcome through one terminal verdict.
+
+The machine-readable report records the selected profile, required role minima,
+observed role counts, and mandatory component paths. Instructional READMEs do
+not satisfy this contract, while UI assets and examples remain optional unless
+the selected profile explicitly requires them.
 
 Run it locally with the commands shown in [Quick start](#quick-start).
 

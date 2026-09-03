@@ -101,6 +101,8 @@ Directory names are not style variants. Do not introduce an alternative because 
 A repository created from this template passes the structure gate when:
 
 - all six canonical directories exist and contain either project material or their instructional README;
+- the selected profile's `vba_contract` resolves at least one registered and tracked public façade, internal core, and test component;
+- every path named by `vba_contract.required_components` exists with its declared role;
 - every production component has one documented source location;
 - public modules, internal/core modules, classes, forms, and tests are distinguishable;
 - `INSTALLATION.md` lists the exact production manifest and import order;
@@ -108,6 +110,11 @@ A repository created from this template passes the structure gate when:
 - no pair of `tests/` and `test/`, `examples/` and `demo/`, or `assets/` and `images/` serves the same purpose;
 - generated packages and transient evidence are not mistaken for source; and
 - every profile-specific exception is explicit and justified.
+
+An instructional README can preserve a purposeful directory, but it cannot
+stand in for any mandatory VBA role. Classes, forms, Ribbon XML, workbook
+modules, UI components, and examples are optional unless the selected profile
+contract names them; the common baseline does not invent unused UI assets.
 
 ## 📚 Directory guides
 

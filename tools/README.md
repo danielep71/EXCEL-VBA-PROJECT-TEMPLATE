@@ -28,9 +28,14 @@ python3 tools/check_repo.py --root . \
 ```
 
 The first command exercises a passing fixture, one deliberately degraded
-fixture for each of the 19 rules, deterministic JSON and Markdown rendering,
+fixture for each of the 20 rules, deterministic JSON and Markdown rendering,
 and read-only execution. The second command validates the current tracked tree,
 prints a readable result, and writes optional machine-readable evidence.
+
+The `generated-vba-contract` rule resolves the applicable profile contract and
+requires its registered, tracked façade, core, and test assets. Its JSON evidence
+records the selected profile, role minima, observed role counts, and mandatory
+component paths. In template mode it validates all three supported contracts.
 
 Exit status `0` means every applicable rule passed, `1` means policy findings
 were reported, and `2` means the checker could not complete. Reports contain no

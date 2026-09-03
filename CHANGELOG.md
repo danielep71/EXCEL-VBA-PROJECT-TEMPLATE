@@ -117,6 +117,9 @@ messages. Replace every registered template token before publishing.
   manifest, a state-safe example, and a deterministic four-case regression
   harness with equality, tolerance, expected-error, environment, completeness,
   and cleanup reporting.
+- Added per-profile substantive VBA contracts and full-tree fixtures proving
+  that README-only trees or missing façade/core/test components fail while
+  optional example removal remains valid.
 
 ### Changed
 

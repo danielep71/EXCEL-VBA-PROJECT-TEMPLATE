@@ -34,6 +34,8 @@ SUPPORTED_PROFILES = ("application", "library", "ui-component")
 PLACEHOLDER_CATEGORIES = ("optional", "profile-specific", "repeatable", "required")
 PLACEHOLDER_NAME_PATTERN = re.compile(r"[A-Z][A-Z0-9_]*")
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
+VBA_ROLES = ("example", "internal", "public", "test", "ui")
+VBA_BASELINE_ROLES = ("internal", "public", "test")
 PLACEHOLDER_PROHIBITED_SUFFIXES = {
     ".bat",
     ".cjs",
@@ -407,11 +409,15 @@ def load_configuration(
     else:
         for name in SUPPORTED_PROFILES:
             entry = profiles[name]
-            if not _same_keys(entry, {"required_paths", "required_directories"}):
+            if not _same_keys(
+                entry,
+                {"required_paths", "required_directories", "vba_contract"},
+            ):
                 failures.append(
                     finding(
                         CONFIG_PATH,
-                        f"profiles.{name} must contain exactly required_paths and required_directories.",
+                        f"profiles.{name} must contain exactly required_paths, "
+                        "required_directories, and vba_contract.",
                     )
                 )
                 continue
@@ -427,6 +433,108 @@ def load_configuration(
                 failures,
                 paths=True,
             )
+            contract = entry.get("vba_contract")
+            contract_field = f"profiles.{name}.vba_contract"
+            if not _same_keys(contract, {"minimum_roles", "required_components"}):
+                failures.append(
+                    finding(
+                        CONFIG_PATH,
+                        f"{contract_field} must contain exactly minimum_roles and required_components.",
+                    )
+                )
+                continue
+            minimum_roles = contract.get("minimum_roles")
+            if not isinstance(minimum_roles, dict) or not minimum_roles:
+                failures.append(
+                    finding(
+                        CONFIG_PATH,
+                        f"{contract_field}.minimum_roles must be a non-empty object.",
+                    )
+                )
+                minimum_roles = {}
+            else:
+                role_names = list(minimum_roles)
+                if role_names != sorted(
+                    role_names, key=lambda item: (item.casefold(), item)
+                ):
+                    failures.append(
+                        finding(
+                            CONFIG_PATH,
+                            f"{contract_field}.minimum_roles keys must be sorted case-insensitively.",
+                        )
+                    )
+                for role, minimum in minimum_roles.items():
+                    if role not in VBA_ROLES:
+                        failures.append(
+                            finding(
+                                CONFIG_PATH,
+                                f"{contract_field}.minimum_roles has invalid role {role!r}.",
+                            )
+                        )
+                    if (
+                        isinstance(minimum, bool)
+                        or not isinstance(minimum, int)
+                        or minimum < 1
+                    ):
+                        failures.append(
+                            finding(
+                                CONFIG_PATH,
+                                f"{contract_field}.minimum_roles.{role} must be a positive integer.",
+                            )
+                        )
+            required_components = contract.get("required_components")
+            if not isinstance(required_components, dict) or not required_components:
+                failures.append(
+                    finding(
+                        CONFIG_PATH,
+                        f"{contract_field}.required_components must be a non-empty object.",
+                    )
+                )
+                required_components = {}
+            else:
+                component_paths = list(required_components)
+                if component_paths != sorted(
+                    component_paths, key=lambda item: (item.casefold(), item)
+                ):
+                    failures.append(
+                        finding(
+                            CONFIG_PATH,
+                            f"{contract_field}.required_components keys must be sorted case-insensitively.",
+                        )
+                    )
+                for path, role in required_components.items():
+                    if not isinstance(path, str) or not _valid_relative_path(path):
+                        failures.append(
+                            finding(
+                                CONFIG_PATH,
+                                f"{contract_field}.required_components contains an invalid path: {path!r}.",
+                            )
+                        )
+                    if role not in VBA_ROLES:
+                        failures.append(
+                            finding(
+                                CONFIG_PATH,
+                                f"{contract_field}.required_components.{path} has invalid role {role!r}.",
+                            )
+                        )
+            component_roles = {
+                role for role in required_components.values() if isinstance(role, str)
+            }
+            for role in VBA_BASELINE_ROLES:
+                if minimum_roles.get(role, 0) < 1:
+                    failures.append(
+                        finding(
+                            CONFIG_PATH,
+                            f"{contract_field}.minimum_roles must require the baseline role {role!r}.",
+                        )
+                    )
+                if role not in component_roles:
+                    failures.append(
+                        finding(
+                            CONFIG_PATH,
+                            f"{contract_field}.required_components must name a component with role {role!r}.",
+                        )
+                    )
 
     placeholders = document.get("placeholders")
     placeholder_keys = {
@@ -652,7 +760,7 @@ def load_configuration(
                 finding(CONFIG_PATH, "VBA source and test roots must not overlap.")
             )
         components = vba.get("components")
-        roles = {"example", "internal", "public", "test", "ui"}
+        roles = set(VBA_ROLES)
         if not isinstance(components, dict):
             failures.append(finding(CONFIG_PATH, "vba.components must be an object."))
         else:
@@ -2070,6 +2178,92 @@ def check_vba_visibility(
     )
 
 
+def check_generated_vba_contract(
+    repo: Repository, config: dict[str, object]
+) -> dict[str, object]:
+    """Require substantive facade, core, and test assets for each profile."""
+
+    profiles = config["profiles"]
+    components = config["vba"]["components"]
+    tracked_vba = set(_vba_paths(repo))
+    selected_profiles = (
+        SUPPORTED_PROFILES
+        if config["mode"] == "template"
+        else (config["profile"],)
+    )
+    failures: list[dict[str, object]] = []
+    profile_evidence: dict[str, object] = {}
+
+    for profile in selected_profiles:
+        contract = profiles[profile]["vba_contract"]
+        minimum_roles = contract["minimum_roles"]
+        required_components = contract["required_components"]
+        observed_roles = {
+            role: sum(
+                configured_role == role and path in tracked_vba
+                for path, configured_role in components.items()
+            )
+            for role in minimum_roles
+        }
+        profile_evidence[profile] = {
+            "minimum_roles": dict(minimum_roles),
+            "observed_roles": observed_roles,
+            "required_components": dict(required_components),
+        }
+
+        for role, minimum in minimum_roles.items():
+            observed = observed_roles[role]
+            if observed < minimum:
+                failures.append(
+                    finding(
+                        CONFIG_PATH,
+                        f"Generated VBA contract for profile {profile!r} requires role "
+                        f"{role!r} >= {minimum}; observed {observed}.",
+                    )
+                )
+
+        for path, expected_role in required_components.items():
+            actual_role = components.get(path)
+            if actual_role is None:
+                failures.append(
+                    finding(
+                        path,
+                        f"Profile {profile!r} requires this {expected_role!r} "
+                        "starter component to be registered.",
+                    )
+                )
+            elif actual_role != expected_role:
+                failures.append(
+                    finding(
+                        path,
+                        f"Profile {profile!r} requires role {expected_role!r}; "
+                        f"configured role is {actual_role!r}.",
+                    )
+                )
+            elif path not in tracked_vba:
+                failures.append(
+                    finding(
+                        path,
+                        f"Profile {profile!r} requires this registered "
+                        f"{expected_role!r} starter component to be tracked.",
+                    )
+                )
+
+    result = rule_result(
+        "generated-vba-contract",
+        "Generated-profile VBA contract",
+        failures,
+        "Resolved substantive VBA contracts for profiles: "
+        + ", ".join(selected_profiles),
+    )
+    result["evidence"] = {
+        "mode": config["mode"],
+        "selected_profile": config["profile"],
+        "profiles": profile_evidence,
+    }
+    return result
+
+
 def _public_surface(
     repo: Repository, components: dict[str, str]
 ) -> tuple[list[str], list[dict[str, object]]]:
@@ -2174,6 +2368,7 @@ CHECKS: tuple[Check, ...] = (
     check_vba_export_header,
     check_vba_structure,
     check_vba_visibility,
+    check_generated_vba_contract,
     check_vba_public_api,
 )
 
@@ -2340,14 +2535,38 @@ def _fixture_configuration() -> dict[str, object]:
             "application": {
                 "required_paths": [],
                 "required_directories": [],
+                "vba_contract": {
+                    "minimum_roles": {"internal": 1, "public": 1, "test": 1},
+                    "required_components": {
+                        "src/core/QualityCore.bas": "internal",
+                        "src/modules/Quality.bas": "public",
+                        "tests/modules/QualityTests.bas": "test",
+                    },
+                },
             },
             "library": {
                 "required_paths": [],
-                "required_directories": ["src/modules", "tests/modules"],
+                "required_directories": ["src/core", "src/modules", "tests/modules"],
+                "vba_contract": {
+                    "minimum_roles": {"internal": 1, "public": 1, "test": 1},
+                    "required_components": {
+                        "src/core/QualityCore.bas": "internal",
+                        "src/modules/Quality.bas": "public",
+                        "tests/modules/QualityTests.bas": "test",
+                    },
+                },
             },
             "ui-component": {
                 "required_paths": [],
                 "required_directories": [],
+                "vba_contract": {
+                    "minimum_roles": {"internal": 1, "public": 1, "test": 1},
+                    "required_components": {
+                        "src/core/QualityCore.bas": "internal",
+                        "src/modules/Quality.bas": "public",
+                        "tests/modules/QualityTests.bas": "test",
+                    },
+                },
             },
         },
         "allowed_office_binary_globs": [],
@@ -2395,6 +2614,7 @@ def _fixture_configuration() -> dict[str, object]:
             "source_roots": ["src"],
             "test_roots": ["tests"],
             "components": {
+                "src/core/QualityCore.bas": "internal",
                 "src/modules/Quality.bas": "public",
                 "tests/modules/QualityTests.bas": "test",
             },
@@ -2520,6 +2740,18 @@ jobs:
         "# Changelog\n\n## [Unreleased]\n\n- Fixture baseline.\n",
     )
     _write_fixture(root / "VERSION", "0.0.0\n")
+    _write_fixture(
+        root / "src/core/QualityCore.bas",
+        """Attribute VB_Name = "QualityCore"
+Option Explicit
+Option Private Module
+
+Public Function Normalize(ByVal value As String) As String
+    Normalize = value
+End Function
+""",
+        crlf=True,
+    )
     _write_fixture(
         root / "src/modules/Quality.bas",
         """Attribute VB_Name = "Quality"
@@ -2669,6 +2901,15 @@ def _degrade_vba_visibility(root: Path) -> None:
     _update_fixture_json(root, CONFIG_PATH, mutate)
 
 
+def _degrade_generated_vba_contract(root: Path) -> None:
+    def mutate(document: dict) -> None:
+        document["profiles"]["library"]["vba_contract"]["minimum_roles"][
+            "internal"
+        ] = 2
+
+    _update_fixture_json(root, CONFIG_PATH, mutate)
+
+
 def _degrade_vba_public_api(root: Path) -> None:
     _write_fixture(root / "docs/PUBLIC_API.txt", "Quality\tFunction\tMissing\n")
 
@@ -2692,6 +2933,7 @@ SELF_TEST_CASES: tuple[tuple[str, Callable[[Path], None]], ...] = (
     ("vba-export-header", _degrade_vba_export_header),
     ("vba-structure", _degrade_vba_structure),
     ("vba-visibility", _degrade_vba_visibility),
+    ("generated-vba-contract", _degrade_generated_vba_contract),
     ("vba-public-api", _degrade_vba_public_api),
 )
 

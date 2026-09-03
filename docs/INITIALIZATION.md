@@ -123,9 +123,11 @@ An applied initialization:
 - writes `.github/initialization.json`; and
 - leaves the initializer available for idempotence verification.
 
-The explanatory profile-directory files are temporary structural guidance, not
-production or test evidence. The generated-profile quality contract will become
-substantive only when governed VBA components replace them.
+Explanatory profile-directory files are structural guidance only. They never
+satisfy the generated VBA contract: every selected profile must retain the
+registered public façade, internal core, and regression module declared by its
+`vba_contract`. Profile-specific classes, forms, Ribbon XML, workbook modules,
+and examples remain optional unless the selected contract explicitly adds them.
 
 ## Manual fallback
 
@@ -165,10 +167,12 @@ python3 tools/check_repo.py --root . \
   --summary test-results/static-checks.md
 ```
 
-The initializer self-test exercises missing and unknown inputs, dry-run
-immutability, application, second-run idempotence, template-only cleanup, and a
-green generated-tree repository check for `library`, `ui-component`, and
-`application`.
+The initializer self-test exercises missing, unknown, and unused inputs; dry-run
+immutability; application; second-run idempotence; template-only cleanup; and a
+green generated tree for every profile. For each profile it also proves that a
+README-only tree and removal of the façade, core, or test module fail only the
+named `generated-vba-contract` rule, while removal of the optional example still
+passes.
 
 After initialization, configure the live repository settings that a GitHub
 template cannot inherit and preserve read-back evidence of the applied state.

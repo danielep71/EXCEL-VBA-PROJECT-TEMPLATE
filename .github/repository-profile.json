@@ -53,7 +53,19 @@
         "src/modules",
         "src/workbook",
         "tests/modules"
-      ]
+      ],
+      "vba_contract": {
+        "minimum_roles": {
+          "internal": 1,
+          "public": 1,
+          "test": 1
+        },
+        "required_components": {
+          "src/core/ProjectCore.bas": "internal",
+          "src/modules/ProjectFacade.bas": "public",
+          "tests/modules/ProjectTests.bas": "test"
+        }
+      }
     },
     "library": {
       "required_paths": [
@@ -63,7 +75,19 @@
         "src/core",
         "src/modules",
         "tests/modules"
-      ]
+      ],
+      "vba_contract": {
+        "minimum_roles": {
+          "internal": 1,
+          "public": 1,
+          "test": 1
+        },
+        "required_components": {
+          "src/core/ProjectCore.bas": "internal",
+          "src/modules/ProjectFacade.bas": "public",
+          "tests/modules/ProjectTests.bas": "test"
+        }
+      }
     },
     "ui-component": {
       "required_paths": [
@@ -74,7 +98,19 @@
         "src/core",
         "src/modules",
         "tests/modules"
-      ]
+      ],
+      "vba_contract": {
+        "minimum_roles": {
+          "internal": 1,
+          "public": 1,
+          "test": 1
+        },
+        "required_components": {
+          "src/core/ProjectCore.bas": "internal",
+          "src/modules/ProjectFacade.bas": "public",
+          "tests/modules/ProjectTests.bas": "test"
+        }
+      }
     }
   },
   "allowed_office_binary_globs": [],

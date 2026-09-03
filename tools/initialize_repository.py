@@ -552,6 +552,97 @@ def _copy_fixture(source: Path, destination: Path) -> None:
     _git(destination, "commit", "-m", "Create template fixture")
 
 
+def _quality_report(
+    root: Path,
+) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+    report_path = root.parent / f"{root.name}-quality.json"
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(root / "tools/check_repo.py"),
+                "--root",
+                str(root),
+                "--output",
+                str(report_path),
+            ],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        return completed, report
+    finally:
+        report_path.unlink(missing_ok=True)
+
+
+def _make_component_variant(
+    source: Path,
+    destination: Path,
+    remove_paths: tuple[str, ...],
+) -> None:
+    _copy_fixture(source, destination)
+    config = json.loads((destination / CONFIG_PATH).read_text(encoding="utf-8"))
+    components = config["vba"]["components"]
+    removed_roles: set[str] = set()
+    readme_path = destination / "README.md"
+    readme = readme_path.read_text(encoding="utf-8")
+    for relative in remove_paths:
+        role = components.pop(relative)
+        removed_roles.add(role)
+        path = destination / relative
+        path.unlink()
+        placeholder = path.parent / "README.md"
+        if not any(item.is_file() for item in path.parent.iterdir()):
+            placeholder.write_text(
+                "# Fixture placeholder\n\n"
+                f"Instruction-only placeholder after removing the {role} component.\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+        readme = readme.replace(
+            f"]({relative})",
+            f"]({path.parent.relative_to(destination).as_posix()}/README.md)",
+        )
+    readme_path.write_text(readme, encoding="utf-8", newline="\n")
+    if "public" in removed_roles:
+        config["vba"]["public_api_manifest"] = None
+    (destination / CONFIG_PATH).write_text(
+        json.dumps(config, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    _git(destination, "add", "--all")
+    _git(destination, "commit", "-m", "Create component-removal fixture")
+
+
+def _assert_contract_failure(root: Path, profile: str, roles: tuple[str, ...]) -> None:
+    completed, report = _quality_report(root)
+    failed = {
+        result["id"]
+        for result in report["rules"]
+        if result["status"] == "fail"
+    }
+    if completed.returncode != 1 or failed != {"generated-vba-contract"}:
+        raise AssertionError(
+            f"{profile} contract fixture failed unexpected rules {sorted(failed)}:\n"
+            f"{completed.stdout}{completed.stderr}"
+        )
+    contract = next(
+        result for result in report["rules"]
+        if result["id"] == "generated-vba-contract"
+    )
+    messages = "\n".join(item["message"] for item in contract["findings"])
+    if f"profile '{profile}'" not in messages.casefold():
+        raise AssertionError(
+            f"{profile} contract failure did not identify the selected profile."
+        )
+    for role in roles:
+        if f"'{role}'" not in messages:
+            raise AssertionError(f"{profile} contract failure did not identify role {role!r}.")
+
+
 def _assert_failure_without_change(
     root: Path,
     profile: str,
@@ -664,19 +755,70 @@ def self_test(source: Path) -> None:
                 raise AssertionError(f"{profile} retained template-only files.")
             _assert_generated_cleanup(fixture, profile)
 
-            completed = subprocess.run(
-                [sys.executable, str(fixture / "tools/check_repo.py"), "--root", str(fixture)],
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
+            completed, report = _quality_report(fixture)
             if completed.returncode != 0:
                 raise AssertionError(
                     f"{profile} generated fixture failed repository quality:\n{completed.stdout}{completed.stderr}"
                 )
-            print(f"[PASS] {profile}: missing/unknown/unused validation, dry-run, apply, idempotence, cleanup, and quality gate")
-    print(f"PASS: {len(SUPPORTED_PROFILES)} profile fixtures initialized deterministically.")
+            contract = next(
+                result for result in report["rules"]
+                if result["id"] == "generated-vba-contract"
+            )
+            evidence = contract.get("evidence", {})
+            if evidence.get("selected_profile") != profile or set(
+                evidence.get("profiles", {})
+            ) != {profile}:
+                raise AssertionError(
+                    f"{profile} quality evidence did not resolve only the selected profile."
+                )
+
+            mandatory = {
+                "src/core/ProjectCore.bas": "internal",
+                "src/modules/ProjectFacade.bas": "public",
+                "tests/modules/ProjectTests.bas": "test",
+            }
+            readme_only = base / f"{profile}-readme-only"
+            _make_component_variant(
+                fixture,
+                readme_only,
+                tuple(
+                    sorted(
+                        json.loads(
+                            (fixture / CONFIG_PATH).read_text(encoding="utf-8")
+                        )["vba"]["components"]
+                    )
+                ),
+            )
+            _assert_contract_failure(
+                readme_only,
+                profile,
+                ("internal", "public", "test"),
+            )
+            for path, role in mandatory.items():
+                missing = base / f"{profile}-missing-{role}"
+                _make_component_variant(fixture, missing, (path,))
+                _assert_contract_failure(missing, profile, (role,))
+
+            optional = base / f"{profile}-without-example"
+            _make_component_variant(
+                fixture,
+                optional,
+                ("examples/modules/ProjectExample.bas",),
+            )
+            optional_completed, optional_report = _quality_report(optional)
+            if optional_completed.returncode != 0 or optional_report["status"] != "pass":
+                raise AssertionError(
+                    f"{profile} incorrectly required the optional example component:\n"
+                    f"{optional_completed.stdout}{optional_completed.stderr}"
+                )
+            print(
+                f"[PASS] {profile}: initialization, substantive contract, README-only rejection, "
+                "mandatory-component removals, optional-component absence, and quality evidence"
+            )
+    print(
+        f"PASS: {len(SUPPORTED_PROFILES)} profile fixtures initialized; "
+        "12 mandatory/README-only removals rejected and 3 optional removals accepted."
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:

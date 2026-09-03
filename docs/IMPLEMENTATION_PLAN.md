@@ -164,7 +164,7 @@ returned `ProjectRatio(12, 4) = 3`. Hosted static checks passed 19/19 at the sam
 source SHA; all checker degradation fixtures and all three initialized-profile
 fixtures also passed.
 
-### P1-02 — Generated profiles can pass structure checks without substantive VBA
+### P1-02 — Generated profiles can pass structure checks without substantive VBA — **implemented; hosted evidence pending**
 
 **Evidence:** Profile definitions require non-empty directories, while the VBA
 component map and public API manifest may remain empty. An instructional README
@@ -186,6 +186,17 @@ is a template-level false assurance.
 **Acceptance gate:** A README-only generated profile fails for the intended
 reason; all three initialized profile fixtures pass; removing any mandatory
 starter component fails one named rule.
+
+**Implementation verdict:** PASS locally. Each profile now declares a
+machine-readable `vba_contract` with minimum `public`, `internal`, and `test`
+roles plus the exact façade, core, and regression starter paths. The new
+`generated-vba-contract` rule evaluates all profiles in template mode and only
+the selected profile in generated mode; its evidence records role minima,
+observed counts, and required paths. The checker self-test passes 20 rules. The
+initializer's three complete fixtures pass, 12 README-only or mandatory-removal
+fixtures fail only the named contract rule with profile and role diagnostics,
+and three example-removal fixtures pass. Hosted exact-SHA evidence remains the
+only open item before issue closure.
 
 ### P1-03 — Placeholder and initialization governance — closed
 
@@ -393,7 +404,7 @@ domain-specific gate is replaced by a weaker generic check.
 | ---: | --- | --- | --- | ---: |
 | 1 | Finalize placeholder schema and deterministic initializer — **complete** | P1-03 | None | 1.5–2.5 days |
 | 2 | Add neutral VBA façade/core modules, premium headers and harness — **complete** | P1-01 | Placeholder identifier policy | 2.5–4 days |
-| 3 | Enforce substantive generated-profile contracts and full-tree fixtures | P1-02 | Starter assets | 1.5–2.5 days |
+| 3 | Enforce substantive generated-profile contracts and full-tree fixtures — **implemented; hosted evidence pending** | P1-02 | Starter assets | 1.5–2.5 days |
 | 4 | Add issue forms and post-creation checklist; wire label profile selection | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
 | 5 | Add authoritative workflow validation and close checker false negatives | P1-06, P2-01–P2-07 | Stable checker/profile schema | 2–3.5 days |
 | 6 | Add release gate, fixtures and protected-tag specification | P1-05 | Static and placeholder gates | 1.5–2.5 days |
@@ -416,7 +427,7 @@ are the largest uncertainties.
 | Canonical directories | **Complete** | Profile material must now become substantive |
 | Placeholder governance | **Complete** | Classified schema, dry-run/apply initializer, manual fallback and all-profile fixtures pass |
 | Collaboration files | **In progress** | PR and labels strong; issue forms/config absent |
-| Repository-quality checker | **Strong / reopened** | Measured 19-rule pass is valid; generated-mode, authoritative YAML and identified false negatives remain |
+| Repository-quality checker | **Strong / reopened** | The 20-rule gate now enforces generated-profile VBA contracts; authoritative YAML and identified false negatives remain |
 | Release controls | **In progress** | Documentation exists; executable gate/tag policy absent |
 | Reusable VBA assets | **Complete** | Four governed exports, public API manifest, clean import/compile, 4-case/6-assertion Excel pass, and exact-SHA hosted checks evidenced |
 | Live governance | **In progress** | Merge settings/basic protection exist; required PR/check/tag policy absent |
@@ -438,7 +449,7 @@ P1 passes only when all statements below are true:
 - [x] Generated changelog and documentation contain no template-construction history.
 - [x] Neutral façade, core and test modules import and compile without editing.
 - [x] The deterministic harness passes and reports exact environment/count evidence.
-- [ ] Generated mode rejects repositories with no substantive production/test VBA.
+- [x] Generated mode rejects repositories with no substantive production/test VBA.
 - [ ] Bug, feature and documentation forms plus configuration are valid.
 - [ ] Profile/domain labels resolve from versioned repository policy.
 - [ ] YAML/workflow validation is authoritative and version-pinned.
@@ -462,7 +473,7 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Implement **P1-02** next: make substantive production and test components a
-generated-mode invariant, require the starter façade/core relationship without
-forcing unused profile-specific UI assets, and exercise removal failures plus
-complete `library`, `ui-component`, and `application` fixtures.
+Complete hosted exact-SHA evidence for **P1-02**, then implement **P1-04** and
+the issue-intake portion of **P1-07**: add validated bug, feature, and
+documentation forms plus configuration and a post-creation checklist without
+weakening the selected-profile contract.
