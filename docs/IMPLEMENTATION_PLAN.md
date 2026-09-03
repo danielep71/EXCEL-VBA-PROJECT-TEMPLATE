@@ -44,6 +44,7 @@ Completed work:
 - canonical-versus-legacy directory policy documented in `docs/REPOSITORY_STRUCTURE.md`;
 - `.github/PULL_REQUEST_TEMPLATE.md` benchmarked, standardized and installed across all eight repositories while retaining repository-specific evidence sections;
 - declarative issue-label manifest, profile/domain overlay model and idempotent synchronization workflow implemented in `GITHUB-TEMPLATE`;
+- canonical profile-driven repository-quality checker, deterministic reports, 19-rule fixture suite and required workflow implemented in `GITHUB-TEMPLATE`;
 - merge commits, squash merges and rebase merges enabled consistently;
 - auto-merge disabled consistently;
 - automatic deletion of merged branches and the **Update branch** capability enabled;
@@ -54,8 +55,7 @@ Completed work:
 Known incomplete items:
 
 - the template root `README.md` and post-creation settings checklist remain to be created;
-- placeholder governance and issue forms remain to be implemented;
-- the generic repository-quality workflow and checker remain to be built;
+- placeholder syntax/category standardization and issue forms remain to be implemented;
 - the generic release gate, reusable VBA headers, neutral modules and regression harness remain to be built;
 - a clean repository generated from the template has not yet been certified;
 - no existing repository has yet been benchmarked against a certified template release.
@@ -95,9 +95,9 @@ The evidence, scores, exclusions and rationale are frozen in `docs/PORTFOLIO_AUD
 | P1.1 Portfolio audit | **Complete** | Frozen audit is the authoritative donor decision record |
 | P1.2 Identity and documentation | **In progress** | Root `README.md` and post-creation checklist |
 | P1.3 Canonical structure | **Complete** | No retroactive renaming of existing repositories |
-| P1.4 Placeholder governance | **Not started** | Manifest, token rules and scanners |
+| P1.4 Placeholder governance | **In progress** | Scanner/catalogue exist; one syntax, optional/profile categories and documentation remain |
 | P1.5 Collaboration files | **In progress** | Issue forms and issue-template configuration; label sub-gate passes |
-| P1.6 Repository-quality gate | **Not started** | Generic checker, fixtures and workflow |
+| P1.6 Repository-quality gate | **Complete** | Live baseline remains red until the P1.2 root README blocker is resolved |
 | P1.7 Release controls | **In progress** | Documentation exists; executable release gate and fixtures do not |
 | P1.8 Reusable VBA assets | **Not started** | Neutral headers, façade/core samples and harness |
 | P1.9 Governance policy | **In progress** | Live state verified; post-creation policy not yet written |
@@ -171,12 +171,12 @@ The evidence, scores, exclusions and rationale are frozen in `docs/PORTFOLIO_AUD
 ## P1.4 Add explicit placeholder governance
 
 - [ ] Define a single placeholder syntax, for example `{{PROJECT_NAME}}` and `{{REPOSITORY_NAME}}`.
-- [ ] Maintain the allowed placeholder catalogue in one machine-readable manifest.
+- [x] Maintain the allowed placeholder catalogue in one machine-readable manifest.
 - [ ] Distinguish required, optional and profile-specific substitutions.
 - [ ] Mark optional blocks using consistent template comments.
 - [ ] Prohibit placeholders inside VBA identifiers when they would make modules uncompilable.
-- [ ] Add a scanner that fails when unresolved required placeholders remain after initialization.
-- [ ] Add a donor-identity scan covering repository names, URLs, badges, module prefixes and release versions.
+- [x] Add a scanner that fails when unresolved required placeholders remain after initialization.
+- [x] Add a donor-identity scan covering repository names, URLs, badges, module prefixes and release versions.
 
 Suggested required placeholders:
 
@@ -207,9 +207,9 @@ Suggested required placeholders:
 
 ## P1.6 Build the generic repository-quality gate
 
-- [ ] Merge the strongest generic checks from KPR and `VBA-EXCEL_UI` into `tools/check_repo.py`.
-- [ ] Drive required files and profile differences through a configuration file rather than hard-coded donor assumptions.
-- [ ] Check at minimum:
+- [x] Merge the strongest generic checks from KPR and `VBA-EXCEL_UI` into `tools/check_repo.py`.
+- [x] Drive required files and profile differences through a configuration file rather than hard-coded donor assumptions.
+- [x] Check at minimum:
   - required files and directories;
   - unresolved placeholders;
   - donor identity leakage;
@@ -220,11 +220,13 @@ Suggested required placeholders:
   - VBA file encoding, exported-name consistency and required headers;
   - absence of prohibited generated, temporary or credential files;
   - workflow syntax and action pinning policy.
-- [ ] Add `.github/workflows/repository-quality.yml` for pushes and pull requests.
-- [ ] Keep domain-specific checks outside the generic gate.
-- [ ] Produce both readable console output and a machine-readable report.
+- [x] Add `.github/workflows/repository-quality.yml` for pushes and pull requests.
+- [x] Keep domain-specific checks outside the generic gate.
+- [x] Produce both readable console output and a machine-readable report.
 
 **Acceptance gate:** Positive fixtures pass, negative fixtures fail for the intended reason, and two consecutive runs on the same tree are byte-for-byte equivalent apart from timestamps explicitly excluded from comparison.
+
+**P1.6 verdict: PASS.** The dependency-free gate executes 19 named rules. One positive fixture and 19 rule-specific degraded fixtures pass their expected outcomes; repeated JSON and Markdown reports are byte-for-byte identical; and before/after tree hashes prove read-only execution. The current construction tree separately reports three broken links to the not-yet-created root `README.md`, preserving that P1.2 blocker instead of weakening link validation.
 
 ## P1.7 Add release controls
 

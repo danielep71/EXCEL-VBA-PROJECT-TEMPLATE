@@ -104,7 +104,8 @@ messages. Replace all bracketed placeholders before publishing.
 
 ### Added
 
-- [NEW CAPABILITY OR SUPPORTED SURFACE.]
+- Added a profile-driven, dependency-free repository-quality gate with
+  deterministic JSON and Markdown evidence plus positive and degraded self-tests.
 
 ### Changed
 
