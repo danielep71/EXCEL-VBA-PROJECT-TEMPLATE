@@ -184,10 +184,9 @@ it.
 
 ## 🔑 Security reports
 
-Suspected vulnerabilities must be reported privately to the maintainer
-using the contact method below. Do not publish exploit details, credentials,
-private keys, or a working proof of concept in a public issue before coordinated
-remediation.
+Suspected vulnerabilities must follow [SECURITY.md](SECURITY.md). Do not
+publish exploit details, credentials, private keys, or a working proof of
+concept in a public issue before coordinated remediation.
 
 The Code of Conduct reporting channel is for participant behavior. A security
 report concerns software risk. If an incident involves both, use the private
