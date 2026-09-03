@@ -41,6 +41,22 @@ execute Excel, compile a VBA project, prove numerical accuracy, exercise UI
 state, or certify a release package. Profile and project gates retain those
 responsibilities.
 
+## Canonical repository initializer
+
+`initialize_repository.py` converts a clean generated repository from template
+mode to one explicit profile. It validates the complete substitution set,
+defaults to a deterministic dry-run, applies only with `--apply`, removes
+non-applicable/template-only content, resets inherited changelog history, and
+supports an idempotent second run.
+
+See [`docs/INITIALIZATION.md`](../docs/INITIALIZATION.md) for the token catalogue,
+profile commands, optional and repeatable values, and the transparent manual
+fallback. Exercise all three profile fixtures with:
+
+```bash
+python3 tools/initialize_repository.py --root . --self-test
+```
+
 ## Rules
 
 - Tools must fail clearly and return a non-zero status for a blocking result.

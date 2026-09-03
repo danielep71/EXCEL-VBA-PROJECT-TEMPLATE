@@ -2,7 +2,7 @@
 
 # 📦 Installation and Upgrade Guide
 
-### Install, validate, upgrade, troubleshoot, and remove [PROJECT_NAME]
+### Install, validate, upgrade, troubleshoot, and remove {{PROJECT_NAME}}
 
 [![Deployment](https://img.shields.io/badge/Deployment-Source--first-0969da?style=flat-square)](#deployment-model)
 [![Validation](https://img.shields.io/badge/Validation-Required-d97706?style=flat-square)](#validation)
@@ -19,7 +19,7 @@
 ---
 
 This guide covers installation, validation, upgrade, recovery, and removal of
-**[PROJECT_NAME]**.
+**{{PROJECT_NAME}}**.
 
 > [!IMPORTANT]
 > VBA source can execute with the user's Office permissions. Review the exact
@@ -32,12 +32,12 @@ This guide covers installation, validation, upgrade, recovery, and removal of
 
 | Item | Requirement |
 |---|---|
-| Host | [SUPPORTED EXCEL / OFFICE HOSTS] |
-| Office bitness | [SUPPORTED OFFICE BITNESS] |
+| Host | State every supported and tested Excel/Office version |
+| Office bitness | State each supported and tested bitness |
 | Version identity | Root `VERSION` file and the selected tag/commit |
 | Source policy | Exported repository source is authoritative |
 | Licence | MIT |
-| Current deployment status | Template — replace every bracketed field before publication. |
+| Current deployment status | Initialized {{PROFILE_NAME}} profile; document the actual package model before release |
 
 Compatibility claims apply only to environments actually certified for the
 selected release. Read [README.md](README.md), [CHANGELOG.md](CHANGELOG.md), and
@@ -67,13 +67,13 @@ or copied workbooks.
 
 | Order | Repository source | VBE component | Responsibility |
 |---:|---|---|---|
-| [IMPORT ORDER] | [REPOSITORY PATH] | [VBE COMPONENT] | [RESPONSIBILITY] |
+| Define dependency order | Tracked path under `src/` | Exported component name | Public, internal, UI, or host responsibility |
 
 Optional material is not part of the normal runtime unless stated otherwise:
 
 | Source | Purpose |
 |---|---|
-| [OPTIONAL PATH] | [TEST / DEMO / RIBBON / TOOLING PURPOSE] |
+| Tracked optional path | Test, demo, Ribbon, resource, or tooling purpose |
 
 > [!CAUTION]
 > A `.frm` and its `.frx` companion are one logical component. Keep them in
@@ -84,11 +84,11 @@ Optional material is not part of the normal runtime unless stated otherwise:
 
 ## 🚀 Fresh installation
 
-1. [BACK UP THE DESTINATION HOST.]
-2. [IMPORT EVERY REQUIRED SOURCE COMPONENT IN DEPENDENCY ORDER.]
-3. [CONFIGURE REQUIRED REFERENCES, CALLBACKS, OR WORKBOOK LIFECYCLE CODE.]
+1. Back up the destination host and user data.
+2. Import every required source component in the documented dependency order.
+3. Configure only the documented references, callbacks, and workbook lifecycle code.
 4. Compile the complete VBA project.
-5. [RUN THE CONSUMER SMOKE TESTS.]
+5. Run the documented consumer smoke and cleanup tests.
 
 ### VBE import procedure
 
@@ -113,9 +113,9 @@ are part of a reproducible source installation.
 
 A successful import is not sufficient evidence that the installation is correct.
 
-- [STARTUP OR PUBLIC-API SMOKE TEST.]
-- [ERROR AND CLEANUP TEST.]
-- [PLATFORM / BITNESS / UI / NUMERICAL TEST AS APPLICABLE.]
+- Run the documented startup or public-API smoke test.
+- Exercise one expected-error path and verify cleanup.
+- Run every applicable platform, bitness, UI, lifecycle, or numerical check.
 
 ### Minimum installation evidence
 
@@ -185,7 +185,7 @@ Report suspected vulnerabilities privately under [SECURITY.md](SECURITY.md).
 
 ## 🗑️ Removal
 
-1. [RUN THE PROJECT-SPECIFIC CLEANUP OR RESTORE PROCEDURE.]
+1. Run the documented project-specific cleanup or restore procedure.
 2. Remove all production components and optional integrations.
 3. Compile the remaining VBA project and reopen the host for a clean-session check.
 

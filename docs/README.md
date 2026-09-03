@@ -16,8 +16,11 @@ Keep portfolio governance files at the repository root: `README.md`, `CHANGELOG.
 
 | Document | Purpose |
 | --- | --- |
+| [`INITIALIZATION.md`](INITIALIZATION.md) | Canonical token schema, profile selection, dry-run/apply procedure, and manual fallback |
 | [`REPOSITORY_STRUCTURE.md`](REPOSITORY_STRUCTURE.md) | Canonical directory ownership and permitted profile alternatives |
+<!-- template:remove:start -->
 | [`PORTFOLIO_AUDIT.md`](PORTFOLIO_AUDIT.md) | Evidence used to design this portfolio template; remove it from a generated project unless that project deliberately maintains the portfolio audit |
+<!-- template:remove:end -->
 
 Do not duplicate the same contract in the root README, Wiki, and `docs/`. Choose one authoritative location and link to it. A Wiki may provide navigation or extended guidance, but versioned behavior belongs in the repository.
 

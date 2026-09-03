@@ -2,7 +2,7 @@
 
 # 📜 Changelog
 
-### Release history for [PROJECT_NAME]
+### Release history for {{PROJECT_NAME}}
 
 [![Format](https://img.shields.io/badge/Format-Keep_a_Changelog-0969da?style=flat-square)](https://keepachangelog.com/en/1.1.0/)
 [![Versioning](https://img.shields.io/badge/Versioning-SemVer-6f42c1?style=flat-square)](https://semver.org/spec/v2.0.0.html)
@@ -18,14 +18,16 @@
 
 ---
 
-All notable changes to **[PROJECT_NAME]** are documented here.
+All notable changes to **{{PROJECT_NAME}}** are documented here.
 
 This changelog follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). It records
 released behavior and material unreleased changes; it is not a commit log, issue
 tracker, or substitute for release evidence.
 
-[DEFINE THE VERSIONED PUBLIC SURFACE: API, behavior, defaults, errors, data formats, compatibility, and supported environments.]
+Define the versioned public surface—API, behavior, defaults, errors, data
+formats, compatibility, and supported environments—in maintained project
+documentation before the first functional release.
 
 ---
 
@@ -99,11 +101,14 @@ Use only the categories needed by a release.
 
 <!--
 Keep only categories that contain entries. Write observable outcomes, not commit
-messages. Replace all bracketed placeholders before publishing.
+messages. Replace every registered template token before publishing.
 -->
 
 ### Added
 
+- Added a classified double-brace token schema and deterministic,
+  dry-run-first repository initializer with atomic validation and all-profile
+  fixtures.
 - Added a profile-driven, dependency-free repository-quality gate with
   deterministic JSON and Markdown evidence plus positive and degraded self-tests.
 - Added the canonical root README with profile selection, generated-repository
@@ -120,26 +125,6 @@ messages. Replace all bracketed placeholders before publishing.
 - Upgraded the canonical static-check workflow with bounded execution,
   non-persistent checkout credentials, deterministic JSON and Markdown
   artifacts, rerun-safe evidence names and an explicit terminal verdict.
-
-### Fixed
-
-- [CORRECTED DEFECT AND USER-VISIBLE EFFECT.]
-
-### Security
-
-- [SAFELY DISCLOSABLE SECURITY CORRECTION.]
-
-### Validation
-
-- [EVIDENCE ACTUALLY PRODUCED, INCLUDING ENVIRONMENT AND LIMITATIONS.]
-
-### Compatibility
-
-- [UPGRADE OR MIGRATION IMPACT.]
-
-### Known limitations
-
-- [UNRESOLVED OR DELIBERATE BOUNDARY.]
 
 ---
 

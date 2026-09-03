@@ -1,4 +1,4 @@
-# 🚀 [PROJECT_NAME] Release Guide
+# 🚀 {{PROJECT_NAME}} Release Guide
 
 [![Release model: exact source](https://img.shields.io/badge/release-exact%20source-0969da)](#release-invariants)
 [![Versioning: SemVer](https://img.shields.io/badge/versioning-SemVer-3f4551)](#versioning)
@@ -6,19 +6,20 @@
 [![Security policy](https://img.shields.io/badge/security-policy-success)](SECURITY.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-This maintainer guide turns a reviewed commit into a traceable [PROJECT_NAME] release. Source identity, validation, packaging, provenance, and publication must describe the same candidate.
+This maintainer guide turns a reviewed commit into a traceable {{PROJECT_NAME}} release. Source identity, validation, packaging, provenance, and publication must describe the same candidate.
 
 > [!IMPORTANT]
-> Replace every square-bracket placeholder before the first release. Never publish the example commands or artifact names unchanged.
+> Release only an initialized project. Never publish example commands, artifact
+> names, inherited evidence, or unresolved template tokens.
 
 ## 🧭 Release profile
 
 | Property | Requirement |
 | --- | --- |
-| Project maturity | Template |
+| Project maturity | Initialized {{PROFILE_NAME}} project |
 | Version source | [VERSION](VERSION) |
 | Version scheme | Semantic Versioning |
-| Tag format | Lower-case `v[MAJOR].[MINOR].[PATCH]` matching `VERSION` |
+| Tag format | Lower-case `vMAJOR.MINOR.PATCH` matching `VERSION` |
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |
 | Installation contract | [INSTALLATION.md](INSTALLATION.md) |
 | Vulnerability handling | [SECURITY.md](SECURITY.md) |
@@ -103,7 +104,7 @@ Update every applicable surface in one reviewable change:
 
 - `VERSION`
 - `CHANGELOG.md`
-- [VERSIONED SOURCE FILES]
+- authoritative exported source files and component manifests
 - README installation examples
 - package metadata, if any
 
@@ -111,7 +112,8 @@ Search for the prior version and retain only intentional historical references. 
 
 ## 3. Finalize the changelog
 
-Move relevant entries from **Unreleased** into a dated `[MAJOR.MINOR.PATCH] - YYYY-MM-DD` section.
+Move relevant entries from **Unreleased** into a dated
+`[MAJOR.MINOR.PATCH] - YYYY-MM-DD` section.
 
 - Describe user-visible behavior, not commit mechanics.
 - Use Added, Changed, Deprecated, Removed, Fixed, and Security where applicable.
@@ -130,7 +132,7 @@ Move relevant entries from **Unreleased** into a dated `[MAJOR.MINOR.PATCH] - YY
 
 ## 5. Run static gates
 
-- Run `[STATIC CHECK COMMAND]`.
+- Run `python3 tools/check_repo.py --root .` and every project-specific gate.
 - Confirm formatting and exported-source integrity.
 - Scan for credentials, private data, generated noise, and unresolved placeholders.
 
@@ -140,8 +142,8 @@ Capture commands, tool versions, timestamps, and complete results. Rerun affecte
 
 - Open the exact candidate in each supported Excel environment.
 - Run **Debug → Compile VBAProject**.
-- Run `[EXCEL REGRESSION ENTRY POINT]` and record the result.
-- Exercise `[REQUIRED UI OR MANUAL SMOKE TESTS]`.
+- Run the documented Excel regression entry point and record the result.
+- Exercise every required UI, lifecycle, platform, or manual smoke test.
 
 Certification rules:
 
@@ -154,11 +156,8 @@ Certification rules:
 
 ## 7. Build release artifacts
 
-Planned outputs:
-
-- [PRIMARY ARTIFACT — for example, PROJECT.xlam]
-- [DEMO ARTIFACT — if supported]
-- [SOURCE ARCHIVE — if deliberately published]
+List the exact planned primary, demo, and source artifacts before building.
+Source-only library releases do not need an artificial binary asset.
 
 For each artifact:
 
@@ -202,9 +201,10 @@ Tag only the certified commit on `main`.
 git switch main
 git pull --ff-only
 git rev-parse HEAD
-git tag -a v[MAJOR].[MINOR].[PATCH] -m "[PROJECT_NAME] [MAJOR].[MINOR].[PATCH]"
-git show --no-patch --decorate v[MAJOR].[MINOR].[PATCH]
-git push origin v[MAJOR].[MINOR].[PATCH]
+release_version="$(tr -d '\r\n' < VERSION)"
+git tag -a "v${release_version}" -m "{{PROJECT_NAME}} ${release_version}"
+git show --no-patch --decorate "v${release_version}"
+git push origin "v${release_version}"
 ```
 
 Before pushing, confirm the tag equals `VERSION`, targets the certified commit, and has a matching dated changelog section. Never delete and recreate a public tag to hide a mistake.

@@ -44,6 +44,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Exercise all repository-initialization profiles
+        id: initializer-self-test
+        continue-on-error: true
+        run: python3 tools/initialize_repository.py --root . --self-test
+
       - name: Exercise positive and degraded checker paths
         id: self-test
         continue-on-error: true
@@ -89,12 +94,17 @@ jobs:
       - name: Enforce self-test and repository results
         if: always()
         env:
+          INITIALIZER_SELF_TEST_OUTCOME: ${{ steps.initializer-self-test.outcome }}
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
           ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
         run: |
           failed=0
+          if [[ "$INITIALIZER_SELF_TEST_OUTCOME" != "success" ]]; then
+            echo "::error::Initializer self-test outcome: $INITIALIZER_SELF_TEST_OUTCOME"
+            failed=1
+          fi
           if [[ "$SELF_TEST_OUTCOME" != "success" ]]; then
             echo "::error::Checker self-test outcome: $SELF_TEST_OUTCOME"
             failed=1

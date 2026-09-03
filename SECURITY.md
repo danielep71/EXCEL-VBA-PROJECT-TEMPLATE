@@ -1,15 +1,17 @@
+<!-- template:remove:start -->
 <!--
 TEMPLATE INSTRUCTIONS
-- Replace [PROJECT_NAME], [PROJECT_TAGLINE], and every bracketed project-specific item.
+- Initialize every registered token before publishing.
 - Review the supported-version policy before the first public release.
 - Keep the private reporting, disclosure, safe-harbor, and secret-handling sections.
 - Remove these instructions and all remaining placeholders before release.
 -->
+<!-- template:remove:end -->
 <div align="center">
 
-# 🔒 [PROJECT_NAME] Security Policy
+# 🔒 {{PROJECT_NAME}} Security Policy
 
-### [PROJECT_TAGLINE]
+### {{PROJECT_TAGLINE}}
 
 [![Reporting](https://img.shields.io/badge/Reporting-Private-d97706?style=for-the-badge)](#reporting-a-vulnerability)
 [![Support](https://img.shields.io/badge/Support-Latest_release-217346?style=for-the-badge)](#supported-versions)
@@ -24,7 +26,7 @@ TEMPLATE INSTRUCTIONS
 
 ---
 
-**[PROJECT_NAME]** is an open-source Excel/VBA project. This canonical policy provides a reusable security baseline that must be completed with the generated project's real trust boundaries and risk surfaces.
+**{{PROJECT_NAME}}** is an open-source Excel/VBA project. This canonical policy provides a reusable security baseline that must be completed with the generated project's real trust boundaries and risk surfaces.
 
 This policy explains which versions receive security attention, how to report a
 suspected vulnerability privately, what the project considers security-relevant,
@@ -94,8 +96,8 @@ Use either private channel:
 
 1. On the repository **Security** page, select **Report a vulnerability** when
    GitHub private vulnerability reporting is available.
-2. Otherwise email **danielep71@gmail.com** with the subject:
-   **Private security report — [PROJECT_NAME]**.
+2. Otherwise use **{{SUPPORT_CONTACT}}** and identify the report as:
+   **Private security report — {{PROJECT_NAME}}**.
 
 Include the smallest amount of information needed to reproduce and assess the
 issue:
@@ -109,8 +111,8 @@ issue:
 | 🧨 **Exploitability** | Preconditions, required trust, user interaction, affected scope, and persistence |
 | 🛡️ **Mitigation** | Workaround or containment already tested, if any |
 | 📎 **Evidence** | Sanitized logs, diagnostics, screenshots, hashes, or proof of concept |
-| 📋 **[Project context]** | [Add the project-specific inputs, interfaces, trust boundaries, and affected state] |
-| 🧭 **[Security state]** | [Add the diagnostics, permissions, configuration, or lifecycle state needed for triage] |
+| 📋 **Project context** | Project-specific inputs, interfaces, trust boundaries, and affected state |
+| 🧭 **Security state** | Diagnostics, permissions, configuration, or lifecycle state needed for triage |
 
 Do not send real client, employer, counterparty, student, production, or personal
 workbooks. Remove credentials, tokens, personal data, internal paths,
@@ -312,7 +314,7 @@ Users should:
 - preserve organization-approved macro security and deployment controls;
 - obtain code and artifacts only from official channels and establish provenance;
 - test with synthetic data in a controlled environment before production use; and
-- remove every bracketed placeholder before the first public release.
+- verify that no registered template token remains before the first public release.
 
 No numerical, statistical, pricing, timing, or UI result from this project is by
 itself an authentication, authorization, access-control, cryptographic,
@@ -387,6 +389,6 @@ Conduct for participant behavior and this policy for software risk.
 
 <br>
 
-Maintained by **Daniele Penza**
+Maintained by **{{MAINTAINER_NAME}}**
 
 </div>

@@ -1,15 +1,16 @@
+<!-- template:remove:start -->
 <!--
 TEMPLATE INSTRUCTIONS
-- Replace [PROJECT_NAME] and [PROJECT_TAGLINE].
-- Replace the three bracketed project-specific evidence rows.
+- Initialize every registered token before publishing.
 - Keep the shared conduct, reporting, enforcement, confidentiality, and
   attribution sections unless project governance requires a deliberate change.
 -->
+<!-- template:remove:end -->
 <div align="center">
 
-# 🧭 [PROJECT_NAME] Code of Conduct
+# 🧭 {{PROJECT_NAME}} Code of Conduct
 
-### [PROJECT_TAGLINE]
+### {{PROJECT_TAGLINE}}
 
 [![Applies to](https://img.shields.io/badge/Applies_to-Everyone-217346?style=for-the-badge)](#scope)
 [![Spaces](https://img.shields.io/badge/Spaces-Code_%7C_Issues_%7C_PRs-0969da?style=for-the-badge)](#scope)
@@ -24,7 +25,7 @@ TEMPLATE INSTRUCTIONS
 
 ---
 
-**[PROJECT_NAME]** is an open-source Excel/VBA project. This canonical policy combines a stable community standard with reusable expectations for evidence-led technical collaboration.
+**{{PROJECT_NAME}}** is an open-source Excel/VBA project. This canonical policy combines a stable community standard with reusable expectations for evidence-led technical collaboration.
 
 Technical rigor and respectful interaction are complementary requirements.
 Neither excuses the absence of the other.
@@ -219,7 +220,7 @@ project-related forum, or moderating a project discussion.
 
 Report unacceptable behavior **privately** to the maintainer:
 
-**danielep71@gmail.com**
+**{{SUPPORT_CONTACT}}**
 
 Do not publish sensitive personal information in a public issue.
 
@@ -341,6 +342,6 @@ this repository.
 
 <br>
 
-Maintained by **Daniele Penza**
+Maintained by **{{MAINTAINER_NAME}}**
 
 </div>

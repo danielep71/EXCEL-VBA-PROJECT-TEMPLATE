@@ -174,7 +174,7 @@ is a template-level false assurance.
 reason; all three initialized profile fixtures pass; removing any mandatory
 starter component fails one named rule.
 
-### P1-03 — Placeholder and initialization governance is incomplete
+### P1-03 — Placeholder and initialization governance — closed
 
 **Evidence:** The catalogue contains 45 square-bracket tokens used 108 times in
 eight files, but only two tokens are classified as required. Required, optional,
@@ -202,6 +202,15 @@ history even when the operator follows the prose guide.
 **Acceptance gate:** Each profile can be initialized from a clean template tree
 with one documented command; a second run is idempotent; no token, template
 identity, construction changelog entry or irrelevant profile block remains.
+
+**Verdict: PASS.** The repository now uses one classified 14-token double-brace
+schema. `tools/initialize_repository.py` validates missing, unknown, duplicated,
+category-incompatible and unused inputs before mutation; defaults to a
+content-digested dry-run; applies one explicit profile with rollback; removes
+optional, repeatable, non-selected-profile and template-only content; resets the
+generated changelog; records initialization; and accepts an identical second
+run as a no-op. Its self-test exercises positive and negative fixtures for all
+three profiles and runs the repository-quality gate over each generated tree.
 
 ### P1-04 — Structured issue intake is missing
 
@@ -369,7 +378,7 @@ domain-specific gate is replaced by a weaker generic check.
 
 | Sequence | Work package | Findings closed | Dependency | Estimated effort |
 | ---: | --- | --- | --- | ---: |
-| 1 | Finalize placeholder schema and deterministic initializer | P1-03 | None | 1.5–2.5 days |
+| 1 | Finalize placeholder schema and deterministic initializer — **complete** | P1-03 | None | 1.5–2.5 days |
 | 2 | Add neutral VBA façade/core modules, premium headers and harness | P1-01 | Placeholder identifier policy | 2.5–4 days |
 | 3 | Enforce substantive generated-profile contracts and full-tree fixtures | P1-02 | Starter assets | 1.5–2.5 days |
 | 4 | Add issue forms and post-creation checklist; wire label profile selection | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
@@ -392,7 +401,7 @@ are the largest uncertainties.
 | Portfolio audit and donor decisions | **Complete** | Frozen decision record remains authoritative |
 | Root documentation | **Strong / incomplete** | Core documents and README exist; post-creation checklist and deduplication remain |
 | Canonical directories | **Complete** | Profile material must now become substantive |
-| Placeholder governance | **In progress** | Catalogue/scanner exist; schema categories and initializer do not |
+| Placeholder governance | **Complete** | Classified schema, dry-run/apply initializer, manual fallback and all-profile fixtures pass |
 | Collaboration files | **In progress** | PR and labels strong; issue forms/config absent |
 | Repository-quality checker | **Strong / reopened** | Measured 19-rule pass is valid; generated-mode, authoritative YAML and identified false negatives remain |
 | Release controls | **In progress** | Documentation exists; executable gate/tag policy absent |
@@ -411,9 +420,9 @@ synthetic rule fixtures did not claim to provide.
 
 P1 passes only when all statements below are true:
 
-- [ ] One token grammar and category schema governs every reusable placeholder.
-- [ ] The initializer is dry-run-first, atomic and idempotent for all profiles.
-- [ ] Generated changelog and documentation contain no template-construction history.
+- [x] One token grammar and category schema governs every reusable placeholder.
+- [x] The initializer is dry-run-first, atomic and idempotent for all profiles.
+- [x] Generated changelog and documentation contain no template-construction history.
 - [ ] Neutral façade, core and test modules import and compile without editing.
 - [ ] The deterministic harness passes and reports exact environment/count evidence.
 - [ ] Generated mode rejects repositories with no substantive production/test VBA.
@@ -440,8 +449,6 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Implement **P1-03 first**: replace the broad square-bracket vocabulary with one
-classified token schema and add the dry-run-first initializer, including profile
-selection, optional-block removal and changelog reset. This contract must be
-stable before adding VBA modules, issue forms and release fixtures that would
-otherwise introduce another generation of placeholders.
+Implement **P1-01 next**: add the neutral public façade, internal/core module,
+premium reusable headers and deterministic regression harness. Keep identifiers
+fixed and compile-safe under the placeholder policy established by P1-03.

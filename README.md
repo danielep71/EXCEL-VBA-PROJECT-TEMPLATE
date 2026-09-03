@@ -1,29 +1,28 @@
 <div align="center">
 
-# ⚡ [PROJECT_NAME]
+# ⚡ {{PROJECT_NAME}}
 
-### [PROJECT_TAGLINE]
+### {{PROJECT_TAGLINE}}
 
-**[ONE-SENTENCE PROJECT PURPOSE]**
+**{{PROJECT_DESCRIPTION}}**
 
 <br>
 
 [![Excel VBA](https://img.shields.io/badge/Excel_VBA-source--first-217346?style=for-the-badge&logo=microsoft-excel&logoColor=white)](#requirements)
-[![Profile](https://img.shields.io/badge/Profile-select_one-6f42c1?style=for-the-badge)](#supported-profiles)
-[![Status](https://img.shields.io/badge/Status-template-d97706?style=for-the-badge)](#project-status)
+[![Profile](https://img.shields.io/badge/Profile-see_contract-6f42c1?style=for-the-badge)](#supported-profiles)
 [![Version](https://img.shields.io/badge/Version-VERSION_file-0969da?style=for-the-badge)](VERSION)
 [![License](https://img.shields.io/badge/License-MIT-2ea44f?style=for-the-badge)](LICENSE)
 
 <br>
 
-[![Static checks](https://github.com/[REPOSITORY PATH]/actions/workflows/static-checks.yml/badge.svg?branch=main)](https://github.com/[REPOSITORY PATH]/actions/workflows/static-checks.yml)
-[![Release](https://img.shields.io/github/v/release/[REPOSITORY PATH]?style=flat-square&label=release&color=217346)](https://github.com/[REPOSITORY PATH]/releases)
-[![Issues](https://img.shields.io/github/issues/[REPOSITORY PATH]?style=flat-square&color=d73a49)](https://github.com/[REPOSITORY PATH]/issues)
-[![Last commit](https://img.shields.io/github/last-commit/[REPOSITORY PATH]?style=flat-square&color=0969da)](https://github.com/[REPOSITORY PATH]/commits/main)
+[![Static checks](https://github.com/{{REPOSITORY_PATH}}/actions/workflows/static-checks.yml/badge.svg?branch=main)](https://github.com/{{REPOSITORY_PATH}}/actions/workflows/static-checks.yml)
+[![Release](https://img.shields.io/github/v/release/{{REPOSITORY_PATH}}?style=flat-square&label=release&color=217346)](https://github.com/{{REPOSITORY_PATH}}/releases)
+[![Issues](https://img.shields.io/github/issues/{{REPOSITORY_PATH}}?style=flat-square&color=d73a49)](https://github.com/{{REPOSITORY_PATH}}/issues)
+[![Last commit](https://img.shields.io/github/last-commit/{{REPOSITORY_PATH}}?style=flat-square&color=0969da)](https://github.com/{{REPOSITORY_PATH}}/commits/main)
 
 <br>
 
-**[PUBLIC API OR USER SURFACE] · [INTERNAL OR CORE ENGINE] · [TEST OR EVIDENCE SYSTEM]**
+**Source-first VBA · Explicit contracts · Deterministic evidence**
 
 [Overview](#what-this-project-is)
 &nbsp;·&nbsp;
@@ -45,29 +44,28 @@
 
 ---
 
-<!-- TEMPLATE OPTIONAL: Replace [OPTIONAL PATH] with a tracked banner image and
-     remove this comment, or delete the complete block.
+<!-- template:optional:SOCIAL_PREVIEW_PATH:start -->
 <p align="center">
-  <img src="[OPTIONAL PATH]"
-       alt="[PROJECT_NAME] — [PROJECT_TAGLINE]"
+  <img src="{{SOCIAL_PREVIEW_PATH}}"
+       alt="{{PROJECT_NAME}} — {{PROJECT_TAGLINE}}"
        width="100%">
 </p>
 
 ---
--->
+<!-- template:optional:SOCIAL_PREVIEW_PATH:end -->
 
+<!-- template:remove:start -->
 > [!IMPORTANT]
 > This repository is still in template mode. Before publishing or developing a
-> generated project, select one profile, replace every registered placeholder,
-> remove the remaining GITHUB-TEMPLATE identity text, and run the complete
-> quality sequence. A green static gate does not constitute Excel execution or
-> release certification.
+> generated project, run the dry-run-first initializer described below. A green
+> static gate does not constitute Excel execution or release certification.
+<!-- template:remove:end -->
 
 <a id="what-this-project-is"></a>
 
 ## ✨ What this project is
 
-[PROJECT_NAME] is an exported-source-first Excel/VBA project designed around
+{{PROJECT_NAME}} is an exported-source-first Excel/VBA project designed around
 reviewable source, explicit contracts, deterministic checks and evidence bound
 to an exact commit.
 
@@ -108,90 +106,84 @@ profile.
 
 | Item | Current value |
 | --- | --- |
-| Lifecycle | Template — initialize before project use |
+| Lifecycle | Initialized source project |
 | Version source | [VERSION](VERSION) |
-| Repository profile | Select exactly one supported profile |
+| Repository profile | {{PROFILE_NAME}} |
 | Static integrity | [Static repository checks](.github/workflows/static-checks.yml) |
 | Excel/VBA execution | Project-specific evidence required |
-| Release state | No generated project is certified by the template itself |
+| Release state | Unreleased until the release gate and profile evidence pass |
 
-When this README belongs to a generated project, replace this table with the
-project’s actual lifecycle, supported version, evidence and release status.
-Never publish inherited test counts, compatibility claims or badges that were
-not produced for that project.
+Keep this table synchronized with the project’s actual lifecycle, supported
+version, evidence and release status. Never publish inherited test counts,
+compatibility claims or badges that were not produced for this project.
 
 <a id="quick-start"></a>
 
 # ⚡ Quick start
 
-## 1. Generate and clone the repository
+<!-- template:remove:start -->
+## Initialize the generated repository
 
 Create a new repository with **Use this template**, then clone the generated
 repository:
 
 ~~~bash
-git clone https://github.com/[REPOSITORY PATH].git
+git clone https://github.com/{{REPOSITORY_PATH}}.git
 ~~~
 
-Do not place a generated project's domain implementation in GITHUB-TEMPLATE.
-Maintain template policy separately from the repositories created from it.
+Review the deterministic dry-run, then repeat the same command with
+<code>--apply</code>:
 
-## 2. Select and configure one profile
+~~~bash
+python3 tools/initialize_repository.py --profile library \
+  --set PROJECT_NAME="Example Project" \
+  --set PROJECT_TAGLINE="A concise project identity" \
+  --set PROJECT_DESCRIPTION="One sentence describing the supported problem and audience." \
+  --set REPOSITORY_PATH="owner/repository" \
+  --set MAINTAINER_NAME="Example Maintainer" \
+  --set SUPPORT_CONTACT="security@example.com" \
+  --set COPYRIGHT_YEAR="2026"
+~~~
 
-Edit [.github/repository-profile.json](.github/repository-profile.json):
+Choose <code>library</code>, <code>ui-component</code>, or
+<code>application</code>. See
+[Initialization](docs/INITIALIZATION.md) for optional, repeatable, manual and
+failure-safe procedures.
+<!-- template:remove:end -->
 
-1. change <code>mode</code> from <code>template</code> to
-   <code>generated</code>;
-2. set <code>profile</code> to <code>library</code>,
-   <code>ui-component</code>, or <code>application</code>;
-3. replace the repository value with the generated <code>owner/name</code>;
-4. declare required files and directories;
-5. assign every governed VBA component a role; and
-6. allow an Office binary only through an exact, justified path.
+## 1. Add authoritative source and tests
 
-Configuration changes are policy changes and receive the same review as checker
-logic.
-
-## 3. Remove template identity
-
-- Replace every registered square-bracket placeholder.
-- Remove this initialization guidance when it is no longer useful.
-- Delete template-construction records that do not belong to the project,
-  especially <code>docs/PORTFOLIO_AUDIT.md</code> and
-  <code>docs/IMPLEMENTATION_PLAN.md</code>.
-- Retain only profile-relevant examples and optional sections.
-- Replace all template badges with project evidence or remove them.
-
-## 4. Add authoritative source and tests
-
-- Add [VERSIONED SOURCE FILES].
-- Import components in [IMPORT ORDER].
+- Add the authoritative exported production source.
+- Document and test the required import order.
 - Keep production components under [src/](src/).
 - Keep regression components, independent fixtures and test documentation under
   [tests/](tests/).
 - Update [.github/repository-profile.json](.github/repository-profile.json) so
   the configured component manifest matches the tracked tree.
 
-## 5. Run the local quality sequence
+## 2. Run the local quality sequence
 
 ~~~bash
 python3 tools/check_repo.py --root . --self-test
 python3 tools/check_repo.py --root . \
   --output test-results/static-checks.json \
   --summary test-results/static-checks.md
-[STATIC CHECK COMMAND]
 ~~~
 
-Then execute the applicable Excel/VBA entry point:
+<!-- template:repeatable:ADDITIONAL_TEST_COMMAND:start -->
+Run the project-specific checks as well:
 
-~~~text
-[EXCEL REGRESSION ENTRY POINT]
-[REQUIRED UI OR MANUAL SMOKE TESTS]
+~~~bash
+{{ADDITIONAL_TEST_COMMAND}}
 ~~~
+<!-- template:repeatable:ADDITIONAL_TEST_COMMAND:end -->
+
+Then compile in a supported Excel host and execute the documented regression,
+UI, lifecycle or application smoke entry point applicable to this project.
 
 Record only evidence actually produced for the exact candidate.
 
-## 6. Complete repository provisioning
+## 3. Complete repository provisioning
 
 GitHub template generation copies files, not repository settings. After
 creation:
@@ -219,6 +211,36 @@ silently combine profiles to avoid a requirement.
 
 The selected profile changes required structure and evidence. It never weakens
 documentation, security, source integrity, action pinning or release provenance.
+
+## Selected profile contract
+
+This repository is a **{{PROFILE_NAME}}**: {{PROFILE_PURPOSE}}. Its source
+contract covers {{PROFILE_SOURCE_CONTRACT}}. At minimum, retain
+{{PROFILE_EVIDENCE}}.
+
+<!-- template:profile:library:start -->
+### Library commitments
+
+Keep the callable API independent of workbook selection and UI state. Forms,
+Ribbon XML and application lifecycle code remain out of scope unless the profile
+is deliberately changed.
+<!-- template:profile:library:end -->
+
+<!-- template:profile:ui-component:start -->
+### UI-component commitments
+
+Document initialization, reentrancy, cancellation, accessibility and cleanup.
+Tests must prove restoration of every Excel or Windows resource the component
+changes.
+<!-- template:profile:ui-component:end -->
+
+<!-- template:profile:application:start -->
+### Application commitments
+
+Document startup, shutdown, configuration, data boundaries, deployment,
+upgrade and rollback. A distributable package requires provenance and
+post-package smoke evidence.
+<!-- template:profile:application:end -->
 
 <a id="architecture"></a>
 
@@ -344,7 +366,7 @@ Replace the entries below with facts from the exact candidate:
 | Static checks | Command, rule count and workflow URL |
 | VBA compilation | Host, version, build, bitness and outcome |
 | Regression | Entry point, cases, assertions, failures and cleanup |
-| Specialist checks | [EVIDENCE ACTUALLY PRODUCED, INCLUDING ENVIRONMENT AND LIMITATIONS.] |
+| Specialist checks | Record only evidence actually produced, including environment and limitations |
 | Release artifact | Name, SHA-256 digest and source relationship |
 
 > [!NOTE]
@@ -360,8 +382,8 @@ Replace this table with the environments actually supported and tested.
 
 | Item | Requirement |
 | --- | --- |
-| Excel / Office host | [SUPPORTED EXCEL / OFFICE HOSTS] |
-| Office bitness | [SUPPORTED OFFICE BITNESS] |
+| Excel / Office host | State every supported and tested host version |
+| Office bitness | State each supported and tested bitness |
 | Operating system | State every supported platform and material limitation |
 | VBA references | List required references or state that none are non-standard |
 | Deployment model | Embedded source, add-in, workbook, or another supported package |
@@ -393,6 +415,7 @@ Do not instruct users to import test modules as production dependencies.
 | [Security](SECURITY.md) | Supported versions and private vulnerability reporting |
 | [Releasing](RELEASING.md) | Versioning, certification, artifacts, provenance and recovery |
 | [Repository structure](docs/REPOSITORY_STRUCTURE.md) | Canonical directory and VBA ownership |
+| [Initialization](docs/INITIALIZATION.md) | Token schema, profile selection, dry-run/apply and manual fallback |
 | [Documentation index](docs/README.md) | Durable architecture, API and specialist contracts |
 | [Code of Conduct](CODE_OF_CONDUCT.md) | Participation expectations |
 
@@ -428,7 +451,9 @@ obtain a green result.
 
 # ⚠️ Known limitations and boundaries
 
-- [UNRESOLVED OR DELIBERATE BOUNDARY.]
+<!-- template:repeatable:KNOWN_LIMITATION:start -->
+{{KNOWN_LIMITATION}}
+<!-- template:repeatable:KNOWN_LIMITATION:end -->
 - Add every untested Excel version, Office bitness, locale, deployment mode or
   specialist scenario.
 - Distinguish unsupported behavior from behavior that is merely untested.

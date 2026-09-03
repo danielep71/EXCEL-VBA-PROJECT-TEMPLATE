@@ -31,7 +31,23 @@ CONFIG_PATH = ".github/repository-profile.json"
 LABEL_MANIFEST_PATH = ".github/labels.json"
 TOOL_NAME = "Canonical repository quality"
 SUPPORTED_PROFILES = ("application", "library", "ui-component")
+PLACEHOLDER_CATEGORIES = ("optional", "profile-specific", "repeatable", "required")
+PLACEHOLDER_NAME_PATTERN = re.compile(r"[A-Z][A-Z0-9_]*")
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
+PLACEHOLDER_PROHIBITED_SUFFIXES = {
+    ".bat",
+    ".cjs",
+    ".cmd",
+    ".js",
+    ".json",
+    ".mjs",
+    ".ps1",
+    ".py",
+    ".sh",
+    ".vbs",
+    ".yaml",
+    ".yml",
+} | VBA_SUFFIXES
 VBA_COMPONENT_NAME_LIMIT = 31
 VBA_HEADER_SCAN_LINES = 20
 
@@ -413,12 +429,18 @@ def load_configuration(
             )
 
     placeholders = document.get("placeholders")
-    placeholder_keys = {"pattern", "allowed", "required", "exclude_paths"}
+    placeholder_keys = {
+        "pattern",
+        "catalogue",
+        "block_markers",
+        "template_only_paths",
+        "exclude_paths",
+    }
     if not _same_keys(placeholders, placeholder_keys):
         failures.append(
             finding(
                 CONFIG_PATH,
-                "placeholders must contain exactly pattern, allowed, required, and exclude_paths.",
+                "placeholders must contain exactly pattern, catalogue, block_markers, template_only_paths, and exclude_paths.",
             )
         )
     else:
@@ -427,24 +449,123 @@ def load_configuration(
             failures.append(finding(CONFIG_PATH, "placeholders.pattern must be a string."))
         else:
             try:
-                re.compile(pattern)
+                compiled_placeholder_pattern = re.compile(pattern)
             except re.error as error:
                 failures.append(
                     finding(CONFIG_PATH, f"placeholders.pattern is invalid: {error}.")
                 )
-        allowed = _string_list(
-            placeholders.get("allowed"), "placeholders.allowed", failures
-        )
-        required = _string_list(
-            placeholders.get("required"), "placeholders.required", failures
-        )
-        if not set(required).issubset(allowed):
+            else:
+                if compiled_placeholder_pattern.groups != 1:
+                    failures.append(
+                        finding(
+                            CONFIG_PATH,
+                            "placeholders.pattern must contain exactly one capture group for the token name.",
+                        )
+                    )
+        catalogue = placeholders.get("catalogue")
+        categories_seen: set[str] = set()
+        if not isinstance(catalogue, dict) or not catalogue:
             failures.append(
                 finding(
                     CONFIG_PATH,
-                    "Every required placeholder must also be registered as allowed.",
+                    "placeholders.catalogue must be a non-empty object.",
                 )
             )
+        else:
+            names = list(catalogue)
+            if names != sorted(names, key=lambda item: (item.casefold(), item)):
+                failures.append(
+                    finding(
+                        CONFIG_PATH,
+                        "placeholders.catalogue keys must be sorted case-insensitively.",
+                    )
+                )
+            for name, specification in catalogue.items():
+                field = f"placeholders.catalogue.{name}"
+                if not isinstance(name, str) or not PLACEHOLDER_NAME_PATTERN.fullmatch(name):
+                    failures.append(
+                        finding(CONFIG_PATH, f"{field} is not a canonical placeholder name.")
+                    )
+                    continue
+                if not isinstance(specification, dict):
+                    failures.append(finding(CONFIG_PATH, f"{field} must be an object."))
+                    continue
+                category = specification.get("category")
+                description = specification.get("description")
+                if category not in PLACEHOLDER_CATEGORIES:
+                    failures.append(
+                        finding(
+                            CONFIG_PATH,
+                            f"{field}.category must be optional, profile-specific, repeatable, or required.",
+                        )
+                    )
+                    continue
+                categories_seen.add(category)
+                if not isinstance(description, str) or not description.strip():
+                    failures.append(
+                        finding(CONFIG_PATH, f"{field}.description must be non-empty.")
+                    )
+                expected_keys = {"category", "description"}
+                if category == "profile-specific":
+                    expected_keys.add("values")
+                    values = specification.get("values")
+                    if not isinstance(values, dict) or set(values) != set(SUPPORTED_PROFILES):
+                        failures.append(
+                            finding(
+                                CONFIG_PATH,
+                                f"{field}.values must cover exactly all supported profiles.",
+                            )
+                        )
+                    elif any(
+                        not isinstance(value, str) or not value.strip()
+                        for value in values.values()
+                    ):
+                        failures.append(
+                            finding(CONFIG_PATH, f"{field}.values must all be non-empty strings.")
+                        )
+                elif category == "repeatable":
+                    expected_keys.add("item_format")
+                    item_format = specification.get("item_format")
+                    if not isinstance(item_format, str) or item_format.count("{value}") != 1:
+                        failures.append(
+                            finding(
+                                CONFIG_PATH,
+                                f"{field}.item_format must contain one {{value}} field.",
+                            )
+                        )
+                if set(specification) != expected_keys:
+                    failures.append(
+                        finding(
+                            CONFIG_PATH,
+                            f"{field} has fields inconsistent with its category.",
+                        )
+                    )
+            missing_categories = set(PLACEHOLDER_CATEGORIES) - categories_seen
+            if missing_categories:
+                failures.append(
+                    finding(
+                        CONFIG_PATH,
+                        "placeholders.catalogue does not exercise categories: "
+                        + ", ".join(sorted(missing_categories)),
+                    )
+                )
+        block_markers = placeholders.get("block_markers")
+        expected_markers = {
+            "template_only": "template:remove",
+            "profile": "template:profile:{profile}",
+            "optional": "template:optional:{token}",
+            "repeatable": "template:repeatable:{token}",
+        }
+        if block_markers != expected_markers:
+            failures.append(
+                finding(CONFIG_PATH, "placeholders.block_markers must use the canonical marker grammar.")
+            )
+        _string_list(
+            placeholders.get("template_only_paths"),
+            "placeholders.template_only_paths",
+            failures,
+            paths=True,
+        )
         _string_list(
             placeholders.get("exclude_paths"),
             "placeholders.exclude_paths",
@@ -634,7 +755,7 @@ def check_placeholders(
     settings = config["placeholders"]
     pattern = re.compile(settings["pattern"])
     excluded = set(settings["exclude_paths"])
-    allowed = set(settings["allowed"])
+    allowed = {"{{" + name + "}}" for name in settings["catalogue"]}
     seen: set[str] = set()
     failures: list[dict[str, object]] = []
     checked = 0
@@ -654,6 +775,14 @@ def check_placeholders(
                 continue
             token = match.group(0)
             seen.add(token)
+            if PurePosixPath(path).suffix.casefold() in PLACEHOLDER_PROHIBITED_SUFFIXES:
+                failures.append(
+                    finding(
+                        path,
+                        f"Template placeholders are prohibited in executable or VBA files: {token}",
+                        line_number(text, match.start()),
+                    )
+                )
             if config["mode"] == "generated":
                 failures.append(
                     finding(
@@ -671,11 +800,9 @@ def check_placeholders(
                     )
                 )
     if config["mode"] == "template":
-        for token in settings["required"]:
+        for token in sorted(allowed):
             if token not in seen:
-                failures.append(
-                    finding(CONFIG_PATH, f"Required template placeholder is unused: {token}")
-                )
+                failures.append(finding(CONFIG_PATH, f"Registered template placeholder is unused: {token}"))
     summary = (
         f"Validated {len(seen)} registered placeholders across {checked} text files"
         if config["mode"] == "template"
@@ -2219,9 +2346,38 @@ def _fixture_configuration() -> dict[str, object]:
         },
         "allowed_office_binary_globs": [],
         "placeholders": {
-            "pattern": r"\[[A-Z][A-Z0-9_ -]*\]",
-            "allowed": [],
-            "required": [],
+            "pattern": r"\{\{([A-Z][A-Z0-9_]*)\}\}",
+            "catalogue": {
+                "OPTIONAL_NOTE": {
+                    "category": "optional",
+                    "description": "Optional fixture value.",
+                },
+                "PROFILE_NOTE": {
+                    "category": "profile-specific",
+                    "description": "Profile-specific fixture value.",
+                    "values": {
+                        "application": "Application fixture",
+                        "library": "Library fixture",
+                        "ui-component": "UI fixture",
+                    },
+                },
+                "REPEATABLE_NOTE": {
+                    "category": "repeatable",
+                    "description": "Repeatable fixture value.",
+                    "item_format": "- {value}",
+                },
+                "REQUIRED_NOTE": {
+                    "category": "required",
+                    "description": "Required fixture value.",
+                },
+            },
+            "block_markers": {
+                "template_only": "template:remove",
+                "profile": "template:profile:{profile}",
+                "optional": "template:optional:{token}",
+                "repeatable": "template:repeatable:{token}",
+            },
+            "template_only_paths": [],
             "exclude_paths": [CONFIG_PATH],
         },
         "identity": {
@@ -2412,7 +2568,7 @@ def _degrade_required_paths(root: Path) -> None:
 
 
 def _degrade_placeholders(root: Path) -> None:
-    token = "[" + "UNKNOWN_TOKEN]"
+    token = "{{" + "UNKNOWN_TOKEN}}"
     _write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
 
 

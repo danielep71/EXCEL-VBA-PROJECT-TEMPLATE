@@ -17,6 +17,7 @@
     "CHANGELOG.md",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
+    "docs/INITIALIZATION.md",
     "docs/README.md",
     "docs/REPOSITORY_STRUCTURE.md",
     "examples/README.md",
@@ -28,6 +29,7 @@
     "src/README.md",
     "tests/README.md",
     "tools/check_repo.py",
+    "tools/initialize_repository.py",
     "tools/README.md",
     "VERSION"
   ],
@@ -41,7 +43,9 @@
   ],
   "profiles": {
     "application": {
-      "required_paths": [],
+      "required_paths": [
+        ".github/initialization.json"
+      ],
       "required_directories": [
         "src/classes",
         "src/modules",
@@ -50,14 +54,18 @@
       ]
     },
     "library": {
-      "required_paths": [],
+      "required_paths": [
+        ".github/initialization.json"
+      ],
       "required_directories": [
         "src/modules",
         "tests/modules"
       ]
     },
     "ui-component": {
-      "required_paths": [],
+      "required_paths": [
+        ".github/initialization.json"
+      ],
       "required_directories": [
         "src/classes",
         "src/modules",
@@ -67,64 +75,102 @@
   },
   "allowed_office_binary_globs": [],
   "placeholders": {
-    "pattern": "\\[[A-Z][A-Z0-9_ .:/,+()&-]*\\]",
-    "allowed": [
-      "[ADD PROJECT-SPECIFIC TEST ORDER, COMMANDS, AND EVIDENCE REQUIREMENTS.]",
-      "[AUTHORITATIVE PRODUCTION SOURCE MANIFEST OR LINK]",
-      "[BACK UP THE DESTINATION HOST.]",
-      "[CHANGED BEHAVIOR, CONTRACT, TOOLING, OR DOCUMENTATION.]",
-      "[COMPLETE REGRESSION OR CERTIFICATION ENTRY POINT]",
-      "[CONFIGURE REQUIRED REFERENCES, CALLBACKS, OR WORKBOOK LIFECYCLE CODE.]",
-      "[CORRECTED DEFECT AND USER-VISIBLE EFFECT.]",
-      "[ERROR AND CLEANUP TEST.]",
-      "[EVIDENCE ACTUALLY PRODUCED, INCLUDING ENVIRONMENT AND LIMITATIONS.]",
-      "[EXCEL HOST OR UI INTEGRATION]",
-      "[EXCEL REGRESSION ENTRY POINT]",
-      "[IMPORT EVERY REQUIRED SOURCE COMPONENT IN DEPENDENCY ORDER.]",
-      "[IMPORT ORDER]",
-      "[INTERNAL OR CORE ENGINE]",
-      "[MAJOR.MINOR.PATCH]",
-      "[MAJOR]",
-      "[MINOR]",
-      "[NEW CAPABILITY OR SUPPORTED SURFACE.]",
-      "[ONE-SENTENCE PROJECT PURPOSE]",
-      "[OPTIONAL PATH]",
-      "[OPTIONAL UI OR MANUAL SMOKE ENTRY POINT]",
-      "[PATCH]",
-      "[PLATFORM / BITNESS / UI / NUMERICAL TEST AS APPLICABLE.]",
-      "[PROJECT PROFILE]",
-      "[PROJECT-SPECIFIC CHANGE TYPE]",
-      "[PROJECT-SPECIFIC HOST OR TOOL VERSION]",
-      "[PROJECT_NAME]",
-      "[PROJECT_TAGLINE]",
-      "[PUBLIC API OR USER SURFACE]",
-      "[REPOSITORY PATH]",
-      "[REQUIRED UI OR MANUAL SMOKE TESTS]",
-      "[RESPONSIBILITY]",
-      "[RUN THE CONSUMER SMOKE TESTS.]",
-      "[RUN THE PROJECT-SPECIFIC CLEANUP OR RESTORE PROCEDURE.]",
-      "[SAFELY DISCLOSABLE SECURITY CORRECTION.]",
-      "[STARTUP OR PUBLIC-API SMOKE TEST.]",
-      "[STATE THE PROJECT LICENSE BEFORE PUBLISHING THIS TEMPLATE.]",
-      "[STATIC CHECK COMMAND]",
-      "[SUPPORTED EXCEL / OFFICE HOSTS]",
-      "[SUPPORTED OFFICE BITNESS]",
-      "[TEST / DEMO / RIBBON / TOOLING PURPOSE]",
-      "[TEST OR EVIDENCE SYSTEM]",
-      "[UNRESOLVED OR DELIBERATE BOUNDARY.]",
-      "[UPGRADE OR MIGRATION IMPACT.]",
-      "[VBE COMPONENT]",
-      "[VERSIONED SOURCE FILES]",
-      "[X.Y.Z]"
-    ],
-    "required": [
-      "[PROJECT_NAME]",
-      "[PROJECT_TAGLINE]"
+    "pattern": "\\{\\{([A-Z][A-Z0-9_]*)\\}\\}",
+    "catalogue": {
+      "ADDITIONAL_TEST_COMMAND": {
+        "category": "repeatable",
+        "description": "Zero or more project-specific validation commands rendered as shell command lines.",
+        "item_format": "{value}"
+      },
+      "COPYRIGHT_YEAR": {
+        "category": "required",
+        "description": "Four-digit first-publication or current copyright year used by the MIT licence."
+      },
+      "KNOWN_LIMITATION": {
+        "category": "repeatable",
+        "description": "Zero or more honest, user-visible limitations rendered as Markdown list items.",
+        "item_format": "- {value}"
+      },
+      "MAINTAINER_NAME": {
+        "category": "required",
+        "description": "Person or organization responsible for maintained project decisions and conduct enforcement."
+      },
+      "PROFILE_EVIDENCE": {
+        "category": "profile-specific",
+        "description": "Minimum runtime evidence appropriate to the selected repository profile.",
+        "values": {
+          "application": "startup, shutdown, upgrade, recovery, packaging and end-to-end smoke evidence",
+          "library": "public API, caller-contract and focused regression evidence",
+          "ui-component": "UI state, cleanup, recovery, DPI/accessibility and lifecycle evidence"
+        }
+      },
+      "PROFILE_NAME": {
+        "category": "profile-specific",
+        "description": "Human-readable name of the selected repository profile.",
+        "values": {
+          "application": "application",
+          "library": "library",
+          "ui-component": "UI component"
+        }
+      },
+      "PROFILE_PURPOSE": {
+        "category": "profile-specific",
+        "description": "Purpose boundary associated with the selected repository profile.",
+        "values": {
+          "application": "an end-to-end workbook or add-in solution that owns deployment and lifecycle",
+          "library": "reusable callable VBA with no owned end-user shell",
+          "ui-component": "an embeddable component that owns a bounded interactive surface"
+        }
+      },
+      "PROFILE_SOURCE_CONTRACT": {
+        "category": "profile-specific",
+        "description": "Expected source layout associated with the selected repository profile.",
+        "values": {
+          "application": "modules, classes and the applicable workbook, form, Ribbon or host-lifecycle exports",
+          "library": "public facade modules plus internal/core modules, with classes only when stateful objects are part of the API",
+          "ui-component": "modules and classes, plus forms, Ribbon XML and host callbacks only when used"
+        }
+      },
+      "PROJECT_DESCRIPTION": {
+        "category": "required",
+        "description": "One sentence stating the supported problem and audience without evidence claims."
+      },
+      "PROJECT_NAME": {
+        "category": "required",
+        "description": "Human-readable project name used in documentation and release text."
+      },
+      "PROJECT_TAGLINE": {
+        "category": "required",
+        "description": "Short identity line used below the project name."
+      },
+      "REPOSITORY_PATH": {
+        "category": "required",
+        "description": "GitHub owner/name path used by clone commands, badges and repository links."
+      },
+      "SOCIAL_PREVIEW_PATH": {
+        "category": "optional",
+        "description": "Tracked repository-relative banner path; omitting it removes the complete banner block."
+      },
+      "SUPPORT_CONTACT": {
+        "category": "required",
+        "description": "Private security-reporting email address or maintained private reporting URL."
+      }
+    },
+    "block_markers": {
+      "template_only": "template:remove",
+      "profile": "template:profile:{profile}",
+      "optional": "template:optional:{token}",
+      "repeatable": "template:repeatable:{token}"
+    },
+    "template_only_paths": [
+      "docs/IMPLEMENTATION_PLAN.md",
+      "docs/PORTFOLIO_AUDIT.md"
     ],
     "exclude_paths": [
       ".editorconfig",
       ".github/repository-profile.json",
-      "tools/check_repo.py"
+      "tools/check_repo.py",
+      "tools/initialize_repository.py"
     ]
   },
   "identity": {

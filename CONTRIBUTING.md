@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🤝 Contributing to [PROJECT_NAME]
+# 🤝 Contributing to {{PROJECT_NAME}}
 
-### [ONE-SENTENCE PROJECT PURPOSE]
+### {{PROJECT_DESCRIPTION}}
 
 [![Contributions](https://img.shields.io/badge/Contributions-Welcome-2ea44f?style=flat-square)](#ways-to-contribute)
 [![Conduct](https://img.shields.io/badge/Conduct-Required-6f42c1?style=flat-square)](CODE_OF_CONDUCT.md)
@@ -29,7 +29,7 @@
 
 ---
 
-Thank you for helping improve **[PROJECT_NAME]**.
+Thank you for helping improve **{{PROJECT_NAME}}**.
 
 Contributions are welcome when they strengthen correctness, clarity,
 maintainability, compatibility, documentation, tests, or reproducibility. The
@@ -61,10 +61,8 @@ Small documentation corrections and narrowly obvious fixes may go directly to a
 focused pull request.
 
 > [!IMPORTANT]
-> Before publishing a repository from this template, replace every bracketed
-> placeholder in this file, remove non-applicable contract rows, name the real
-> validation commands, and verify every link. The published guide must describe
-> the repository as it actually works.
+> The published guide must describe the repository as it actually works. Keep
+> validation commands, links and project contracts synchronized with source.
 
 ---
 
@@ -220,12 +218,12 @@ changed and still owns. Cleanup must not conceal the original failure.
 
 | Area | Required behavior |
 |---|---|
-| **Public behavior** | [DEFINE API, compatibility, and error contracts.] |
-| **State ownership** | [DEFINE Excel/Application/workbook state that the project may change and restore.] |
-| **Numerical behavior** | [DEFINE precision, tolerance, convergence, and reference requirements, if applicable.] |
-| **UI lifecycle** | [DEFINE initialization, reentrancy, cancellation, cleanup, and accessibility requirements, if applicable.] |
-| **Platform support** | [DEFINE supported Excel, Windows/macOS, and Office-bitness combinations.] |
-| **Release evidence** | [DEFINE the project-specific certification and provenance boundary.] |
+| **Public behavior** | Document API, compatibility, and error contracts. |
+| **State ownership** | Document Excel, application, and workbook state the project may change and restore. |
+| **Numerical behavior** | Document precision, tolerance, convergence, and reference requirements when applicable. |
+| **UI lifecycle** | Document initialization, reentrancy, cancellation, cleanup, and accessibility when applicable. |
+| **Platform support** | Document supported Excel, operating-system, and Office-bitness combinations. |
+| **Release evidence** | Document the project-specific certification and provenance boundary. |
 
 ---
 
@@ -242,7 +240,8 @@ under review.
 - Exercise affected UI, workbook-state, platform, or numerical paths.
 - Record the exact commit, environment, results, skips, and cleanup outcome.
 
-[ADD PROJECT-SPECIFIC TEST ORDER, COMMANDS, AND EVIDENCE REQUIREMENTS.]
+Maintain the project-specific test order, commands, entry points and evidence
+requirements beside the source they govern.
 
 ### Evidence principles
 
@@ -389,7 +388,7 @@ through Git history and release notes where appropriate.
 
 ## 📄 Licensing
 
-[STATE THE PROJECT LICENSE BEFORE PUBLISHING THIS TEMPLATE.] Contributors must
+This project is distributed under the [MIT License](LICENSE). Contributors must
 have the right to submit every part of a contribution, including code, tests,
 data, images, and generated material.
 
@@ -397,7 +396,7 @@ data, images, and generated material.
 
 ## 👤 Maintainer
 
-Maintained by **Daniele Penza**.
+Maintained by **{{MAINTAINER_NAME}}**.
 
 For ordinary contributions, use GitHub issues and pull requests. For sensitive
 security matters, use the private channel in [SECURITY.md](SECURITY.md).

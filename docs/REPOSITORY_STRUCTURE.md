@@ -4,7 +4,10 @@
 [![Directories: purposeful](https://img.shields.io/badge/directories-purposeful-success)](#directory-rules)
 [![VBA layout: explicit](https://img.shields.io/badge/VBA-layout%20explicit-6f42c1)](#vba-source-separation)
 
-This document defines where every durable project artifact belongs in a repository created from `GITHUB-TEMPLATE`. The goal is one authoritative location per responsibility, without empty decoration or competing directory conventions.
+This document defines where every durable project artifact belongs in a
+repository created from the canonical template. The goal is one authoritative
+location per responsibility, without empty decoration or competing directory
+conventions.
 
 <a id="canonical-root"></a>
 ## 📁 Canonical root
