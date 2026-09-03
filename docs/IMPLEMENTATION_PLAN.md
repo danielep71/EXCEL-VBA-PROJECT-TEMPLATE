@@ -164,7 +164,7 @@ returned `ProjectRatio(12, 4) = 3`. Hosted static checks passed 19/19 at the sam
 source SHA; all checker degradation fixtures and all three initialized-profile
 fixtures also passed.
 
-### P1-02 — Generated profiles can pass structure checks without substantive VBA — **implemented; hosted evidence pending**
+### P1-02 — Generated profiles can pass structure checks without substantive VBA — **complete**
 
 **Evidence:** Profile definitions require non-empty directories, while the VBA
 component map and public API manifest may remain empty. An instructional README
@@ -187,7 +187,8 @@ is a template-level false assurance.
 reason; all three initialized profile fixtures pass; removing any mandatory
 starter component fails one named rule.
 
-**Implementation verdict:** PASS locally. Each profile now declares a
+**Completion evidence — 2026-09-03:** Source commit
+`376b164f31da1c06bf5aef55fb618d9a00775223` makes each profile declare a
 machine-readable `vba_contract` with minimum `public`, `internal`, and `test`
 roles plus the exact façade, core, and regression starter paths. The new
 `generated-vba-contract` rule evaluates all profiles in template mode and only
@@ -195,8 +196,10 @@ the selected profile in generated mode; its evidence records role minima,
 observed counts, and required paths. The checker self-test passes 20 rules. The
 initializer's three complete fixtures pass, 12 README-only or mandatory-removal
 fixtures fail only the named contract rule with profile and role diagnostics,
-and three example-removal fixtures pass. Hosted exact-SHA evidence remains the
-only open item before issue closure.
+and three example-removal fixtures pass. Hosted run
+[`33806787297`](https://github.com/danielep71/GITHUB-TEMPLATE/actions/runs/33806787297)
+checked out that exact source SHA and passed every initializer, checker,
+repository, summary, artifact, and terminal-enforcement step.
 
 ### P1-03 — Placeholder and initialization governance — closed
 
@@ -404,7 +407,7 @@ domain-specific gate is replaced by a weaker generic check.
 | ---: | --- | --- | --- | ---: |
 | 1 | Finalize placeholder schema and deterministic initializer — **complete** | P1-03 | None | 1.5–2.5 days |
 | 2 | Add neutral VBA façade/core modules, premium headers and harness — **complete** | P1-01 | Placeholder identifier policy | 2.5–4 days |
-| 3 | Enforce substantive generated-profile contracts and full-tree fixtures — **implemented; hosted evidence pending** | P1-02 | Starter assets | 1.5–2.5 days |
+| 3 | Enforce substantive generated-profile contracts and full-tree fixtures — **complete** | P1-02 | Starter assets | 1.5–2.5 days |
 | 4 | Add issue forms and post-creation checklist; wire label profile selection | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
 | 5 | Add authoritative workflow validation and close checker false negatives | P1-06, P2-01–P2-07 | Stable checker/profile schema | 2–3.5 days |
 | 6 | Add release gate, fixtures and protected-tag specification | P1-05 | Static and placeholder gates | 1.5–2.5 days |
@@ -424,7 +427,7 @@ are the largest uncertainties.
 | --- | --- | --- |
 | Portfolio audit and donor decisions | **Complete** | Frozen decision record remains authoritative |
 | Root documentation | **Strong / incomplete** | Core documents and README exist; post-creation checklist and deduplication remain |
-| Canonical directories | **Complete** | Profile material must now become substantive |
+| Canonical directories | **Complete** | All profiles retain substantive façade, core, and test assets; optional UI assets remain profile-driven |
 | Placeholder governance | **Complete** | Classified schema, dry-run/apply initializer, manual fallback and all-profile fixtures pass |
 | Collaboration files | **In progress** | PR and labels strong; issue forms/config absent |
 | Repository-quality checker | **Strong / reopened** | The 20-rule gate now enforces generated-profile VBA contracts; authoritative YAML and identified false negatives remain |
@@ -473,7 +476,6 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Complete hosted exact-SHA evidence for **P1-02**, then implement **P1-04** and
-the issue-intake portion of **P1-07**: add validated bug, feature, and
-documentation forms plus configuration and a post-creation checklist without
-weakening the selected-profile contract.
+Implement **P1-04** and the issue-intake portion of **P1-07** next: add validated
+bug, feature, and documentation forms plus configuration and a post-creation
+checklist without weakening the selected-profile contract.
