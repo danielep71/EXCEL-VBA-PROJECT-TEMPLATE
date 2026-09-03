@@ -90,19 +90,28 @@ cost disproportionate to its benefit.
 
 ## 📁 Repository model
 
-This is a **source-first template**. The Git diff, not an opaque workbook, is
-the review artifact.
+This is a **source-first template**. The Git diff, not an opaque workbook, is the review artifact.
 
-| Location | Purpose |
-|---|---|
-| `src/` | Authoritative exported VBA source |
-| `test/` or `tests/` | Regression and verification source |
-| `demo/` | Reproducible examples and demo builders |
-| `docs/` | Contracts, architecture, and validation notes |
-| `tools/` | Deterministic repository and evidence tooling |
+| Location | Canonical responsibility |
+| --- | --- |
+| `src/` | Authoritative production VBA source |
+| `tests/` | Regression modules, stable fixtures, expected results, and certification entry points |
+| `examples/` | Reproducible examples and demo builders that use the supported API |
+| `assets/` | Versioned non-code source assets such as diagrams, icons, and social previews |
+| `docs/` | Contracts, architecture, numerical methods, migration notes, and maintained plans |
+| `tools/` | Deterministic validation, packaging, and release-evidence tooling |
 
-The README and current tree are authoritative if a listed optional directory is
-not present.
+Each canonical directory contains either real project material or a short instructional README. Create optional subdirectories only when they own real files:
+
+- `src/modules/` for public standard modules and thin facades;
+- `src/core/` for internal implementation modules;
+- `src/classes/` for production classes, event sinks, state managers, and UI hooks;
+- `src/forms/` for UserForms and their adjacent `.frx` companions; and
+- `tests/modules/` for test-only VBA modules.
+
+New repositories use `tests/`, `examples/`, and `assets/`. Profile-specific `test/`, `demo/`, `images/`, or `dist/` locations require a documented compatibility, packaging, or distribution reason and must not duplicate the canonical location.
+
+Follow [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md) for directory ownership, the generated-repository acceptance gate, and the permitted alternatives.
 
 ---
 
