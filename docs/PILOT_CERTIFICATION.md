@@ -32,9 +32,9 @@ profile shown above, the matching repository identity and an empty
 
 | Profile | Labels | Issue chooser | `main` protection | Release-tag protection |
 | --- | --- | --- | --- | --- |
-| Application | [Catalogue](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/labels) | [Chooser](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/issues/new/choose) | [Ruleset 22263639](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/settings/rules/22263639) | [Ruleset 22264488](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/settings/rules/22264488) |
-| Library | [Catalogue](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/labels) | [Chooser](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/issues/new/choose) | [Ruleset 22265920](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/settings/rules/22265920) | [Ruleset 22265955](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/settings/rules/22265955) |
-| UI component | [Catalogue](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/labels) | [Chooser](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/issues/new/choose) | [Ruleset 22266203](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/settings/rules/22266203) | [Ruleset 22266307](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/settings/rules/22266307) |
+| Application | [Catalogue](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/labels) | [Chooser](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/issues/new/choose) | [Ruleset 22263639](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/rules/22263639) | [Ruleset 22264488](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/rules/22264488) |
+| Library | [Catalogue](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/labels) | [Chooser](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/issues/new/choose) | [Ruleset 22265920](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/rules/22265920) | [Ruleset 22265955](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/rules/22265955) |
+| UI component | [Catalogue](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/labels) | [Chooser](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/issues/new/choose) | [Ruleset 22266203](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/rules/22266203) | [Ruleset 22266307](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/rules/22266307) |
 
 ## Verified final state
 
