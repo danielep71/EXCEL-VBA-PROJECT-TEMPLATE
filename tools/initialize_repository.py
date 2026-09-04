@@ -368,7 +368,12 @@ def _build_changes(
     placeholders = config["placeholders"]
     catalogue = placeholders["catalogue"]
     scalars, repeatable = _validate_values(
-        root, tracked, catalogue, scalar_entries, repeatable_entries
+        root,
+        tracked,
+        catalogue,
+        scalar_entries,
+        repeatable_entries,
+        require_preview_file=config.get("mode") != "generated",
     )
     values = _replacement_values(profile, scalars, repeatable, catalogue)
     if _already_initialized(root, config, profile, scalars, repeatable):
@@ -926,6 +931,19 @@ def self_test(source: Path) -> None:
 
             evolved = base / f"{profile}-evolved"
             _make_evolved_generated_fixture(fixture, evolved)
+            evolved_profile, evolved_scalars, evolved_repeatable = _record_arguments(
+                evolved
+            )
+            evolved_rerun, _ = _build_changes(
+                evolved,
+                evolved_profile,
+                evolved_scalars,
+                evolved_repeatable,
+            )
+            if evolved_rerun:
+                raise AssertionError(
+                    f"{profile} evolved generated-project rerun was not idempotent."
+                )
             _generated_self_test(evolved)
 
             completed, report = _quality_report(fixture)
