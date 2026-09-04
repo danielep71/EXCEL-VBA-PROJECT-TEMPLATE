@@ -50,6 +50,44 @@ execute Excel, compile a VBA project, prove numerical accuracy, exercise UI
 state, or certify a release package. Profile and project gates retain those
 responsibilities.
 
+## Committed and working-tree whitespace
+
+`check_committed_whitespace.py` separates two different Git checks that must not
+be confused:
+
+- **committed mode** is the CI/release-facing gate. It runs `git diff --check`
+  over a committed candidate range. With `--base`, the range begins at the
+  merge base of that revision and `--head`; without `--base`, it checks the
+  first-parent delta, or the empty tree for a root commit;
+- **working-tree mode** is local feedback. It checks both staged and unstaged
+  changes without making those mutable files part of committed-candidate
+  evidence.
+
+Run the deterministic fixtures and local mode with:
+
+```bash
+python3 tools/check_committed_whitespace.py --root . --self-test
+python3 tools/check_committed_whitespace.py --root . --mode working-tree
+```
+
+To reproduce the hosted committed check explicitly:
+
+```bash
+python3 tools/check_committed_whitespace.py \
+  --root . \
+  --mode committed \
+  --head HEAD \
+  --output test-results/committed-whitespace.json \
+  --summary test-results/committed-whitespace.md
+```
+
+For pull requests, CI supplies the target-branch revision with `--base` and
+records the resolved merge base, exact head SHA, inspected range, and findings
+in JSON and Markdown evidence. The self-test proves that a committed
+trailing-whitespace defect fails from a clean checkout, a defective root commit
+fails against the empty tree, a valid commit passes, and staged/unstaged defects
+remain detectable only through the local working-tree path.
+
 ## Authoritative workflow validation
 
 The hosted gate complements the portable YAML subset check with
