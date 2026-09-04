@@ -1,0 +1,1 @@
+[".github/workflows/dup-inventory.yml", ".github/workflows/gatelib-refactor.yml", "tools/_apply_gatelib_refactor.py", "tools/_dup_inventory.py", "tools/_verify_gatelib_refactor.py", "tools/_cleanup_marker.tmp", "tools/_cleanup_refactor.py", "tools/_atomic_cleanup_note.txt", "tools/_cleanup_paths.json"]
