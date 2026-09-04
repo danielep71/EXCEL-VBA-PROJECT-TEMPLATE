@@ -1,9 +1,9 @@
 # ✅ Post-Creation Repository Checklist
 
-[![Phase: after initialization](https://img.shields.io/badge/phase-after%20initialization-217346)](#1-confirm-the-initialized-source)
-[![Live settings: required](https://img.shields.io/badge/live%20settings-required-6f42c1)](#3-repository-identity-and-maintained-features)
-[![Evidence: read-back](https://img.shields.io/badge/evidence-read--back-success)](#8-capture-read-back-evidence)
-[![Tags: immutable](https://img.shields.io/badge/tags-immutable-1D76DB)](#6-protect-releases)
+[![Phase: after initialization](https://img.shields.io/badge/phase-after%20initialization-217346)](#confirm-initialized-source)
+[![Live settings: required](https://img.shields.io/badge/live%20settings-required-6f42c1)](#repository-identity)
+[![Evidence: read-back](https://img.shields.io/badge/evidence-read--back-success)](#capture-read-back-evidence)
+[![Tags: immutable](https://img.shields.io/badge/tags-immutable-1D76DB)](#protect-releases)
 
 Use this checklist immediately after generating and initializing a repository.
 File generation does not inherit GitHub labels, rulesets, features, topics,
@@ -12,6 +12,8 @@ merge settings, security settings, or protected-tag policy.
 Record the generated repository, selected profile, exact source SHA, operator,
 and completion date before applying settings. Evidence must come from API or UI
 read-back after each change, not from the setup command or intended values.
+
+<a id="confirm-initialized-source"></a>
 
 ## 1. 🔎 Confirm the Initialized Source
 
@@ -41,6 +43,8 @@ unrecorded profile or domain at dispatch time.
 - [ ] Post-run verification reports an exact match.
 - [ ] API read-back contains every resolved label with the expected name,
   uppercase color, and description, and contains no label pruned by policy.
+
+<a id="repository-identity"></a>
 
 ## 3. 🪪 Repository Identity and Maintained Features
 
@@ -93,6 +97,8 @@ Create or verify one ruleset targeting the default branch:
 Stronger controls are allowed. A plan limitation that prevents rulesets must be
 recorded explicitly; it does not justify weakening the public baseline.
 
+<a id="protect-releases"></a>
+
 ## 6. 🔐 Protect Releases
 
 Before the first stable release, create or verify an active ruleset targeting
@@ -123,6 +129,8 @@ generated-profile pilots. Follow the
 
 Profile differences add controls; they never remove the common façade, core,
 test, issue-intake, branch, tag, or evidence baseline.
+
+<a id="capture-read-back-evidence"></a>
 
 ## 8. 📸 Capture Read-Back Evidence
 
