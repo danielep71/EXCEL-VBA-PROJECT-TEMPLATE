@@ -1,8 +1,8 @@
 # 🗺️ GitHub Template and Portfolio Standardization — Implementation Plan
 
-[![P1: certified](https://img.shields.io/badge/P1-certified-success)](#9-p1-certification-gate)
+[![P1: certified](https://img.shields.io/badge/P1-certified-success)](#p1-certification-gate)
 [![Release: v1.0.0](https://img.shields.io/badge/release-v1.0.0-217346)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0)
-[![P2: active](https://img.shields.io/badge/P2-active-1D76DB)](#5-p2-findings--material-hardening-and-portfolio-adoption)
+[![P2: active](https://img.shields.io/badge/P2-active-1D76DB)](#p2-hardening)
 [![Repository rules: 21/21](https://img.shields.io/badge/repository%20rules-21%2F21-6f42c1)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions)
 
 **Owner:** Daniele Penza
@@ -475,6 +475,8 @@ release was published on 4 September 2026. Both generated source archives were
 read back successfully with the expected consumable tree; repository plumbing
 is intentionally excluded by `.gitattributes`.
 
+<a id="p2-hardening"></a>
+
 ## 5. 🛠️ P2 Findings — Material Hardening and Portfolio Adoption
 
 P2 work is active after P1 certification. A P2 finding may still be corrected
@@ -595,6 +597,8 @@ The earlier 19-rule checker verdict is not discarded: it remains a valid pass
 for the scope it measured. This review reopens the package because template
 certification requires additional end-to-end and parser guarantees that the
 synthetic rule fixtures did not claim to provide.
+
+<a id="p1-certification-gate"></a>
 
 ## 9. ✅ P1 Certification Gate
 

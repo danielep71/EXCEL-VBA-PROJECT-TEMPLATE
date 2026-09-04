@@ -67,7 +67,7 @@ not replace exact-candidate Excel compilation, regression, or release evidence.
 Those separate controls were subsequently completed for the canonical
 [`v1.0.0` release](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0)
 and are recorded in the
-[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md#9-p1-certification-gate).
+[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md#p1-certification-gate).
 
 ---
 

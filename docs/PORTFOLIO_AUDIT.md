@@ -1,9 +1,9 @@
 # 🧭 Portfolio Audit — Canonical Repository Baseline
 
-[![Status: frozen baseline](https://img.shields.io/badge/status-frozen%20baseline-1D76DB)](#2-method-and-scoring)
-[![Evidence: commit pinned](https://img.shields.io/badge/evidence-commit%20pinned-217346)](#3-frozen-default-branch-and-settings-register)
-[![Scope: 7 repositories](https://img.shields.io/badge/scope-7%20repositories-6f42c1)](#4-seven-repository-comparison-matrix)
-[![Decision: composite](https://img.shields.io/badge/decision-composite-success)](#8-canonical-donor-map)
+[![Status: frozen baseline](https://img.shields.io/badge/status-frozen%20baseline-1D76DB)](#audit-method)
+[![Evidence: commit pinned](https://img.shields.io/badge/evidence-commit%20pinned-217346)](#frozen-register)
+[![Scope: 7 repositories](https://img.shields.io/badge/scope-7%20repositories-6f42c1)](#comparison-matrix)
+[![Decision: composite](https://img.shields.io/badge/decision-composite-success)](#canonical-donor-map)
 
 > **Status:** Donor baseline frozen; P1 implementation certified; P2 conformance pending
 >
@@ -116,6 +116,8 @@ Four constraints govern every later template-construction task:
 3. Checks must be deterministic, self-testing and honest about what they cannot prove. Hosted text checks do not certify Excel execution; a workbook hash does not prove how the workbook was built.
 4. Repository settings, rulesets and live labels are provisioning concerns. They must be specified beside the file template because GitHub does not copy them from a template repository.
 
+<a id="audit-method"></a>
+
 ## 2. 🔬 Method and Scoring
 
 Each repository was inspected at the exact default-branch commit listed in the snapshot register. The recursive Git tree, repository metadata, releases, workflow definitions, rulesets, root documentation, declarative labels, checkers, exported VBA component headers and test-harness entry points were reviewed.
@@ -133,7 +135,11 @@ Scores use this scale:
 
 Scores measure fitness as template evidence, not the intrinsic value or functional maturity of a project. A project-specific numerical gate can be excellent and still require separation from the generic baseline.
 
+<a id="frozen-register"></a>
+
 ## 3. 📌 Frozen Default-Branch and Settings Register
+
+<a id="default-branch-trees"></a>
 
 ### 3.1 🌳 Default-Branch Trees
 
@@ -164,6 +170,8 @@ All seven use `main`, report VBA as the primary language, use MIT where a licenc
 | `KPR` | Public | Specific description; 8 relevant topics | Off | Off | Deletion/non-fast-forward plus strict `Repository integrity`; administrator-role always-bypass. Separate `v*` tag creation/update/deletion protection. [Main rule](https://github.com/danielep71/KPR/rules/21826384) · [tag rule](https://github.com/danielep71/KPR/rules/21826445) |
 
 The target repository itself was at [`64095e2`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/commit/64095e269688043257c0ef5e84a65f5082807b7d) with four files: `.editorconfig`, `.gitattributes`, `.gitignore` and `CODE_OF_CONDUCT.md`. It was marked as a template and had active deletion/non-fast-forward protection. Its deliberately minimal captured state is why this audit specified a composite future baseline rather than treating the target as an eighth donor.
+
+<a id="comparison-matrix"></a>
 
 ## 4. 📊 Seven-Repository Comparison Matrix
 
@@ -280,7 +288,7 @@ Abbreviations: **Docs** documentation; **WF** workflows; **Static** static check
 | `AUD-P1-05` | P2 | [KPR workflow pins](https://github.com/danielep71/KPR/blob/686018e1ab60e336840401b1856933182f9540a9/.github/workflows/static-checks.yml) | Other donor workflows use floating action tags; KPR demonstrates the required immutable pattern. | Repin every canonical action to a full audited SHA. |
 | `AUD-P1-06` | P2 | [KPR checker](https://github.com/danielep71/KPR/blob/686018e1ab60e336840401b1856933182f9540a9/tools/check_repo.py) | The best checker mixes generic repository rules with KPR identity, date architecture and exact label count. | Extract generic rules and move profile/project rules to data-driven configuration. |
 | `AUD-P1-07` | P2 | [Private Logistic repository](https://api.github.com/repos/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION) · [private Progress Bar repository](https://api.github.com/repos/danielep71/VBA-PROGRESS_BAR) | At the evidence cut, the applicable GitHub plan did not expose repository rulesets for these private repositories; both default branches were unprotected. | Document the recorded plan limitation. Do not weaken the public baseline to match it. |
-| `AUD-P1-08` | P3 | [Portfolio tree register](#31-default-branch-trees) | `test`/`tests`, PR-template case, label schema keys and label casing are inconsistent. | Canonicalise paths and schemas in the template; migrate donors separately without blind renaming. |
+| `AUD-P1-08` | P3 | [Portfolio tree register](#default-branch-trees) | `test`/`tests`, PR-template case, label schema keys and label casing are inconsistent. | Canonicalise paths and schemas in the template; migrate donors separately without blind renaming. |
 
 ## 7. 🧱 Frozen Repository Profiles
 
@@ -321,6 +329,8 @@ Profiles are structural contracts for generated repositories. They are not quali
 4. `ui-component` and `application` state tests must distinguish `PASS`, functional failure, cleanup failure and dirty start.
 5. Numerical assurance is an extension of `library`, not a requirement imposed on every library.
 6. `application` is not shorthand for “large.” It means the repository owns deployment and lifecycle of a complete Excel solution.
+
+<a id="canonical-donor-map"></a>
 
 ## 8. 🗺️ Canonical Donor Map
 
