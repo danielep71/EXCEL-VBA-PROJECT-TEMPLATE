@@ -1,0 +1,51 @@
+name: Temporary gatelib refactor
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    if: github.event.pull_request.head.ref == 'v1.1.0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out milestone branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Apply shared-gate refactor
+        run: python3 tools/_apply_gatelib_refactor.py
+      - name: Install one-shot type checker
+        run: python3 -m pip install --disable-pip-version-check 'mypy==1.18.2'
+      - name: Require clean type check
+        run: python3 -m mypy tools/*.py
+      - name: Exercise focused gates
+        run: |
+          python3 tools/checker_development.py --root . --self-test
+          python3 tools/check_local_actions.py --root . --self-test
+          python3 tools/check_release_semantics.py --root . --self-test
+          python3 tools/check_vba_conditionals.py --root . --self-test
+          python3 tools/check_vba_jumps.py --root . --self-test
+          python3 tools/check_vba_public_api.py --root . --self-test
+          python3 tools/check_policy_coverage.py --root . --self-test
+          python3 tools/check_repo.py --root . --self-test
+      - name: Commit validated refactor
+        run: |
+          git config user.name 'Repository refactor'
+          git config user.email 'repository-refactor@users.noreply.github.com'
+          git add tools .github/repository-profile.json docs/CHECKER_DEVELOPMENT.md CHANGELOG.md
+          git reset tools/_apply_gatelib_refactor.py tools/_dup_inventory.py
+          git reset .github/workflows/dup-inventory.yml .github/workflows/gatelib-refactor.yml
+          if git diff --cached --quiet; then
+            echo 'No refactor changes to commit.'
+            exit 1
+          fi
+          git commit -m 'Consolidate focused gate infrastructure'
+          git push origin HEAD:v1.1.0
