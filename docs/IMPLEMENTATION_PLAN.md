@@ -8,7 +8,7 @@
 
 **Review date:** 3 September 2026
 
-**Plan revision:** 4 — complete replacement
+**Plan revision:** 5 — P1-04 completion evidence
 
 **Plan status:** Active — P1 certification blockers remain
 
@@ -239,7 +239,7 @@ generated changelog; records initialization; and accepts an identical second
 run as a no-op. Its self-test exercises positive and negative fixtures for all
 three profiles and runs the repository-quality gate over each generated tree.
 
-### P1-04 — Structured issue intake — implementation complete; hosted evidence pending
+### P1-04 — Structured issue intake — **complete**
 
 **Evidence:** `.github/ISSUE_TEMPLATE/` does not exist. There are no bug,
 feature or documentation forms and no issue-template configuration.
@@ -255,13 +255,19 @@ reports privately; do not hard-code an assignee into the reusable forms.
 support links and security guidance are valid; blank issues follow the documented
 policy; no donor identity or unavailable URL remains.
 
-**Implementation status — 2026-09-04:** Three native issue forms now require
+**Completion evidence — 2026-09-04:** Three native issue forms now require
 bounded source, environment, expected-result, scope and validation evidence as
 appropriate. Their labels come from the canonical manifest, reusable assignees
 remain empty, blank issues are disabled, and the security contact link is
-rendered from the initialized repository path. The 21-rule checker includes a
-positive fixture and a targeted degraded-form fixture. Closure still requires
-the exact-SHA hosted run and live GitHub rendering check.
+rewritten by the initializer for the generated repository without leaving a
+token in YAML. Final source commit
+[`bbc9209778cc8ad791a6e50604b457b9c7b5eabd`](https://github.com/danielep71/GITHUB-TEMPLATE/commit/bbc9209778cc8ad791a6e50604b457b9c7b5eabd)
+passed exact-SHA static run
+[`33850927030`](https://github.com/danielep71/GITHUB-TEMPLATE/actions/runs/33850927030).
+The live chooser rendered all three forms, their prefixes, mandatory fields and
+canonical labels with no assignee; blank intake was maintainer-only and both
+security entries resolved to this repository's policy. The 21-rule checker
+also includes a positive fixture and a targeted degraded-form fixture.
 
 ### P1-05 — Release integrity is documented but not executable
 
@@ -469,7 +475,7 @@ P1 passes only when all statements below are true:
 - [x] Neutral façade, core and test modules import and compile without editing.
 - [x] The deterministic harness passes and reports exact environment/count evidence.
 - [x] Generated mode rejects repositories with no substantive production/test VBA.
-- [ ] Bug, feature and documentation forms plus configuration are valid. *(Source fixtures pass; live rendering pending.)*
+- [x] Bug, feature and documentation forms plus configuration are valid.
 - [x] Profile/domain labels resolve from versioned repository policy.
 - [ ] YAML/workflow validation is authoritative and version-pinned.
 - [ ] The release gate passes positive fixtures and rejects every named negative fixture.
@@ -492,7 +498,6 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Complete the hosted and live-rendering evidence for **P1-04**, then implement
-**P1-06**: add authoritative, version-pinned workflow validation and the named
-negative YAML, workflow and XML fixtures without weakening the portable local
-gate.
+Implement **P1-06** next: add authoritative, version-pinned workflow validation
+and the named negative YAML, workflow and XML fixtures without weakening the
+portable local gate.
