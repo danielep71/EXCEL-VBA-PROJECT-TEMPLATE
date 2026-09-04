@@ -8,7 +8,7 @@
 
 **Review date:** 4 September 2026
 
-**Plan revision:** 15 — three-profile pilot and metadata certification
+**Plan revision:** 16 — durable pilot evidence and preview-contract correction
 
 **Plan status:** Active — P1 certification blockers remain
 
@@ -431,7 +431,9 @@ and green: application at `286c329f` (static run `33859831731`, label run
 run `33866118333`). Each pilot has pull-request routing, strict
 `Repository integrity`, immutable `v*` protection, an empty bypass list and
 exact live settings/label read-back. Unified Excel/candidate evidence and the
-release remain open.
+release remain open. The full commits, collection time, operator, profile,
+domains, workflow links and live-setting links are retained in
+[`PILOT_CERTIFICATION.md`](PILOT_CERTIFICATION.md).
 
 ## 5. P2 findings — material hardening and portfolio adoption
 
