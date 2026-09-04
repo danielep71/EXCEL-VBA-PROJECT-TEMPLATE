@@ -8,7 +8,7 @@
 
 **Review date:** 3 September 2026
 
-**Plan revision:** 8 — P1-05 implementation
+**Plan revision:** 9 — P1-05 certification
 
 **Plan status:** Active — P1 certification blockers remain
 
@@ -269,7 +269,7 @@ canonical labels with no assignee; blank intake was maintainer-only and both
 security entries resolved to this repository's policy. The 21-rule checker
 also includes a positive fixture and a targeted degraded-form fixture.
 
-### P1-05 — Release integrity gate — source complete; hosted and live-policy evidence pending
+### P1-05 — Release integrity gate — complete
 
 **Evidence:** `VERSION`, the changelog and the release guide exist, but no release
 gate validates the candidate tag, dated changelog heading, required files,
@@ -292,7 +292,7 @@ still passing the generic repository gate.
 invalid changelog date, missing evidence, unapproved binary, wrong digest and
 mutable-tag cases each fail deterministically.
 
-**Implementation status — 2026-09-04:** `tools/check_release.py` now validates
+**Completion evidence — 2026-09-04:** `tools/check_release.py` validates
 an initialized candidate, canonical SemVer and dated changelog, exact full SHA,
 external evidence, profile-required checks, annotated-tag type and target, and
 optional staged assets against a sorted SHA-256 manifest. The versioned
@@ -301,8 +301,15 @@ UI/application binary distributions. Twenty deterministic fixtures cover all
 three valid profiles and 17 named failure paths, including the `0.0.0` sentinel,
 missing evidence/manifest, candidate and asset binding mismatches, unapproved
 binaries, bad digests, lightweight tags and moved tags. The static workflow now
-requires the self-test report and outcome. Closure still requires an exact-SHA
-hosted pass plus application and read-back of immutable `v*` tag protection.
+requires the self-test report and outcome. Source commit
+[`8eab253ba9c5557bf3304928f2a33616b5ef3785`](https://github.com/danielep71/GITHUB-TEMPLATE/commit/8eab253ba9c5557bf3304928f2a33616b5ef3785)
+passed exact-SHA hosted run
+[`33854256898`](https://github.com/danielep71/GITHUB-TEMPLATE/actions/runs/33854256898),
+including the release fixtures and fail-closed terminal verdict. Active ruleset
+[`Protect releases`](https://github.com/danielep71/GITHUB-TEMPLATE/settings/rules/22258556)
+targets `refs/tags/v*`, has no bypass actors, and prevents updates, deletions and
+force pushes. The documented pre-tag and annotated-tag verification commands
+bind the release path to the certified candidate; publication remains P1-08.
 
 ### P1-06 — Authoritative workflow and structured-data validation — complete
 
@@ -460,7 +467,7 @@ domain-specific gate is replaced by a weaker generic check.
 | 3 | Enforce substantive generated-profile contracts and full-tree fixtures — **complete** | P1-02 | Starter assets | 1.5–2.5 days |
 | 4 | Add issue forms and post-creation checklist; wire label profile selection — **source complete; pilot pending** | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
 | 5 | Add authoritative workflow validation and close checker false negatives — **P1-06 complete; P2 hardening remains** | P1-06, P2-01–P2-07 | Stable checker/profile schema | 2–3.5 days |
-| 6 | Add release gate, fixtures and protected-tag specification — **source complete; hosted/live policy pending** | P1-05 | Static and placeholder gates | 1.5–2.5 days |
+| 6 | Add release gate, fixtures and protected-tag specification — **complete** | P1-05 | Static and placeholder gates | 1.5–2.5 days |
 | 7 | Strengthen live `main` protection and complete metadata | P1-08, P2-10 | Stable required context | 0.5–1 day |
 | 8 | Generate profile pilots, run Excel evidence and publish `v0.1.0` | P1-08 | All prior P1 packages | 1.5–3 days plus Excel access |
 | 9 | Perform selective portfolio migration and conformance review | P2 portfolio work | Certified `v0.1.0` | Repository-specific |
@@ -481,9 +488,9 @@ are the largest uncertainties.
 | Placeholder governance | **Complete** | Classified schema, dry-run/apply initializer, manual fallback and all-profile fixtures pass |
 | Collaboration files | **Complete at source level** | PR template, three issue forms/config and versioned label selection are implemented; live pilot verification remains |
 | Repository-quality checker | **P1 complete / P2 hardening open** | The portable 21-rule gate includes direct YAML/XML fixtures; content-pinned authoritative workflow validation passed at the exact hosted SHA, while identified P2 false negatives remain |
-| Release controls | **Source complete / live policy pending** | Dependency-free gate, profile policy, evidence contract, asset manifests and 20 fixtures pass locally; hosted execution and immutable `v*` protection still require evidence |
+| Release controls | **Complete** | Dependency-free gate, profile policy, evidence contract, asset manifests and 20 fixtures pass locally and at the exact hosted SHA; active immutable `v*` protection was read back with no bypass |
 | Reusable VBA assets | **Complete** | Four governed exports, public API manifest, clean import/compile, 4-case/6-assertion Excel pass, and exact-SHA hosted checks evidenced |
-| Live governance | **In progress** | Merge settings/basic protection exist; required PR/check/tag policy absent |
+| Live governance | **In progress** | Immutable release-tag policy is active; required PR routing, exact required check and pilot read-back remain |
 | Pilot and v0.1.0 | **Not started** | No generated or Excel certification evidence |
 | Portfolio migration | **Pre-alignment only** | Starts formally after v0.1.0 |
 | Drift automation | **Not started** | P3 dependency on stable contracts |
@@ -506,9 +513,9 @@ P1 passes only when all statements below are true:
 - [x] Bug, feature and documentation forms plus configuration are valid.
 - [x] Profile/domain labels resolve from versioned repository policy.
 - [x] YAML/workflow validation is authoritative and version-pinned. *(Exact-SHA hosted run 33852502452 passed.)*
-- [ ] The release gate passes positive fixtures and rejects every named negative fixture. *(Source and 20 local fixtures pass; hosted evidence pending.)*
+- [x] The release gate passes positive fixtures and rejects every named negative fixture. *(Exact-SHA hosted run 33854256898 passed all 20 fixtures.)*
 - [ ] `main` requires PR routing and the exact live `Repository integrity` context.
-- [ ] `v*` tags are protected against deletion, mutation and unreviewed creation.
+- [x] `v*` tags are protected against deletion and mutation; the documented creation path verifies the certified exact SHA.
 - [ ] The post-creation checklist is executed and evidenced on a generated pilot.
 - [ ] Static, compile, regression and release evidence bind to the same candidate SHA.
 - [ ] `v0.1.0` is published from that protected exact SHA.
@@ -526,6 +533,6 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Complete **P1-05** exact-SHA hosted evidence and apply/read back immutable `v*`
-tag protection. Then continue **P1-08** live `main` governance and generated
-pilot certification.
+Continue **P1-08**: require pull-request routing and the exact live
+`Repository integrity` context on `main`, then generate and certify the three
+profile pilots before publishing `v0.1.0` from the protected exact SHA.
