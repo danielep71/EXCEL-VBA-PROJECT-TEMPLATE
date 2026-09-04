@@ -1,0 +1,129 @@
+# Post-creation repository checklist
+
+Use this checklist immediately after generating and initializing a repository.
+File generation does not inherit GitHub labels, rulesets, features, topics,
+merge settings, security settings, or protected-tag policy.
+
+Record the generated repository, selected profile, exact source SHA, operator,
+and completion date before applying settings. Evidence must come from API or UI
+read-back after each change, not from the setup command or intended values.
+
+## 1. Confirm the initialized source
+
+- [ ] `.github/repository-profile.json` has `mode: generated`, the correct
+  `repository`, one selected `profile`, and the intended `label_domains`.
+- [ ] `.github/initialization.json` records the same profile and repository.
+- [ ] `python3 tools/check_repo.py --root . --self-test` passes.
+- [ ] `python3 tools/check_repo.py --root .` passes on the committed tree.
+- [ ] The issue chooser renders bug, feature, and documentation forms; blank
+  issues are disabled and the security link opens this repository's policy.
+
+## 2. Resolve and reconcile labels
+
+The versioned selection authority is `.github/repository-profile.json`:
+
+- `profile` selects exactly one profile overlay in generated mode;
+- `label_domains` lists zero or more kebab-case domain overlays; and
+- `.github/labels.json` supplies the core, profile, and domain catalogues.
+
+On the first trusted push to `main`, or by a deliberate manual dispatch, run
+`Sync issue labels`. The workflow must resolve policy itself; do not supply an
+unrecorded profile or domain at dispatch time.
+
+- [ ] The workflow summary names the selected profile and every domain.
+- [ ] Post-run verification reports an exact match.
+- [ ] API read-back contains every resolved label with the expected name,
+  uppercase color, and description, and contains no label pruned by policy.
+
+## 3. Repository identity and maintained features
+
+Set and then read back:
+
+| Setting | Canonical expectation |
+| --- | --- |
+| Description | One specific sentence describing the supported Excel/VBA outcome and audience |
+| Topics | `excel`, `vba`, the selected profile, and only maintained project-domain topics |
+| Template repository | Enabled only for a repository intentionally distributed as a template |
+| Issues | Enabled |
+| Private vulnerability reporting | Enabled |
+| Discussions | Disabled unless a maintained support/community process is documented |
+| Wiki | Disabled unless it has an owner and version-drift control |
+| Projects | Disabled unless a maintained board is part of project governance |
+| Sponsorships | Disabled unless deliberately configured by the owner |
+
+Never publish a private reporting address as an issue-form assignee or public
+issue body. The issue chooser points to `SECURITY.md`, which owns the reporting
+channels and disclosure process.
+
+## 4. Merge policy
+
+The canonical single-maintainer baseline is:
+
+- [ ] merge commits, squash merging, and rebasing are enabled;
+- [ ] automatic merging is disabled until required checks and review policy are
+  intentionally configured;
+- [ ] head branches are deleted after merge;
+- [ ] contributors may update pull-request branches; and
+- [ ] commit-message/title defaults are reviewed for the repository's release
+  and attribution policy.
+
+A project may narrow merge methods, but it must record the reason. It may not
+weaken protected-branch, exact-SHA evidence, or release-provenance requirements.
+
+## 5. Protect `main`
+
+Create or verify one ruleset targeting the default branch:
+
+- [ ] active enforcement with no default bypass actor;
+- [ ] deletion and non-fast-forward updates blocked;
+- [ ] changes require a pull request;
+- [ ] zero mandatory approvals for the canonical single-maintainer baseline;
+- [ ] required status check is exactly `Repository integrity` and is strict;
+- [ ] conversation resolution and other review controls are enabled only when
+  the repository can satisfy them without bypass; and
+- [ ] the rule targets only the intended default branch pattern.
+
+Stronger controls are allowed. A plan limitation that prevents rulesets must be
+recorded explicitly; it does not justify weakening the public baseline.
+
+## 6. Protect releases
+
+Before the first stable release, create or verify an active ruleset targeting
+`refs/tags/v*`:
+
+- [ ] tag deletion is blocked;
+- [ ] non-fast-forward tag updates are blocked;
+- [ ] creation is restricted to the intended release path; and
+- [ ] no bypass silently permits a published tag to move.
+
+Do not create `v1.0.0` until the release gate, generated pilots, and exact-SHA
+Excel evidence are complete.
+
+## 7. Profile-specific controls
+
+| Profile | Required additional review |
+| --- | --- |
+| `library` | Public API, caller contract, compatibility, and focused regression evidence; no UI or workbook assets unless actually used |
+| `ui-component` | UI lifecycle, state restoration, recovery, DPI/accessibility, callbacks, and any form/Ribbon resources actually used |
+| `application` | Startup, shutdown, upgrade, recovery, packaging, workbook/add-in lifecycle, and end-to-end smoke evidence |
+
+Profile differences add controls; they never remove the common façade, core,
+test, issue-intake, branch, tag, or evidence baseline.
+
+## 8. Capture read-back evidence
+
+Preserve links or JSON responses for:
+
+- repository metadata and enabled features;
+- resolved labels and the successful reconciliation run;
+- default-branch ruleset and exact required status context;
+- protected-tag ruleset;
+- private vulnerability-reporting state;
+- issue chooser rendering and security routing; and
+- the exact initialized commit and repository-quality run.
+
+The record must identify collection time, repository, default branch, selected
+profile, selected domains, and the account or automation that performed the
+verification. Redact credentials and private contact details. Re-read the live
+settings after any correction and retain the final state only as certification
+evidence.

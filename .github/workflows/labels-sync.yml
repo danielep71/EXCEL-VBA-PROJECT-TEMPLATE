@@ -11,6 +11,7 @@ on:
       - main
     paths:
       - .github/labels.json
+      - .github/repository-profile.json
       - .github/scripts/labels-sync.mjs
       - .github/workflows/labels-sync.yml
   push:
@@ -18,6 +19,7 @@ on:
       - main
     paths:
       - .github/labels.json
+      - .github/repository-profile.json
       - .github/scripts/labels-sync.mjs
       - .github/workflows/labels-sync.yml
   workflow_dispatch:
@@ -62,7 +64,7 @@ jobs:
       - name: Exercise validation, overlays, and reconciliation paths
         run: node .github/scripts/labels-sync.mjs --self-test
 
-      - name: Reconcile and verify the live core taxonomy
+      - name: Reconcile and verify the versioned label selection
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .github/scripts/labels-sync.mjs --mode reconcile --repository "${GITHUB_REPOSITORY}"

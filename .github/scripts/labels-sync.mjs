@@ -6,6 +6,7 @@ import process from "node:process";
 
 const EXPECTED_SCHEMA_VERSION = 1;
 const DEFAULT_MANIFEST = ".github/labels.json";
+const DEFAULT_POLICY = ".github/repository-profile.json";
 const API_VERSION = "2022-11-28";
 const PROFILE_NAMES = ["application", "library", "ui-component"];
 
@@ -151,6 +152,46 @@ export function resolveDesired(document, { profile = null, domains = [] } = {}) 
   return labels;
 }
 
+export function resolvePolicySelection(policy, manifest) {
+  if (!policy || typeof policy !== "object" || Array.isArray(policy)) {
+    throw new Error("Repository policy must be a JSON object");
+  }
+  if (!["template", "generated"].includes(policy.mode)) {
+    throw new Error("Repository policy mode must be template or generated");
+  }
+  if (
+    !Array.isArray(policy.label_domains)
+    || policy.label_domains.some(domain => typeof domain !== "string")
+  ) {
+    throw new Error("Repository policy label_domains must be an array of strings");
+  }
+  const domains = [...policy.label_domains];
+  if (new Set(domains).size !== domains.length) {
+    throw new Error("Repository policy label_domains must not contain duplicates");
+  }
+  if (JSON.stringify(domains) !== JSON.stringify([...domains].sort(compareNames))) {
+    throw new Error("Repository policy label_domains must be sorted case-insensitively");
+  }
+  for (const domain of domains) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(domain)) {
+      throw new Error(`Repository policy label domain is not kebab-case: ${domain}`);
+    }
+    if (!manifest.overlays.domain[domain]) {
+      throw new Error(`Repository policy selects unknown domain overlay: ${domain}`);
+    }
+  }
+  if (policy.mode === "template") {
+    if (policy.profile !== null || domains.length > 0) {
+      throw new Error("Template policy must select no profile or domain overlays");
+    }
+    return { profile: null, domains: [] };
+  }
+  if (!PROFILE_NAMES.includes(policy.profile)) {
+    throw new Error("Generated policy must select one supported profile overlay");
+  }
+  return { profile: policy.profile, domains };
+}
+
 export function planChanges(desiredLabels, liveLabels, { prune = true } = {}) {
   const desired = new Map(desiredLabels.map(label => [label.name.toLowerCase(), label]));
   const live = new Map(liveLabels.map(label => {
@@ -188,11 +229,10 @@ export function planChanges(desiredLabels, liveLabels, { prune = true } = {}) {
 function parseArguments(argv) {
   const parsed = {
     manifest: DEFAULT_MANIFEST,
+    policy: DEFAULT_POLICY,
     mode: null,
     live: null,
     repository: process.env.GITHUB_REPOSITORY || null,
-    profile: null,
-    domains: [],
     dryRun: false,
     selfTest: false
   };
@@ -202,17 +242,15 @@ function parseArguments(argv) {
       parsed.dryRun = true;
     } else if (argument === "--self-test") {
       parsed.selfTest = true;
-    } else if (["--manifest", "--mode", "--live", "--repository", "--profile", "--domain"].includes(argument)) {
+    } else if (["--manifest", "--policy", "--mode", "--live", "--repository"].includes(argument)) {
       const value = argv[index + 1];
       if (!value || value.startsWith("--")) throw new Error(`${argument} requires a value`);
-      if (argument === "--domain") parsed.domains.push(value);
-      else parsed[argument.slice(2)] = value;
+      parsed[argument.slice(2)] = value;
       index += 1;
     } else {
       throw new Error(`Unknown argument: ${argument}`);
     }
   }
-  if (new Set(parsed.domains).size !== parsed.domains.length) throw new Error("domain overlays must not be repeated");
   return parsed;
 }
 
@@ -333,10 +371,33 @@ function expectFailure(operation, pattern) {
   assert.throws(operation, pattern);
 }
 
-async function runSelfTest(manifestPath) {
+async function runSelfTest(manifestPath, policyPath) {
   const baseline = await loadJson(manifestPath);
   const manifest = validateManifest(baseline);
+  const policy = await loadJson(policyPath);
   const desired = resolveDesired(manifest);
+
+  assert.deepEqual(resolvePolicySelection(policy, manifest), { profile: null, domains: [] });
+  const generatedPolicy = structuredClone(policy);
+  generatedPolicy.mode = "generated";
+  generatedPolicy.profile = "library";
+  assert.deepEqual(resolvePolicySelection(generatedPolicy, manifest), { profile: "library", domains: [] });
+
+  const wrongPolicyMode = structuredClone(policy);
+  wrongPolicyMode.mode = "unknown";
+  expectFailure(() => resolvePolicySelection(wrongPolicyMode, manifest), /mode/);
+
+  const selectedTemplateProfile = structuredClone(policy);
+  selectedTemplateProfile.profile = "library";
+  expectFailure(() => resolvePolicySelection(selectedTemplateProfile, manifest), /Template policy/);
+
+  const missingGeneratedProfile = structuredClone(generatedPolicy);
+  missingGeneratedProfile.profile = null;
+  expectFailure(() => resolvePolicySelection(missingGeneratedProfile, manifest), /supported profile/);
+
+  const invalidPolicyDomains = structuredClone(generatedPolicy);
+  invalidPolicyDomains.label_domains = ["Unknown Domain"];
+  expectFailure(() => resolvePolicySelection(invalidPolicyDomains, manifest), /kebab-case/);
 
   const missingRoot = structuredClone(baseline);
   delete missingRoot.prune;
@@ -396,26 +457,44 @@ async function runSelfTest(manifestPath) {
   assert.deepEqual(planChanges(desired, caseDrift)[0].fields, ["name"]);
 
   const overlay = structuredClone(baseline);
+  overlay.overlays.domain.alpha = [{ name: "alpha", color: "123ABC", description: "Alpha domain label" }];
   overlay.overlays.domain.example = [{ name: "example", color: "ABCDEF", description: "Example domain label" }];
   assert.equal(resolveDesired(overlay, { profile: "library", domains: ["example"] }).length, desired.length + 1);
 
-  process.stdout.write("SELF-TEST PASS: 18 validation, overlay, and reconciliation cases\n");
+  const domainPolicy = structuredClone(generatedPolicy);
+  domainPolicy.label_domains = ["example"];
+  assert.deepEqual(resolvePolicySelection(domainPolicy, overlay), { profile: "library", domains: ["example"] });
+
+  const unknownDomainPolicy = structuredClone(generatedPolicy);
+  unknownDomainPolicy.label_domains = ["unknown"];
+  expectFailure(() => resolvePolicySelection(unknownDomainPolicy, manifest), /unknown domain/);
+
+  const duplicateDomainPolicy = structuredClone(generatedPolicy);
+  duplicateDomainPolicy.label_domains = ["example", "example"];
+  expectFailure(() => resolvePolicySelection(duplicateDomainPolicy, overlay), /duplicates/);
+
+  const unsortedDomainPolicy = structuredClone(generatedPolicy);
+  unsortedDomainPolicy.label_domains = ["example", "alpha"];
+  expectFailure(() => resolvePolicySelection(unsortedDomainPolicy, overlay), /sorted/);
+
+  process.stdout.write("SELF-TEST PASS: validation, policy, overlay, and reconciliation fixtures\n");
 }
 
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   if (options.selfTest) {
-    await runSelfTest(options.manifest);
+    await runSelfTest(options.manifest, options.policy);
     return;
   }
 
   const manifest = validateManifest(await loadJson(options.manifest));
-  const desired = resolveDesired(manifest, { profile: options.profile, domains: options.domains });
+  const selection = resolvePolicySelection(await loadJson(options.policy), manifest);
+  const desired = resolveDesired(manifest, selection);
   const summaryBase = {
     manifest,
     desiredCount: desired.length,
-    profile: options.profile,
-    domains: options.domains
+    profile: selection.profile,
+    domains: selection.domains
   };
 
   if (options.mode === "validate") {

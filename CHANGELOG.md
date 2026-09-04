@@ -120,6 +120,8 @@ messages. Replace every registered template token before publishing.
 - Added per-profile substantive VBA contracts and full-tree fixtures proving
   that README-only trees or missing façade/core/test components fail while
   optional example removal remains valid.
+- Added structured bug, feature and documentation forms, private security
+  routing, a post-creation provisioning checklist and static form fixtures.
 
 ### Changed
 
@@ -132,6 +134,8 @@ messages. Replace every registered template token before publishing.
 - Upgraded the canonical static-check workflow with bounded execution,
   non-persistent checkout credentials, deterministic JSON and Markdown
   artifacts, rerun-safe evidence names and an explicit terminal verdict.
+- Made profile and domain label selection a versioned repository policy that
+  both the checker and trusted reconciliation workflow validate and consume.
 
 ---
 

@@ -72,10 +72,10 @@ focused pull request.
 
 | Contribution | Good first action |
 |---|---|
-| 🐛 Reproducible defect | Open an issue with minimal inputs, expected behavior, observed behavior, and environment. |
-| ✨ Feature or API change | Open an issue describing users, contract, alternatives, compatibility, and validation. |
+| 🐛 Reproducible defect | Use the bug form with exact source, minimal inputs, expected/observed behavior, environment, and evidence. |
+| ✨ Feature or API change | Use the feature form to define users, contract, acceptance criteria, non-goals, compatibility, and validation. |
 | 🧪 Tests or reference evidence | Explain provenance, independence, precision, coverage, and expected failure detection. |
-| 📖 Documentation | Identify the affected behavior and keep examples executable and current. |
+| 📖 Documentation | Use the documentation form to identify the location, authoritative contract, correction, and verification. |
 | ⚙️ Repository/tooling | Explain developer impact, failure behavior, portability, and maintenance cost. |
 | 🔐 Security concern | Follow [SECURITY.md](SECURITY.md); do not open a public report. |
 | 💬 Usage question | Use the repository's supported discussion or issue channel without sensitive data. |

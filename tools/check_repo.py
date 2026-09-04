@@ -29,6 +29,7 @@ import xml.etree.ElementTree as ET
 SCHEMA_VERSION = 1
 CONFIG_PATH = ".github/repository-profile.json"
 LABEL_MANIFEST_PATH = ".github/labels.json"
+ISSUE_TEMPLATE_DIRECTORY = ".github/ISSUE_TEMPLATE"
 TOOL_NAME = "Canonical repository quality"
 SUPPORTED_PROFILES = ("application", "library", "ui-component")
 PLACEHOLDER_CATEGORIES = ("optional", "profile-specific", "repeatable", "required")
@@ -173,6 +174,7 @@ CONFIG_KEYS = {
     "mode",
     "profile",
     "repository",
+    "label_domains",
     "required_paths",
     "required_directories",
     "profiles",
@@ -378,6 +380,24 @@ def load_configuration(
     ):
         failures.append(
             finding(CONFIG_PATH, "repository must use the owner/name form.")
+        )
+
+    label_domains = _string_list(
+        document.get("label_domains"),
+        "label_domains",
+        failures,
+    )
+    for domain in label_domains:
+        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", domain):
+            failures.append(
+                finding(
+                    CONFIG_PATH,
+                    f"label_domains contains a non-kebab-case name: {domain!r}.",
+                )
+            )
+    if mode == "template" and label_domains:
+        failures.append(
+            finding(CONFIG_PATH, "Template mode requires label_domains to be empty.")
         )
 
     _string_list(
@@ -883,7 +903,15 @@ def check_placeholders(
                 continue
             token = match.group(0)
             seen.add(token)
-            if PurePosixPath(path).suffix.casefold() in PLACEHOLDER_PROHIBITED_SUFFIXES:
+            issue_template_yaml = (
+                path.startswith(".github/ISSUE_TEMPLATE/")
+                and PurePosixPath(path).suffix.casefold() in {".yml", ".yaml"}
+            )
+            if (
+                PurePosixPath(path).suffix.casefold()
+                in PLACEHOLDER_PROHIBITED_SUFFIXES
+                and not issue_template_yaml
+            ):
                 failures.append(
                     finding(
                         path,
@@ -1617,7 +1645,6 @@ def _validate_label_array(
 def check_label_manifest(
     repo: Repository, config: dict[str, object]
 ) -> dict[str, object]:
-    del config
     failures: list[dict[str, object]] = []
     try:
         document = json.loads(repo.text(LABEL_MANIFEST_PATH))
@@ -1697,12 +1724,209 @@ def check_label_manifest(
                     seen,
                     failures,
                 )
+            for selected in config["label_domains"]:
+                if selected not in domains:
+                    failures.append(
+                        finding(
+                            CONFIG_PATH,
+                            f"Selected label domain has no manifest overlay: {selected!r}.",
+                        )
+                    )
     count = len(seen)
-    return rule_result(
+    selected_profile = config["profile"] if config["mode"] == "generated" else None
+    resolved_count = len(core) if isinstance(core, list) else 0
+    if (
+        selected_profile is not None
+        and isinstance(overlays, dict)
+        and isinstance(overlays.get("profile"), dict)
+        and isinstance(overlays["profile"].get(selected_profile), list)
+    ):
+        resolved_count += len(overlays["profile"][selected_profile])
+    if isinstance(overlays, dict) and isinstance(overlays.get("domain"), dict):
+        for selected in config["label_domains"]:
+            overlay = overlays["domain"].get(selected)
+            if isinstance(overlay, list):
+                resolved_count += len(overlay)
+    result = rule_result(
         "label-manifest",
         "Canonical label manifest",
         failures,
-        f"Validated {count} unique labels without a hard-coded count",
+        f"Validated {count} unique labels; resolved {resolved_count} for versioned selection",
+    )
+    result["evidence"] = {
+        "profile": selected_profile,
+        "domains": list(config["label_domains"]),
+        "resolved_count": resolved_count,
+    }
+    return result
+
+
+ISSUE_FORM_SPECS: dict[str, dict[str, object]] = {
+    "bug.yml": {
+        "label": "bug",
+        "title": "[Bug]: ",
+        "required_ids": {
+            "profile", "summary", "source", "reproduction", "expected",
+            "actual", "environment", "evidence", "acknowledgements",
+        },
+    },
+    "documentation.yml": {
+        "label": "documentation",
+        "title": "[Docs]: ",
+        "required_ids": {
+            "location", "problem_type", "problem", "correction", "source",
+            "verification", "acknowledgements",
+        },
+    },
+    "feature.yml": {
+        "label": "enhancement",
+        "title": "[Feature]: ",
+        "required_ids": {
+            "profile", "problem", "outcome", "acceptance", "non_goals",
+            "compatibility", "alternatives", "validation", "acknowledgements",
+        },
+    },
+}
+
+
+def _yaml_header_scalar(text: str, key: str) -> str | None:
+    match = re.search(rf"(?m)^{re.escape(key)}:\s*(.+?)\s*$", text)
+    if not match:
+        return None
+    value = match.group(1).strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'\"', "'"}:
+        return value[1:-1]
+    return value
+
+
+def _yaml_flow_array(text: str, key: str) -> list[str] | None:
+    raw = _yaml_header_scalar(text, key)
+    if raw is None:
+        return None
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        return None
+    return value
+
+
+def _issue_form_blocks(text: str) -> list[tuple[str, str | None]]:
+    starts = list(re.finditer(r"(?m)^  - type:\s*([a-z]+)\s*$", text))
+    blocks: list[tuple[str, str | None]] = []
+    for index, match in enumerate(starts):
+        end = starts[index + 1].start() if index + 1 < len(starts) else len(text)
+        block = text[match.start():end]
+        identifier = re.search(r"(?m)^    id:\s*([a-z][a-z0-9_]*)\s*$", block)
+        blocks.append((match.group(1), identifier.group(1) if identifier else None))
+    return blocks
+
+
+def check_issue_forms(
+    repo: Repository, config: dict[str, object]
+) -> dict[str, object]:
+    failures: list[dict[str, object]] = []
+    try:
+        manifest = json.loads(repo.text(LABEL_MANIFEST_PATH))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        manifest = {}
+    label_names = {
+        label.get("name")
+        for label in manifest.get("core", [])
+        if isinstance(label, dict) and isinstance(label.get("name"), str)
+    }
+
+    for filename, specification in ISSUE_FORM_SPECS.items():
+        path = f"{ISSUE_TEMPLATE_DIRECTORY}/{filename}"
+        try:
+            text = repo.text(path)
+        except (OSError, UnicodeError) as error:
+            failures.append(finding(path, f"Cannot read canonical issue form: {error}"))
+            continue
+
+        for key in ("name", "description"):
+            value = _yaml_header_scalar(text, key)
+            if value is None or not value.strip():
+                failures.append(finding(path, f"Top-level {key} must be non-empty."))
+        if _yaml_header_scalar(text, "title") != specification["title"]:
+            failures.append(
+                finding(path, f"Top-level title must be {specification['title']!r}.")
+            )
+
+        labels = _yaml_flow_array(text, "labels")
+        expected_label = specification["label"]
+        if labels != [expected_label]:
+            failures.append(
+                finding(path, f"Top-level labels must be the JSON flow array [{expected_label!r}].")
+            )
+        elif expected_label not in label_names:
+            failures.append(
+                finding(path, f"Issue form label is absent from {LABEL_MANIFEST_PATH}: {expected_label}")
+            )
+        if _yaml_flow_array(text, "assignees") != []:
+            failures.append(
+                finding(path, "Top-level assignees must be an empty JSON flow array.")
+            )
+
+        blocks = _issue_form_blocks(text)
+        if not blocks or len(blocks) > 10:
+            failures.append(finding(path, "Issue form body must contain between 1 and 10 elements."))
+        invalid_types = sorted(
+            {kind for kind, _ in blocks} - {"checkboxes", "dropdown", "input", "markdown", "textarea"}
+        )
+        if invalid_types:
+            failures.append(
+                finding(path, "Unsupported issue-form element types: " + ", ".join(invalid_types))
+            )
+        identifiers = [identifier for _, identifier in blocks if identifier is not None]
+        if len(identifiers) != len(set(identifiers)):
+            failures.append(finding(path, "Issue-form element IDs must be unique."))
+        missing = sorted(set(specification["required_ids"]) - set(identifiers))
+        if missing:
+            failures.append(
+                finding(path, "Required issue-form element IDs are missing: " + ", ".join(missing))
+            )
+        if "SECURITY.md" not in text or "private" not in text.casefold():
+            failures.append(
+                finding(path, "The opening guidance must route vulnerability details to SECURITY.md privately.")
+            )
+        for identifier in set(specification["required_ids"]):
+            if identifier == "acknowledgements":
+                continue
+            pattern = rf"(?ms)^    id:\s*{re.escape(identifier)}\s*$.*?(?=^  - type:|\Z)"
+            match = re.search(pattern, text)
+            if match and not re.search(r"(?m)^      required:\s*true\s*$", match.group(0)):
+                failures.append(finding(path, f"Required evidence field {identifier!r} must be mandatory."))
+
+    config_path = f"{ISSUE_TEMPLATE_DIRECTORY}/config.yml"
+    try:
+        intake_config = repo.text(config_path)
+    except (OSError, UnicodeError) as error:
+        failures.append(finding(config_path, f"Cannot read issue-template configuration: {error}"))
+    else:
+        if not re.search(r"(?m)^blank_issues_enabled:\s*false\s*$", intake_config):
+            failures.append(finding(config_path, "Blank issues must be disabled."))
+        repository = (
+            "{{REPOSITORY_PATH}}"
+            if config["mode"] == "template"
+            else config["repository"]
+        )
+        expected_url = f"https://github.com/{repository}/security/policy"
+        url_match = re.search(r'(?m)^\s+url:\s*["\']?([^"\'\s]+)["\']?\s*$', intake_config)
+        actual_url = url_match.group(1) if url_match else None
+        if actual_url != expected_url:
+            failures.append(
+                finding(config_path, f"Private-security contact URL must be {expected_url!r}.")
+            )
+        if "private" not in intake_config.casefold():
+            failures.append(finding(config_path, "Security contact guidance must require private reporting."))
+
+    return rule_result(
+        "issue-forms",
+        "Structured issue forms and private security routing",
+        failures,
+        "Validated three canonical forms, labels, evidence fields, and private security routing",
     )
 
 
@@ -2361,6 +2585,7 @@ CHECKS: tuple[Check, ...] = (
     check_forbidden_artifacts,
     check_line_endings,
     check_label_manifest,
+    check_issue_forms,
     check_workflow_actions,
     check_version_changelog,
     check_git_diff,
@@ -2520,6 +2745,7 @@ def _fixture_configuration() -> dict[str, object]:
         "mode": "generated",
         "profile": "library",
         "repository": "example/fixture",
+        "label_domains": [],
         "required_paths": [
             ".editorconfig",
             ".gitattributes",
@@ -2629,9 +2855,19 @@ def _fixture_labels() -> dict[str, object]:
         "prune": False,
         "core": [
             {
-                "name": "type: bug",
+                "name": "bug",
                 "color": "D73A4A",
                 "description": "Something is not working",
+            },
+            {
+                "name": "documentation",
+                "color": "0075CA",
+                "description": "Documentation correction",
+            },
+            {
+                "name": "enhancement",
+                "color": "A2EEEF",
+                "description": "New capability",
             }
         ],
         "overlays": {
@@ -2703,6 +2939,61 @@ test-results/
     _write_fixture(
         root / LABEL_MANIFEST_PATH,
         json.dumps(_fixture_labels(), indent=2, ensure_ascii=False) + "\n",
+    )
+    fixture_forms = {
+        "bug.yml": ("Bug report", "[Bug]: ", "bug", [
+            "profile", "summary", "source", "reproduction", "expected",
+            "actual", "environment", "evidence", "acknowledgements",
+        ]),
+        "documentation.yml": ("Documentation request", "[Docs]: ", "documentation", [
+            "location", "problem_type", "problem", "correction", "source",
+            "verification", "acknowledgements",
+        ]),
+        "feature.yml": ("Feature request", "[Feature]: ", "enhancement", [
+            "profile", "problem", "outcome", "acceptance", "non_goals",
+            "compatibility", "alternatives", "validation", "acknowledgements",
+        ]),
+    }
+    for filename, (name, title, label, identifiers) in fixture_forms.items():
+        body = [
+            f'name: "{name}"',
+            'description: "Canonical fixture form."',
+            f'title: "{title}"',
+            f'labels: ["{label}"]',
+            "assignees: []",
+            "body:",
+            "  - type: markdown",
+            "    attributes:",
+            "      value: Follow `SECURITY.md` and report vulnerabilities privately.",
+        ]
+        for identifier in identifiers:
+            kind = "checkboxes" if identifier == "acknowledgements" else "textarea"
+            body.extend([
+                f"  - type: {kind}",
+                f"    id: {identifier}",
+                "    attributes:",
+                f"      label: {identifier.replace('_', ' ').title()}",
+            ])
+            if kind == "checkboxes":
+                body.extend([
+                    "      options:",
+                    "        - label: I confirm this fixture statement.",
+                    "          required: true",
+                ])
+            else:
+                body.extend([
+                    "    validations:",
+                    "      required: true",
+                ])
+        _write_fixture(root / ISSUE_TEMPLATE_DIRECTORY / filename, "\n".join(body) + "\n")
+    _write_fixture(
+        root / ISSUE_TEMPLATE_DIRECTORY / "config.yml",
+        """blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: "https://github.com/example/fixture/security/policy"
+    about: Use the private reporting channel.
+""",
     )
     _write_fixture(
         root / ".github/workflows/static-checks.yml",
@@ -2849,6 +3140,12 @@ def _degrade_label_manifest(root: Path) -> None:
     _update_fixture_json(root, LABEL_MANIFEST_PATH, mutate)
 
 
+def _degrade_issue_forms(root: Path) -> None:
+    path = root / ISSUE_TEMPLATE_DIRECTORY / "bug.yml"
+    text = path.read_text(encoding="utf-8")
+    _write_fixture(path, text.replace("assignees: []", 'assignees: ["owner"]'))
+
+
 def _degrade_workflow_actions(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
@@ -2926,6 +3223,7 @@ SELF_TEST_CASES: tuple[tuple[str, Callable[[Path], None]], ...] = (
     ("forbidden-artifacts", _degrade_forbidden_artifacts),
     ("line-endings", _degrade_line_endings),
     ("label-manifest", _degrade_label_manifest),
+    ("issue-forms", _degrade_issue_forms),
     ("workflow-actions", _degrade_workflow_actions),
     ("version-changelog", _degrade_version_changelog),
     ("git-diff-check", _degrade_git_diff),

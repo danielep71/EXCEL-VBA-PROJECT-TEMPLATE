@@ -239,7 +239,7 @@ generated changelog; records initialization; and accepts an identical second
 run as a no-op. Its self-test exercises positive and negative fixtures for all
 three profiles and runs the repository-quality gate over each generated tree.
 
-### P1-04 — Structured issue intake is missing
+### P1-04 — Structured issue intake — implementation complete; hosted evidence pending
 
 **Evidence:** `.github/ISSUE_TEMPLATE/` does not exist. There are no bug,
 feature or documentation forms and no issue-template configuration.
@@ -254,6 +254,14 @@ reports privately; do not hard-code an assignee into the reusable forms.
 **Acceptance gate:** GitHub accepts every form; titles, labels, required fields,
 support links and security guidance are valid; blank issues follow the documented
 policy; no donor identity or unavailable URL remains.
+
+**Implementation status — 2026-09-04:** Three native issue forms now require
+bounded source, environment, expected-result, scope and validation evidence as
+appropriate. Their labels come from the canonical manifest, reusable assignees
+remain empty, blank issues are disabled, and the security contact link is
+rendered from the initialized repository path. The 21-rule checker includes a
+positive fixture and a targeted degraded-form fixture. Closure still requires
+the exact-SHA hosted run and live GitHub rendering check.
 
 ### P1-05 — Release integrity is documented but not executable
 
@@ -298,7 +306,7 @@ workflow/action schema paths used by the template.
 an invalid action reference and malformed XML all fail locally or in the hosted
 gate before certification; current workflows remain green.
 
-### P1-07 — The post-creation and profile provisioning contract is incomplete
+### P1-07 — Post-creation and profile provisioning — file contract complete; pilot pending
 
 **Evidence:** There is no `docs/POST_CREATION_CHECKLIST.md`. Template generation
 does not inherit labels, rulesets, topics, security settings or merge settings.
@@ -319,6 +327,14 @@ governance. Future non-empty label overlays could be silently omitted or pruned.
 
 **Acceptance gate:** A generated pilot’s files, labels, metadata, merge settings,
 branch protection and tag policy match the selected profile and checklist.
+
+**Implementation status — 2026-09-04:** The versioned checklist now specifies
+the expected issue chooser, resolved labels, metadata, repository features,
+merge policy, `main` and `v*` rules, profile controls and API read-back evidence.
+`label_domains` is a validated repository-profile field, and the label workflow
+derives its complete overlay selection from that tracked policy. The acceptance
+gate remains open until those controls are applied to and read back from a real
+generated pilot.
 
 ### P1-08 — Live governance and pilot certification lag behind the implemented gate
 
@@ -408,7 +424,7 @@ domain-specific gate is replaced by a weaker generic check.
 | 1 | Finalize placeholder schema and deterministic initializer — **complete** | P1-03 | None | 1.5–2.5 days |
 | 2 | Add neutral VBA façade/core modules, premium headers and harness — **complete** | P1-01 | Placeholder identifier policy | 2.5–4 days |
 | 3 | Enforce substantive generated-profile contracts and full-tree fixtures — **complete** | P1-02 | Starter assets | 1.5–2.5 days |
-| 4 | Add issue forms and post-creation checklist; wire label profile selection | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
+| 4 | Add issue forms and post-creation checklist; wire label profile selection — **source complete; pilot pending** | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
 | 5 | Add authoritative workflow validation and close checker false negatives | P1-06, P2-01–P2-07 | Stable checker/profile schema | 2–3.5 days |
 | 6 | Add release gate, fixtures and protected-tag specification | P1-05 | Static and placeholder gates | 1.5–2.5 days |
 | 7 | Strengthen live `main` protection and complete metadata | P1-08, P2-10 | Stable required context | 0.5–1 day |
@@ -426,11 +442,11 @@ are the largest uncertainties.
 | Package | Status after review | Evidence or remaining boundary |
 | --- | --- | --- |
 | Portfolio audit and donor decisions | **Complete** | Frozen decision record remains authoritative |
-| Root documentation | **Strong / incomplete** | Core documents and README exist; post-creation checklist and deduplication remain |
+| Root documentation | **Strong / incomplete** | Core documents and exact post-creation checklist exist; deduplication remains |
 | Canonical directories | **Complete** | All profiles retain substantive façade, core, and test assets; optional UI assets remain profile-driven |
 | Placeholder governance | **Complete** | Classified schema, dry-run/apply initializer, manual fallback and all-profile fixtures pass |
-| Collaboration files | **In progress** | PR and labels strong; issue forms/config absent |
-| Repository-quality checker | **Strong / reopened** | The 20-rule gate now enforces generated-profile VBA contracts; authoritative YAML and identified false negatives remain |
+| Collaboration files | **Complete at source level** | PR template, three issue forms/config and versioned label selection are implemented; live pilot verification remains |
+| Repository-quality checker | **Strong / reopened** | The 21-rule gate now enforces generated-profile VBA contracts and issue intake; authoritative YAML and identified false negatives remain |
 | Release controls | **In progress** | Documentation exists; executable gate/tag policy absent |
 | Reusable VBA assets | **Complete** | Four governed exports, public API manifest, clean import/compile, 4-case/6-assertion Excel pass, and exact-SHA hosted checks evidenced |
 | Live governance | **In progress** | Merge settings/basic protection exist; required PR/check/tag policy absent |
@@ -453,8 +469,8 @@ P1 passes only when all statements below are true:
 - [x] Neutral façade, core and test modules import and compile without editing.
 - [x] The deterministic harness passes and reports exact environment/count evidence.
 - [x] Generated mode rejects repositories with no substantive production/test VBA.
-- [ ] Bug, feature and documentation forms plus configuration are valid.
-- [ ] Profile/domain labels resolve from versioned repository policy.
+- [ ] Bug, feature and documentation forms plus configuration are valid. *(Source fixtures pass; live rendering pending.)*
+- [x] Profile/domain labels resolve from versioned repository policy.
 - [ ] YAML/workflow validation is authoritative and version-pinned.
 - [ ] The release gate passes positive fixtures and rejects every named negative fixture.
 - [ ] `main` requires PR routing and the exact live `Repository integrity` context.
@@ -476,6 +492,7 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Implement **P1-04** and the issue-intake portion of **P1-07** next: add validated
-bug, feature, and documentation forms plus configuration and a post-creation
-checklist without weakening the selected-profile contract.
+Complete the hosted and live-rendering evidence for **P1-04**, then implement
+**P1-06**: add authoritative, version-pinned workflow validation and the named
+negative YAML, workflow and XML fixtures without weakening the portable local
+gate.

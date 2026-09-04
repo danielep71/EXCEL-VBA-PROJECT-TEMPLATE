@@ -17,6 +17,7 @@ Keep portfolio governance files at the repository root: `README.md`, `CHANGELOG.
 | Document | Purpose |
 | --- | --- |
 | [`INITIALIZATION.md`](INITIALIZATION.md) | Canonical token schema, profile selection, dry-run/apply procedure, and manual fallback |
+| [`POST_CREATION_CHECKLIST.md`](POST_CREATION_CHECKLIST.md) | Live GitHub settings, label reconciliation, protection, and read-back evidence after generation |
 | [`PUBLIC_API.txt`](PUBLIC_API.txt) | Machine-checked declarations supported by public-role VBA components |
 | [`REPOSITORY_STRUCTURE.md`](REPOSITORY_STRUCTURE.md) | Canonical directory ownership and permitted profile alternatives |
 <!-- template:remove:start -->

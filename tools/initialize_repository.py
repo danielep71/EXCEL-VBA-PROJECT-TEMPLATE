@@ -387,7 +387,15 @@ def _build_changes(
         source = (root / path).read_bytes()
         text = _decode(path, source)
         matches = list(token_pattern.finditer(text))
-        if matches and PurePosixPath(path).suffix.casefold() in EXECUTABLE_SUFFIXES:
+        issue_template_yaml = (
+            path.startswith(".github/ISSUE_TEMPLATE/")
+            and PurePosixPath(path).suffix.casefold() in {".yml", ".yaml"}
+        )
+        if (
+            matches
+            and PurePosixPath(path).suffix.casefold() in EXECUTABLE_SUFFIXES
+            and not issue_template_yaml
+        ):
             raise InitializationError(f"Placeholders are prohibited in executable or VBA file {path}.")
         rendered = _render_blocks(path, text, profile, scalars, repeatable, catalogue)
         for match in token_pattern.finditer(rendered):

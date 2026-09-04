@@ -443,6 +443,7 @@ Do not instruct users to import test modules as production dependencies.
 | [Releasing](RELEASING.md) | Versioning, certification, artifacts, provenance and recovery |
 | [Repository structure](docs/REPOSITORY_STRUCTURE.md) | Canonical directory and VBA ownership |
 | [Initialization](docs/INITIALIZATION.md) | Token schema, profile selection, dry-run/apply and manual fallback |
+| [Post-creation checklist](docs/POST_CREATION_CHECKLIST.md) | Labels, metadata, merge settings, branch/tag protection and read-back evidence |
 | [Documentation index](docs/README.md) | Durable architecture, API and specialist contracts |
 | [Code of Conduct](CODE_OF_CONDUCT.md) | Participation expectations |
 
