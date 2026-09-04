@@ -2,13 +2,13 @@
 
 **Owner:** Daniele Penza
 
-**Repository:** `danielep71/GITHUB-TEMPLATE`
+**Repository:** `danielep71/EXCEL-VBA-PROJECT-TEMPLATE`
 
 **Review snapshot:** `ec38113ceab37ac452707578fea0d1b1f2304e1f`
 
 **Review date:** 3 September 2026
 
-**Plan revision:** 9 — P1-05 certification
+**Plan revision:** 10 — canonical repository identity
 
 **Plan status:** Active — P1 certification blockers remain
 
@@ -20,8 +20,8 @@
 
 ## 1. Executive verdict
 
-`GITHUB-TEMPLATE` has a strong governance and static-analysis foundation, but it
-is not yet a complete or certifiable VBA project template.
+`EXCEL-VBA-PROJECT-TEMPLATE` has a strong governance and static-analysis
+foundation, but it is not yet a complete or certifiable VBA project template.
 
 The best implemented material—documentation, immutable workflow dependencies,
 the 20-label catalogue, deterministic reports and the 21-rule checker—is already
@@ -197,7 +197,7 @@ observed counts, and required paths. The checker self-test passes 20 rules. The
 initializer's three complete fixtures pass, 12 README-only or mandatory-removal
 fixtures fail only the named contract rule with profile and role diagnostics,
 and three example-removal fixtures pass. Hosted run
-[`33806787297`](https://github.com/danielep71/GITHUB-TEMPLATE/actions/runs/33806787297)
+[`33806787297`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/runs/33806787297)
 checked out that exact source SHA and passed every initializer, checker,
 repository, summary, artifact, and terminal-enforcement step.
 
@@ -261,9 +261,9 @@ appropriate. Their labels come from the canonical manifest, reusable assignees
 remain empty, blank issues are disabled, and the security contact link is
 rewritten by the initializer for the generated repository without leaving a
 token in YAML. Final source commit
-[`bbc9209778cc8ad791a6e50604b457b9c7b5eabd`](https://github.com/danielep71/GITHUB-TEMPLATE/commit/bbc9209778cc8ad791a6e50604b457b9c7b5eabd)
+[`bbc9209778cc8ad791a6e50604b457b9c7b5eabd`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/commit/bbc9209778cc8ad791a6e50604b457b9c7b5eabd)
 passed exact-SHA static run
-[`33850927030`](https://github.com/danielep71/GITHUB-TEMPLATE/actions/runs/33850927030).
+[`33850927030`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/runs/33850927030).
 The live chooser rendered all three forms, their prefixes, mandatory fields and
 canonical labels with no assignee; blank intake was maintainer-only and both
 security entries resolved to this repository's policy. The 21-rule checker
@@ -302,11 +302,11 @@ three valid profiles and 17 named failure paths, including the `0.0.0` sentinel,
 missing evidence/manifest, candidate and asset binding mismatches, unapproved
 binaries, bad digests, lightweight tags and moved tags. The static workflow now
 requires the self-test report and outcome. Source commit
-[`8eab253ba9c5557bf3304928f2a33616b5ef3785`](https://github.com/danielep71/GITHUB-TEMPLATE/commit/8eab253ba9c5557bf3304928f2a33616b5ef3785)
+[`8eab253ba9c5557bf3304928f2a33616b5ef3785`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/commit/8eab253ba9c5557bf3304928f2a33616b5ef3785)
 passed exact-SHA hosted run
-[`33854256898`](https://github.com/danielep71/GITHUB-TEMPLATE/actions/runs/33854256898),
+[`33854256898`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/runs/33854256898),
 including the release fixtures and fail-closed terminal verdict. Active ruleset
-[`Protect releases`](https://github.com/danielep71/GITHUB-TEMPLATE/settings/rules/22258556)
+[`Protect releases`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/settings/rules/22258556)
 targets `refs/tags/v*`, has no bypass actors, and prevents updates, deletions and
 force pushes. The documented pre-tag and annotated-tag verification commands
 bind the release path to the certified candidate; publication remains P1-08.
@@ -341,9 +341,9 @@ missing local-action metadata and a missing local entry point. Validator setup,
 execution, summary publication and evidence upload are all terminal outcomes.
 The initial hosted run correctly failed closed on two ShellCheck findings in the
 workflow summary block. Commit
-[`4982647aecf4a02aca5fd4c759fcd32ab6081a01`](https://github.com/danielep71/GITHUB-TEMPLATE/commit/4982647aecf4a02aca5fd4c759fcd32ab6081a01)
+[`4982647aecf4a02aca5fd4c759fcd32ab6081a01`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/commit/4982647aecf4a02aca5fd4c759fcd32ab6081a01)
 corrected those findings without weakening enforcement, and exact-SHA hosted
-[`Static repository checks` run 33852502452](https://github.com/danielep71/GITHUB-TEMPLATE/actions/runs/33852502452)
+[`Static repository checks` run 33852502452](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/runs/33852502452)
 passed all steps. P1-06 is complete; the broader P2 checker-hardening findings
 remain independently open.
 

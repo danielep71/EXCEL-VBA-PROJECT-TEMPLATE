@@ -131,6 +131,9 @@ messages. Replace every registered template token before publishing.
 
 ### Changed
 
+- Renamed the canonical repository to `EXCEL-VBA-PROJECT-TEMPLATE` and aligned
+  its profile identity, security route, evidence links and template-identity
+  rejection rule with the new URL.
 - Replaced the progress-oriented implementation plan with an exact-snapshot code
   review, weighted template-readiness score, P1/P2/P3 finding register and
   findings-driven certification sequence.

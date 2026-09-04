@@ -2,7 +2,7 @@
   "schema_version": 1,
   "mode": "template",
   "profile": null,
-  "repository": "danielep71/GITHUB-TEMPLATE",
+  "repository": "danielep71/EXCEL-VBA-PROJECT-TEMPLATE",
   "label_domains": [],
   "required_paths": [
     ".editorconfig",
@@ -235,7 +235,7 @@
       "VBA-PROGRESS_BAR"
     ],
     "template_tokens": [
-      "GITHUB-TEMPLATE"
+      "EXCEL-VBA-PROJECT-TEMPLATE"
     ],
     "exclude_paths": [
       ".github/repository-profile.json",
