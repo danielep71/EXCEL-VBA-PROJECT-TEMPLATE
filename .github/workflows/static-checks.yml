@@ -336,3 +336,35 @@ jobs:
             fi
           done
           exit "$failed"
+
+  typing-migration:
+    name: Temporary typing migration
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'v1.1.0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out milestone branch for one-shot migration
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Install one-shot type checker
+        run: python3 -m pip install --disable-pip-version-check 'mypy==1.18.2'
+      - name: Apply deterministic annotation migration
+        run: python3 tools/_apply_typing_migration.py
+      - name: Require clean mypy result before committing
+        run: python3 -m mypy tools/*.py
+      - name: Commit generated typing repairs to milestone branch
+        run: |
+          git config user.name 'Repository typing migration'
+          git config user.email 'typing-migration@users.noreply.github.com'
+          git add tools/*.py
+          if git diff --cached --quiet; then
+            echo 'No source changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Repair Python typing contracts'
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
