@@ -129,6 +129,10 @@ Move relevant entries from **Unreleased** into a dated
 - Confirm README examples use the supported API and current version.
 - Check [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and license links.
 - Remove stale commands and promises beyond the tested support matrix.
+- For a generated-project release, confirm all template tokens and construction
+  history are gone. For this canonical template's own release, preserve the
+  registered tokens and template-only blocks and require the `template`
+  evidence profile instead.
 
 ## 5. Run static gates
 
@@ -142,7 +146,9 @@ Capture commands, tool versions, timestamps, and complete results. Rerun affecte
 
 ## 6. Certify in Excel
 
-- Open the exact candidate in each supported Excel environment.
+- Open the exact candidate in each supported Excel environment. For a template
+  release, import the candidate's neutral starter exports directly; do not
+  initialize or rename them before certification.
 - Run **Debug → Compile VBAProject**.
 - Run the documented Excel regression entry point and record the result. The
   neutral baseline is `ProjectTests.RunProjectTests`; it must report four cases,

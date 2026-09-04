@@ -30,6 +30,7 @@ Additional required checks are profile-specific:
 | `library` | Public API and caller-contract evidence |
 | `ui-component` | UI state, cleanup, recovery, DPI/accessibility, and lifecycle evidence |
 | `application` | Startup, shutdown, upgrade, recovery, packaging, and end-to-end smoke evidence |
+| `template` | All three generated-profile pilots and live branch/tag governance evidence |
 
 All checks use `status: "PASS"`, a non-empty `detail`, and the same
 `candidate_sha`. Project-specific checks may be added with lower-case,
@@ -45,7 +46,7 @@ The top-level object contains exactly these fields:
   "version": "1.0.0",
   "tag": "v1.0.0",
   "candidate_sha": "0123456789abcdef0123456789abcdef01234567",
-  "profile": "library",
+  "profile": "template",
   "distribution": "source-only",
   "checks": {},
   "assets": []
@@ -74,9 +75,16 @@ the checked JSON.
 
 ## Source-only and binary distributions
 
-A library is source-only by default. Set `distribution` to `source-only`, keep
-`assets` empty, and omit the asset manifest. UI-component and application
-profiles may do the same.
+A library or template release is source-only by default. Set `distribution` to
+`source-only`, keep `assets` empty, and omit the asset manifest. UI-component
+and application profiles may do the same.
+
+The template profile deliberately retains its registered placeholders,
+template-only blocks, canonical repository identity, and construction history.
+Its `repository-integrity`, `generated-profile-pilots`, and `live-governance`
+evidence proves those controls are intentional and usable. Generated project
+profiles remain subject to the stricter unresolved-token, template-identity,
+and inherited-construction-history rejection rules.
 
 Optional UI/application binaries must match an allowed `dist/` glob in the
 policy. Each asset record contains exactly:
@@ -132,11 +140,14 @@ to resolve to the same candidate SHA. Any non-zero result blocks publication.
 
 ## What the gate rejects
 
-The deterministic self-test covers all three valid profiles and rejects:
+The deterministic self-test covers all four release profiles and rejects:
 
 - a version/tag mismatch or `0.0.0` sentinel;
 - an invalid or missing dated changelog release;
-- unresolved template syntax, template identity, or construction history;
+- unresolved template syntax, template identity, or inherited construction
+  history in a generated project release;
+- a template release carrying a generated-project initialization record or
+  missing its pilot/governance evidence;
 - missing evidence or missing profile-specific checks;
 - evidence or assets bound to another candidate SHA;
 - unapproved library or profile binaries;

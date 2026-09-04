@@ -8,7 +8,7 @@
 
 **Review date:** 4 September 2026
 
-**Plan revision:** 16 — durable pilot evidence and preview-contract correction
+**Plan revision:** 17 — template-release candidate preparation
 
 **Plan status:** Active — P1 certification blockers remain
 
@@ -283,7 +283,8 @@ still passing the generic repository gate.
 
 - add a dependency-free release checker and positive/negative fixtures;
 - require equality among `VERSION`, the dated changelog heading and `v*` tag;
-- reject `0.0.0`, unresolved tokens and template identity in a release candidate;
+- reject `0.0.0` and reject unresolved tokens or template identity in a
+  generated-project release candidate;
 - validate profile-specific evidence requirements and SHA-256 manifests;
 - distinguish source-only library releases from optional UI/application binaries;
 - add an immutable protected-tag policy before the first release.
@@ -306,7 +307,7 @@ requires the self-test report and outcome. Source commit
 passed exact-SHA hosted run
 [`33854256898`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/runs/33854256898),
 including the release fixtures and fail-closed terminal verdict. Active ruleset
-[`Protect releases`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/settings/rules/22258556)
+[`Protect releases`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/rules/22258556)
 targets `refs/tags/v*`, has no bypass actors, and prevents updates, deletions and
 force pushes. The documented pre-tag and annotated-tag verification commands
 bind the release path to the certified candidate; publication remains P1-08.
@@ -387,9 +388,9 @@ description and topics, Issues and private vulnerability reporting enabled,
 Wiki, Projects, Discussions and Sponsorships disabled, all three merge methods,
 branch updates and automatic head-branch deletion enabled, and auto-merge
 disabled. Active rulesets
-[`Protect main`](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/settings/rules/22263639)
+[`Protect main`](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/rules/22263639)
 and
-[`Protect releases`](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/settings/rules/22264488)
+[`Protect releases`](https://github.com/danielep71/EXCEL-VBA-PILOT-APPLICATION/rules/22264488)
 have empty bypass lists; the former requires pull requests and strict
 `Repository integrity`, while the latter targets `refs/tags/v*` and blocks tag
 updates, deletion and force-pushes. Generated-mode initializer fixtures also
@@ -434,6 +435,22 @@ exact live settings/label read-back. Unified Excel/candidate evidence and the
 release remain open. The full commits, collection time, operator, profile,
 domains, workflow links and live-setting links are retained in
 [`PILOT_CERTIFICATION.md`](PILOT_CERTIFICATION.md).
+
+**Release-candidate correction — 2026-09-04:** The generic release gate
+originally accepted only initialized generated repositories, so it could not
+certify the canonical template repository required by P1-08. The release policy
+now defines a source-only `template` profile requiring all-profile pilot and
+live-governance evidence in addition to the common static, compile and regression
+checks. Template releases deliberately retain registered placeholders,
+template-only blocks and their own construction history; generated-project
+releases continue to reject inherited template state. Initialization resets the
+template's released `VERSION` to the `0.0.0` generated-project sentinel. The
+candidate sets `VERSION` to `1.0.0` and creates the dated initial release
+changelog section. Local certification passes 22 deterministic release
+fixtures, all three initializer profiles, all 21 repository rules and all six
+authoritative workflow fixtures; hosted and Excel evidence remain pending until
+the protected release-preparation pull request establishes the exact final
+`main` SHA.
 
 ## 5. P2 findings — material hardening and portfolio adoption
 
@@ -589,6 +606,7 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Continue **P1-08**: obtain fresh Excel compile/regression evidence for the exact
-final candidate SHA, then bind the static, Excel and release evidence to that
-same commit before publishing `v1.0.0` from the protected tag.
+Continue **P1-08**: merge the template-aware `v1.0.0` preparation through the
+protected branch gate, obtain fresh Excel compile/regression evidence for that
+exact `main` SHA, then validate the external evidence before creating and
+publishing the protected annotated tag.

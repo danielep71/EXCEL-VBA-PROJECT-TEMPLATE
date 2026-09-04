@@ -445,6 +445,8 @@ def _build_changes(
             raise InitializationError(f"{path}: unresolved placeholders: {', '.join(unresolved)}")
         if path == "CHANGELOG.md":
             rendered = _reset_changelog(rendered)
+        elif path == "VERSION":
+            rendered = "0.0.0\n"
         output = _encode(path, rendered)
         if output != source:
             changes[path] = output
@@ -755,6 +757,8 @@ def _assert_fresh_generated_content(root: Path, profile: str) -> None:
     changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     if "No unreleased changes recorded." not in changelog:
         raise AssertionError(f"{profile} did not reset generated changelog history.")
+    if (root / "VERSION").read_text(encoding="utf-8") != "0.0.0\n":
+        raise AssertionError(f"{profile} did not reset the generated version sentinel.")
 
 
 def _make_evolved_generated_fixture(source: Path, destination: Path) -> None:
