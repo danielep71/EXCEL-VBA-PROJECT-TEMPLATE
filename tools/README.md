@@ -123,6 +123,48 @@ supersedes the file-scoped jump-resolution portion of the monolithic
 `vba-structure` rule. The hosted terminal verdict requires both gates, so the
 older broad rule cannot make a cross-procedure target green in CI.
 
+## VBA conditional-compilation validation
+
+`check_vba_conditionals.py` is the authoritative hardening gate for reachable
+VBA `Declare` statements under the supported host model. It evaluates three
+explicit environments: `vba6-win32`, `vba7-win32`, and `vba7-win64`.
+
+The checker maintains a full nested conditional stack containing parent
+activity, branch selection, current activity, and `#Else` state. It evaluates
+`#If`, `#ElseIf`, `#Else`, and `#End If` consistently, so inactive descendants
+cannot accidentally become active when an outer branch is false. Supported
+expressions use `VBA6`, `VBA7`, `Win32`, `Win64`, Boolean literals, integer
+literals, parentheses, `Not`, `And`, `Or`, `=`, and `<>`.
+
+The boundary is deliberately conservative:
+
+- every `Declare` reachable in either supported VBA7 environment must include
+  `PtrSafe`;
+- VBA6-only declarations may retain legacy syntax;
+- unknown or project-defined symbols fail closed rather than being guessed;
+- `#Const` is rejected because project-defined compilation constants are outside
+  the reusable baseline; and
+- malformed, duplicate, or unbalanced branch directives produce actionable
+  diagnostics.
+
+Run the focused fixtures and repository check with:
+
+```bash
+python3 tools/check_vba_conditionals.py --root . --self-test
+python3 tools/check_vba_conditionals.py \
+  --root . \
+  --output test-results/vba-conditionals.json \
+  --summary test-results/vba-conditionals.md
+```
+
+The fixtures cover nested VBA6/VBA7 and Win32/Win64 branches, `#ElseIf`
+selection, inactive nesting, reachable non-`PtrSafe` failures in each VBA7
+bitness, continued declares, unsupported symbols, and unbalanced directives.
+Until P2-08 modularizes checker development, this dedicated gate supersedes the
+approximate conditional-compilation portion of the monolithic `vba-structure`
+rule. Both remain required in hosted CI, so the older approximation cannot hide
+a reachable declaration defect.
+
 ## Authoritative workflow validation
 
 The hosted gate complements the portable YAML subset check with
