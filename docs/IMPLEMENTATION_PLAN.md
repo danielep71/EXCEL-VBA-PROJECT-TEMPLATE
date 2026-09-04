@@ -6,13 +6,20 @@
 [![Policy branches: 175/175](https://img.shields.io/badge/policy%20branches-175%2F175-success)](#current-certification-evidence)
 [![Repository rules: 21/21](https://img.shields.io/badge/repository%20rules-21%2F21-success)](#current-certification-evidence)
 
-**Owner:** Daniele Penza  
-**Repository:** `danielep71/EXCEL-VBA-PROJECT-TEMPLATE`  
-**Development branch:** `v1.1.0`  
-**Single merge path:** PR #41 — `v1.1.0` → `main`  
-**Certified baseline:** `v1.0.0`  
-**Plan revision:** 20 — v1.1.0 execution state synchronized  
-**Plan date:** 4 September 2026  
+**Owner:** Daniele Penza
+
+**Repository:** `danielep71/EXCEL-VBA-PROJECT-TEMPLATE`
+
+**Development branch:** `v1.1.0`
+
+**Single merge path:** PR #41 — `v1.1.0` → `main`
+
+**Certified baseline:** `v1.0.0`
+
+**Plan revision:** 20 — v1.1.0 execution state synchronized
+
+**Plan date:** 4 September 2026
+
 **Status:** Active — 9 of 12 P2 findings complete; 3 remain
 
 > **Temporary execution document.** This file is the live work plan for the
@@ -53,6 +60,8 @@ all milestone changes remain accumulated on `v1.1.0` until final certification.
 <a id="release-boundaries"></a>
 
 ## 2. 🧱 Release Boundaries
+
+<a id="p1-certification-gate"></a>
 
 ### ✅ `v1.0.0` — frozen certified baseline
 
@@ -137,7 +146,8 @@ The current implementation evidence baseline before this plan update is:
 | **P2-11** | #19 | ✅ **Complete** | Label profile/domain overlays resolve from versioned repository policy with exact, idempotent reconciliation evidence. |
 | **P2-12** | #20 | ⏳ **Pending** | Detect live label drift safely without allowing untrusted or scheduled writes. |
 
-**P2 completion:** **9 / 12 findings complete.**  
+**P2 completion:** **9 / 12 findings complete.**
+
 **Remaining issues:** **#17 → #16 → #20**.
 
 <a id="completed-hardening"></a>
