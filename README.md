@@ -165,7 +165,7 @@ Its source contract covers {{PROFILE_SOURCE_CONTRACT}}.
 At minimum, retain {{PROFILE_EVIDENCE}}.
 
 <!-- template:profile:library:start -->
-#### Library commitment
+### Library commitments
 
 Keep the callable API independent of workbook selection and UI state. Forms,
 Ribbon XML and application lifecycle code remain out of scope unless the profile
@@ -173,7 +173,7 @@ is deliberately changed.
 <!-- template:profile:library:end -->
 
 <!-- template:profile:ui-component:start -->
-#### UI-component commitment
+### UI-component commitments
 
 Document initialization, reentrancy, cancellation, accessibility and cleanup.
 Tests must prove restoration of every Excel or Windows resource the component
@@ -181,7 +181,7 @@ changes.
 <!-- template:profile:ui-component:end -->
 
 <!-- template:profile:application:start -->
-#### Application commitment
+### Application commitments
 
 Document startup, shutdown, configuration, data boundaries, deployment,
 upgrade and rollback. A distributable package requires provenance and
