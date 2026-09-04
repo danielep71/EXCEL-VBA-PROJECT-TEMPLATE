@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate repository-local GitHub Action references and tracked entrypoints."""
+'''Validate repository-local GitHub Action references and tracked entrypoints.'''
 
 from __future__ import annotations
 
@@ -14,20 +14,26 @@ import tempfile
 TOOL_NAME = "Repository-local GitHub Actions"
 WORKFLOW_SUFFIXES = {".yml", ".yaml"}
 METADATA_NAMES = ("action.yml", "action.yaml")
-USES_RE = re.compile(r"^\s*(?:-\s*)?uses:\s*([^\s#]+)")
+USES_RE = re.compile(
+    r"^\s*(?:-\s*)?uses:\s*(?:\"([^\"]+)\"|'([^']+)'|([^\s#]+))"
+)
 TOP_SCALAR_RE = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*):\s*(.*?)\s*$")
 
 
 def git(root: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
     return subprocess.run(
-        ["git", "-C", str(root), *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        ["git", "-C", str(root), *args],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
 
 
 def tracked_files(root: Path) -> set[str]:
     completed = git(root, "ls-files", "-z")
-    if completed.returncode != 0:
-        raise RuntimeError(completed.stderr.decode("utf-8", errors="replace").strip())
+    if completed.returncode:
+        raise RuntimeError(
+            completed.stderr.decode("utf-8", errors="replace").strip()
+        )
     return {
         item.decode("utf-8", errors="surrogateescape")
         for item in completed.stdout.split(b"\0")
@@ -37,9 +43,18 @@ def tracked_files(root: Path) -> set[str]:
 
 def workflow_paths(files: set[str]) -> list[str]:
     return sorted(
-        path for path in files
-        if path.startswith(".github/workflows/") and PurePosixPath(path).suffix.casefold() in WORKFLOW_SUFFIXES
+        path
+        for path in files
+        if path.startswith(".github/workflows/")
+        and PurePosixPath(path).suffix.casefold() in WORKFLOW_SUFFIXES
     )
+
+
+def uses_reference(raw: str) -> str | None:
+    match = USES_RE.match(raw)
+    if not match:
+        return None
+    return next((value for value in match.groups() if value is not None), None)
 
 
 def safe_relative(reference: str) -> str | None:
@@ -47,14 +62,36 @@ def safe_relative(reference: str) -> str | None:
         return None
     raw = reference[2:]
     path = PurePosixPath(raw)
-    if not raw or path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+    if (
+        not raw
+        or path.is_absolute()
+        or any(part in {"", ".", ".."} for part in path.parts)
+    ):
         return None
     if path.as_posix() != raw.rstrip("/"):
         return None
     return path.as_posix()
 
 
-def parse_runs_metadata(text: str) -> tuple[str | None, dict[str, str], bool]:
+def unquote_scalar(value: str) -> str:
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        value = value[1:-1]
+    return value.strip()
+
+
+def top_scalar(text: str, key: str) -> str | None:
+    pattern = re.compile(rf"(?m)^{re.escape(key)}:\s*(.*?)\s*$")
+    match = pattern.search(text)
+    if not match:
+        return None
+    value = unquote_scalar(match.group(1))
+    return value or None
+
+
+def parse_runs_metadata(
+    text: str,
+) -> tuple[str | None, dict[str, str], bool]:
     using: str | None = None
     entrypoints: dict[str, str] = {}
     has_steps = False
@@ -77,7 +114,7 @@ def parse_runs_metadata(text: str) -> tuple[str | None, dict[str, str], bool]:
         if match:
             key, value = match.groups()
             key = key.casefold()
-            value = value.strip('"\'')
+            value = unquote_scalar(value)
             if key == "using":
                 using = value
             elif key in {"main", "pre", "post", "image"}:
@@ -87,6 +124,60 @@ def parse_runs_metadata(text: str) -> tuple[str | None, dict[str, str], bool]:
         elif stripped.startswith("steps:"):
             has_steps = True
     return using, entrypoints, has_steps
+
+
+def finding(
+    path: str,
+    message: str,
+    *,
+    line: int | None = None,
+    reference: str | None = None,
+) -> dict[str, object]:
+    item: dict[str, object] = {"path": path, "message": message}
+    if line is not None:
+        item["line"] = line
+    if reference is not None:
+        item["reference"] = reference
+    return item
+
+
+def validate_entrypoint(
+    root: Path,
+    files: set[str],
+    metadata: str,
+    action_relative: str,
+    key: str,
+    value: str,
+) -> list[dict[str, object]]:
+    entry = PurePosixPath(value)
+    if (
+        not value
+        or entry.is_absolute()
+        or any(part in {"", ".", ".."} for part in entry.parts)
+        or entry.as_posix() != value
+    ):
+        return [
+            finding(
+                metadata,
+                f"runs.{key} must stay inside the action directory: {value}",
+            )
+        ]
+    relative_entry = f"{action_relative}/{entry.as_posix()}"
+    if not (root / relative_entry).is_file():
+        return [
+            finding(
+                metadata,
+                f"runs.{key} entrypoint does not exist: {relative_entry}",
+            )
+        ]
+    if relative_entry not in files:
+        return [
+            finding(
+                metadata,
+                f"runs.{key} entrypoint is not tracked: {relative_entry}",
+            )
+        ]
+    return []
 
 
 def validate_action(
@@ -99,76 +190,130 @@ def validate_action(
     findings: list[dict[str, object]] = []
     relative = safe_relative(reference)
     if relative is None:
-        return [{
-            "path": workflow, "line": line, "reference": reference,
-            "message": "Local action reference must stay inside the repository and contain no traversal segments.",
-        }]
+        return [
+            finding(
+                workflow,
+                "Local action reference must stay inside the repository and "
+                "contain no traversal segments.",
+                line=line,
+                reference=reference,
+            )
+        ]
+
     action_dir = root / PurePosixPath(relative)
     if not action_dir.is_dir():
-        return [{
-            "path": workflow, "line": line, "reference": reference,
-            "message": f"Local action directory does not exist: {relative}",
-        }]
+        return [
+            finding(
+                workflow,
+                f"Local action directory does not exist: {relative}",
+                line=line,
+                reference=reference,
+            )
+        ]
 
-    candidates = [f"{relative}/{name}" for name in METADATA_NAMES if (action_dir / name).is_file()]
+    candidates = [
+        f"{relative}/{name}"
+        for name in METADATA_NAMES
+        if (action_dir / name).is_file()
+    ]
     if len(candidates) != 1:
-        findings.append({
-            "path": workflow, "line": line, "reference": reference,
-            "message": f"Local action must contain exactly one of action.yml or action.yaml; observed {len(candidates)}.",
-        })
-        return findings
+        return [
+            finding(
+                workflow,
+                "Local action must contain exactly one of action.yml or "
+                f"action.yaml; observed {len(candidates)}.",
+                line=line,
+                reference=reference,
+            )
+        ]
+
     metadata = candidates[0]
     if metadata not in files:
-        findings.append({
-            "path": workflow, "line": line, "reference": reference,
-            "message": f"Local action metadata is not tracked: {metadata}",
-        })
-        return findings
+        return [
+            finding(
+                workflow,
+                f"Local action metadata is not tracked: {metadata}",
+                line=line,
+                reference=reference,
+            )
+        ]
 
     text = (root / metadata).read_text(encoding="utf-8")
-    if not re.search(r"(?m)^name:\s*\S", text):
-        findings.append({"path": metadata, "message": "Local action metadata requires a non-empty name."})
-    if not re.search(r"(?m)^description:\s*\S", text):
-        findings.append({"path": metadata, "message": "Local action metadata requires a non-empty description."})
+    if top_scalar(text, "name") is None:
+        findings.append(
+            finding(metadata, "Local action metadata requires a non-empty name.")
+        )
+    if top_scalar(text, "description") is None:
+        findings.append(
+            finding(
+                metadata,
+                "Local action metadata requires a non-empty description.",
+            )
+        )
+
     using, entrypoints, has_steps = parse_runs_metadata(text)
-    if using is None:
-        findings.append({"path": metadata, "message": "Local action metadata requires runs.using."})
+    if not using:
+        findings.append(
+            finding(metadata, "Local action metadata requires runs.using.")
+        )
         return findings
 
-    normalized_using = using.casefold()
-    if normalized_using == "composite":
+    normalized = using.casefold()
+    if normalized == "composite":
         if not has_steps:
-            findings.append({"path": metadata, "message": "Composite local action requires runs.steps."})
-    elif normalized_using in {"node20", "node24"}:
-        if "main" not in entrypoints:
-            findings.append({"path": metadata, "message": f"{using} local action requires runs.main."})
+            findings.append(
+                finding(metadata, "Composite local action requires runs.steps.")
+            )
+    elif normalized in {"node20", "node24"}:
+        if not entrypoints.get("main"):
+            findings.append(
+                finding(metadata, f"{using} local action requires runs.main.")
+            )
         for key in ("main", "pre", "post"):
             value = entrypoints.get(key)
-            if value is None:
-                continue
-            entry = PurePosixPath(value)
-            if entry.is_absolute() or any(part in {"", ".", ".."} for part in entry.parts):
-                findings.append({"path": metadata, "message": f"runs.{key} must stay inside the action directory: {value}"})
-                continue
-            relative_entry = f"{relative}/{entry.as_posix()}"
-            if not (root / relative_entry).is_file():
-                findings.append({"path": metadata, "message": f"runs.{key} entrypoint does not exist: {relative_entry}"})
-            elif relative_entry not in files:
-                findings.append({"path": metadata, "message": f"runs.{key} entrypoint is not tracked: {relative_entry}"})
-    elif normalized_using == "docker":
+            if value is not None:
+                findings.extend(
+                    validate_entrypoint(
+                        root, files, metadata, relative, key, value
+                    )
+                )
+    elif normalized == "docker":
         image = entrypoints.get("image")
         if not image:
-            findings.append({"path": metadata, "message": "Docker local action requires runs.image."})
+            findings.append(
+                finding(metadata, "Docker local action requires runs.image.")
+            )
         elif image.casefold() != "dockerfile":
-            findings.append({"path": metadata, "message": "Reusable baseline supports local Docker actions only with runs.image: Dockerfile."})
+            findings.append(
+                finding(
+                    metadata,
+                    "Reusable baseline supports local Docker actions only with "
+                    "runs.image: Dockerfile.",
+                )
+            )
         else:
             dockerfile = f"{relative}/Dockerfile"
             if not (root / dockerfile).is_file():
-                findings.append({"path": metadata, "message": f"Dockerfile does not exist: {dockerfile}"})
+                findings.append(
+                    finding(
+                        metadata,
+                        f"Dockerfile does not exist: {dockerfile}",
+                    )
+                )
             elif dockerfile not in files:
-                findings.append({"path": metadata, "message": f"Dockerfile is not tracked: {dockerfile}"})
+                findings.append(
+                    finding(
+                        metadata,
+                        f"Dockerfile is not tracked: {dockerfile}",
+                    )
+                )
     else:
-        findings.append({"path": metadata, "message": f"Unsupported local action runs.using value: {using}"})
+        findings.append(
+            finding(
+                metadata,
+                f"Unsupported local action runs.using value: {using}",
+            )
+        )
     return findings
 
 
@@ -180,14 +325,21 @@ def run_check(root: Path) -> dict[str, object]:
     for workflow in workflows:
         text = (root / workflow).read_text(encoding="utf-8")
         for number, raw in enumerate(text.splitlines(), start=1):
-            match = USES_RE.match(raw)
-            if not match:
+            reference = uses_reference(raw)
+            if reference is None or not reference.startswith("./"):
                 continue
-            reference = match.group(1)
-            if not reference.startswith("./"):
-                continue
-            references.append({"workflow": workflow, "line": number, "reference": reference})
-            findings.extend(validate_action(root, files, workflow, number, reference))
+            references.append(
+                {
+                    "workflow": workflow,
+                    "line": number,
+                    "reference": reference,
+                }
+            )
+            findings.extend(
+                validate_action(
+                    root, files, workflow, number, reference
+                )
+            )
     return {
         "schema_version": 1,
         "tool": TOOL_NAME,
@@ -234,7 +386,8 @@ def fixture_report(
         workflow = root / ".github/workflows/test.yml"
         workflow.parent.mkdir(parents=True)
         workflow.write_text(
-            "name: Test\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n"
+            "name: Test\non: push\njobs:\n  test:\n"
+            "    runs-on: ubuntu-latest\n    steps:\n"
             f"      - uses: {workflow_reference}\n",
             encoding="utf-8",
         )
@@ -246,71 +399,210 @@ def fixture_report(
         for command in (
             ("init", "-b", "main"),
             ("config", "user.name", "Local Action Self-Test"),
-            ("config", "user.email", "local-action@example.invalid"),
+            (
+                "config",
+                "user.email",
+                "local-action@example.invalid",
+            ),
         ):
             completed = git(root, *command)
-            if completed.returncode != 0:
-                raise RuntimeError(completed.stderr.decode("utf-8", errors="replace").strip())
+            if completed.returncode:
+                raise RuntimeError(
+                    completed.stderr.decode(
+                        "utf-8", errors="replace"
+                    ).strip()
+                )
         for relative in tracked:
             completed = git(root, "add", relative)
-            if completed.returncode != 0:
-                raise RuntimeError(completed.stderr.decode("utf-8", errors="replace").strip())
+            if completed.returncode:
+                raise RuntimeError(
+                    completed.stderr.decode(
+                        "utf-8", errors="replace"
+                    ).strip()
+                )
         return run_check(root)
 
 
 def run_self_test() -> int:
     workflow_path = ".github/workflows/test.yml"
     composite = {
-        ".github/actions/example/action.yml": "name: Example\ndescription: Composite\nruns:\n  using: composite\n  steps:\n    - shell: bash\n      run: echo ok\n"
+        ".github/actions/example/action.yml": (
+            "name: Example\n"
+            "description: Composite\n"
+            "runs:\n"
+            "  using: composite\n"
+            "  steps:\n"
+            "    - shell: bash\n"
+            "      run: echo ok\n"
+        )
     }
     node = {
-        ".github/actions/example/action.yml": "name: Example\ndescription: Node\nruns:\n  using: node24\n  main: dist/index.js\n",
-        ".github/actions/example/dist/index.js": "console.log('ok')\n",
+        ".github/actions/example/action.yml": (
+            "name: Example\n"
+            "description: Node\n"
+            "runs:\n"
+            "  using: node24\n"
+            "  main: dist/index.js\n"
+        ),
+        ".github/actions/example/dist/index.js": (
+            "console.log('ok')\n"
+        ),
     }
+    tracked_composite = (
+        workflow_path,
+        ".github/actions/example/action.yml",
+    )
+    tracked_node = (
+        workflow_path,
+        ".github/actions/example/action.yml",
+        ".github/actions/example/dist/index.js",
+    )
     cases = {
-        "valid-composite": ("pass", "./.github/actions/example", composite, (workflow_path, ".github/actions/example/action.yml")),
-        "valid-node": ("pass", "./.github/actions/example", node, (workflow_path, ".github/actions/example/action.yml", ".github/actions/example/dist/index.js")),
-        "missing-path": ("fail", "./.github/actions/missing", None, (workflow_path,)),
-        "traversal": ("fail", "./.github/actions/../outside", None, (workflow_path,)),
-        "untracked-action": ("fail", "./.github/actions/example", composite, (workflow_path,)),
+        "valid-composite": (
+            "pass",
+            "./.github/actions/example",
+            composite,
+            tracked_composite,
+        ),
+        "valid-double-quoted": (
+            "pass",
+            '"./.github/actions/example"',
+            composite,
+            tracked_composite,
+        ),
+        "valid-single-quoted": (
+            "pass",
+            "'./.github/actions/example'",
+            composite,
+            tracked_composite,
+        ),
+        "valid-node": (
+            "pass",
+            "./.github/actions/example",
+            node,
+            tracked_node,
+        ),
+        "missing-path": (
+            "fail",
+            "./.github/actions/missing",
+            None,
+            (workflow_path,),
+        ),
+        "traversal": (
+            "fail",
+            "./.github/actions/../outside",
+            None,
+            (workflow_path,),
+        ),
+        "untracked-action": (
+            "fail",
+            "./.github/actions/example",
+            composite,
+            (workflow_path,),
+        ),
         "dual-metadata": (
-            "fail", "./.github/actions/example",
-            {**composite, ".github/actions/example/action.yaml": composite[".github/actions/example/action.yml"]},
-            (workflow_path, ".github/actions/example/action.yml", ".github/actions/example/action.yaml"),
+            "fail",
+            "./.github/actions/example",
+            {
+                **composite,
+                ".github/actions/example/action.yaml": composite[
+                    ".github/actions/example/action.yml"
+                ],
+            },
+            (
+                workflow_path,
+                ".github/actions/example/action.yml",
+                ".github/actions/example/action.yaml",
+            ),
+        ),
+        "empty-name": (
+            "fail",
+            "./.github/actions/example",
+            {
+                ".github/actions/example/action.yml": (
+                    'name: ""\n'
+                    "description: Composite\n"
+                    "runs:\n  using: composite\n  steps:\n"
+                    "    - shell: bash\n      run: echo ok\n"
+                )
+            },
+            tracked_composite,
+        ),
+        "empty-description": (
+            "fail",
+            "./.github/actions/example",
+            {
+                ".github/actions/example/action.yml": (
+                    "name: Example\n"
+                    "description: ''\n"
+                    "runs:\n  using: composite\n  steps:\n"
+                    "    - shell: bash\n      run: echo ok\n"
+                )
+            },
+            tracked_composite,
         ),
         "malformed-metadata": (
-            "fail", "./.github/actions/example",
-            {".github/actions/example/action.yml": "name: Example\ndescription: Missing runs\n"},
-            (workflow_path, ".github/actions/example/action.yml"),
+            "fail",
+            "./.github/actions/example",
+            {
+                ".github/actions/example/action.yml": (
+                    "name: Example\n"
+                    "description: Missing runs\n"
+                )
+            },
+            tracked_composite,
         ),
         "missing-entrypoint": (
-            "fail", "./.github/actions/example",
-            {".github/actions/example/action.yml": node[".github/actions/example/action.yml"]},
-            (workflow_path, ".github/actions/example/action.yml"),
+            "fail",
+            "./.github/actions/example",
+            {
+                ".github/actions/example/action.yml": node[
+                    ".github/actions/example/action.yml"
+                ]
+            },
+            tracked_composite,
         ),
         "untracked-entrypoint": (
-            "fail", "./.github/actions/example", node,
-            (workflow_path, ".github/actions/example/action.yml"),
+            "fail",
+            "./.github/actions/example",
+            node,
+            tracked_composite,
         ),
         "entrypoint-traversal": (
-            "fail", "./.github/actions/example",
-            {".github/actions/example/action.yml": "name: Example\ndescription: Node\nruns:\n  using: node24\n  main: ../index.js\n"},
-            (workflow_path, ".github/actions/example/action.yml"),
+            "fail",
+            "./.github/actions/example",
+            {
+                ".github/actions/example/action.yml": (
+                    "name: Example\n"
+                    "description: Node\n"
+                    "runs:\n"
+                    "  using: node24\n"
+                    "  main: ../index.js\n"
+                )
+            },
+            tracked_composite,
         ),
     }
+
     failures: list[str] = []
     for name, (expected, reference, files, tracked) in cases.items():
         report = fixture_report(reference, files, tracked)
         if report["status"] != expected:
-            failures.append(f"{name}: expected {expected}, got {report['status']} ({report['findings']})")
+            failures.append(
+                f"{name}: expected {expected}, got "
+                f"{report['status']} ({report['findings']})"
+            )
     if failures:
         for failure in failures:
             print(f"[FAIL] {failure}")
         print(f"SELF-TEST FAIL: {len(failures)} failure(s).")
         return 1
+
     print(
-        "SELF-TEST PASS: valid composite/node actions, missing paths, traversal, untracked metadata, "
-        "dual metadata, malformed metadata, missing/untracked entrypoints, and entrypoint traversal passed."
+        "SELF-TEST PASS: quoted/unquoted local references, valid "
+        "composite/node actions, missing paths, traversal, tracked "
+        "metadata, dual metadata, empty metadata scalars, missing/untracked "
+        "entrypoints, and entrypoint traversal passed."
     )
     return 0
 
@@ -326,19 +618,23 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     options = parse_args(sys.argv[1:] if argv is None else argv)
-    if options.self_test:
-        try:
-            return run_self_test()
-        except (OSError, UnicodeError, RuntimeError, subprocess.SubprocessError) as error:
-            print(f"SELF-TEST ERROR: {error}", file=sys.stderr)
-            return 2
     try:
+        if options.self_test:
+            return run_self_test()
         report = run_check(options.root)
-        write_text(options.output, json.dumps(report, indent=2, sort_keys=True) + "\n")
+        write_text(
+            options.output,
+            json.dumps(report, indent=2, sort_keys=True) + "\n",
+        )
         write_text(options.summary, markdown_report(report))
         print(markdown_report(report).rstrip())
         return 0 if report["status"] == "pass" else 1
-    except (OSError, UnicodeError, RuntimeError, subprocess.SubprocessError) as error:
+    except (
+        OSError,
+        UnicodeError,
+        RuntimeError,
+        subprocess.SubprocessError,
+    ) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 2
 
