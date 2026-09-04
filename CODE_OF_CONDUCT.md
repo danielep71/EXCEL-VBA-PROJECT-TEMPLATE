@@ -2,8 +2,8 @@
 <!--
 TEMPLATE INSTRUCTIONS
 - Initialize every registered token before publishing.
-- Keep the shared conduct, reporting, enforcement, confidentiality, and
-  attribution sections unless project governance requires a deliberate change.
+- Keep conduct, private reporting, enforcement, confidentiality and attribution.
+- Technical evidence requirements belong in CONTRIBUTING.md.
 -->
 <!-- template:remove:end -->
 <div align="center">
@@ -13,9 +13,9 @@ TEMPLATE INSTRUCTIONS
 ### {{PROJECT_TAGLINE}}
 
 [![Applies to](https://img.shields.io/badge/Applies_to-Everyone-217346?style=for-the-badge)](#scope)
-[![Spaces](https://img.shields.io/badge/Spaces-Code_%7C_Issues_%7C_PRs-0969da?style=for-the-badge)](#scope)
 [![Standard](https://img.shields.io/badge/Standard-Respectful_%2B_Evidence--Led-6f42c1?style=for-the-badge)](#technical-collaboration)
-[![Enforcement](https://img.shields.io/badge/Enforcement-Fair_%2B_Proportionate-d97706?style=for-the-badge)](#enforcement)
+[![Reporting](https://img.shields.io/badge/Reporting-Private-d97706?style=for-the-badge)](#reporting)
+[![Enforcement](https://img.shields.io/badge/Enforcement-Fair_%2B_Proportionate-d73a49?style=for-the-badge)](#enforcement)
 
 <br>
 
@@ -25,312 +25,193 @@ TEMPLATE INSTRUCTIONS
 
 ---
 
-**{{PROJECT_NAME}}** is an open-source Excel/VBA project. This canonical policy combines a stable community standard with reusable expectations for evidence-led technical collaboration.
+This document is authoritative for **participant behavior, conduct reporting and
+enforcement**. Technical change/evidence requirements are owned by
+[`CONTRIBUTING.md`](CONTRIBUTING.md); software vulnerability reports are owned by
+[`SECURITY.md`](SECURITY.md).
 
-Technical rigor and respectful interaction are complementary requirements.
-Neither excuses the absence of the other.
-
-People should feel comfortable asking questions, reporting defects, challenging
-assumptions, proposing safer or more accurate alternatives, and correcting an
-earlier conclusion when new evidence emerges.
-
----
-
-<a id="our-pledge"></a>
+Technical rigor and respectful interaction are complementary. Neither excuses
+the absence of the other.
 
 ## 🤝 Our pledge
 
 Everyone who participates through code, issues, pull requests, reviews,
-documentation, examples, releases, the Wiki, or project discussion is expected
-to help create a harassment-free experience for all.
+documentation, examples, releases, discussions, project email or the Wiki is
+expected to help create a harassment-free, inclusive and healthy environment.
 
-That expectation applies regardless of age, body size, disability, ethnicity,
-gender identity or expression, level or type of experience, nationality,
-personal appearance, race, religion, socioeconomic status, sexual identity or
-orientation, or any other personal characteristic unrelated to the
-contribution.
-
-We commit to acting and interacting in ways that support an open, welcoming,
-diverse, inclusive, and healthy community.
-
----
-
-<a id="expected-behavior"></a>
+We welcome participants regardless of personal characteristics unrelated to the
+contribution, including age, disability, ethnicity, gender identity/expression,
+experience level, nationality, race, religion, socioeconomic status or sexual
+identity/orientation.
 
 ## ✅ Expected behavior
 
 | Principle | Expected practice |
-|---|---|
-| 🤝 **Respect** | Assume good faith and address the work rather than the person. |
-| 🎯 **Precision** | Distinguish observation, requirement, assumption, inference, hypothesis, and opinion. |
-| 🧪 **Evidence** | Provide reproducible examples and relevant environment details where practical. |
-| 🧭 **Transparency** | State uncertainty, limitations, conflicts of interest, and material dependencies. |
-| 🔄 **Correction** | Acknowledge mistakes openly when better evidence changes the conclusion. |
-| 🌱 **Inclusion** | Welcome contributors with different backgrounds and levels of expertise. |
-| 🔐 **Stewardship** | Respect privacy, confidentiality, security, licensing, and intellectual-property boundaries. |
-| 🧱 **Coherence** | Accept that maintainers may adopt, revise, defer, split, or decline a contribution. |
-
-### Useful disagreement
-
-A useful technical disagreement is specific and testable:
-
-> "The observed result differs from the documented contract outside the stated
-> tolerance. The exact version, environment, minimal reproduction, expected
-> result, observed result, and independent reference are provided below."
-
-A personal judgment is not testable:
-
-> "This is wrong because the author does not understand the subject."
-
-Only the first statement helps improve the project.
-
----
-
-<a id="unacceptable-behavior"></a>
-
-## 🚫 Unacceptable behavior
-
-Unacceptable behavior includes:
-
-- harassment, intimidation, discrimination, threats, or personal attacks;
-- trolling, insulting or derogatory comments, and deliberately inflammatory
-  language;
-- unwelcome sexual attention or sexualized language or imagery;
-- publishing private or confidential information without permission;
-- deliberately misrepresenting results, sources, authorship, test evidence, or
-  another participant's statements;
-- fabricating, altering, or selectively presenting evidence to conceal a
-  material limitation or contrary result;
-- pressuring others to disclose employer, client, counterparty, student, or
-  proprietary information;
-- using credentials, reputation, job title, or academic status to silence a
-  technical challenge rather than addressing its substance;
-- spam, unrelated promotion, commercial solicitation, or sustained disruption;
-- public disclosure of a suspected vulnerability before reasonable coordinated
-  remediation;
-- repeated disruption after a maintainer has asked participants to stop; and
-- retaliation against a reporter, witness, or participant in an investigation.
-
-Disagreement is allowed. Abuse is not.
-
----
+| --- | --- |
+| Respect | Address the work rather than the person and assume good faith where reasonable. |
+| Precision | Distinguish observation, requirement, assumption, inference and opinion. |
+| Evidence | Support technical claims with reproducible information where practical. |
+| Transparency | State uncertainty, limitations, conflicts of interest and material dependencies. |
+| Correction | Acknowledge mistakes when better evidence changes the conclusion. |
+| Inclusion | Welcome different backgrounds and levels of expertise. |
+| Stewardship | Respect privacy, confidentiality, security, licensing and intellectual property. |
+| Coherence | Accept that maintainers may revise, defer, split or decline contributions. |
 
 <a id="technical-collaboration"></a>
 
 ## 🧪 Technical collaboration
 
-Excel/VBA behavior can depend on workbook state, application state, Office bitness, Windows configuration, locale, and source provenance. Replace the project-specific rows and expectations below when creating a repository from this template.
+Useful disagreement is specific, testable and directed at the work. Personal
+judgments, credential-based arguments and attacks are not substitutes for
+technical evidence.
 
-Where relevant, technical reports and review comments should identify:
+Exact reproduction, environment, validation and pull-request evidence
+requirements are maintained only in [`CONTRIBUTING.md`](CONTRIBUTING.md). Do not
+create a competing evidence checklist in this conduct policy.
 
-| Evidence | Expected information |
-|---|---|
-| 🧾 **Identity** | Repository release, tag, branch or commit; affected file, procedure, API or artifact |
-| 🖥️ **Environment** | Excel and Office version/build, 32-bit or 64-bit, Windows version, and relevant locale or host settings |
-| 🔬 **Reproduction** | Smallest deterministic input and exact steps needed to reproduce the behavior |
-| 🎯 **Comparison** | Expected and observed behavior, error or diagnostic output, and the acceptance criterion |
-| ✅ **Validation** | Relevant automated, static, manual or Excel regression evidence and whether the run completed |
-| ⚠️ **Boundary** | Assumptions, limitations, untested configurations, uncertainty, and what cannot yet be concluded |
-| 📋 **[Project contract]** | [Identify the project-specific inputs, outputs, invariants, and acceptance criteria] |
-| 🧭 **[Risk surface]** | [Identify workbook, application, platform, numerical, UI, data, or lifecycle state that can affect behavior] |
-| 📚 **[Reference]** | [Identify the independent specification, oracle, derivation, or comparison source where applicable] |
+Participants should state uncertainty honestly and correct the record when new
+evidence changes a conclusion.
 
-Prefer explicit evidence classifications:
+## 🚫 Unacceptable behavior
 
-| Classification | Meaning |
-|---|---|
-| **Observed** | Reproduced directly |
-| **Derived** | Follows from stated inputs and rules |
-| **Inferred** | Best explanation, but not independently proven |
-| **Expected** | Required by the documented contract |
-| **Environment-specific** | Verified only in the stated host configuration |
-| **Unverified** | Plausible, but evidence is incomplete |
+Unacceptable behavior includes:
 
-Do not present a plausible inference as a verified fact. A screenshot may
-illustrate a result, but it does not replace the inputs, environment, contract,
-reference, and steps needed to reproduce the claim.
+- harassment, intimidation, discrimination, threats or personal attacks;
+- trolling, insulting/derogatory comments or deliberately inflammatory language;
+- unwelcome sexual attention or sexualized language/imagery;
+- publishing private/confidential information without permission;
+- fabricating or materially misrepresenting results, sources, authorship,
+  evidence or another participant's statements;
+- pressuring others to disclose employer, client, counterparty, student or
+  proprietary information;
+- using title, reputation or institutional status to silence a technical
+  challenge instead of addressing its substance;
+- spam, unrelated promotion, solicitation or sustained disruption;
+- public disclosure of a suspected vulnerability before reasonable coordinated
+  handling;
+- repeated disruption after a maintainer asks participants to stop; and
+- retaliation against a reporter, witness or investigation participant.
 
-Project-specific expectations:
+Disagreement is allowed. Abuse is not.
 
-- [Replace with the project's evidence and reproduction requirements.]
-- [Replace with project-specific safety, numerical, UI, state-management, or data-handling expectations.]
-- Remove all bracketed template instructions before the first public release.
+## 🔐 Data, privacy and confidentiality
 
----
+Do not upload confidential/restricted material to support a discussion or
+contribution, including:
 
-<a id="data-and-confidentiality"></a>
+- client, employer, counterparty, student or personal data;
+- credentials, tokens, signing material, connection strings or internal URLs;
+- proprietary code, models, workbooks, data or business assumptions;
+- licensed content that cannot be redistributed; or
+- material the contributor is not authorized to share.
 
-## 🔐 Data, privacy, and confidentiality
+Use the smallest synthetic example that preserves the behavior. Excel workbooks
+can contain hidden names, links, connections, cached values, queries, metadata,
+hidden sheets and VBA beyond the visible worksheet.
 
-Do not upload confidential or restricted material to demonstrate a defect or
-support a contribution. This includes:
-
-- client, employer, counterparty, student, or personal data;
-- credentials, tokens, signing material, connection strings, or internal URLs;
-- proprietary code, models, workbooks, market data, business assumptions, or
-  production extracts;
-- licensed vendor content that cannot be redistributed; and
-- files or examples that the contributor is not authorized to share.
-
-Use the smallest synthetic example that preserves the relevant behavior.
-
-Excel workbooks can contain hidden names, external links, connections, cached
-values, queries, metadata, comments, hidden sheets, and VBA that are not visible
-on the active sheet. Sanitize and inspect every reproduction before uploading
-it.
-
----
-
-<a id="security"></a>
-
-## 🔑 Security reports
-
-Suspected vulnerabilities must follow [SECURITY.md](SECURITY.md). Do not
-publish exploit details, credentials, private keys, or a working proof of
-concept in a public issue before coordinated remediation.
-
-The Code of Conduct reporting channel is for participant behavior. A security
-report concerns software risk. If an incident involves both, use the private
-channel and make that clear.
-
----
+Software vulnerabilities follow [`SECURITY.md`](SECURITY.md). Conduct reporting
+and vulnerability reporting are separate processes even when an incident touches
+both.
 
 <a id="scope"></a>
 
 ## 🌐 Scope
 
-This Code of Conduct applies to:
+This Code of Conduct applies to project-controlled and project-related spaces,
+including source, issues, pull requests, reviews, documentation, examples,
+releases, discussions, the Wiki, project email and public spaces where someone
+represents the project/community.
 
-- source code, committed artifacts, documentation, examples, and releases;
-- issues, pull requests, reviews, comments, discussions, and the Wiki;
-- project-related email and private communication between participants; and
-- public spaces where someone represents the project or its community.
-
-It applies to maintainers, contributors, reviewers, users, and visitors alike.
-
-Project representation includes using an official account, speaking on behalf
-of the project, presenting oneself as a maintainer or contributor in a
-project-related forum, or moderating a project discussion.
-
----
+It applies to maintainers, contributors, reviewers, users and visitors alike.
 
 <a id="reporting"></a>
 
 ## 📣 Reporting unacceptable behavior
 
-Report unacceptable behavior **privately** to the maintainer:
+Report conduct concerns **privately** to:
 
 **{{SUPPORT_CONTACT}}**
 
-Do not publish sensitive personal information in a public issue.
+Do not publish sensitive personal information in a public issue. Where useful,
+include what happened, where/approximately when, relevant links/screenshots,
+whether it is ongoing, witnesses and immediate safety/privacy concerns.
 
-Where available, include what happened, where and approximately when it
-happened, relevant links or screenshots, whether the behavior is ongoing,
-whether another participant witnessed it, and any immediate safety, privacy, or
-confidentiality concern.
+Reports are reviewed as promptly, fairly and discreetly as reasonably possible.
+Information is shared only as needed to understand the report, protect
+participants, enforce this policy or comply with applicable requirements.
 
-Reports will be reviewed as promptly, fairly, and discreetly as reasonably
-possible. Information will be shared only as needed to understand the report,
-protect participants, enforce this policy, or comply with applicable platform
-or legal requirements.
-
-A good-faith report is not misconduct merely because the maintainer ultimately
-concludes that no violation occurred.
-
----
+A good-faith report is not misconduct merely because no violation is ultimately
+found.
 
 <a id="enforcement"></a>
 
 ## ⚖️ Enforcement
 
-The maintainer is responsible for clarifying and enforcing this Code of Conduct
-and may remove, edit, or reject comments, commits, code, issues, or other
-contributions that are inconsistent with it.
+The maintainer may clarify/enforce this policy and remove, edit or reject project
+content inconsistent with it. Responses depend on seriousness, frequency,
+context, prior behavior and risk and may include:
 
-Responses depend on seriousness, frequency, context, prior behavior, and risk.
-They may include:
-
-1. clarification or a private reminder;
-2. a formal warning and conditions for continued participation;
-3. editing or removing project content;
+1. clarification or private reminder;
+2. formal warning/conditions for continued participation;
+3. editing/removing project content;
 4. closing or locking a discussion;
-5. rejecting or reverting a contribution;
-6. temporary restriction from project participation;
-7. permanent exclusion from project spaces; or
+5. rejecting/reverting a contribution;
+6. temporary participation restriction;
+7. permanent exclusion; or
 8. escalation to GitHub or another relevant platform.
 
-Enforcement aims to be fair, proportionate, consistent, protective of
-participants, and protective of the technical record. Retaliation against
-anyone who reports a concern or participates in its review is itself a
-violation.
-
----
+Enforcement should be fair, proportionate, consistent and protective of both
+participants and the technical record. Retaliation is itself a violation.
 
 ## 🧩 Conflicts of interest
 
-Disclose a material interest when it could reasonably affect technical review.
+Disclose a material interest when it could reasonably affect technical review,
+including commercial interests, employer/client restrictions, uncertainty about
+submitted material's origin/license, or reviewing one's own work under another
+identity.
 
-Examples include ownership of a competing implementation, commercial interest
-in a dependency or benchmark, employer or client restrictions, uncertainty
-about the origin or license of submitted material, or reviewing one's own work
-under another identity.
-
-A conflict is not automatically disqualifying. Undisclosed material influence
-is the concern.
-
----
+A conflict is not automatically disqualifying; undisclosed material influence is
+the concern.
 
 ## 📜 Source and licensing integrity
 
 Contributors must have the right to submit every code fragment, document,
-screenshot, workbook, dataset, benchmark, image, and numerical reference they
-provide.
-
-Identify the source and license of adapted material. Do not submit proprietary
-code, incompatible licensed content, confidential screenshots, selectively
-edited evidence, or generated material whose provenance and right of use cannot
-be established.
-
-A file digest proves file identity. It does not by itself prove authorship,
-source provenance, reproducibility, or execution correctness.
-
----
+screenshot, workbook, dataset, benchmark, image and reference they provide.
+Identify adapted material and its license. Detailed contribution/provenance rules
+belong to [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## 🧱 Maintainer decisions
 
-A maintainer may decline a contribution even when it is technically valid.
-Reasons may include scope, compatibility, maintenance burden, testability,
-platform risk, API stability, duplication, architecture, or release timing.
+A maintainer may decline a technically valid contribution because of scope,
+compatibility, maintenance burden, testability, platform risk, API stability,
+duplication, architecture or release timing. When practical, the technical
+reason should be recorded.
 
-A declined contribution is not a judgment about the contributor. When
-practical, the technical reason should be recorded. Participants may challenge
-a decision respectfully with new evidence; repeatedly reopening the same
+A declined contribution is not a judgment about the contributor. Decisions may
+be challenged respectfully with new evidence; repeatedly reopening the same
 argument without new evidence is not constructive.
-
----
 
 ## 🙏 Project scale and response expectations
 
-This project may be maintained by one person. That affects response capacity,
-not the seriousness of this policy.
-
-Response times are best-effort. Complex reports may take longer when they
-require a particular Office configuration, Windows behavior, clean Excel
-process, long-running test, or manual workbook validation.
-
-Reasonable delay is not dismissal. Repeatedly demanding immediate action is not
-a substitute for technical evidence.
+This project may be maintained by one person. Response times are best-effort.
+Complex matters may require a particular Office/Windows environment or manual
+validation. Reasonable delay is not dismissal, and demands for immediate action
+do not replace evidence.
 
 GitHub's platform policies and community standards also apply where relevant.
-
----
 
 ## 📜 Attribution
 
 This Code of Conduct is informed by and adapted from the
 [Contributor Covenant, version 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html).
-Its project-specific technical and data-handling provisions are maintained for
+Its project-specific conduct and confidentiality provisions are maintained for
 this repository.
+
+## 📚 Related authorities
+
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — technical contribution/review contract
+- [`SECURITY.md`](SECURITY.md) — vulnerability reporting and disclosure
+- [`docs/README.md`](docs/README.md) — complete documentation authority map
 
 ---
 
