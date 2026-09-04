@@ -99,30 +99,52 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
-<!--
-Keep only categories that contain entries. Write observable outcomes, not commit
-messages. Generated projects replace every registered template token before
-publishing; releases of this canonical template retain the registered grammar.
--->
+No unreleased changes recorded.
+
+## [1.1.0] - 2026-09-04
 
 ### Added
 
 - Added committed-candidate whitespace validation with explicit commit-range,
-  root-commit, staged, and unstaged fixtures and deterministic evidence.
+  root-commit, staged, unstaged, and committed-versus-working-tree fixtures.
 - Added procedure-scoped VBA jump validation and nested conditional-compilation
   validation across the supported VBA6/VBA7 and Win32/Win64 environments.
-- Added complete public-API extraction with normalized signature records and a
-  strict explicit-visibility policy for all generated profiles.
-- Added repository-local GitHub Action containment, tracked-state, metadata,
-  and entrypoint validation alongside the pinned authoritative workflow parser.
+- Added complete public-API extraction with normalized signature records,
+  paired-property handling, collision detection, and strict explicit visibility.
+- Added repository-local GitHub Action containment, tracked-state, metadata, and
+  entrypoint validation alongside the pinned authoritative workflow parser.
 - Added strict release-semantics validation for SemVer precedence, prerelease
-  identifiers, changelog ordering, Gregorian dates, and comparison links.
+  identifiers, changelog ordering, Gregorian dates, VERSION agreement, and
+  comparison-link policy.
+- Added deterministic semantic policy-branch assurance proving every canonical
+  blocking finding site is exercised; the v1.1.0 branch baseline covers 175/175
+  production finding sites.
+- Added an independent checker-development contract that preserves
+  `tools/check_repo.py` as a single-file, standard-library-only distributable
+  while testing parser/reporting boundaries, CLI behavior, canonical check order,
+  and artifact identity.
+- Added read-only live issue-label drift detection with deterministic
+  create/update/delete evidence, canonical-plan cross-checking, scheduled/manual
+  monitoring, and retained JSON/Markdown evidence without a mutation path.
 
 ### Changed
 
-- Extended the hosted repository-integrity gate so each focused v1.1.0 hardening
-  check has deterministic self-tests, candidate evidence, artifact retention,
-  and fail-closed terminal enforcement.
+- Extended the hosted repository-integrity gate so focused hardening checks have
+  deterministic self-tests, exact-candidate evidence, artifact retention, and
+  fail-closed terminal enforcement.
+- Consolidated documentation around one authoritative owner per evolving
+  contract. The root README is now a shorter first-use/navigation surface while
+  installation, contribution, security, conduct, release, initialization,
+  repository structure, checker development, and release evidence remain in
+  their specialized maintained documents.
+- Required generated repositories to retain the read-only label-drift control in
+  addition to the existing trusted label-reconciliation workflow.
+
+### Compatibility
+
+- The neutral starter VBA public API and profile architecture are unchanged from
+  v1.0.0. The release hardens repository governance, validation, documentation,
+  and automation without intentionally changing the starter consumer contract.
 
 ## [1.0.0] - 2026-09-04
 
@@ -169,7 +191,8 @@ publishing; releases of this canonical template retain the registered grammar.
 - Made profile and domain label selection a versioned repository policy that
   both the checker and trusted reconciliation workflow validate and consume.
 
-[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0
 
 ---
