@@ -213,6 +213,8 @@
       "repeatable": "template:repeatable:{token}"
     },
     "template_only_paths": [
+      "assets/social-preview.png",
+      "assets/social-preview.svg",
       "docs/IMPLEMENTATION_PLAN.md",
       "docs/PORTFOLIO_AUDIT.md"
     ],
