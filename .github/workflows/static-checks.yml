@@ -149,6 +149,20 @@ jobs:
           --output test-results/vba-conditionals.json
           --summary test-results/vba-conditionals.md
 
+      - name: Exercise complete VBA public API fixtures
+        id: vba-api-self-test
+        continue-on-error: true
+        run: python3 tools/check_vba_public_api.py --root . --self-test
+
+      - name: Validate complete VBA public API
+        id: vba-api
+        continue-on-error: true
+        run: >-
+          python3 tools/check_vba_public_api.py
+          --root .
+          --output test-results/vba-public-api.json
+          --summary test-results/vba-public-api.md
+
       - name: Exercise positive and degraded checker paths
         id: self-test
         continue-on-error: true
@@ -169,59 +183,23 @@ jobs:
         continue-on-error: true
         run: |
           {
-            if [[ -f test-results/static-checks.md ]]; then
-              cat test-results/static-checks.md
-            else
-              echo "## Static repository checks"
+            for report in \
+              test-results/static-checks.md \
+              test-results/committed-whitespace.md \
+              test-results/vba-jumps.md \
+              test-results/vba-conditionals.md \
+              test-results/vba-public-api.md \
+              test-results/workflow-validation.md \
+              test-results/release-self-test.md; do
+              if [[ ! -f "$report" ]]; then
+                echo "## Missing required evidence"
+                echo
+                echo "Required report was not produced: $report"
+                exit 1
+              fi
+              cat "$report"
               echo
-              echo "The checker did not produce its Markdown report."
-              exit 1
-            fi
-            echo
-            if [[ -f test-results/committed-whitespace.md ]]; then
-              cat test-results/committed-whitespace.md
-            else
-              echo "## Committed whitespace"
-              echo
-              echo "The committed-whitespace checker did not produce its report."
-              exit 1
-            fi
-            echo
-            if [[ -f test-results/vba-jumps.md ]]; then
-              cat test-results/vba-jumps.md
-            else
-              echo "## Procedure-scoped VBA jumps"
-              echo
-              echo "The procedure-scoped VBA jump checker did not produce its report."
-              exit 1
-            fi
-            echo
-            if [[ -f test-results/vba-conditionals.md ]]; then
-              cat test-results/vba-conditionals.md
-            else
-              echo "## VBA conditional compilation"
-              echo
-              echo "The VBA conditional-compilation checker did not produce its report."
-              exit 1
-            fi
-            echo
-            if [[ -f test-results/workflow-validation.md ]]; then
-              cat test-results/workflow-validation.md
-            else
-              echo "## Authoritative workflow validation"
-              echo
-              echo "The authoritative validator did not produce its report."
-              exit 1
-            fi
-            echo
-            if [[ -f test-results/release-self-test.md ]]; then
-              cat test-results/release-self-test.md
-            else
-              echo "## Release-integrity self-test"
-              echo
-              echo "The release checker did not produce its self-test report."
-              exit 1
-            fi
+            done
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload static-check evidence
@@ -240,6 +218,8 @@ jobs:
             test-results/vba-jumps.md
             test-results/vba-conditionals.json
             test-results/vba-conditionals.md
+            test-results/vba-public-api.json
+            test-results/vba-public-api.md
             test-results/actionlint-version.txt
             test-results/workflow-validation.md
             test-results/release-self-test.md
@@ -260,66 +240,36 @@ jobs:
           VBA_JUMPS_OUTCOME: ${{ steps.vba-jumps.outcome }}
           VBA_CONDITIONAL_SELF_TEST_OUTCOME: ${{ steps.vba-conditional-self-test.outcome }}
           VBA_CONDITIONALS_OUTCOME: ${{ steps.vba-conditionals.outcome }}
+          VBA_API_SELF_TEST_OUTCOME: ${{ steps.vba-api-self-test.outcome }}
+          VBA_API_OUTCOME: ${{ steps.vba-api.outcome }}
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
           ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
         run: |
           failed=0
-          if [[ "$VALIDATOR_INSTALL_OUTCOME" != "success" ]]; then
-            echo "::error::Authoritative-validator installation outcome: $VALIDATOR_INSTALL_OUTCOME"
-            failed=1
-          fi
-          if [[ "$AUTHORITATIVE_WORKFLOWS_OUTCOME" != "success" ]]; then
-            echo "::error::Authoritative workflow-validation outcome: $AUTHORITATIVE_WORKFLOWS_OUTCOME"
-            failed=1
-          fi
-          if [[ "$RELEASE_SELF_TEST_OUTCOME" != "success" ]]; then
-            echo "::error::Release-integrity self-test outcome: $RELEASE_SELF_TEST_OUTCOME"
-            failed=1
-          fi
-          if [[ "$INITIALIZER_SELF_TEST_OUTCOME" != "success" ]]; then
-            echo "::error::Initializer self-test outcome: $INITIALIZER_SELF_TEST_OUTCOME"
-            failed=1
-          fi
-          if [[ "$WHITESPACE_SELF_TEST_OUTCOME" != "success" ]]; then
-            echo "::error::Committed-whitespace self-test outcome: $WHITESPACE_SELF_TEST_OUTCOME"
-            failed=1
-          fi
-          if [[ "$COMMITTED_WHITESPACE_OUTCOME" != "success" ]]; then
-            echo "::error::Committed-whitespace candidate outcome: $COMMITTED_WHITESPACE_OUTCOME"
-            failed=1
-          fi
-          if [[ "$VBA_JUMP_SELF_TEST_OUTCOME" != "success" ]]; then
-            echo "::error::Procedure-scoped VBA jump self-test outcome: $VBA_JUMP_SELF_TEST_OUTCOME"
-            failed=1
-          fi
-          if [[ "$VBA_JUMPS_OUTCOME" != "success" ]]; then
-            echo "::error::Procedure-scoped VBA jump outcome: $VBA_JUMPS_OUTCOME"
-            failed=1
-          fi
-          if [[ "$VBA_CONDITIONAL_SELF_TEST_OUTCOME" != "success" ]]; then
-            echo "::error::VBA conditional-compilation self-test outcome: $VBA_CONDITIONAL_SELF_TEST_OUTCOME"
-            failed=1
-          fi
-          if [[ "$VBA_CONDITIONALS_OUTCOME" != "success" ]]; then
-            echo "::error::VBA conditional-compilation outcome: $VBA_CONDITIONALS_OUTCOME"
-            failed=1
-          fi
-          if [[ "$SELF_TEST_OUTCOME" != "success" ]]; then
-            echo "::error::Checker self-test outcome: $SELF_TEST_OUTCOME"
-            failed=1
-          fi
-          if [[ "$GATE_OUTCOME" != "success" ]]; then
-            echo "::error::Repository gate outcome: $GATE_OUTCOME"
-            failed=1
-          fi
-          if [[ "$SUMMARY_OUTCOME" != "success" ]]; then
-            echo "::error::Job-summary outcome: $SUMMARY_OUTCOME"
-            failed=1
-          fi
-          if [[ "$ARTIFACT_OUTCOME" != "success" ]]; then
-            echo "::error::Evidence-upload outcome: $ARTIFACT_OUTCOME"
-            failed=1
-          fi
+          for item in \
+            "Authoritative-validator installation:$VALIDATOR_INSTALL_OUTCOME" \
+            "Authoritative workflow-validation:$AUTHORITATIVE_WORKFLOWS_OUTCOME" \
+            "Release-integrity self-test:$RELEASE_SELF_TEST_OUTCOME" \
+            "Initializer self-test:$INITIALIZER_SELF_TEST_OUTCOME" \
+            "Committed-whitespace self-test:$WHITESPACE_SELF_TEST_OUTCOME" \
+            "Committed-whitespace candidate:$COMMITTED_WHITESPACE_OUTCOME" \
+            "Procedure-scoped VBA jump self-test:$VBA_JUMP_SELF_TEST_OUTCOME" \
+            "Procedure-scoped VBA jump:$VBA_JUMPS_OUTCOME" \
+            "VBA conditional-compilation self-test:$VBA_CONDITIONAL_SELF_TEST_OUTCOME" \
+            "VBA conditional-compilation:$VBA_CONDITIONALS_OUTCOME" \
+            "VBA public API self-test:$VBA_API_SELF_TEST_OUTCOME" \
+            "VBA public API:$VBA_API_OUTCOME" \
+            "Checker self-test:$SELF_TEST_OUTCOME" \
+            "Repository gate:$GATE_OUTCOME" \
+            "Job-summary:$SUMMARY_OUTCOME" \
+            "Evidence-upload:$ARTIFACT_OUTCOME"; do
+            name="${item%%:*}"
+            outcome="${item#*:}"
+            if [[ "$outcome" != "success" ]]; then
+              echo "::error::$name outcome: $outcome"
+              failed=1
+            fi
+          done
           exit "$failed"
