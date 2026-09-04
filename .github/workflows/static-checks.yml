@@ -121,6 +121,20 @@ jobs:
           fi
           python3 tools/check_committed_whitespace.py "${args[@]}"
 
+      - name: Exercise procedure-scoped VBA jump fixtures
+        id: vba-jump-self-test
+        continue-on-error: true
+        run: python3 tools/check_vba_jumps.py --root . --self-test
+
+      - name: Validate procedure-scoped VBA jumps
+        id: vba-jumps
+        continue-on-error: true
+        run: >-
+          python3 tools/check_vba_jumps.py
+          --root .
+          --output test-results/vba-jumps.json
+          --summary test-results/vba-jumps.md
+
       - name: Exercise positive and degraded checker paths
         id: self-test
         continue-on-error: true
@@ -159,6 +173,15 @@ jobs:
               exit 1
             fi
             echo
+            if [[ -f test-results/vba-jumps.md ]]; then
+              cat test-results/vba-jumps.md
+            else
+              echo "## Procedure-scoped VBA jumps"
+              echo
+              echo "The procedure-scoped VBA jump checker did not produce its report."
+              exit 1
+            fi
+            echo
             if [[ -f test-results/workflow-validation.md ]]; then
               cat test-results/workflow-validation.md
             else
@@ -190,6 +213,8 @@ jobs:
             test-results/static-checks.md
             test-results/committed-whitespace.json
             test-results/committed-whitespace.md
+            test-results/vba-jumps.json
+            test-results/vba-jumps.md
             test-results/actionlint-version.txt
             test-results/workflow-validation.md
             test-results/release-self-test.md
@@ -206,6 +231,8 @@ jobs:
           RELEASE_SELF_TEST_OUTCOME: ${{ steps.release-self-test.outcome }}
           WHITESPACE_SELF_TEST_OUTCOME: ${{ steps.whitespace-self-test.outcome }}
           COMMITTED_WHITESPACE_OUTCOME: ${{ steps.committed-whitespace.outcome }}
+          VBA_JUMP_SELF_TEST_OUTCOME: ${{ steps.vba-jump-self-test.outcome }}
+          VBA_JUMPS_OUTCOME: ${{ steps.vba-jumps.outcome }}
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
@@ -234,6 +261,14 @@ jobs:
           fi
           if [[ "$COMMITTED_WHITESPACE_OUTCOME" != "success" ]]; then
             echo "::error::Committed-whitespace candidate outcome: $COMMITTED_WHITESPACE_OUTCOME"
+            failed=1
+          fi
+          if [[ "$VBA_JUMP_SELF_TEST_OUTCOME" != "success" ]]; then
+            echo "::error::Procedure-scoped VBA jump self-test outcome: $VBA_JUMP_SELF_TEST_OUTCOME"
+            failed=1
+          fi
+          if [[ "$VBA_JUMPS_OUTCOME" != "success" ]]; then
+            echo "::error::Procedure-scoped VBA jump outcome: $VBA_JUMPS_OUTCOME"
             failed=1
           fi
           if [[ "$SELF_TEST_OUTCOME" != "success" ]]; then
