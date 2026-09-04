@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { appendFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import process from "node:process";
-import {
-  planChanges,
-  resolveDesired,
-  resolvePolicySelection,
-  validateManifest
-} from "./labels-sync.mjs";
+import { promisify } from "node:util";
 
+const execFileAsync = promisify(execFile);
 const TOOL_NAME = "Repository label drift";
 const API_VERSION = "2022-11-28";
 const DEFAULT_MANIFEST = ".github/labels.json";
 const DEFAULT_POLICY = ".github/repository-profile.json";
+const RECONCILER = ".github/scripts/labels-sync.mjs";
 
 function compareNames(left, right) {
   const leftKey = left.toLowerCase();
@@ -50,7 +50,7 @@ function parseArguments(argv) {
     if (["--manifest", "--policy", "--live", "--repository", "--output", "--summary"].includes(argument)) {
       const value = argv[index + 1];
       if (!value || value.startsWith("--")) throw new Error(`${argument} requires a value`);
-      parsed[argument.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = value;
+      parsed[argument.slice(2)] = value;
       index += 1;
       continue;
     }
@@ -110,63 +110,167 @@ async function listLiveLabels(repository, token) {
   return labels.sort((left, right) => compareNames(left.name, right.name));
 }
 
+async function runReconciler(arguments_) {
+  try {
+    const { stdout } = await execFileAsync(process.execPath, [RECONCILER, ...arguments_], {
+      encoding: "utf8",
+      env: { ...process.env, GITHUB_STEP_SUMMARY: "" },
+      maxBuffer: 1024 * 1024
+    });
+    return stdout;
+  } catch (error) {
+    const detail = String(error.stderr || error.stdout || error.message || error).trim();
+    throw new Error(`Canonical label reconciler rejected the contract: ${detail}`);
+  }
+}
+
+async function validateCanonicalContract(manifestPath, policyPath) {
+  await runReconciler([
+    "--manifest", manifestPath,
+    "--policy", policyPath,
+    "--mode", "validate"
+  ]);
+}
+
+function selectionFromValidatedPolicy(policy) {
+  return policy.mode === "template"
+    ? { profile: null, domains: [] }
+    : { profile: policy.profile, domains: [...policy.label_domains] };
+}
+
+function desiredFromValidatedContract(manifest, selection) {
+  const labels = [...manifest.core];
+  if (selection.profile !== null) labels.push(...manifest.overlays.profile[selection.profile]);
+  for (const domain of selection.domains) labels.push(...manifest.overlays.domain[domain]);
+  return labels.sort((left, right) => compareNames(left.name, right.name));
+}
+
+function localPlan(desiredLabels, liveLabels, { prune = true } = {}) {
+  const desired = new Map(desiredLabels.map(label => [label.name.toLowerCase(), label]));
+  const live = new Map(liveLabels.map(label => {
+    const normalized = normalizedLiveLabel(label);
+    return [normalized.name.toLowerCase(), normalized];
+  }));
+  const changes = [];
+
+  for (const [key, target] of desired) {
+    const current = live.get(key);
+    if (!current) {
+      changes.push({ action: "create", name: target.name, target });
+      continue;
+    }
+    const fields = [];
+    if (current.name !== target.name) fields.push("name");
+    if (current.color !== target.color) fields.push("color");
+    if (current.description !== target.description) fields.push("description");
+    if (fields.length > 0) {
+      changes.push({ action: "update", name: target.name, currentName: current.name, fields, target });
+    }
+  }
+
+  if (prune) {
+    for (const [key, current] of live) {
+      if (!desired.has(key)) {
+        changes.push({ action: "delete", name: current.name, currentName: current.name });
+      }
+    }
+  }
+
+  const order = { update: 0, create: 1, delete: 2 };
+  return changes.sort((left, right) => (
+    order[left.action] - order[right.action] || compareNames(left.name, right.name)
+  ));
+}
+
+function canonicalRows(stdout) {
+  const countMatch = stdout.match(/- Planned changes: \*\*(\d+)\*\*/);
+  if (!countMatch) throw new Error("Canonical plan summary has no planned-change count");
+  const rows = [];
+  for (const line of stdout.split("\n")) {
+    const match = line.match(/^\| (update|create|delete) \| `([^`]*)` \| ([^|]*) \|$/);
+    if (match) {
+      rows.push({ action: match[1], name: match[2], detail: match[3].trim() });
+    }
+  }
+  return { count: Number(countMatch[1]), rows };
+}
+
+function localRows(changes) {
+  return changes.map(change => ({
+    action: change.action,
+    name: change.name,
+    detail: change.action === "update"
+      ? change.fields.join(", ")
+      : change.action === "delete"
+        ? "outside selected manifest"
+        : "missing live label"
+  }));
+}
+
+async function verifyAgainstCanonicalPlan(manifestPath, policyPath, liveLabels, changes) {
+  const directory = await mkdtemp(join(tmpdir(), "label-drift-"));
+  const livePath = join(directory, "live.json");
+  try {
+    await writeFile(livePath, `${JSON.stringify(liveLabels, null, 2)}\n`, "utf8");
+    const stdout = await runReconciler([
+      "--manifest", manifestPath,
+      "--policy", policyPath,
+      "--mode", "plan",
+      "--live", livePath
+    ]);
+    const canonical = canonicalRows(stdout);
+    assert.equal(canonical.count, changes.length, "canonical/local difference counts disagree");
+    assert.deepEqual(canonical.rows, localRows(changes), "canonical/local change plans disagree");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
 function changeEvidence(change, observedByName) {
   const currentKey = String(change.currentName ?? change.name).toLowerCase();
-  const current = observedByName.get(currentKey) ?? null;
-  const desired = change.target ?? null;
   return {
     action: change.action,
     name: change.name,
     fields: change.fields ?? [],
-    observed: current,
-    desired
+    observed: observedByName.get(currentKey) ?? null,
+    desired: change.target ?? null
   };
 }
 
-export function buildReport({
-  repository,
-  manifestPath,
-  policyPath,
-  manifest,
-  selection,
-  desiredLabels,
-  liveLabels
-}) {
+function buildReport({ repository, manifestPath, policyPath, manifest, selection, desiredLabels, liveLabels }) {
   const observed = liveLabels
     .map(normalizedLiveLabel)
     .sort((left, right) => compareNames(left.name, right.name));
   const desired = structuredClone(desiredLabels)
     .sort((left, right) => compareNames(left.name, right.name));
-  const changes = planChanges(desired, observed, { prune: manifest.prune });
+  const changes = localPlan(desired, observed, { prune: manifest.prune });
   const observedByName = new Map(observed.map(label => [label.name.toLowerCase(), label]));
-  const evidence = changes.map(change => changeEvidence(change, observedByName));
+  const differences = changes.map(change => changeEvidence(change, observedByName));
   const counts = Object.fromEntries(["create", "update", "delete"].map(action => [
     action,
-    evidence.filter(item => item.action === action).length
+    differences.filter(item => item.action === action).length
   ]));
   return {
     schema_version: 1,
     tool: TOOL_NAME,
-    status: evidence.length === 0 ? "pass" : "drift",
+    status: differences.length === 0 ? "pass" : "drift",
     repository,
     manifest: manifestPath,
     policy: policyPath,
-    selection: {
-      profile: selection.profile,
-      domains: selection.domains
-    },
+    selection: { profile: selection.profile, domains: selection.domains },
     prune: manifest.prune,
     counts: {
       desired: desired.length,
       observed: observed.length,
-      differences: evidence.length,
+      differences: differences.length,
       create: counts.create,
       update: counts.update,
       delete: counts.delete
     },
     desired,
     observed,
-    differences: evidence
+    differences,
+    canonical_plan_verified: true
   };
 }
 
@@ -179,7 +283,7 @@ function compactLabel(label) {
   return `\`${markdownEscape(label.name)}\` / \`${label.color}\` / ${markdownEscape(label.description)}`;
 }
 
-export function markdownReport(report) {
+function markdownReport(report) {
   const lines = [
     "# Repository label drift",
     "",
@@ -192,6 +296,7 @@ export function markdownReport(report) {
     `- Desired / observed: **${report.counts.desired} / ${report.counts.observed}**`,
     `- Differences: **${report.counts.differences}**`,
     `- Create / update / delete: **${report.counts.create} / ${report.counts.update} / ${report.counts.delete}**`,
+    "- Canonical reconciliation plan cross-check: **PASS**",
     ""
   ];
   if (report.differences.length === 0) {
@@ -227,10 +332,19 @@ async function publishSummary(summary) {
 }
 
 async function prepareContract(manifestPath, policyPath) {
-  const manifest = validateManifest(await loadJson(manifestPath));
-  const selection = resolvePolicySelection(await loadJson(policyPath), manifest);
-  const desiredLabels = resolveDesired(manifest, selection);
+  await validateCanonicalContract(manifestPath, policyPath);
+  const manifest = await loadJson(manifestPath);
+  const policy = await loadJson(policyPath);
+  const selection = selectionFromValidatedPolicy(policy);
+  const desiredLabels = desiredFromValidatedContract(manifest, selection);
   return { manifest, selection, desiredLabels };
+}
+
+async function checkedReport(parameters) {
+  const report = buildReport(parameters);
+  const changes = localPlan(report.desired, report.observed, { prune: report.prune });
+  await verifyAgainstCanonicalPlan(report.manifest, report.policy, report.observed, changes);
+  return report;
 }
 
 async function runSelfTest(manifestPath, policyPath) {
@@ -238,7 +352,7 @@ async function runSelfTest(manifestPath, policyPath) {
 
   const baseline = structuredClone(desiredLabels);
   const baselineBefore = JSON.stringify(baseline);
-  const cleanFirst = buildReport({
+  const cleanFirst = await checkedReport({
     repository: "fixture/clean",
     manifestPath,
     policyPath,
@@ -247,7 +361,7 @@ async function runSelfTest(manifestPath, policyPath) {
     desiredLabels,
     liveLabels: baseline
   });
-  const cleanSecond = buildReport({
+  const cleanSecond = await checkedReport({
     repository: "fixture/clean",
     manifestPath,
     policyPath,
@@ -269,7 +383,7 @@ async function runSelfTest(manifestPath, policyPath) {
   drifted[0].description = "simulated out-of-band change";
   drifted.push({ name: "out-of-band", color: "ABCDEF", description: "simulated extra label" });
   const driftedBefore = JSON.stringify(drifted);
-  const driftFirst = buildReport({
+  const driftFirst = await checkedReport({
     repository: "fixture/drift",
     manifestPath,
     policyPath,
@@ -278,7 +392,7 @@ async function runSelfTest(manifestPath, policyPath) {
     desiredLabels,
     liveLabels: drifted
   });
-  const driftSecond = buildReport({
+  const driftSecond = await checkedReport({
     repository: "fixture/drift",
     manifestPath,
     policyPath,
@@ -288,10 +402,7 @@ async function runSelfTest(manifestPath, policyPath) {
     liveLabels: drifted
   });
   assert.equal(driftFirst.status, "drift");
-  assert.deepEqual(
-    driftFirst.differences.map(item => item.action),
-    ["update", "create", "delete"]
-  );
+  assert.deepEqual(driftFirst.differences.map(item => item.action), ["update", "create", "delete"]);
   assert.equal(JSON.stringify(driftFirst), JSON.stringify(driftSecond));
   assert.equal(markdownReport(driftFirst), markdownReport(driftSecond));
   assert.equal(JSON.stringify(drifted), driftedBefore, "drift check must not mutate live input");
@@ -299,7 +410,7 @@ async function runSelfTest(manifestPath, policyPath) {
   assert.match(markdownReport(driftFirst), new RegExp(missing.name));
 
   process.stdout.write(
-    "SELF-TEST PASS: deterministic no-drift and create/update/delete drift fixtures are read-only.\n"
+    "SELF-TEST PASS: deterministic no-drift and create/update/delete drift fixtures are read-only and match the canonical reconciler.\n"
   );
 }
 
@@ -310,10 +421,7 @@ async function main() {
     return;
   }
 
-  const { manifest, selection, desiredLabels } = await prepareContract(
-    options.manifest,
-    options.policy
-  );
+  const { manifest, selection, desiredLabels } = await prepareContract(options.manifest, options.policy);
 
   let liveLabels;
   if (options.live) {
@@ -323,16 +431,12 @@ async function main() {
       throw new Error("live fixture must be an array or contain a labels array");
     }
   } else {
-    if (!options.repository) {
-      throw new Error("live check requires --repository or GITHUB_REPOSITORY");
-    }
-    if (!process.env.GITHUB_TOKEN) {
-      throw new Error("live check requires GITHUB_TOKEN");
-    }
+    if (!options.repository) throw new Error("live check requires --repository or GITHUB_REPOSITORY");
+    if (!process.env.GITHUB_TOKEN) throw new Error("live check requires GITHUB_TOKEN");
     liveLabels = await listLiveLabels(options.repository, process.env.GITHUB_TOKEN);
   }
 
-  const report = buildReport({
+  const report = await checkedReport({
     repository: options.repository,
     manifestPath: options.manifest,
     policyPath: options.policy,
