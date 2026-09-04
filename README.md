@@ -188,6 +188,12 @@ UI, lifecycle or application smoke entry point applicable to this project.
 
 Record only evidence actually produced for the exact candidate.
 
+The hosted `Repository integrity` job additionally installs the
+content-verified actionlint version documented in
+[`tools/README.md`](tools/README.md#authoritative-workflow-validation), validates
+the complete GitHub Actions schema, and exercises known-invalid workflow and
+local-action fixtures. A missing validator or report fails the terminal result.
+
 ## 3. Complete repository provisioning
 
 GitHub template generation copies files, not repository settings. After

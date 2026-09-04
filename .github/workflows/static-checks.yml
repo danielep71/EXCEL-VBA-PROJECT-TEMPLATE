@@ -1,9 +1,9 @@
 name: Static repository checks
 run-name: Static checks — ${{ github.ref_name }} @ ${{ github.sha }}
 
-# Canonical, dependency-free source-integrity gate. It complements, but never
-# replaces, Excel compilation, regression, numerical-accuracy, UI-state,
-# packaging, or exact-release certification.
+# Canonical portable source-integrity gate plus a content-pinned authoritative
+# workflow validator. These complement, but never replace, Excel compilation,
+# regression, numerical-accuracy, UI-state, packaging, or release certification.
 
 on:
   pull_request:
@@ -37,12 +37,50 @@ jobs:
     env:
       PYTHONUTF8: "1"
       PYTHONDONTWRITEBYTECODE: "1"
+      ACTIONLINT_VERSION: "1.7.12"
+      ACTIONLINT_LINUX_AMD64_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
 
     steps:
       - name: Check out the exact SHA under review
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Install the pinned authoritative workflow validator
+        id: validator-install
+        continue-on-error: true
+        run: |
+          validator_dir="${RUNNER_TEMP}/actionlint-${ACTIONLINT_VERSION}"
+          archive="${validator_dir}/actionlint.tar.gz"
+          validator="${validator_dir}/actionlint"
+          mkdir -p "$validator_dir" test-results
+          curl \
+            --fail \
+            --location \
+            --proto '=https' \
+            --retry 3 \
+            --retry-all-errors \
+            --show-error \
+            --silent \
+            --tlsv1.2 \
+            --output "$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          printf '%s  %s\n' "$ACTIONLINT_LINUX_AMD64_SHA256" "$archive" \
+            | sha256sum --check --strict
+          tar --no-same-owner -xzf "$archive" -C "$validator_dir" actionlint
+          "$validator" -version | tee test-results/actionlint-version.txt
+          printf 'path=%s\n' "$validator" >> "$GITHUB_OUTPUT"
+
+      - name: Validate workflows and authoritative fixtures
+        id: authoritative-workflows
+        continue-on-error: true
+        env:
+          ACTIONLINT_PATH: ${{ steps.validator-install.outputs.path }}
+        run: >-
+          python3 tools/test_workflow_validation.py
+          --root .
+          --actionlint "$ACTIONLINT_PATH"
+          --summary test-results/workflow-validation.md
 
       - name: Exercise all repository-initialization profiles
         id: initializer-self-test
@@ -76,6 +114,15 @@ jobs:
             echo "The checker did not produce its Markdown report." >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
+          echo >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f test-results/workflow-validation.md ]]; then
+            cat test-results/workflow-validation.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Authoritative workflow validation" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo "The authoritative validator did not produce its report." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
       - name: Upload static-check evidence
         id: artifact
@@ -87,6 +134,8 @@ jobs:
           path: |
             test-results/static-checks.json
             test-results/static-checks.md
+            test-results/actionlint-version.txt
+            test-results/workflow-validation.md
           if-no-files-found: error
           retention-days: 30
           compression-level: 9
@@ -95,12 +144,22 @@ jobs:
         if: always()
         env:
           INITIALIZER_SELF_TEST_OUTCOME: ${{ steps.initializer-self-test.outcome }}
+          VALIDATOR_INSTALL_OUTCOME: ${{ steps.validator-install.outcome }}
+          AUTHORITATIVE_WORKFLOWS_OUTCOME: ${{ steps.authoritative-workflows.outcome }}
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
           ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
         run: |
           failed=0
+          if [[ "$VALIDATOR_INSTALL_OUTCOME" != "success" ]]; then
+            echo "::error::Authoritative-validator installation outcome: $VALIDATOR_INSTALL_OUTCOME"
+            failed=1
+          fi
+          if [[ "$AUTHORITATIVE_WORKFLOWS_OUTCOME" != "success" ]]; then
+            echo "::error::Authoritative workflow-validation outcome: $AUTHORITATIVE_WORKFLOWS_OUTCOME"
+            failed=1
+          fi
           if [[ "$INITIALIZER_SELF_TEST_OUTCOME" != "success" ]]; then
             echo "::error::Initializer self-test outcome: $INITIALIZER_SELF_TEST_OUTCOME"
             failed=1

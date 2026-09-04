@@ -3105,6 +3105,26 @@ def _degrade_structured_data(root: Path) -> None:
     _write_fixture(root / LABEL_MANIFEST_PATH, "{\n")
 
 
+def _degrade_structured_yaml(root: Path) -> None:
+    path = root / ".github/workflows/invalid-yaml.yml"
+    _write_fixture(
+        path,
+        """name: Invalid YAML
+on: [push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+""",
+    )
+    _run_git(root, "add", path.relative_to(root).as_posix())
+
+
+def _degrade_structured_xml(root: Path) -> None:
+    path = root / "docs/invalid.xml"
+    _write_fixture(path, "<repository><unclosed></repository>\n")
+    _run_git(root, "add", path.relative_to(root).as_posix())
+
+
 def _degrade_markdown_links(root: Path) -> None:
     _write_fixture(root / "README.md", "# Fixture\n\n[Missing](docs/MISSING.md)\n")
 
@@ -3225,6 +3245,13 @@ SELF_TEST_CASES: tuple[tuple[str, Callable[[Path], None]], ...] = (
     ("vba-public-api", _degrade_vba_public_api),
 )
 
+BRANCH_SELF_TEST_CASES: tuple[
+    tuple[str, str, Callable[[Path], None]], ...
+] = (
+    ("structured-yaml", "structured-data", _degrade_structured_yaml),
+    ("structured-xml", "structured-data", _degrade_structured_xml),
+)
+
 
 def _tree_digest(root: Path) -> str:
     digest = hashlib.sha256()
@@ -3291,6 +3318,25 @@ def run_self_test() -> int:
             if before != after:
                 failures.append(f"{expected_rule}: checker changed the fixture")
 
+    for case_name, expected_rule, degrade in BRANCH_SELF_TEST_CASES:
+        with tempfile.TemporaryDirectory(
+            prefix=f"repository-quality-{case_name}-"
+        ) as temporary:
+            root = Path(temporary)
+            _initialize_fixture(root)
+            degrade(root)
+            before = _tree_digest(root)
+            report = build_report(root)
+            after = _tree_digest(root)
+            results = {result["id"]: result for result in report["rules"]}
+            actual = results.get(expected_rule)
+            if actual is None:
+                failures.append(f"{case_name}: expected rule did not run")
+            elif actual["status"] != "fail":
+                failures.append(f"{case_name}: degraded fixture was not rejected")
+            if before != after:
+                failures.append(f"{case_name}: checker changed the fixture")
+
     if failures:
         for message in failures:
             print(f"[FAIL] {message}")
@@ -3299,7 +3345,7 @@ def run_self_test() -> int:
     print(
         f"SELF-TEST PASS: {len(SELF_TEST_CASES)} rules, one positive fixture, "
         f"{len(SELF_TEST_CASES)} degraded fixtures, deterministic JSON/Markdown, "
-        "and read-only execution."
+        f"{len(BRANCH_SELF_TEST_CASES)} structured-data branch fixtures, and read-only execution."
     )
     return 0
 

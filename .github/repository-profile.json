@@ -38,6 +38,7 @@
     "tools/check_repo.py",
     "tools/initialize_repository.py",
     "tools/README.md",
+    "tools/test_workflow_validation.py",
     "VERSION"
   ],
   "required_directories": [

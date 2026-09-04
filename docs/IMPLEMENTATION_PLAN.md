@@ -8,7 +8,7 @@
 
 **Review date:** 3 September 2026
 
-**Plan revision:** 5 — P1-04 completion evidence
+**Plan revision:** 6 — P1-06 implementation
 
 **Plan status:** Active — P1 certification blockers remain
 
@@ -292,7 +292,7 @@ still passing the generic repository gate.
 invalid changelog date, missing evidence, unapproved binary, wrong digest and
 mutable-tag cases each fail deterministically.
 
-### P1-06 — Workflow syntax validation is not authoritative
+### P1-06 — Authoritative workflow and structured-data validation — implementation complete; hosted evidence pending
 
 **Evidence:** `validate_yaml_subset` checks indentation parity, mapping-like lines,
 quotes and flow-bracket balance. It is not a complete YAML or GitHub Actions
@@ -311,6 +311,16 @@ workflow/action schema paths used by the template.
 **Acceptance gate:** Known invalid YAML, duplicate/invalid workflow structure,
 an invalid action reference and malformed XML all fail locally or in the hosted
 gate before certification; current workflows remain green.
+
+**Implementation status — 2026-09-04:** The portable 21-rule checker now adds
+direct malformed-YAML and malformed-XML branch fixtures. The hosted gate
+downloads actionlint 1.7.12, verifies the upstream Linux archive against its
+published SHA-256 before execution, checks the reported version, validates all
+tracked workflows, and exercises a valid local action plus five targeted
+negative fixtures for invalid YAML, duplicate jobs, invalid job structure,
+missing local-action metadata and a missing local entry point. Validator setup,
+execution, summary publication and evidence upload are all terminal outcomes.
+Closure still requires a successful exact-SHA hosted run.
 
 ### P1-07 — Post-creation and profile provisioning — file contract complete; pilot pending
 
@@ -431,7 +441,7 @@ domain-specific gate is replaced by a weaker generic check.
 | 2 | Add neutral VBA façade/core modules, premium headers and harness — **complete** | P1-01 | Placeholder identifier policy | 2.5–4 days |
 | 3 | Enforce substantive generated-profile contracts and full-tree fixtures — **complete** | P1-02 | Starter assets | 1.5–2.5 days |
 | 4 | Add issue forms and post-creation checklist; wire label profile selection — **source complete; pilot pending** | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
-| 5 | Add authoritative workflow validation and close checker false negatives | P1-06, P2-01–P2-07 | Stable checker/profile schema | 2–3.5 days |
+| 5 | Add authoritative workflow validation and close checker false negatives — **P1-06 source complete; hosted evidence pending** | P1-06, P2-01–P2-07 | Stable checker/profile schema | 2–3.5 days |
 | 6 | Add release gate, fixtures and protected-tag specification | P1-05 | Static and placeholder gates | 1.5–2.5 days |
 | 7 | Strengthen live `main` protection and complete metadata | P1-08, P2-10 | Stable required context | 0.5–1 day |
 | 8 | Generate profile pilots, run Excel evidence and publish `v0.1.0` | P1-08 | All prior P1 packages | 1.5–3 days plus Excel access |
@@ -452,7 +462,7 @@ are the largest uncertainties.
 | Canonical directories | **Complete** | All profiles retain substantive façade, core, and test assets; optional UI assets remain profile-driven |
 | Placeholder governance | **Complete** | Classified schema, dry-run/apply initializer, manual fallback and all-profile fixtures pass |
 | Collaboration files | **Complete at source level** | PR template, three issue forms/config and versioned label selection are implemented; live pilot verification remains |
-| Repository-quality checker | **Strong / reopened** | The 21-rule gate now enforces generated-profile VBA contracts and issue intake; authoritative YAML and identified false negatives remain |
+| Repository-quality checker | **Strong / reopened** | The portable 21-rule gate now includes direct YAML/XML fixtures; content-pinned authoritative workflow validation is implemented pending hosted evidence, while identified P2 false negatives remain |
 | Release controls | **In progress** | Documentation exists; executable gate/tag policy absent |
 | Reusable VBA assets | **Complete** | Four governed exports, public API manifest, clean import/compile, 4-case/6-assertion Excel pass, and exact-SHA hosted checks evidenced |
 | Live governance | **In progress** | Merge settings/basic protection exist; required PR/check/tag policy absent |
@@ -477,7 +487,7 @@ P1 passes only when all statements below are true:
 - [x] Generated mode rejects repositories with no substantive production/test VBA.
 - [x] Bug, feature and documentation forms plus configuration are valid.
 - [x] Profile/domain labels resolve from versioned repository policy.
-- [ ] YAML/workflow validation is authoritative and version-pinned.
+- [ ] YAML/workflow validation is authoritative and version-pinned. *(Source and local fixtures pass; hosted evidence pending.)*
 - [ ] The release gate passes positive fixtures and rejects every named negative fixture.
 - [ ] `main` requires PR routing and the exact live `Repository integrity` context.
 - [ ] `v*` tags are protected against deletion, mutation and unreviewed creation.
@@ -498,6 +508,6 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Implement **P1-06** next: add authoritative, version-pinned workflow validation
-and the named negative YAML, workflow and XML fixtures without weakening the
-portable local gate.
+Complete the exact-SHA hosted evidence for **P1-06**, then implement **P1-05**:
+add the executable release-integrity gate and its deterministic positive and
+negative fixtures before applying protected-tag policy.

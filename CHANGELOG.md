@@ -122,6 +122,9 @@ messages. Replace every registered template token before publishing.
   optional example removal remains valid.
 - Added structured bug, feature and documentation forms, private security
   routing, a post-creation provisioning checklist and static form fixtures.
+- Added content-pinned authoritative GitHub Actions validation with positive,
+  malformed-YAML, duplicate-schema and local-action fixtures, plus direct XML
+  and YAML branches in the portable checker self-test.
 
 ### Changed
 
