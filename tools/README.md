@@ -165,6 +165,47 @@ approximate conditional-compilation portion of the monolithic `vba-structure`
 rule. Both remain required in hosted CI, so the older approximation cannot hide
 a reachable declaration defect.
 
+## Complete VBA public API validation
+
+`check_vba_public_api.py` is the authoritative hardening gate for the supported
+VBA surface and its checked-in `docs/PUBLIC_API.txt` manifest. Every generated
+profile requires that manifest from initialization onward because the manifest
+is a global required path and every profile requires a public-role component.
+There is no maturity-stage exemption.
+
+The reusable policy deliberately prohibits implicit public visibility. Supported
+API declarations must use explicit `Public` visibility; `Global` is accepted for
+legacy public variables. The gate normalizes line continuations and covers
+public Subs, Functions, Property Get/Let/Set members, constants, events,
+Declare Function/Sub members, variables, Enums, and Types. Public variable
+statements contain one identifier each so signatures remain unambiguous.
+
+`PUBLIC_API.txt` remains the single manifest. Its traditional three-column rows
+preserve compatibility with the canonical 21-rule checker, while `# SIG` comment
+records bind every row to a normalized declaration signature. Those comments
+include meaningful VBA distinctions such as property direction, parameter
+modifiers and order, return types, Declare metadata, constant definitions, and
+Enum/Type bodies. The dedicated gate detects missing, stale, duplicate, or
+changed signatures and case-insensitive public-name collisions in standard
+modules.
+
+Run the focused fixtures and repository check with:
+
+```bash
+python3 tools/check_vba_public_api.py --root . --self-test
+python3 tools/check_vba_public_api.py \
+  --root . \
+  --output test-results/vba-public-api.json \
+  --summary test-results/vba-public-api.md
+```
+
+The fixtures cover every supported declaration family, continued declarations,
+implicit-public rejection, signature drift, name collisions, and the
+single-public-variable rule. Until P2-08 modularizes checker development, this
+dedicated gate supersedes the incomplete extraction portion of the monolithic
+`vba-public-api` rule. Both are required in hosted CI, so the legacy compatibility
+view cannot hide an unsupported or unrecorded public declaration.
+
 ## Authoritative workflow validation
 
 The hosted gate complements the portable YAML subset check with
