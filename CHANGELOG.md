@@ -101,14 +101,20 @@ Use only the categories needed by a release.
 
 <!--
 Keep only categories that contain entries. Write observable outcomes, not commit
-messages. Replace every registered template token before publishing.
+messages. Generated projects replace every registered template token before
+publishing; releases of this canonical template retain the registered grammar.
 -->
+
+No unreleased changes.
+
+## [1.0.0] - 2026-09-04
 
 ### Added
 
 - Added a dependency-free release-integrity gate, versioned profile policy,
   external evidence contract, SHA-256 asset-manifest validation, annotated-tag
-  verification, and 20 deterministic positive and negative fixtures.
+  verification, and deterministic positive and negative fixtures for generated
+  projects and the canonical template itself.
 - Added a classified double-brace token schema and deterministic,
   dry-run-first repository initializer with atomic validation and all-profile
   fixtures.
@@ -145,6 +151,8 @@ messages. Replace every registered template token before publishing.
   artifacts, rerun-safe evidence names and an explicit terminal verdict.
 - Made profile and domain label selection a versioned repository policy that
   both the checker and trusted reconciliation workflow validate and consume.
+
+[1.0.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0
 
 ---
 

@@ -30,6 +30,13 @@
       ],
       "allowed_asset_globs": []
     },
+    "template": {
+      "required_checks": [
+        "generated-profile-pilots",
+        "live-governance"
+      ],
+      "allowed_asset_globs": []
+    },
     "ui-component": {
       "required_checks": [
         "ui-state",

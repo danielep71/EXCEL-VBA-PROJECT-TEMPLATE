@@ -29,7 +29,8 @@ TOOL_NAME = "Canonical release integrity"
 POLICY_PATH = ".github/release-policy.json"
 PROFILE_PATH = ".github/repository-profile.json"
 INITIALIZATION_PATH = ".github/initialization.json"
-SUPPORTED_PROFILES = ("application", "library", "ui-component")
+GENERATED_PROFILES = ("application", "library", "ui-component")
+SUPPORTED_PROFILES = ("application", "library", "template", "ui-component")
 SEMVER_PATTERN = re.compile(
     r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
     r"(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?"
@@ -130,7 +131,10 @@ def _load_policy(root: Path) -> tuple[dict[str, object] | None, list[dict[str, s
     if len(core) != len(set(core)):
         return None, [_finding("invalid-release-policy", POLICY_PATH, "core_checks contains duplicates")]
     if not isinstance(profiles, dict) or set(profiles) != set(SUPPORTED_PROFILES):
-        return None, [_finding("invalid-release-policy", POLICY_PATH, "profiles must define exactly application, library, and ui-component")]
+        return None, [_finding(
+            "invalid-release-policy", POLICY_PATH,
+            "profiles must define exactly application, library, template, and ui-component",
+        )]
     for profile, specification in profiles.items():
         if not isinstance(specification, dict) or set(specification) != {"required_checks", "allowed_asset_globs"}:
             return None, [_finding("invalid-release-policy", POLICY_PATH, f"{profile} has an invalid policy shape")]
@@ -193,26 +197,45 @@ def _validate_source(
     require_tag_ref: bool,
 ) -> tuple[str | None, list[dict[str, str]]]:
     findings: list[dict[str, str]] = []
-    profile = configuration.get("profile")
-    if configuration.get("mode") != "generated" or profile not in SUPPORTED_PROFILES:
+    mode = configuration.get("mode")
+    configured_profile = configuration.get("profile")
+    release_profile: str | None = None
+    initialization = root / INITIALIZATION_PATH
+    if mode == "generated" and configured_profile in GENERATED_PROFILES:
+        release_profile = str(configured_profile)
+        if not initialization.is_file():
+            findings.append(_finding(
+                "template-identity", INITIALIZATION_PATH,
+                "generated release candidates require an initialization record",
+            ))
+        else:
+            record, record_findings = _read_json(initialization, "initialization-record")
+            findings.extend(record_findings)
+            if isinstance(record, dict):
+                if record.get("profile") != release_profile:
+                    findings.append(_finding(
+                        "template-identity", INITIALIZATION_PATH,
+                        "profile differs from repository policy",
+                    ))
+                values = record.get("values")
+                repository = configuration.get("repository")
+                if not isinstance(values, dict) or values.get("REPOSITORY_PATH") != repository:
+                    findings.append(_finding(
+                        "template-identity", INITIALIZATION_PATH,
+                        "repository identity differs from repository policy",
+                    ))
+    elif mode == "template" and configured_profile is None:
+        release_profile = "template"
+        if initialization.exists():
+            findings.append(_finding(
+                "template-identity", INITIALIZATION_PATH,
+                "template release candidates must not contain a generated-project initialization record",
+            ))
+    else:
         findings.append(_finding(
             "template-identity", PROFILE_PATH,
-            "release candidates must be initialized generated repositories",
+            "release candidates must be an initialized generated profile or the canonical template profile",
         ))
-        profile = None
-    initialization = root / INITIALIZATION_PATH
-    if not initialization.is_file():
-        findings.append(_finding("template-identity", INITIALIZATION_PATH, "initialization record is required"))
-    else:
-        record, record_findings = _read_json(initialization, "initialization-record")
-        findings.extend(record_findings)
-        if isinstance(record, dict):
-            if record.get("profile") != profile:
-                findings.append(_finding("template-identity", INITIALIZATION_PATH, "profile differs from repository policy"))
-            values = record.get("values")
-            repository = configuration.get("repository")
-            if not isinstance(values, dict) or values.get("REPOSITORY_PATH") != repository:
-                findings.append(_finding("template-identity", INITIALIZATION_PATH, "repository identity differs from repository policy"))
 
     head = _git_output(root, "rev-parse", "HEAD")
     if head is None:
@@ -237,49 +260,56 @@ def _validate_source(
             if target != candidate_sha:
                 findings.append(_finding("tag-target-mismatch", tag, f"tag targets {target}, expected {candidate_sha}"))
 
-    try:
+    if release_profile in GENERATED_PROFILES:
         tracked = _tracked_files(root)
-    except OperationalError:
-        raise
-    identity = configuration.get("identity")
-    identity_excludes: set[str] = set()
-    template_tokens: list[str] = []
-    if isinstance(identity, dict):
-        raw_excludes = identity.get("exclude_paths")
-        raw_tokens = identity.get("template_tokens")
-        if isinstance(raw_excludes, list):
-            identity_excludes.update(item for item in raw_excludes if isinstance(item, str))
-        if isinstance(raw_tokens, list):
-            template_tokens.extend(item for item in raw_tokens if isinstance(item, str))
-    excludes = set(policy["source_scan_exclude_paths"]) | identity_excludes
-    placeholder_pattern = re.compile(r"\{\{[A-Z][A-Z0-9_]*\}\}")
-    for relative in tracked:
-        if relative in excludes or not _is_text(relative):
-            continue
-        path = root / relative
-        try:
-            text = path.read_text(encoding="utf-8", errors="strict")
-        except (OSError, UnicodeError) as error:
-            findings.append(_finding("unreadable-release-text", relative, str(error)))
-            continue
-        if placeholder_pattern.search(text) or "<!-- template:" in text:
-            findings.append(_finding("unresolved-template-token", relative, "unresolved placeholder or template block marker"))
-        folded = text.casefold()
-        for token in template_tokens:
-            if token.casefold() in folded:
-                findings.append(_finding("template-identity", relative, f"contains template identity token {token}"))
-                break
+        identity = configuration.get("identity")
+        identity_excludes: set[str] = set()
+        template_tokens: list[str] = []
+        if isinstance(identity, dict):
+            raw_excludes = identity.get("exclude_paths")
+            raw_tokens = identity.get("template_tokens")
+            if isinstance(raw_excludes, list):
+                identity_excludes.update(item for item in raw_excludes if isinstance(item, str))
+            if isinstance(raw_tokens, list):
+                template_tokens.extend(item for item in raw_tokens if isinstance(item, str))
+        excludes = set(policy["source_scan_exclude_paths"]) | identity_excludes
+        placeholder_pattern = re.compile(r"\{\{[A-Z][A-Z0-9_]*\}\}")
+        for relative in tracked:
+            if relative in excludes or not _is_text(relative):
+                continue
+            path = root / relative
+            try:
+                text = path.read_text(encoding="utf-8", errors="strict")
+            except (OSError, UnicodeError) as error:
+                findings.append(_finding("unreadable-release-text", relative, str(error)))
+                continue
+            if placeholder_pattern.search(text) or "<!-- template:" in text:
+                findings.append(_finding(
+                    "unresolved-template-token", relative,
+                    "unresolved placeholder or template block marker",
+                ))
+            folded = text.casefold()
+            for token in template_tokens:
+                if token.casefold() in folded:
+                    findings.append(_finding(
+                        "template-identity", relative,
+                        f"contains template identity token {token}",
+                    ))
+                    break
 
-    changelog_path = root / "CHANGELOG.md"
-    try:
-        changelog = changelog_path.read_text(encoding="utf-8")
-    except OSError as error:
-        findings.append(_finding("missing-changelog", "CHANGELOG.md", str(error)))
-        changelog = ""
-    for marker in policy["template_construction_markers"]:
-        if str(marker).casefold() in changelog.casefold():
-            findings.append(_finding("template-construction-history", "CHANGELOG.md", f"contains construction marker {marker!r}"))
-    return profile if isinstance(profile, str) else None, findings
+        changelog_path = root / "CHANGELOG.md"
+        try:
+            changelog = changelog_path.read_text(encoding="utf-8")
+        except OSError as error:
+            findings.append(_finding("missing-changelog", "CHANGELOG.md", str(error)))
+            changelog = ""
+        for marker in policy["template_construction_markers"]:
+            if str(marker).casefold() in changelog.casefold():
+                findings.append(_finding(
+                    "template-construction-history", "CHANGELOG.md",
+                    f"contains construction marker {marker!r}",
+                ))
+    return release_profile, findings
 
 
 def _validate_version_and_changelog(root: Path, tag: str) -> tuple[str | None, list[dict[str, str]]]:
@@ -606,8 +636,8 @@ def _write_atomic(path: Path, content: str) -> None:
 def _fixture_configuration(profile: str) -> dict[str, object]:
     return {
         "schema_version": 1,
-        "mode": "generated",
-        "profile": profile,
+        "mode": "template" if profile == "template" else "generated",
+        "profile": None if profile == "template" else profile,
         "repository": f"example/release-{profile}",
         "identity": {
             "template_tokens": ["TEMPLATE-IDENTITY"],
@@ -659,19 +689,32 @@ def _fixture_repository(root: Path, profile: str, policy: dict[str, object]) -> 
     (root / "src").mkdir()
     (root / PROFILE_PATH).write_text(json.dumps(_fixture_configuration(profile), indent=2) + "\n", encoding="utf-8")
     (root / POLICY_PATH).write_text(json.dumps(policy, indent=2) + "\n", encoding="utf-8")
-    record = {
-        "schema_version": 1,
-        "profile": profile,
-        "values": {"REPOSITORY_PATH": f"example/release-{profile}"},
-    }
-    (root / INITIALIZATION_PATH).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    if profile != "template":
+        record = {
+            "schema_version": 1,
+            "profile": profile,
+            "values": {"REPOSITORY_PATH": f"example/release-{profile}"},
+        }
+        (root / INITIALIZATION_PATH).write_text(
+            json.dumps(record, indent=2) + "\n", encoding="utf-8"
+        )
     (root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+    release_entry = (
+        "- Canonical template construction history with {{PROJECT_NAME}} and TEMPLATE-IDENTITY.\n"
+        if profile == "template"
+        else "- Initial project release.\n"
+    )
     (root / "CHANGELOG.md").write_text(
         "# Changelog\n\n## [Unreleased]\n\nNo unreleased changes.\n\n"
-        "## [1.0.0] - 2026-09-04\n\n### Added\n\n- Initial project release.\n",
+        "## [1.0.0] - 2026-09-04\n\n### Added\n\n" + release_entry,
         encoding="utf-8",
     )
-    (root / "README.md").write_text("# Synthetic release fixture\n", encoding="utf-8")
+    readme = (
+        "# {{PROJECT_NAME}} template fixture\n\nTEMPLATE-IDENTITY\n"
+        if profile == "template"
+        else "# Synthetic release fixture\n"
+    )
+    (root / "README.md").write_text(readme, encoding="utf-8")
     (root / "src" / "Project.bas").write_text(
         'Attribute VB_Name = "Project"\nOption Explicit\n', encoding="utf-8"
     )
@@ -720,7 +763,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             manifest: Path | None = None
             distribution = "source-only"
             assets: list[dict[str, object]] = []
-            if profile != "library":
+            if profile in {"application", "ui-component"}:
                 distribution = "binary"
                 asset = case / "dist" / f"fixture-{profile}.xlsm"
                 asset.parent.mkdir()
@@ -878,6 +921,10 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
         negative(
             "library-binary", lambda c: binary_mutation(c, approved=True, digest_matches=True),
             "unapproved-binary", profile="library",
+        )
+        negative(
+            "template-binary", lambda c: binary_mutation(c, approved=True, digest_matches=True),
+            "unapproved-binary", profile="template",
         )
 
         def lightweight_tag(context) -> None:

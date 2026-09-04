@@ -2014,12 +2014,8 @@ def check_version_changelog(
         failures.append(
             finding("CHANGELOG.md", "Changelog must contain an Unreleased level-two heading.")
         )
-    if config["mode"] == "template" and version and version != "0.0.0":
-        failures.append(
-            finding("VERSION", "Template mode must remain at version 0.0.0.")
-        )
     if (
-        config["mode"] == "generated"
+        config["mode"] in {"generated", "template"}
         and version
         and version != "0.0.0"
         and changelog

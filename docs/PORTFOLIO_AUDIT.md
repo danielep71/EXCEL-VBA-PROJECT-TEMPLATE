@@ -47,7 +47,7 @@ Still required before P1 certification:
 - bug, feature and documentation issue forms plus issue-template configuration;
 - executable release gates and release fixtures;
 - neutral VBA façade/core modules, premium headers and deterministic test harness;
-- a generated-repository pilot and the template v0.1.0 certification.
+- generated-repository pilots and the template `v1.0.0` certification.
 
 ### 0.3 Blocking donor defects after standardization
 

@@ -84,13 +84,14 @@ before changing either pin.
 
 ## Release-integrity gate
 
-`check_release.py` validates one initialized release candidate against the
-versioned `.github/release-policy.json`. It requires version, dated changelog,
-tag, Git source, external evidence, profile assurance, and any staged assets to
-name the same full candidate SHA. Reports are deterministic and written
-atomically.
+`check_release.py` validates one initialized generated-project candidate or the
+canonical template itself against the versioned `.github/release-policy.json`.
+It requires version, dated changelog, tag, Git source, external evidence,
+profile assurance, and any staged assets to name the same full candidate SHA.
+Reports are deterministic and written atomically.
 
-Exercise all three valid profiles and every named failure path with:
+Exercise all three generated profiles, the template release profile, and every
+named failure path with:
 
 ```bash
 python3 tools/check_release.py --root . --self-test \
@@ -114,7 +115,8 @@ Excel or claim that a manually packaged Office file was built from source.
 mode to one explicit profile. It validates the complete substitution set,
 defaults to a deterministic dry-run, applies only with `--apply`, removes
 non-applicable/template-only content, resets inherited changelog history, and
-supports an idempotent second run.
+resets the generated version to the `0.0.0` sentinel, and supports an idempotent
+second run.
 
 See [`docs/INITIALIZATION.md`](../docs/INITIALIZATION.md) for the token catalogue,
 profile commands, optional and repeatable values, and the transparent manual
