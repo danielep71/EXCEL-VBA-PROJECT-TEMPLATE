@@ -382,13 +382,16 @@ def _build_changes(
         raise InitializationError("Repository mode must be template or a matching prior initialization.")
 
     excluded = set(placeholders["exclude_paths"])
-    template_only = set(placeholders["template_only_paths"])
-    missing_template_paths = template_only - tracked
+    configured_template_only = set(placeholders["template_only_paths"])
+    missing_template_paths = configured_template_only - tracked
     if missing_template_paths:
         raise InitializationError(
             "Configured template-only paths are not tracked: "
             + ", ".join(sorted(missing_template_paths))
         )
+    template_only = configured_template_only - {
+        scalars.get("SOCIAL_PREVIEW_PATH", "")
+    }
     token_pattern = re.compile(placeholders["pattern"])
     changes: dict[str, bytes | None] = {path: None for path in sorted(template_only)}
     seen: set[str] = set()
@@ -923,8 +926,17 @@ def self_test(source: Path) -> None:
             rerun, _ = _build_changes(fixture, profile, scalars, repeatable)
             if rerun:
                 raise AssertionError(f"{profile} second initialization was not idempotent.")
-            if any((fixture / path).exists() for path in ("docs/IMPLEMENTATION_PLAN.md", "docs/PORTFOLIO_AUDIT.md")):
+            if any(
+                (fixture / path).exists()
+                for path in (
+                    "assets/social-preview.svg",
+                    "docs/IMPLEMENTATION_PLAN.md",
+                    "docs/PORTFOLIO_AUDIT.md",
+                )
+            ):
                 raise AssertionError(f"{profile} retained template-only files.")
+            if not (fixture / "assets/social-preview.png").is_file():
+                raise AssertionError(f"{profile} removed its selected social preview.")
             _assert_generated_cleanup(fixture, profile)
             _assert_fresh_generated_content(fixture, profile)
             _generated_self_test(fixture)
