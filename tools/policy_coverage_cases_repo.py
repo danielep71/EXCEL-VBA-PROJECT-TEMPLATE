@@ -37,12 +37,14 @@ def repository_cases(module: ModuleType) -> list[tuple[str, str, str | None, Cal
 
     @case("placeholder-executable", "placeholders", "prohibited in executable")
     def _(root: Path) -> None:
-        module._write_fixture(root / "tools/check_repo.py", "# {{REQUIRED_NOTE}}\n")
+        token = "{{" + "REQUIRED_NOTE}}"
+        module._write_fixture(root / "tools/check_repo.py", f"# {token}\n")
 
     @case("placeholder-template-unregistered", "placeholders", "not registered")
     def _(root: Path) -> None:
         mutate_config(module, root, lambda d: (d.__setitem__("mode", "template"), d.__setitem__("profile", None), d.__setitem__("repository", "example/TEMPLATE-IDENTITY")))
-        module._write_fixture(root / "README.md", "# Fixture\n\n{{UNKNOWN_NOTE}}\n")
+        token = "{{" + "UNKNOWN_NOTE}}"
+        module._write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
 
     @case("placeholder-template-unused", "placeholders", "unused")
     def _(root: Path) -> None:
