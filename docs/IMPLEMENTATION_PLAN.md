@@ -42,7 +42,7 @@ must also prove that a generated repository is usable. At the reviewed snapshot:
 - there is no protected `v*` tag policy, pilot repository or published template
   release.
 
-**Release verdict:** **NOT READY for v1.0.0.** The current green static check is
+**Historical release verdict at the review snapshot:** **NOT READY for v1.0.0.** The then-current green static check was
 valid evidence for repository-text integrity only. It is not evidence that the
 template can generate, compile, test, provision and release a VBA project.
 
