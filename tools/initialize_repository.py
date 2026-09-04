@@ -694,7 +694,11 @@ def _make_unused_fixture(source: Path, destination: Path) -> None:
     _git(destination, "commit", "-m", "Create unused-substitution fixture")
 
 
-def _assert_generated_cleanup(root: Path, profile: str) -> None:
+def _assert_generated_cleanup(
+    root: Path,
+    profile: str,
+    repository: str | None = None,
+) -> None:
     headings = {
         "application": "### Application commitments",
         "library": "### Library commitments",
@@ -716,14 +720,65 @@ def _assert_generated_cleanup(root: Path, profile: str) -> None:
     issue_config = (root / ".github/ISSUE_TEMPLATE/config.yml").read_text(
         encoding="utf-8"
     )
-    expected_security_url = (
-        f"https://github.com/example/fixture-{profile}/security/policy"
-    )
+    repository = repository or f"example/fixture-{profile}"
+    expected_security_url = f"https://github.com/{repository}/security/policy"
     if expected_security_url not in issue_config:
         raise AssertionError(f"{profile} did not render its private-security URL.")
 
 
+def _record_arguments(root: Path) -> tuple[str, list[str], list[str]]:
+    try:
+        record = json.loads((root / RECORD_PATH).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise AssertionError(f"Generated repository has an invalid {RECORD_PATH}.") from error
+    if (
+        record.get("schema_version") != 1
+        or record.get("profile") not in SUPPORTED_PROFILES
+        or not isinstance(record.get("values"), dict)
+    ):
+        raise AssertionError(f"Generated repository has an invalid {RECORD_PATH} contract.")
+
+    scalars: list[str] = []
+    repeatable: list[str] = []
+    for name, value in record["values"].items():
+        if isinstance(value, str):
+            scalars.append(f"{name}={value}")
+        elif isinstance(value, list) and all(isinstance(item, str) for item in value):
+            repeatable.extend(f"{name}={item}" for item in value)
+        else:
+            raise AssertionError(f"{RECORD_PATH} contains an invalid value for {name}.")
+    return record["profile"], scalars, repeatable
+
+
+def _generated_self_test(source: Path) -> None:
+    config = _load_config(source)
+    profile, scalars, repeatable = _record_arguments(source)
+    repository = config.get("repository")
+    if not isinstance(repository, str) or not repository:
+        raise AssertionError("Generated repository policy has no repository identity.")
+    before = _tree_digest(source)
+    changes, _ = _build_changes(source, profile, scalars, repeatable)
+    if changes or _tree_digest(source) != before:
+        raise AssertionError("Generated repository initialization is not idempotent.")
+    if config.get("profile") != profile or config.get("repository") != repository:
+        raise AssertionError("Generated repository policy and initialization record disagree.")
+    _assert_generated_cleanup(source, profile, repository)
+
+    completed, report = _quality_report(source)
+    if completed.returncode != 0 or report.get("status") != "pass":
+        raise AssertionError(
+            f"Generated repository failed repository quality:\n{completed.stdout}{completed.stderr}"
+        )
+    print(
+        f"PASS: generated {profile} repository initialization is recorded, clean, "
+        "idempotent, and quality-valid."
+    )
+
+
 def self_test(source: Path) -> None:
+    if _load_config(source).get("mode") == "generated":
+        _generated_self_test(source)
+        return
     with tempfile.TemporaryDirectory(prefix="repository-initializer-") as temporary:
         base = Path(temporary)
         for profile in SUPPORTED_PROFILES:
@@ -777,6 +832,7 @@ def self_test(source: Path) -> None:
             if any((fixture / path).exists() for path in ("docs/IMPLEMENTATION_PLAN.md", "docs/PORTFOLIO_AUDIT.md")):
                 raise AssertionError(f"{profile} retained template-only files.")
             _assert_generated_cleanup(fixture, profile)
+            _generated_self_test(fixture)
 
             completed, report = _quality_report(fixture)
             if completed.returncode != 0:
