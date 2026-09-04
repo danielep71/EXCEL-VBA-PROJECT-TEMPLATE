@@ -1,11 +1,16 @@
-# Generated-profile pilot certification
+# 🧪 Generated-Profile Pilot Certification
+
+[![Status: certified](https://img.shields.io/badge/status-certified-success)](#-verified-final-state)
+[![Profiles: 3/3](https://img.shields.io/badge/profiles-3%2F3-217346)](#-exact-pilot-identities)
+[![Labels: exact match](https://img.shields.io/badge/labels-exact%20match-1D76DB)](#-live-read--back-links)
+[![Governance: protected](https://img.shields.io/badge/governance-protected-6f42c1)](#-verified-final-state)
 
 This record preserves the post-creation read-back evidence for the three clean
 repositories generated from this template. It supplements the implementation
 plan with full identifiers and durable links; it is template-only evidence and
 is removed from generated repositories.
 
-## Collection record
+## 🧾 Collection Record
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +21,7 @@ is removed from generated repositories.
 | Selected domains | None for every pilot |
 | Template source | [`EXCEL-VBA-PROJECT-TEMPLATE`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE) |
 
-## Exact pilot identities
+## 🎯 Exact Pilot Identities
 
 | Profile | Repository and exact commit | Repository integrity | Label reconciliation |
 | --- | --- | --- | --- |
@@ -28,7 +33,7 @@ Each committed `.github/repository-profile.json` records `mode: generated`, the
 profile shown above, the matching repository identity and an empty
 `label_domains` array. Each initialization record matches that policy.
 
-## Live read-back links
+## 🔗 Live Read-Back Links
 
 | Profile | Labels | Issue chooser | `main` protection | Release-tag protection |
 | --- | --- | --- | --- | --- |
@@ -36,7 +41,7 @@ profile shown above, the matching repository identity and an empty
 | Library | [Catalogue](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/labels) | [Chooser](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/issues/new/choose) | [Ruleset 22265920](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/rules/22265920) | [Ruleset 22265955](https://github.com/danielep71/EXCEL-VBA-PILOT-LIBRARY/rules/22265955) |
 | UI component | [Catalogue](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/labels) | [Chooser](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/issues/new/choose) | [Ruleset 22266203](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/rules/22266203) | [Ruleset 22266307](https://github.com/danielep71/EXCEL-VBA-PILOT-UI-COMPONENT/rules/22266307) |
 
-## Verified final state
+## ✅ Verified Final State
 
 The authenticated read-back confirmed the following for every pilot:
 
@@ -58,4 +63,12 @@ The authenticated read-back confirmed the following for every pilot:
   and routes security reports to the repository policy.
 
 This record certifies repository generation and live governance only. It does
-not replace exact-candidate Excel compilation, regression or release evidence.
+not replace exact-candidate Excel compilation, regression, or release evidence.
+Those separate controls were subsequently completed for the canonical
+[`v1.0.0` release](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0)
+and are recorded in the
+[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md#9-p1-certification-gate).
+
+---
+
+**Certification principle:** configuration is evidenced by final read-back, never by intended settings alone.

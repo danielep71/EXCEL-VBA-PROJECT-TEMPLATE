@@ -1,11 +1,16 @@
-# Repository initialization
+# 🚀 Repository Initialization
+
+[![Mode: dry-run first](https://img.shields.io/badge/mode-dry--run%20first-217346)](#-safety-model)
+[![Profiles: 3](https://img.shields.io/badge/profiles-3-6f42c1)](#-initialize-one-profile)
+[![Writes: atomic](https://img.shields.io/badge/writes-atomic-success)](#-deterministic-transformations)
+[![Verification: self-tested](https://img.shields.io/badge/verification-self--tested-1D76DB)](#-verification)
 
 This document is the authoritative contract for turning a clean repository
 created from this template into one initialized project. Initialization changes
 versioned files only. It does not configure GitHub labels, metadata, secrets,
 rulesets, environments, or other live settings.
 
-## Safety model
+## 🛡️ Safety Model
 
 `tools/initialize_repository.py` is dependency-free and dry-run-first. It:
 
@@ -20,7 +25,7 @@ rulesets, environments, or other live settings.
 Missing, unknown, duplicated, category-incompatible, and unused substitutions
 are errors. Values may not contain line breaks or reserved template syntax.
 
-## Canonical token grammar
+## 🧬 Canonical Token Grammar
 
 A token is two opening braces, one uppercase name matching
 `[A-Z][A-Z0-9_]*`, and two closing braces. Square brackets retain their normal
@@ -38,7 +43,7 @@ exists.
 | `profile-specific` | Do not supply it; the initializer derives it from the selected profile. |
 | `repeatable` | Supply zero or more times with `--add NAME=value`; omitting it removes its complete repeatable block. |
 
-### Catalogue
+### 📋 Catalogue
 
 | Name | Category | Purpose |
 | --- | --- | --- |
@@ -64,7 +69,7 @@ chooser's template-repository security URL to the generated repository without
 placing a token in YAML. VBA components therefore use fixed, compile-safe
 identifiers; a project may rename them later as an explicit source change.
 
-## Initialize one profile
+## 🧭 Initialize One Profile
 
 Run this command from a clean repository root. Dry-run is the default:
 
@@ -92,7 +97,7 @@ SHA-256 digest. Repeat the identical command with `--apply` only when that plan
 is correct. A second run with the same arguments returns `no-op`; different
 inputs fail rather than silently rewriting an initialized repository.
 
-### Optional and repeatable values
+### ➕ Optional and Repeatable Values
 
 Add a tracked social-preview image only when it already exists:
 
@@ -110,7 +115,7 @@ Repeat list inputs in command order:
 Omitted optional and repeatable values remove their complete marked blocks;
 empty placeholder prose is never retained.
 
-## Deterministic transformations
+## ⚙️ Deterministic Transformations
 
 An applied initialization:
 
@@ -131,7 +136,7 @@ registered public façade, internal core, and regression module declared by its
 `vba_contract`. Profile-specific classes, forms, Ribbon XML, workbook modules,
 and examples remain optional unless the selected contract explicitly adds them.
 
-## Manual fallback
+## 🧰 Manual Fallback
 
 The script is authoritative, but the transformation remains transparent and can
 be reproduced manually:
@@ -162,7 +167,7 @@ Manual initialization is incomplete if its resulting tree differs in policy or
 content from what the deterministic initializer would produce for the same
 inputs.
 
-## Verification
+## ✅ Verification
 
 ```bash
 python3 tools/initialize_repository.py --root . --self-test
@@ -183,3 +188,7 @@ After initialization, configure the live repository settings that a GitHub
 template cannot inherit. Follow
 [`POST_CREATION_CHECKLIST.md`](POST_CREATION_CHECKLIST.md) and preserve read-back
 evidence of the applied state.
+
+---
+
+**Initialization principle:** validate everything, preview every mutation, and apply one reproducible profile from a clean tree.
