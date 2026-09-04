@@ -8,7 +8,7 @@
 
 **Review date:** 3 September 2026
 
-**Plan revision:** 12 — P2-11 hosted certification
+**Plan revision:** 13 — live `main` governance
 
 **Plan status:** Active — P1 certification blockers remain
 
@@ -39,7 +39,7 @@ must also prove that a generated repository is usable. At the reviewed snapshot:
 - there is no protected `v*` tag policy, pilot repository or published template
   release.
 
-**Release verdict:** **NOT READY for v0.1.0.** The current green static check is
+**Release verdict:** **NOT READY for v1.0.0.** The current green static check is
 valid evidence for repository-text integrity only. It is not evidence that the
 template can generate, compile, test, provision and release a VBA project.
 
@@ -122,7 +122,7 @@ and **a proven generated VBA repository**.
 
 ## 4. P1 findings — certification blockers
 
-P1 findings must close before the template is tagged `v0.1.0` or used as the
+P1 findings must close before the template is tagged `v1.0.0` or used as the
 formal benchmark for portfolio migration.
 
 ### P1-01 — Reusable VBA starter and harness — **complete**
@@ -379,11 +379,11 @@ derives its complete overlay selection from that tracked policy. The acceptance
 gate remains open until those controls are applied to and read back from a real
 generated pilot.
 
-### P1-08 — Live governance and pilot certification lag behind the implemented gate
+### P1-08 — Live governance complete; pilot and release certification pending
 
-**Evidence:** `main` currently has deletion and non-fast-forward protection only.
-The stable `Repository integrity` job is not required and pull requests are not
-required. There is no generated pilot, Excel evidence or template release.
+**Original evidence:** `main` had deletion and non-fast-forward protection only.
+The stable `Repository integrity` job was not required and pull requests were
+not required. There was no generated pilot, Excel evidence or template release.
 
 **Impact:** The canonical source can change without the control it instructs
 generated repositories to require, and there is no end-to-end evidence that the
@@ -396,11 +396,19 @@ template works outside its own template-mode tree.
 - retain no default bypass and keep deletion/non-fast-forward protection;
 - generate clean pilots for all three profiles and certify the common starter;
 - run the VBA compile/regression path in a stated Excel environment;
-- preserve exact-SHA evidence, then tag and publish `v0.1.0`.
+- preserve exact-SHA evidence, then tag and publish `v1.0.0`.
 
 **Acceptance gate:** All file and live-setting controls are green at the exact
 release SHA; generated pilots pass; Excel evidence names host/build/bitness and
 test counts; the protected tag targets that SHA.
+
+**Live-governance status — 2026-09-04:** Active ruleset
+[`Protect main`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/rules/22183319)
+targets the default branch, has no bypass actor, requires pull requests with
+zero approvals, requires strict GitHub Actions context `Repository integrity`,
+and retains deletion and non-fast-forward protection. API read-back reports
+`current_user_can_bypass: never`. The generated pilots, unified candidate
+evidence and release remain open.
 
 ## 5. P2 findings — material hardening and portfolio adoption
 
@@ -434,7 +442,7 @@ also passed every repository, workflow, release and initialization gate.
 
 ### 5.1 P2 portfolio migration rules
 
-After `v0.1.0`, assess every existing repository against the certified baseline.
+After `v1.0.0`, assess every existing repository against the certified baseline.
 Classify each difference as:
 
 - `REQUIRED` — missing universal control or correctness defect;
@@ -480,9 +488,9 @@ domain-specific gate is replaced by a weaker generic check.
 | 4 | Add issue forms and post-creation checklist; wire label profile selection — **P1-04 and P2-11 complete; P1-07 pilot pending** | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
 | 5 | Add authoritative workflow validation and close checker false negatives — **P1-06 complete; P2 hardening remains** | P1-06, P2-01–P2-07 | Stable checker/profile schema | 2–3.5 days |
 | 6 | Add release gate, fixtures and protected-tag specification — **complete** | P1-05 | Static and placeholder gates | 1.5–2.5 days |
-| 7 | Strengthen live `main` protection and complete metadata | P1-08, P2-10 | Stable required context | 0.5–1 day |
-| 8 | Generate profile pilots, run Excel evidence and publish `v0.1.0` | P1-08 | All prior P1 packages | 1.5–3 days plus Excel access |
-| 9 | Perform selective portfolio migration and conformance review | P2 portfolio work | Certified `v0.1.0` | Repository-specific |
+| 7 | Strengthen live `main` protection and complete metadata — **main protection complete; P2-10 remains** | P1-08, P2-10 | Stable required context | 0.5–1 day |
+| 8 | Generate profile pilots, run Excel evidence and publish `v1.0.0` | P1-08 | All prior P1 packages | 1.5–3 days plus Excel access |
+| 9 | Perform selective portfolio migration and conformance review | P2 portfolio work | Certified `v1.0.0` | Repository-specific |
 | 10 | Add versioned drift/provisioning/reusable-workflow automation | P3-01–P3-09 | Stable P1/P2 contracts | 4–8 days incrementally |
 
 Indicative remaining effort to template certification is **12–21 person-days**,
@@ -502,9 +510,9 @@ are the largest uncertainties.
 | Repository-quality checker | **P1 complete / P2 hardening open** | The portable 21-rule gate includes direct YAML/XML fixtures; content-pinned authoritative workflow validation passed at the exact hosted SHA, while identified P2 false negatives remain |
 | Release controls | **Complete** | Dependency-free gate, profile policy, evidence contract, asset manifests and 20 fixtures pass locally and at the exact hosted SHA; active immutable `v*` protection was read back with no bypass |
 | Reusable VBA assets | **Complete** | Four governed exports, public API manifest, clean import/compile, 4-case/6-assertion Excel pass, and exact-SHA hosted checks evidenced |
-| Live governance | **In progress** | Immutable release-tag policy is active; required PR routing, exact required check and pilot read-back remain |
-| Pilot and v0.1.0 | **Not started** | No generated or Excel certification evidence |
-| Portfolio migration | **Pre-alignment only** | Starts formally after v0.1.0 |
+| Live governance | **Core protection complete / pilot read-back pending** | `main` requires PRs and strict `Repository integrity` with no bypass; immutable release-tag policy is active; generated-pilot settings remain to be applied and read back |
+| Pilot and v1.0.0 | **Not started** | No generated or Excel certification evidence |
+| Portfolio migration | **Pre-alignment only** | Starts formally after v1.0.0 |
 | Drift automation | **Not started** | P3 dependency on stable contracts |
 
 The earlier 19-rule checker verdict is not discarded: it remains a valid pass
@@ -526,11 +534,11 @@ P1 passes only when all statements below are true:
 - [x] Profile/domain labels resolve from versioned repository policy.
 - [x] YAML/workflow validation is authoritative and version-pinned. *(Exact-SHA hosted run 33852502452 passed.)*
 - [x] The release gate passes positive fixtures and rejects every named negative fixture. *(Exact-SHA hosted run 33854256898 passed all 20 fixtures.)*
-- [ ] `main` requires PR routing and the exact live `Repository integrity` context.
+- [x] `main` requires PR routing and the exact live `Repository integrity` context.
 - [x] `v*` tags are protected against deletion and mutation; the documented creation path verifies the certified exact SHA.
 - [ ] The post-creation checklist is executed and evidenced on a generated pilot.
 - [ ] Static, compile, regression and release evidence bind to the same candidate SHA.
-- [ ] `v0.1.0` is published from that protected exact SHA.
+- [ ] `v1.0.0` is published from that protected exact SHA.
 
 ## 10. P2 and P3 exit gates
 
@@ -545,6 +553,6 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Continue **P1-08**: require pull-request routing and the exact live
-`Repository integrity` context on `main`, then generate and certify the three
-profile pilots before publishing `v0.1.0` from the protected exact SHA.
+Continue **P1-08**: generate and certify the three profile pilots, complete the
+P2-10 metadata boundary, and bind the Excel and release evidence to one exact
+candidate before publishing `v1.0.0` from the protected SHA.
