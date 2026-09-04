@@ -409,8 +409,20 @@ async function runSelfTest(manifestPath, policyPath) {
   const policy = await loadJson(policyPath);
   const desired = resolveDesired(manifest);
 
-  assert.deepEqual(resolvePolicySelection(policy, manifest), { profile: null, domains: [] });
-  const generatedPolicy = structuredClone(policy);
+  const currentSelection = resolvePolicySelection(policy, manifest);
+  assert.deepEqual(
+    currentSelection,
+    policy.mode === "template"
+      ? { profile: null, domains: [] }
+      : { profile: policy.profile, domains: policy.label_domains }
+  );
+  const templatePolicy = structuredClone(policy);
+  templatePolicy.mode = "template";
+  templatePolicy.profile = null;
+  templatePolicy.label_domains = [];
+  assert.deepEqual(resolvePolicySelection(templatePolicy, manifest), { profile: null, domains: [] });
+
+  const generatedPolicy = structuredClone(templatePolicy);
   generatedPolicy.mode = "generated";
   generatedPolicy.profile = "library";
   assert.deepEqual(resolvePolicySelection(generatedPolicy, manifest), { profile: "library", domains: [] });
@@ -419,7 +431,7 @@ async function runSelfTest(manifestPath, policyPath) {
   wrongPolicyMode.mode = "unknown";
   expectFailure(() => resolvePolicySelection(wrongPolicyMode, manifest), /mode/);
 
-  const selectedTemplateProfile = structuredClone(policy);
+  const selectedTemplateProfile = structuredClone(templatePolicy);
   selectedTemplateProfile.profile = "library";
   expectFailure(() => resolvePolicySelection(selectedTemplateProfile, manifest), /Template policy/);
 
