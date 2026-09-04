@@ -4,7 +4,13 @@
 [![Dependencies: stdlib only](https://img.shields.io/badge/dependencies-stdlib%20only-success)](../tools/checker_development.py)
 [![P2-08](https://img.shields.io/badge/P2--08-checker%20development-6F42C1)](IMPLEMENTATION_PLAN.md#p2-hardening)
 
-`tools/check_repo.py` remains the canonical portable checker delivered to generated repositories. The development model intentionally avoids a package-manager or multi-file runtime dependency: the reviewed source **is** the distributable artifact, so there is no bundle transform that can drift from source.
+`tools/check_repo.py` remains the canonical portable checker delivered to generated repositories. **The single-file identity rule applies to that canonical checker only.** Its reviewed source is the distributable artifact, so there is no bundle transform that can drift from source. Focused sibling gates are development/runtime tools within the repository and may share private standard-library infrastructure.
+
+## 🔧 Shared focused-gate primitives
+
+`tools/_gatelib.py` owns the small cross-tool mechanics that are genuinely identical: Git subprocess wrappers, tracked-file enumeration, deterministic UTF-8/LF report writes, and the common `--root` / `--output` / `--summary` / `--self-test` parser. Focused gates import those primitives instead of maintaining copies. Tool-specific `main`, `run_check`, `build_report`, `run_self_test`, and Markdown renderers remain local because their behavior and evidence schemas differ.
+
+`tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary.
 
 ## 🧭 Internal boundaries
 
@@ -40,7 +46,7 @@ Every development-contract report records the SHA-256 of `tools/check_repo.py`. 
 
 ## 🔁 Change procedure
 
-1. Change `tools/check_repo.py` and any focused P2 gate required by the policy change.
+1. Change `tools/check_repo.py`, `_gatelib.py`, and/or the focused gate that owns the affected behavior. Keep `check_repo.py` independent of `_gatelib.py`.
 2. Run `python3 tools/checker_development.py --root . --self-test`.
 3. Run `python3 tools/check_repo.py --root . --self-test`.
 4. Run `python3 tools/check_policy_coverage.py --root . --self-test` so every canonical blocking finding remains exercised.

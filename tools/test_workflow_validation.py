@@ -156,7 +156,7 @@ def run_actionlint(
     )
 
 
-def write_text(root: Path, relative: str, content: str) -> Path:
+def write_fixture_text(root: Path, relative: str, content: str) -> Path:
     path = root / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8", newline="\n")
@@ -208,13 +208,13 @@ def build_report(root: Path, executable: Path) -> tuple[str, list[str]]:
                     f"fixture {fixture.name!r} Git initialization failed:\n"
                     + initialized.stdout.strip()
                 )
-            workflow = write_text(
+            workflow = write_fixture_text(
                 case_root,
                 f".github/workflows/{fixture.name}.yml",
                 fixture.workflow,
             )
             for relative, content in fixture.files:
-                write_text(case_root, relative, content)
+                write_fixture_text(case_root, relative, content)
             completed = run_actionlint(executable, case_root, [workflow])
             if fixture.expected_pattern is None:
                 passed = completed.returncode == 0

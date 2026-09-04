@@ -10,6 +10,11 @@ Appropriate contents include:
 - fixture or report generators whose inputs and outputs are documented; and
 - local wrappers that reproduce a CI gate.
 
+
+### Shared focused-gate infrastructure
+
+`_gatelib.py` is the private, standard-library-only owner of Git, report-output, tracked-file, and common focused-gate CLI primitives. `check_repo.py` deliberately does not import it: the canonical checker remains a self-contained distributable artifact.
+
 ## Canonical repository-quality gate
 
 `check_repo.py` is the dependency-free baseline gate for all three supported

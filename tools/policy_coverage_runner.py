@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import inspect
 import json
 from pathlib import Path
@@ -13,6 +12,7 @@ from policy_coverage_core import (CORE_TOOL, TOOL_NAME, CoverageError, load_modu
 from policy_coverage_cases_config import configuration_cases
 from policy_coverage_cases_repo import repository_cases
 from policy_coverage_cases_quality import quality_cases
+from _gatelib import parse_report_args as parse_args, write_text
 
 
 def run_core_coverage(root: Path) -> dict[str, Any]:
@@ -226,11 +226,6 @@ def markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write_text(path: Path | None, text: str) -> None:
-    if path is None:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def run_self_test(root: Path) -> int:
@@ -254,13 +249,6 @@ def run_self_test(root: Path) -> int:
     return 0
 
 
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path.cwd())
-    parser.add_argument("--output", type=Path)
-    parser.add_argument("--summary", type=Path)
-    parser.add_argument("--self-test", action="store_true")
-    return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:

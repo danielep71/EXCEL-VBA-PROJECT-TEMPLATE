@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 from pathlib import Path
 import re
@@ -11,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 from typing import Any
+from _gatelib import git_bytes as git, parse_report_args as parse_args, write_text
 
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
 TOOL_NAME = "Procedure-scoped VBA jumps"
@@ -29,12 +29,6 @@ JUMP = re.compile(
 )
 
 
-def git(root: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
-    return subprocess.run(
-        ["git", "-C", str(root), *args],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
 
 
 def tracked_vba(root: Path) -> list[str]:
@@ -274,11 +268,6 @@ def markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write_text(path: Path | None, text: str) -> None:
-    if path is None:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def init_repo(root: Path, source: str) -> None:
@@ -431,13 +420,6 @@ End Sub
     return 0
 
 
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path.cwd())
-    parser.add_argument("--output", type=Path)
-    parser.add_argument("--summary", type=Path)
-    parser.add_argument("--self-test", action="store_true")
-    return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:

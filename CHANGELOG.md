@@ -146,6 +146,8 @@ No unreleased changes recorded.
   and summary reporting so a cleanup/reporting fault cannot re-enter `CleanExit`
   indefinitely through `RunFailed`.
 
+- Consolidated duplicated focused-gate Git, report-output, tracked-file, and common CLI mechanics into the private standard-library-only `tools/_gatelib.py`, while keeping `tools/check_repo.py` explicitly self-contained.
+
 ### Compatibility
 
 - The neutral starter VBA public API and profile architecture are unchanged from

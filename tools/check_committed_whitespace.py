@@ -10,19 +10,12 @@ import subprocess
 import sys
 import tempfile
 from typing import Any
+from _gatelib import git_text as git, write_text
 
 EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 TOOL_NAME = "Committed whitespace"
 
 
-def git(root: Path, *args: str, check: bool = False) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", "-C", str(root), *args],
-        check=check,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
 
 
 def resolve_commit(root: Path, revision: str) -> str:
@@ -134,11 +127,6 @@ def markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write_text(path: Path | None, text: str) -> None:
-    if path is None:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def init_repo(root: Path) -> None:

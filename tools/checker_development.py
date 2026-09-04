@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import argparse
 import ast
 import hashlib
 import importlib.util
@@ -14,9 +13,11 @@ import sys
 import tempfile
 from types import ModuleType
 from typing import Any
+from _gatelib import parse_report_args as parse_arguments, write_text
 
 TOOL_NAME = "Checker development contract"
 CHECKER_PATH = Path("tools/check_repo.py")
+GATELIB_PATH = Path("tools/_gatelib.py")
 SECTION_STARTS = (
     ("runtime-core", "Repository"),
     ("configuration", "_same_keys"),
@@ -283,6 +284,80 @@ def check_ids(module: ModuleType) -> tuple[list[str], list[str]]:
     return functions, failures
 
 
+def shared_library_report(root: Path) -> tuple[dict[str, Any], list[str]]:
+    failures: list[str] = []
+    gatelib = (root / GATELIB_PATH).resolve()
+    source = gatelib.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(gatelib))
+    import_roots: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            import_roots.update(alias.name.split(".", 1)[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            if node.module is not None:
+                import_roots.add(node.module.split(".", 1)[0])
+    non_stdlib = sorted(
+        root_name
+        for root_name in import_roots
+        if root_name != "__future__" and root_name not in sys.stdlib_module_names
+    )
+    if non_stdlib:
+        failures.append("_gatelib.py has non-stdlib imports: " + ", ".join(non_stdlib))
+
+    checker_tree = ast.parse((root / CHECKER_PATH).read_text(encoding="utf-8"))
+    for node in ast.walk(checker_tree):
+        if isinstance(node, ast.ImportFrom) and node.module == "_gatelib":
+            failures.append("check_repo.py must remain independent of _gatelib.py")
+        elif isinstance(node, ast.Import) and any(alias.name == "_gatelib" for alias in node.names):
+            failures.append("check_repo.py must remain independent of _gatelib.py")
+
+    forbidden_helpers = {"git", "write_text", "tracked_files"}
+    local_helper_owners: list[str] = []
+    parser_consumers = {
+        "check_local_actions.py",
+        "check_release_semantics.py",
+        "check_vba_conditionals.py",
+        "check_vba_jumps.py",
+        "check_vba_public_api.py",
+        "checker_development.py",
+        "policy_coverage_runner.py",
+    }
+    parser_imports: list[str] = []
+    for tool in sorted((root / "tools").glob("*.py")):
+        if tool.name in {CHECKER_PATH.name, GATELIB_PATH.name}:
+            continue
+        tool_tree = ast.parse(tool.read_text(encoding="utf-8"), filename=str(tool))
+        definitions = {
+            node.name
+            for node in tool_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        duplicates = sorted(definitions & forbidden_helpers)
+        if duplicates:
+            local_helper_owners.append(f"{tool.name}: {', '.join(duplicates)}")
+        if tool.name in parser_consumers:
+            imported = any(
+                isinstance(node, ast.ImportFrom)
+                and node.module == "_gatelib"
+                and any(alias.name == "parse_report_args" for alias in node.names)
+                for node in tool_tree.body
+            )
+            if imported:
+                parser_imports.append(tool.name)
+            else:
+                failures.append(f"{tool.name} does not consume _gatelib.parse_report_args")
+    if local_helper_owners:
+        failures.append("shared helpers redefined outside _gatelib.py: " + "; ".join(local_helper_owners))
+
+    evidence = {
+        "path": GATELIB_PATH.as_posix(),
+        "imports": sorted(import_roots),
+        "parser_consumers": parser_imports,
+        "check_repo_independent": not any("check_repo.py must remain" in item for item in failures),
+    }
+    return evidence, failures
+
+
 def build_report(root: Path) -> dict[str, Any]:
     checker = (root / CHECKER_PATH).resolve()
     source = checker.read_text(encoding="utf-8")
@@ -294,6 +369,8 @@ def build_report(root: Path) -> dict[str, Any]:
     failures.extend(import_failures)
     ids, id_failures = check_ids(module)
     failures.extend(id_failures)
+    shared_library, shared_failures = shared_library_report(root)
+    failures.extend(shared_failures)
 
     parser_results = parser_tests(module)
     reporter_results = reporter_tests(module)
@@ -318,6 +395,7 @@ def build_report(root: Path) -> dict[str, Any]:
         "sections": sections,
         "imports": imports,
         "canonical_checks": ids,
+        "shared_library": shared_library,
         "unit_tests": all_unit_results,
         "failures": failures,
     }
@@ -336,6 +414,7 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"- **Runtime dependencies:** `{artifact['runtime_dependencies']}`",
         f"- **Internal sections:** {len(report['sections'])}",
         f"- **Canonical policy checks:** {len(report['canonical_checks'])}",
+        f"- **Shared focused-gate library:** `{report['shared_library']['path']}`",
         f"- **Independent unit tests:** {len(report['unit_tests'])}",
         "",
         "| Section | Start | End | Definitions |",
@@ -355,11 +434,6 @@ def markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def write_text(path: Path | None, text: str) -> None:
-    if path is None:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def run_self_test(root: Path) -> int:
@@ -379,18 +453,11 @@ def run_self_test(root: Path) -> int:
         return 1
     print(
         "SELF-TEST PASS: internal boundaries, parser/reporter units, CLI contract, "
-        "canonical check order, artifact identity, and standard-library-only runtime passed."
+        "canonical check order, artifact identity, shared-helper ownership, and standard-library-only runtime passed."
     )
     return 0
 
 
-def parse_arguments(arguments: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path.cwd())
-    parser.add_argument("--output", type=Path)
-    parser.add_argument("--summary", type=Path)
-    parser.add_argument("--self-test", action="store_true")
-    return parser.parse_args(arguments)
 
 
 def main(arguments: list[str] | None = None) -> int:
