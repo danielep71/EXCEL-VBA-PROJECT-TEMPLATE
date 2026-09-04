@@ -1,10 +1,10 @@
 # 🗺️ EXCEL VBA Project Template — Implementation Plan
 
-[![v1.0.0: certified](https://img.shields.io/badge/v1.0.0-certified-success)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0)
+[![P1: certified](https://img.shields.io/badge/P1-certified-success)](#p1-certification-gate)
+[![Release: v1.0.0](https://img.shields.io/badge/release-v1.0.0-217346)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0)
 [![v1.1.0: active](https://img.shields.io/badge/v1.1.0-active-1D76DB)](#v110-execution)
-[![P2: 9/12 complete](https://img.shields.io/badge/P2-9%2F12%20complete-217346)](#p2-status)
-[![Policy branches: 175/175](https://img.shields.io/badge/policy%20branches-175%2F175-success)](#current-certification-evidence)
-[![Repository rules: 21/21](https://img.shields.io/badge/repository%20rules-21%2F21-success)](#current-certification-evidence)
+[![P2: 10/12](https://img.shields.io/badge/P2-10%2F12-6F42C1)](#p2-hardening)
+[![Policy branches: 175/175](https://img.shields.io/badge/policy%20branches-175%2F175-success)](#p2-07)
 
 **Owner:** Daniele Penza
 
@@ -16,410 +16,210 @@
 
 **Certified baseline:** `v1.0.0`
 
-**Plan revision:** 20 — v1.1.0 execution state synchronized
+**Plan revision:** 21 — P2-08 complete; v1.1.0 execution state synchronized
 
 **Plan date:** 4 September 2026
 
-**Status:** Active — 9 of 12 P2 findings complete; 3 remain
-
-> **Temporary execution document.** This file is the live work plan for the
-> `v1.1.0` hardening branch. Historical certification detail belongs in release
-> evidence, issue closure records, and durable documentation. Delete this plan
-> once the milestone is merged, released, and its durable decisions have been
-> transferred to maintained documentation.
-
-<a id="executive-status"></a>
-
-## 1. 🎯 Executive Status
-
-`v1.0.0` is a **certified and published baseline**. The template has substantive
-VBA starter assets, all three generated profiles, structured issue intake,
-deterministic initialization, release-integrity validation, live governance,
-three certified pilots, protected release tags, and a published source-only
-release.
-
-`v1.1.0` is therefore **not a reconstruction milestone**. It is a correctness,
-assurance, and maintainability hardening release. Its objective is to remove the
-remaining false-green paths and development friction without weakening the
-portable, dependency-light contract that made `v1.0.0` reusable.
-
-The milestone uses one long-lived branch:
-
-```text
-main (certified v1.0.0)
-          ↑
-          │ one final merge only
-          │
-       v1.1.0
-```
-
-No completed v1.1.0 issue is merged individually to `main`. Each issue may be
-closed once its implementation and branch-level evidence are complete, while
-all milestone changes remain accumulated on `v1.1.0` until final certification.
-
-<a id="release-boundaries"></a>
-
-## 2. 🧱 Release Boundaries
-
-<a id="p1-certification-gate"></a>
-
-### ✅ `v1.0.0` — frozen certified baseline
-
-The following P1 capabilities are complete and must not regress:
-
-- substantive public façade, internal/core module, example, and regression harness;
-- generated-profile contracts for `library`, `ui-component`, and `application`;
-- classified placeholder schema and dry-run-first deterministic initializer;
-- structured issue forms and private security routing;
-- dependency-free release-integrity gate and protected `v*` tags;
-- authoritative workflow validation with pinned and checksum-verified actionlint;
-- post-creation provisioning contract and live read-back;
-- three certified profile pilots;
-- exact-SHA Excel compile/regression evidence;
-- strict `Repository integrity` protection on `main`;
-- published protected `v1.0.0` release.
-
-The `v1.0.0` historical review score and pre-certification gaps remain valid as
-historical evidence only. They are no longer statements about the current
-repository.
-
-### 🛠️ `v1.1.0` — current hardening release
-
-The release must preserve the supported public VBA starter/API while hardening:
-
-1. committed-state correctness;
-2. VBA parser correctness;
-3. API-manifest completeness;
-4. workflow/local-action dependency validation;
-5. SemVer and changelog semantics;
-6. exhaustive blocking-policy fixture coverage;
-7. checker development architecture;
-8. documentation authority boundaries; and
-9. safe live label-drift detection.
-
-### 🌱 `v1.2.0` — future automation and portfolio maturity
-
-The P3 tranche remains outside the current branch. It covers contract versioning,
-semantic portfolio drift, repository provisioning, reusable workflows,
-dependency-update policy, conformance reporting, advanced provenance,
-external-link drift, and optional Windows/Excel evidence automation.
+> **Temporary execution document.** Delete this file after the global definition
+> of done is satisfied. Preserve durable decisions in maintained documentation,
+> release notes, the portfolio audit and the final conformance report.
 
 <a id="v110-execution"></a>
 
-## 3. 🚦 v1.1.0 Execution Model
+## 1. 🎯 v1.1.0 Objective
+
+`v1.0.0` is the certified, published baseline. `v1.1.0` is a post-certification
+hardening release: strengthen repository correctness, parser behavior, release
+semantics, checker assurance, documentation authority and live drift detection
+without changing the template's fundamental architecture or weakening any
+specialist control.
+
+All development remains on branch `v1.1.0`. `main` stays at the certified
+baseline until the entire milestone is complete. PR #41 is the only planned
+merge back to `main`.
+
+### Current milestone state
+
+| Measure | State |
+| --- | ---: |
+| P2 findings | 12 |
+| Complete | **10** |
+| Open | **2** |
+| Canonical repository rules | **21/21** |
+| Canonical blocking finding sites covered | **175/175** |
+| Final merge to `main` | Not yet |
+
+### Remaining execution order
+
+1. **#16 / P2-09** — consolidate duplicated documentation contracts.
+2. **#20 / P2-12** — detect live label drift without untrusted writes.
+3. Synchronize maintained documentation, changelog and release notes.
+4. Run the complete `v1.1.0` certification gate at one exact branch head.
+5. Merge PR #41 once into `main`.
+6. Tag/publish `v1.1.0` only from the certified merged candidate.
+
+## 2. 🏛️ Certified v1.0.0 Baseline
+
+The following P1 capabilities are complete and are not reopened by this plan:
+
+- deterministic template initialization for application, library and UI-component profiles;
+- substantive public façade, internal/core and regression-test VBA contracts;
+- structured GitHub issue intake and private security routing;
+- dependency-free repository and release integrity gates;
+- authoritative workflow validation with immutable dependency pins;
+- post-creation provisioning contract and all-profile pilots;
+- exact-SHA Excel compile/regression evidence;
+- protected `main`, protected `v*` tags and published `v1.0.0`.
+
+The exact v1.0.0 release candidate remains
+`1144dd69112f6c238488c7888158d58b014fdc70`; the published protected annotated
+tag peels to that candidate. Historical review observations remain evidence of
+the state at their original snapshot and must not be rewritten as current state.
+
+<a id="p1-certification-gate"></a>
+
+### P1 certification gate — retained compatibility anchor
+
+P1 is certified. Durable certification evidence is maintained in
+[`PILOT_CERTIFICATION.md`](PILOT_CERTIFICATION.md), release documentation,
+GitHub Actions evidence and the published v1.0.0 release.
+
+<a id="p2-hardening"></a>
+
+## 3. 🛠️ P2 Hardening
+
+| ID | Issue | Status | Implemented / remaining contract |
+| --- | --- | --- | --- |
+| P2-01 | #9 — committed-whitespace validation | ✅ Complete | CI validates the committed candidate/range; local working-tree mode remains distinct. |
+| P2-02 | #13 — procedure-scoped VBA jumps | ✅ Complete | `GoTo`/`Resume` targets resolve within their owning procedure; cross-procedure labels fail. |
+| P2-03 | #14 — conditional compilation | ✅ Complete | Nested branch-stack semantics cover VBA6/VBA7 and Win32/Win64; Win32 remains true on Win64; reachable VBA7 declares require `PtrSafe`. |
+| P2-04 | #12 — complete public API contract | ✅ Complete | Explicit supported public declarations, paired properties, signatures and manifest/collision policy are enforced. |
+| P2-05 | #11 — local GitHub Actions | ✅ Complete | Local references are repository-contained, tracked, unambiguous and entry-point valid, including quoted references. |
+| P2-06 | #10 — release semantics | ✅ Complete | Strict SemVer precedence, dates, release ordering, duplicates, VERSION agreement and comparison links are deterministic. |
+| P2-07 | #18 — blocking policy-branch fixtures | ✅ Complete | AST inventory proves every canonical production finding site is exercised; 175/175 covered with deterministic machine-readable evidence. |
+| P2-08 | #17 — checker development contract | ✅ Complete | `check_repo.py` remains the single-file standard-library runtime; seven internal ownership boundaries, independent parser/reporter/CLI tests, canonical check order and artifact SHA-256 are enforced by `checker_development.py` and a dedicated read-only workflow. |
+| P2-09 | #16 — documentation authority/consolidation | 🔵 Active | Assign one authority per evolving contract, eliminate contradictory duplication and shorten the first-use path without deleting substantive controls. |
+| P2-10 | #15 — metadata/public presentation | ✅ Complete | Specific description/topics, intentional features/merge settings, social preview and private vulnerability reporting are established. |
+| P2-11 | #19 — operational label overlays | ✅ Complete | Versioned profile/domain selection drives deterministic label reconciliation and exact post-run evidence. |
+| P2-12 | #20 — live label drift detection | ⏳ Next | Add read-only scheduled/explicit drift detection; writes remain restricted to trusted reconciliation events. |
+
+**P2 completion:** **10 / 12 findings complete.**
+
+### Evidence ledger
+
+| Package | Closure evidence |
+| --- | --- |
+| P2-01–P2-06 | Dedicated focused gates and their deterministic self-tests pass on `v1.1.0`; each issue is closed with exact implementation/run evidence. |
+| P2-07 | Closure head `1748b22285fb3e3e24cc8bc7cfa7d0720353ef82`; PR run `33915808719` passed 175/175 policy sites, all focused gates, initializer, 21/21 repository rules, artifact publication and terminal enforcement. |
+| P2-08 | Head `678762f1986200b90ded002fd17de12547bb6eaf`; checker-development run `33917719222` and full repository run `33917719103` both passed. Runtime CLI and standard-library-only dependency contract remain unchanged. |
+| P2-10 | Certified repository metadata/social-preview state retained from v1.0.0 work. |
+| P2-11 | Certified versioned label-selection and exact reconciliation evidence retained from v1.0.0 work. |
+
+## 4. 🔬 Current Checker Assurance Model
+
+The repository-quality stack now has distinct responsibilities:
+
+| Layer | Purpose |
+| --- | --- |
+| `tools/check_repo.py` | Canonical portable 21-rule repository gate. |
+| `tools/checker_development.py` | Development boundaries, independent parser/reporter/CLI tests, canonical check order, runtime import policy and artifact identity. |
+| `tools/check_policy_coverage.py` | Semantic coverage of every canonical production blocking finding site. |
+| Focused P2 tools | Committed whitespace, VBA jumps, conditional compilation, public API, local actions and release semantics. |
+| `tools/test_workflow_validation.py` | Authoritative hosted GitHub Actions/YAML validation and fixtures. |
+| `tools/check_release.py` | Release candidate, evidence, tag and optional asset integrity. |
 
-The milestone follows five rules:
+The checker-development model deliberately has **no bundle transform**:
+`tools/check_repo.py` is both reviewed source and distributable runtime. Generated
+repositories therefore need no package manager, installed dependency or hidden
+assembly process. See [`CHECKER_DEVELOPMENT.md`](CHECKER_DEVELOPMENT.md).
 
-1. **All development stays on `v1.1.0`.** `main` remains the certified v1.0.0 baseline.
-2. **Issues close one by one.** Closure requires implemented code/documentation plus exact branch-level evidence.
-3. **No intermediate milestone merges.** PR #41 is the only planned `v1.1.0` → `main` merge.
-4. **Every new gate fails closed.** A new validator is not complete until its own negative cases prove it can block the intended defect.
-5. **Final certification is cumulative.** The last branch head must pass the entire repository, initializer, workflow, release, focused-hardening, and coverage stack together.
+<a id="p2-07"></a>
 
-The current implementation evidence baseline before this plan update is:
+### P2-07 policy coverage
 
-- branch head `1748b22285fb3e3e24cc8bc7cfa7d0720353ef82`;
-- PR #41 exact-head run `33915808719`;
-- complete `Repository integrity` success;
-- canonical repository gate **21/21**;
-- semantic policy coverage **175/175** production finding sites;
-- all three initializer profiles green;
-- all focused P2-01 through P2-07 gates green;
-- evidence upload and terminal enforcement green.
+The semantic branch-coverage contract inventories production `finding(...)`
+sites using Python AST, records the fixture that exercises each site and fails
+if a production site becomes uncovered. Current certified branch evidence is
+**175/175**. Numeric Python line coverage is deliberately not used as a proxy
+for policy assurance.
 
-<a id="p2-status"></a>
+## 5. 📚 P2-09 — Documentation Consolidation
 
-## 4. 🛠️ P2 Status — v1.1.0
+Issue #16 now owns the next work package.
 
-| ID | Issue | Status | Current result / remaining objective |
-| --- | ---: | --- | --- |
-| **P2-01** | #9 | ✅ **Complete** | CI now validates committed candidate whitespace rather than a clean working tree against itself; local working-tree feedback remains separate. |
-| **P2-02** | #13 | ✅ **Complete** | `GoTo`, `GoSub`, and `Resume` targets are resolved within the owning VBA procedure; cross-procedure false resolution is blocked. |
-| **P2-03** | #14 | ✅ **Complete** | Nested conditional compilation is modelled with explicit environments and full branch state; Win64 correctly models both `Win32=True` and `Win64=True`. |
-| **P2-04** | #12 | ✅ **Complete** | Public API extraction covers the supported declaration families, continuations, signatures, paired properties, collisions, and a mandatory all-profile manifest policy. |
-| **P2-05** | #11 | ✅ **Complete** | Repository-local actions enforce containment, tracked metadata/entrypoints, one metadata file, runtime shape, quoted references, and non-empty metadata scalars. |
-| **P2-06** | #10 | ✅ **Complete** | Strict SemVer precedence, prerelease identifier rules, release ordering, dates, VERSION agreement, and comparison-link semantics are enforced. |
-| **P2-07** | #18 | ✅ **Complete** | Semantic branch coverage inventories production `finding(...)` sites and proves **175/175** current canonical sites with deterministic fixtures and machine-readable evidence. |
-| **P2-08** | #17 | 🟡 **Next / active** | Modularize checker development while preserving the single-command dependency-light distributable and CLI contract. |
-| **P2-09** | #16 | ⏳ **Pending** | Consolidate duplicated documentation contracts after the checker architecture stabilizes; assign one authority per evolving rule. |
-| **P2-10** | #15 | ✅ **Complete** | Repository metadata, topics, social preview, feature settings, merge settings, and private vulnerability reporting are aligned. |
-| **P2-11** | #19 | ✅ **Complete** | Label profile/domain overlays resolve from versioned repository policy with exact, idempotent reconciliation evidence. |
-| **P2-12** | #20 | ⏳ **Pending** | Detect live label drift safely without allowing untrusted or scheduled writes. |
+### Required outcome
 
-**P2 completion:** **9 / 12 findings complete.**
+- define one maintained authority for each evolving contract;
+- convert duplicated normative text elsewhere into concise summaries plus links;
+- preserve historical evidence as historical evidence rather than current instruction;
+- keep first-use/navigation material short and task-oriented;
+- retain exact security, release, initialization, contribution and certification protections;
+- keep all internal Markdown links/anchors passing the repository gate.
 
-**Remaining issues:** **#17 → #16 → #20**.
+### Acceptance gate
 
-<a id="completed-hardening"></a>
+- no contradictory duplicate for any maintained operational contract;
+- README/installation/contribution/release/security/checker-development navigation is coherent;
+- specialized detail remains discoverable without copying the same policy into multiple files;
+- all documentation links and anchors pass;
+- initializer, policy coverage, repository checker and hosted terminal gate remain green.
 
-## 5. ✅ Completed v1.1.0 Hardening
+## 6. 🔭 P2-12 — Live Label Drift Detection
 
-### P2-01 — committed whitespace
+After P2-09, issue #20 will add a read-only drift control around the already
+trusted label reconciliation path.
 
-The hosted gate now separates two Git states deliberately:
+Required properties:
 
-- **committed mode** validates the exact candidate range used for CI/release evidence;
-- **working-tree mode** remains local feedback for staged and unstaged edits.
+- scheduled and/or explicit read-only comparison of live labels with versioned policy;
+- no writes from untrusted pull-request or scheduled drift-check contexts;
+- deterministic report of missing, extra or changed labels;
+- explicit trusted reconciliation remains the only mutation path;
+- terminal CI evidence distinguishes drift detection from synchronization.
 
-The self-test includes root-commit, committed-defect, explicit-base,
-staged/unstaged, and clean-candidate cases.
+## 7. 🌱 v1.2.0 / P3 Roadmap
 
-### P2-02 — procedure-scoped VBA jumps
+P3 remains assigned to `v1.2.0` and is deliberately outside the v1.1.0 merge.
 
-The hardening gate owns procedure boundaries and local label resolution for
-`GoTo`, `GoSub`, and `Resume`. Same-name labels in different procedures are
-legal; duplicate labels inside one procedure and cross-procedure targets are
-blocking findings.
+| ID | Improvement |
+| --- | --- |
+| P3-01 | Version the template contract independently from generated project versions. |
+| P3-02 | Add semantic portfolio drift detection. |
+| P3-03 | Add a dry-run-first repository provisioner. |
+| P3-04 | Publish versioned reusable workflows. |
+| P3-05 | Add controlled dependency-update policy. |
+| P3-06 | Add portfolio quality/conformance reporting. |
+| P3-07 | Add advanced release provenance where justified. |
+| P3-08 | Add external-link and documentation-drift review. |
+| P3-09 | Add an optional Windows/Excel reusable evidence pattern. |
 
-### P2-03 — conditional compilation
+No P3 work is required to merge or release v1.1.0.
 
-The analyzer evaluates supported VBA environments explicitly and maintains a
-nested conditional stack. It fails closed on malformed/indeterminate policy
-constructs and requires `PtrSafe` for every declaration reachable in supported
-VBA7 environments.
+## 8. ✅ v1.1.0 Exit Gate
 
-### P2-04 — public API manifest
+The branch may be merged only when all statements below are true:
 
-The reusable policy now requires explicit public visibility and one checked-in
-`docs/PUBLIC_API.txt` manifest for all generated profiles. The gate records
-normalized signatures and rejects missing/stale declarations, signature drift,
-unsupported ambiguous multi-declarations, and public-name collisions.
+- [x] P2-01 through P2-08 are closed with exact evidence.
+- [ ] P2-09 documentation authority/consolidation is closed.
+- [x] P2-10 and P2-11 certified capabilities remain intact.
+- [ ] P2-12 read-only label drift detection is closed.
+- [ ] All open v1.1.0 issues are zero.
+- [ ] `docs/`, root documentation, changelog and version/release notes describe the final state consistently.
+- [ ] Checker-development contract passes independently.
+- [ ] Policy-coverage gate remains complete with no uncovered production finding site.
+- [ ] Committed-whitespace, focused P2 gates, initializer and canonical repository gate are green.
+- [ ] Authoritative workflow validation is green.
+- [ ] PR #41's final exact head is fully green with no unresolved blocking review finding.
+- [ ] One final merge of PR #41 lands the complete milestone on `main`.
+- [ ] The merged candidate is revalidated before protected `v1.1.0` publication.
 
-### P2-05 — local GitHub Actions
+## 9. ➡️ Immediate Next Action
 
-The local-action gate complements actionlint rather than replacing it. It proves
-repository containment, tracked metadata, metadata-file uniqueness, supported
-runtime shapes, and tracked entrypoints while external actions continue to be
-controlled by immutable SHA pins and audited version comments.
-
-### P2-06 — release semantics
-
-Release-ledger semantics are now independent from candidate-provenance checks.
-The gate enforces SemVer 2.0.0 precedence, invalid numeric prerelease rejection,
-strict descending changelog releases, real Gregorian dates, VERSION/newest
-release agreement, and canonical comparison links.
-
-### P2-07 — semantic blocking-branch coverage
-
-This is the principal new assurance layer in the milestone so far.
-
-`tools/check_policy_coverage.py` and its modular fixture implementation:
-
-- statically inventory every production canonical finding site;
-- dynamically record which fixture executes each site;
-- fail when a production site becomes uncovered;
-- fail when runtime emits a site missing from the static inventory;
-- cover configuration, structured data, Markdown, secrets, artifacts, line endings,
-  labels, issue forms, workflow actions, VBE headers, VBA structure/visibility,
-  generated contracts, and legacy API paths;
-- delegate the specialized P2-01 through P2-06 gates to their own self-tests;
-- distinguish policy findings from operational error mapping;
-- produce deterministic JSON and Markdown evidence.
-
-At branch head `1748b22285fb3e3e24cc8bc7cfa7d0720353ef82`, the gate covered
-**175/175** canonical production finding sites and the complete repository job
-passed terminal enforcement.
-
-<a id="remaining-work"></a>
-
-## 6. 🔧 Remaining v1.1.0 Work
-
-### 🟡 P2-08 / #17 — Modularize Checker Development
-
-**Objective:** reduce review and maintenance cost without sacrificing the
-portable checker artifact.
-
-**Required implementation:**
-
-- define explicit internal boundaries for configuration, structured-data parsing,
-  VBA parsing, policy rules, reporting, and fixtures;
-- choose reviewed source modules plus deterministic bundling, or an equivalently
-  explicit internal architecture;
-- retain `python3 tools/check_repo.py --root .` as the supported dependency-light
-  generated-repository command;
-- add independent parser and reporter tests;
-- make the distributable artifact reproducible from reviewed source;
-- add drift detection so generated/bundled output cannot silently diverge;
-- document how a maintainer changes, tests, bundles, and releases the checker.
-
-**Acceptance gate:**
-
-- parser/reporter units can run independently;
-- the existing CLI and deterministic report contract remain compatible unless a
-  separately documented behavior change is intentional;
-- bundled/distributed output is reproducible and drift-checked;
-- P2-07 semantic coverage remains 100% against the *current* production finding
-  inventory after refactoring;
-- the complete positive/degraded, initializer, workflow, release, and focused
-  suites remain green;
-- generated projects require no package manager or new runtime dependency.
-
-### ⏳ P2-09 / #16 — Consolidate Documentation Contracts
-
-**Objective:** reduce duplicated operational policy while retaining the premium
-navigation and all substantive safeguards already present.
-
-**Dependency:** execute after P2-08 so documentation points to the final checker
-architecture rather than an intermediate one.
-
-**Required implementation:**
-
-- assign one durable authority for initialization, repository structure, testing,
-  release evidence, security, contribution, and checker-development contracts;
-- convert duplicated procedural text elsewhere into concise links and context;
-- preserve historical certification evidence without presenting it as current work;
-- retain premium badges/glyphs, clear status cues, and stable explicit anchors;
-- validate every local Markdown path and anchor after consolidation.
-
-**Acceptance gate:** no contradictory duplicate contract; first-use navigation is
-short; specialized detail remains discoverable; all documentation-link checks pass.
-
-### ⏳ P2-12 / #20 — Detect Live Label Drift Without Untrusted Writes
-
-**Objective:** make manual live-label drift visible even when no versioned label
-file changes.
-
-**Required implementation:**
-
-- add a safe scheduled or manually invocable **read/plan-only** drift check;
-- compare live labels with the versioned resolved policy;
-- produce explicit machine-readable and human-readable drift evidence;
-- prohibit automatic mutation on untrusted/scheduled drift-detection events;
-- reserve reconciliation writes for reviewed trusted events or explicit maintainer action.
-
-**Acceptance gate:** an out-of-band live label change becomes non-green/visible
-without the drift detector modifying repository labels; deliberate reconciliation
-restores exact match through the existing trusted path.
-
-<a id="execution-sequence"></a>
-
-## 7. 🧭 Remaining Execution Sequence
-
-| Order | Issue | Work package | Dependency | Closure evidence |
-| ---: | ---: | --- | --- | --- |
-| **1** | **#17** | P2-08 checker modularization | P2-01…P2-07 stabilized | Reproducible distributable, unit boundaries, drift check, full green branch gate |
-| **2** | **#16** | P2-09 documentation consolidation | Final P2-08 architecture | Premium docs, one authority per contract, zero stale links/anchors |
-| **3** | **#20** | P2-12 safe live label-drift detection | Stable policy/docs | Read-only drift detection, deterministic evidence, trusted write separation |
-| **4** | — | v1.1.0 release-candidate certification | All 12 P2 findings complete | Full exact-SHA certification stack green |
-| **5** | **PR #41** | Single final merge to `main` | Certified release candidate | Required review/check state green; no unresolved blocking conversation |
-| **6** | — | Protected `v1.1.0` tag and GitHub release | Merge commit certified | Annotated immutable tag, release evidence, source archive verification |
-
-No separate feature branch is required for the remaining milestone work. The
-`v1.1.0` branch is the development integration branch and PR #41 remains the
-single final merge path.
-
-<a id="current-certification-evidence"></a>
-
-## 8. 🧪 Current Certification Evidence
-
-The latest fully certified *development* head before this plan update is
-`1748b22285fb3e3e24cc8bc7cfa7d0720353ef82`.
-
-Exact-head PR run `33915808719` passed:
-
-- authoritative workflow/actionlint fixtures;
-- 22 deterministic release-integrity fixtures;
-- strict release-semantics self-test and current ledger validation;
-- all three repository-initializer profiles;
-- committed-whitespace fixtures and candidate-range validation;
-- procedure-scoped VBA jump fixtures and current-source validation;
-- conditional-compilation fixtures and current-source validation;
-- complete public-API fixtures and manifest validation;
-- repository-local action fixtures and current workflow validation;
-- policy-branch coverage determinism;
-- **175/175** current canonical production finding sites;
-- canonical repository checker self-test;
-- canonical repository gate **21/21**;
-- readable job-summary publication;
-- evidence artifact upload; and
-- final fail-closed terminal enforcement.
-
-This evidence is **branch-level development evidence**, not the final v1.1.0
-release certification. Any later implementation changes invalidate the head SHA
-and require a fresh complete run.
-
-<a id="final-v110-gate"></a>
-
-## 9. 🏁 Final v1.1.0 Certification Gate
-
-The milestone is ready for its **single merge** only when all statements below
-are true at one exact branch head:
-
-- [ ] #17 / P2-08 is closed with reproducible checker-development architecture.
-- [ ] #16 / P2-09 is closed with no contradictory or stale documentation contract.
-- [ ] #20 / P2-12 is closed with read-only live drift detection and trusted write separation.
-- [ ] All 12 P2 findings are closed as completed.
-- [ ] `v1.1.0` contains no unresolved temporary development branch assumptions.
-- [ ] The canonical repository-quality gate passes every current rule with zero findings.
-- [ ] Semantic branch coverage is **100% of the current production finding inventory**; the final count may legitimately differ from 175 after P2-08 refactoring.
-- [ ] Every focused P2 validator self-test passes.
-- [ ] Authoritative workflow validation passes at the exact candidate SHA.
-- [ ] All three initializer profiles pass at the exact candidate SHA.
-- [ ] Release-integrity and strict release-semantics suites pass.
-- [ ] `VERSION`, dated changelog release heading, candidate tag intent, and comparison links are synchronized for `1.1.0`.
-- [ ] Required template-release evidence is regenerated/bound to the exact release candidate according to `.github/release-policy.json`.
-- [ ] Excel compile/regression evidence is refreshed if the active release policy requires exact-candidate Excel evidence.
-- [ ] PR #41 has no unresolved blocking review conversation and all required checks are green.
-- [ ] The final merge target remains `main`, with no intermediate v1.1.0 merge having occurred.
-
-After the merge:
-
-- [ ] verify the merged `main` SHA and its hosted gates;
-- [ ] create protected **annotated** tag `v1.1.0` targeting the certified release SHA;
-- [ ] verify tag object type and peeled commit;
-- [ ] publish the GitHub `v1.1.0` release;
-- [ ] verify generated source archives;
-- [ ] delete the now-unnecessary `v1.1.0` development branch if no longer needed;
-- [ ] close the v1.1.0 milestone; and
-- [ ] remove this temporary implementation plan after durable documentation is synchronized.
-
-<a id="v120-roadmap"></a>
-
-## 10. 🌱 v1.2.0 / P3 Roadmap
-
-The following work remains deliberately outside v1.1.0:
-
-| ID | Issue | Improvement | Intended outcome |
-| --- | ---: | --- | --- |
-| P3-01 | #24 | Version template contract independently | Generated repositories can identify the baseline contract they adopted. |
-| P3-02 | #25 | Semantic portfolio drift detection | Detect missing controls and unauthorized divergence without byte-for-byte cloning. |
-| P3-03 | #28 | Dry-run-first repository provisioner | Apply and verify metadata, labels, merge settings, and rulesets reproducibly. |
-| P3-04 | #23 | Versioned reusable workflows | Consumers can pin stable workflow releases while specialist Excel jobs remain local where appropriate. |
-| P3-05 | #22 | Controlled dependency-update policy | SHA/tool updates carry provenance, review, and rollback evidence. |
-| P3-06 | #29 | Portfolio quality/conformance reporting | Surface template version, controls, workflow health, protection, and release status. |
-| P3-07 | #21 | Advanced release provenance | Add checksums/signatures/attestations where justified without forcing binaries on libraries. |
-| P3-08 | #27 | External-link/documentation drift review | Keep local links blocking and network-dependent checks separate and resilient. |
-| P3-09 | #26 | Optional Windows/Excel evidence pattern | Eligible repositories can automate exact-SHA Excel evidence without pretending every project has the same runner boundary. |
-
-P3 should start only after the v1.1.0 contracts are stable enough to become the
-next portfolio baseline.
-
-<a id="governance"></a>
-
-## 11. 🧭 Governance and Evidence Rules
-
-Throughout the milestone:
-
-- preserve stronger specialist controls in downstream repositories;
-- never weaken a gate merely to make the template generic;
-- distinguish current implementation evidence from historical certification;
-- keep external actions immutable and version-audited;
-- keep untrusted/scheduled workflows read-only unless a separate trusted write path exists;
-- use exact commit SHAs and hosted run IDs for issue closure evidence;
-- keep PR #41 as the single merge path;
-- close issues only when the implemented acceptance criteria are demonstrably green.
-
-<a id="next-action"></a>
-
-## 12. ➡️ Immediate Next Action
-
-**Proceed with #17 / P2-08 — Modularize checker development while preserving portability.**
-
-The first implementation step is to define the reviewed source-module boundaries
-and reproducible distributable contract for `tools/check_repo.py`, then add
-independent parser/reporter tests and a drift check **before** moving production
-rules out of the current portable artifact.
+Implement **#16 / P2-09**: consolidate duplicated documentation contracts while
+preserving every substantive control and every historical evidence boundary.
 
 ---
 
-**Execution principle:** close one finding at a time with exact evidence; accumulate every v1.1.0 change on the milestone branch; certify once; merge once.
+**Execution principle:** close findings only with exact evidence, keep `main`
+untouched until the milestone is complete, preserve stronger specialist controls,
+and keep one unambiguous next action.
