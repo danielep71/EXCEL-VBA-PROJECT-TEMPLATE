@@ -135,6 +135,20 @@ jobs:
           --output test-results/vba-jumps.json
           --summary test-results/vba-jumps.md
 
+      - name: Exercise VBA conditional-compilation fixtures
+        id: vba-conditional-self-test
+        continue-on-error: true
+        run: python3 tools/check_vba_conditionals.py --root . --self-test
+
+      - name: Validate VBA conditional compilation
+        id: vba-conditionals
+        continue-on-error: true
+        run: >-
+          python3 tools/check_vba_conditionals.py
+          --root .
+          --output test-results/vba-conditionals.json
+          --summary test-results/vba-conditionals.md
+
       - name: Exercise positive and degraded checker paths
         id: self-test
         continue-on-error: true
@@ -182,6 +196,15 @@ jobs:
               exit 1
             fi
             echo
+            if [[ -f test-results/vba-conditionals.md ]]; then
+              cat test-results/vba-conditionals.md
+            else
+              echo "## VBA conditional compilation"
+              echo
+              echo "The VBA conditional-compilation checker did not produce its report."
+              exit 1
+            fi
+            echo
             if [[ -f test-results/workflow-validation.md ]]; then
               cat test-results/workflow-validation.md
             else
@@ -215,6 +238,8 @@ jobs:
             test-results/committed-whitespace.md
             test-results/vba-jumps.json
             test-results/vba-jumps.md
+            test-results/vba-conditionals.json
+            test-results/vba-conditionals.md
             test-results/actionlint-version.txt
             test-results/workflow-validation.md
             test-results/release-self-test.md
@@ -233,6 +258,8 @@ jobs:
           COMMITTED_WHITESPACE_OUTCOME: ${{ steps.committed-whitespace.outcome }}
           VBA_JUMP_SELF_TEST_OUTCOME: ${{ steps.vba-jump-self-test.outcome }}
           VBA_JUMPS_OUTCOME: ${{ steps.vba-jumps.outcome }}
+          VBA_CONDITIONAL_SELF_TEST_OUTCOME: ${{ steps.vba-conditional-self-test.outcome }}
+          VBA_CONDITIONALS_OUTCOME: ${{ steps.vba-conditionals.outcome }}
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
@@ -269,6 +296,14 @@ jobs:
           fi
           if [[ "$VBA_JUMPS_OUTCOME" != "success" ]]; then
             echo "::error::Procedure-scoped VBA jump outcome: $VBA_JUMPS_OUTCOME"
+            failed=1
+          fi
+          if [[ "$VBA_CONDITIONAL_SELF_TEST_OUTCOME" != "success" ]]; then
+            echo "::error::VBA conditional-compilation self-test outcome: $VBA_CONDITIONAL_SELF_TEST_OUTCOME"
+            failed=1
+          fi
+          if [[ "$VBA_CONDITIONALS_OUTCOME" != "success" ]]; then
+            echo "::error::VBA conditional-compilation outcome: $VBA_CONDITIONALS_OUTCOME"
             failed=1
           fi
           if [[ "$SELF_TEST_OUTCOME" != "success" ]]; then
