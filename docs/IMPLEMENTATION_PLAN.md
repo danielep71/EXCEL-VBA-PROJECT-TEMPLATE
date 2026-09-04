@@ -8,7 +8,7 @@
 
 **Review date:** 3 September 2026
 
-**Plan revision:** 11 — complete label-selection evidence
+**Plan revision:** 12 — P2-11 hosted certification
 
 **Plan status:** Active — P1 certification blockers remain
 
@@ -421,6 +421,16 @@ touching the same P1 code. It must not delay a necessary P1 safety correction.
 | P2-10 | Repository metadata is below template quality | Live description is only “Template repository,” topics are empty, and unused Projects/Wiki features remain enabled. | Add a specific description and relevant topics; disable unused surfaces or document their purpose; add a social preview after identity stabilizes. | Metadata explains Excel/VBA scope and template profiles; enabled features are intentional. |
 | P2-11 — **complete** | Label overlays were declarative but not operationally selected | The reconciler now resolves profile and optional domain overlays only from `.github/repository-profile.json`; unknown, duplicate and unsorted selections fail before mutation. Plan/apply summaries name both policy files and enumerate the core, selected profile, selected domain and complete resolved label sets. | Complete. Preserve the versioned-policy trust boundary and the catalogue assertions in the self-test. | Non-empty profile/domain fixtures resolve through policy, summary evidence contains every selected label, reconciliation remains idempotent and exact-match verification prevents unintended pruning. |
 | P2-12 | Drift is not detected unless label files change | Label reconciliation runs on changes to its three files or manual dispatch only. Manual live-label edits can persist unnoticed. | Add a safe scheduled read/plan check or a portfolio drift control; reserve writes for trusted explicit events. | Live drift is reported with no untrusted mutation and can be reconciled deliberately. |
+
+**P2-11 completion evidence — 2026-09-04:** Commit
+[`978045f0187c6c0856d333c23fc459457534d7b5`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/commit/978045f0187c6c0856d333c23fc459457534d7b5)
+added the resolved-catalogue evidence and assertions. Exact-SHA
+[`Sync issue labels` run 33857409303](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/runs/33857409303)
+passed the non-empty profile/domain self-test, identified the versioned policy
+and manifest paths, enumerated the complete 20-label template selection, made
+zero changes and verified an exact post-run match. Exact-SHA
+[`Static repository checks` run 33857409394](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/runs/33857409394)
+also passed every repository, workflow, release and initialization gate.
 
 ### 5.1 P2 portfolio migration rules
 
