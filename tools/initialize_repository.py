@@ -24,6 +24,7 @@ from typing import Iterable
 
 CONFIG_PATH = ".github/repository-profile.json"
 RECORD_PATH = ".github/initialization.json"
+CANONICAL_SOCIAL_PREVIEW_PATH = "assets/social-preview.png"
 SUPPORTED_PROFILES = ("application", "library", "ui-component")
 TOKEN_NAME_PATTERN = re.compile(r"[A-Z][A-Z0-9_]*")
 REPOSITORY_PATTERN = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
@@ -389,9 +390,21 @@ def _build_changes(
             "Configured template-only paths are not tracked: "
             + ", ".join(sorted(missing_template_paths))
         )
-    template_only = configured_template_only - {
-        scalars.get("SOCIAL_PREVIEW_PATH", "")
-    }
+    selected_preview = scalars.get("SOCIAL_PREVIEW_PATH", "")
+    if (
+        selected_preview in configured_template_only
+        and selected_preview != CANONICAL_SOCIAL_PREVIEW_PATH
+    ):
+        raise InitializationError(
+            "SOCIAL_PREVIEW_PATH may retain only "
+            f"{CANONICAL_SOCIAL_PREVIEW_PATH} from template_only_paths."
+        )
+    retained_template_only = (
+        {CANONICAL_SOCIAL_PREVIEW_PATH}
+        if selected_preview == CANONICAL_SOCIAL_PREVIEW_PATH
+        else set()
+    )
+    template_only = configured_template_only - retained_template_only
     token_pattern = re.compile(placeholders["pattern"])
     changes: dict[str, bytes | None] = {path: None for path in sorted(template_only)}
     seen: set[str] = set()
@@ -906,6 +919,18 @@ def self_test(source: Path) -> None:
                 repeatable,
                 "Unused substitutions: SOCIAL_PREVIEW_PATH",
             )
+            svg_scalars = [
+                item
+                for item in scalars
+                if not item.startswith("SOCIAL_PREVIEW_PATH=")
+            ] + ["SOCIAL_PREVIEW_PATH=assets/social-preview.svg"]
+            _assert_failure_without_change(
+                fixture,
+                profile,
+                svg_scalars,
+                repeatable,
+                "SOCIAL_PREVIEW_PATH may retain only assets/social-preview.png",
+            )
 
             before = _tree_digest(fixture)
             changes, _ = _build_changes(fixture, profile, scalars, repeatable)
@@ -931,6 +956,7 @@ def self_test(source: Path) -> None:
                 for path in (
                     "assets/social-preview.svg",
                     "docs/IMPLEMENTATION_PLAN.md",
+                    "docs/PILOT_CERTIFICATION.md",
                     "docs/PORTFOLIO_AUDIT.md",
                 )
             ):

@@ -144,7 +144,10 @@ be reproduced manually:
 4. Keep only the selected profile blocks. Remove all other profile blocks,
    omitted optional/repeatable blocks, template-only blocks, and their marker
    lines.
-5. Delete every path listed under `template_only_paths`.
+5. Delete every path listed under `template_only_paths`, except
+   `assets/social-preview.png` when that exact path was deliberately supplied
+   as `SOCIAL_PREVIEW_PATH`. No other template-only path may be retained through
+   that placeholder.
 6. Reset `CHANGELOG.md` under `Unreleased` to project-owned content only.
 7. Set configuration mode, profile, and repository; create
    `.github/initialization.json` using the same schema as the initializer.
