@@ -8,11 +8,11 @@
 
 **Review date:** 4 September 2026
 
-**Plan revision:** 17 — template-release candidate preparation
+**Plan revision:** 18 — P1 baseline certified and released
 
-**Plan status:** Active — P1 certification blockers remain
+**Plan status:** Active — P1 complete; P2 and P3 remain
 
-**Current weighted score:** **6.6/10**
+**Review-snapshot weighted score:** **6.6/10**
 
 > **Temporary execution document.** Delete this file after the global definition
 > of done is satisfied. Preserve durable decisions in maintained documentation,
@@ -20,10 +20,13 @@
 
 ## 1. Executive verdict
 
-`EXCEL-VBA-PROJECT-TEMPLATE` has a strong governance and static-analysis
-foundation, but it is not yet a complete or certifiable VBA project template.
+At the review snapshot, `EXCEL-VBA-PROJECT-TEMPLATE` had a strong governance and
+static-analysis foundation but was not yet a complete or certifiable VBA project
+template. The P1 baseline is now certified and published as `v1.0.0`; the
+remaining plan covers material P2 hardening, portfolio adoption and P3
+automation.
 
-The best implemented material—documentation, immutable workflow dependencies,
+At that snapshot, the best implemented material—documentation, immutable workflow dependencies,
 the 20-label catalogue, deterministic reports and the 21-rule checker—is already
 at roughly **8.6/10**. The overall repository scores **6.6/10** because a template
 must also prove that a generated repository is usable. At the reviewed snapshot:
@@ -397,7 +400,7 @@ updates, deletion and force-pushes. Generated-mode initializer fixtures also
 prove that maintained README/CHANGELOG evolution and removal of a once-recorded
 optional preview asset do not invalidate the durable initialization contract.
 
-### P1-08 — Live governance and three pilots complete; release certification pending
+### P1-08 — Complete: live governance, three pilots and `v1.0.0` certification
 
 **Original evidence:** `main` had deletion and non-fast-forward protection only.
 The stable `Repository integrity` job was not required and pull requests were
@@ -431,8 +434,7 @@ and green: application at `286c329f` (static run `33859831731`, label run
 `33866091863`) and UI-component at `5ba6afb9` (static run `33866118364`, label
 run `33866118333`). Each pilot has pull-request routing, strict
 `Repository integrity`, immutable `v*` protection, an empty bypass list and
-exact live settings/label read-back. Unified Excel/candidate evidence and the
-release remain open. The full commits, collection time, operator, profile,
+exact live settings/label read-back. The full commits, collection time, operator, profile,
 domains, workflow links and live-setting links are retained in
 [`PILOT_CERTIFICATION.md`](PILOT_CERTIFICATION.md).
 
@@ -446,11 +448,25 @@ template-only blocks and their own construction history; generated-project
 releases continue to reject inherited template state. Initialization resets the
 template's released `VERSION` to the `0.0.0` generated-project sentinel. The
 candidate sets `VERSION` to `1.0.0` and creates the dated initial release
-changelog section. Local certification passes 22 deterministic release
-fixtures, all three initializer profiles, all 21 repository rules and all six
-authoritative workflow fixtures; hosted and Excel evidence remain pending until
-the protected release-preparation pull request establishes the exact final
-`main` SHA.
+changelog section. Protected
+[`PR #36`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/pull/36)
+established exact candidate
+[`1144dd69112f6c238488c7888158d58b014fdc70`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/commit/1144dd69112f6c238488c7888158d58b014fdc70).
+Its independent push-triggered
+[`Repository integrity` run 33879467260](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/runs/33879467260)
+passed all steps, including 22 deterministic release fixtures, all three
+initializer profiles, all 21 repository rules and six authoritative workflow
+fixtures. Excel compilation and `ProjectTests.RunProjectTests` passed on
+Microsoft Excel for Microsoft 365 MSO Version 2607, Build 16.0.20228.20188,
+Windows 64-bit, Office 64-bit and VBA7+, with four cases, six assertions, zero
+failures, complete execution and cleanup passing. The external evidence bundle
+passed pre-tag and annotated-tag-reference validation with zero findings.
+Protected annotated tag `v1.0.0` peels exactly to the certified candidate, and
+the source-only
+[`EXCEL-VBA-PROJECT-TEMPLATE v1.0.0`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0)
+release was published on 4 September 2026. Both generated source archives were
+read back successfully with the expected consumable tree; repository plumbing
+is intentionally excluded by `.gitattributes`.
 
 ## 5. P2 findings — material hardening and portfolio adoption
 
@@ -542,14 +558,13 @@ domain-specific gate is replaced by a weaker generic check.
 | 5 | Add authoritative workflow validation and close checker false negatives — **P1-06 complete; P2 hardening remains** | P1-06, P2-01–P2-07 | Stable checker/profile schema | 2–3.5 days |
 | 6 | Add release gate, fixtures and protected-tag specification — **complete** | P1-05 | Static and placeholder gates | 1.5–2.5 days |
 | 7 | Strengthen live `main` protection and complete metadata — **complete** | P1-08, P2-10 | Stable required context | 0.5–1 day |
-| 8 | Generate profile pilots, run Excel evidence and publish `v1.0.0` — **all pilots complete; Excel/release pending** | P1-08 | All prior P1 packages | 1.5–3 days plus Excel access |
+| 8 | Generate profile pilots, run Excel evidence and publish `v1.0.0` — **complete** | P1-08 | All prior P1 packages | 1.5–3 days plus Excel access |
 | 9 | Perform selective portfolio migration and conformance review | P2 portfolio work | Certified `v1.0.0` | Repository-specific |
 | 10 | Add versioned drift/provisioning/reusable-workflow automation | P3-01–P3-09 | Stable P1/P2 contracts | 4–8 days incrementally |
 
-Indicative remaining effort to template certification is **12–21 person-days**,
-including verification and one Excel-capable pilot cycle. This is an engineering
-estimate, not a delivery commitment; runner availability and VBA import issues
-are the largest uncertainties.
+The earlier **12–21 person-day** estimate described the work from the review
+snapshot to certification and is now retired. Remaining effort belongs to the
+P2/P3 packages and portfolio-specific adoption work below.
 
 ## 8. Delivery status
 
@@ -561,10 +576,10 @@ are the largest uncertainties.
 | Placeholder governance | **Complete** | Classified schema, dry-run/apply initializer, manual fallback and all-profile fixtures pass |
 | Collaboration files | **Complete** | PR template, three issue forms/config, policy-bound label selection, complete resolved-catalogue evidence and all-profile pilot live read-back are certified |
 | Repository-quality checker | **P1 complete / P2 hardening open** | The portable 21-rule gate includes direct YAML/XML fixtures; content-pinned authoritative workflow validation passed at the exact hosted SHA, while identified P2 false negatives remain |
-| Release controls | **Complete** | Dependency-free gate, profile policy, evidence contract, asset manifests and 20 fixtures pass locally and at the exact hosted SHA; active immutable `v*` protection was read back with no bypass |
+| Release controls | **Complete** | Dependency-free gate, four-profile policy, evidence contract and 22 fixtures pass locally and at the exact release SHA; active immutable `v*` protection was read back with no bypass |
 | Reusable VBA assets | **Complete** | Four governed exports, public API manifest, clean import/compile, 4-case/6-assertion Excel pass, and exact-SHA hosted checks evidenced |
 | Live governance | **Complete** | The template and all three pilots require PRs and strict `Repository integrity` with no bypass; each also has active immutable release-tag policy and verified settings |
-| Pilot and v1.0.0 | **All pilots complete / release pending** | Application, library and UI-component pilots are green and fully provisioned; exact-candidate Excel and release evidence remain |
+| Pilot and v1.0.0 | **Complete** | Application, library and UI-component pilots are green and fully provisioned; exact-candidate Excel evidence, annotated tag and source-only release are certified |
 | Portfolio migration | **Pre-alignment only** | Starts formally after v1.0.0 |
 | Drift automation | **Not started** | P3 dependency on stable contracts |
 
@@ -590,8 +605,8 @@ P1 passes only when all statements below are true:
 - [x] `main` requires PR routing and the exact live `Repository integrity` context.
 - [x] `v*` tags are protected against deletion and mutation; the documented creation path verifies the certified exact SHA.
 - [x] The post-creation checklist is executed and evidenced on generated pilots.
-- [ ] Static, compile, regression and release evidence bind to the same candidate SHA.
-- [ ] `v1.0.0` is published from that protected exact SHA.
+- [x] Static, compile, regression and release evidence bind to the same candidate SHA.
+- [x] `v1.0.0` is published from that protected exact SHA.
 
 ## 10. P2 and P3 exit gates
 
@@ -606,7 +621,6 @@ pinned, and automation cannot rewrite a repository without a reviewed change.
 
 ## 11. Immediate next action
 
-Continue **P1-08**: merge the template-aware `v1.0.0` preparation through the
-protected branch gate, obtain fresh Excel compile/regression evidence for that
-exact `main` SHA, then validate the external evidence before creating and
-publishing the protected annotated tag.
+Begin **P2-01**: make committed trailing whitespace fail in a clean hosted
+checkout by validating the candidate commit/range rather than comparing `HEAD`
+with itself, and add a deterministic committed-whitespace fixture.
