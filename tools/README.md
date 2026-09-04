@@ -88,6 +88,41 @@ trailing-whitespace defect fails from a clean checkout, a defective root commit
 fails against the empty tree, a valid commit passes, and staged/unstaged defects
 remain detectable only through the local working-tree path.
 
+## Procedure-scoped VBA jump validation
+
+`check_vba_jumps.py` is the authoritative hardening gate for `GoTo`, `GoSub`,
+and `Resume` target ownership. It parses logical VBA statements, including
+continued procedure declarations, and associates every label and jump with one
+owning Sub, Function, or Property procedure.
+
+The gate:
+
+- resolves named and numbered labels only inside the owning procedure;
+- accepts equivalent label names in different procedures without collision;
+- rejects duplicate labels within one procedure;
+- treats `On Error GoTo 0`, `On Error GoTo -1`, bare `Resume`, and
+  `Resume Next` as control forms rather than label references; and
+- reports component, procedure, source line, operation, and unresolved target
+  in deterministic JSON and Markdown evidence.
+
+Run the focused fixtures and repository check with:
+
+```bash
+python3 tools/check_vba_jumps.py --root . --self-test
+python3 tools/check_vba_jumps.py \
+  --root . \
+  --output test-results/vba-jumps.json \
+  --summary test-results/vba-jumps.md
+```
+
+The fixture matrix proves valid local handlers, `GoSub`/`Resume`, deliberate
+cross-procedure rejection, same-name labels in separate procedures, duplicate
+local labels, numbered labels, line continuations, and special error-control
+forms. Until P2-08 modularizes checker development, this dedicated gate
+supersedes the file-scoped jump-resolution portion of the monolithic
+`vba-structure` rule. The hosted terminal verdict requires both gates, so the
+older broad rule cannot make a cross-procedure target green in CI.
+
 ## Authoritative workflow validation
 
 The hosted gate complements the portable YAML subset check with
