@@ -57,13 +57,12 @@ exists.
 | `ADDITIONAL_TEST_COMMAND` | Repeatable | Additional project-specific validation command |
 | `KNOWN_LIMITATION` | Repeatable | Honest user-visible limitation rendered as a list item |
 
-Tokens are permitted in documentation and licence text. The one structured-file
-exception is the issue-template configuration's repository-specific security
-URL, which the initializer resolves before GitHub consumes the generated tree.
-Tokens are otherwise prohibited in VBA exports, identifiers, workflows,
-executable scripts, and structured configuration. VBA components therefore use
-fixed, compile-safe identifiers; a project may rename them later as an explicit
-source change.
+Tokens are permitted only in documentation and licence text. They are
+prohibited in VBA exports, identifiers, workflows, executable scripts, and
+structured configuration. The initializer rewrites the canonical issue
+chooser's template-repository security URL to the generated repository without
+placing a token in YAML. VBA components therefore use fixed, compile-safe
+identifiers; a project may rename them later as an explicit source change.
 
 ## Initialize one profile
 

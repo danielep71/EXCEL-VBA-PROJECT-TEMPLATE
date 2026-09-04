@@ -903,14 +903,9 @@ def check_placeholders(
                 continue
             token = match.group(0)
             seen.add(token)
-            issue_template_yaml = (
-                path.startswith(".github/ISSUE_TEMPLATE/")
-                and PurePosixPath(path).suffix.casefold() in {".yml", ".yaml"}
-            )
             if (
                 PurePosixPath(path).suffix.casefold()
                 in PLACEHOLDER_PROHIBITED_SUFFIXES
-                and not issue_template_yaml
             ):
                 failures.append(
                     finding(
@@ -1907,12 +1902,7 @@ def check_issue_forms(
     else:
         if not re.search(r"(?m)^blank_issues_enabled:\s*false\s*$", intake_config):
             failures.append(finding(config_path, "Blank issues must be disabled."))
-        repository = (
-            "{{REPOSITORY_PATH}}"
-            if config["mode"] == "template"
-            else config["repository"]
-        )
-        expected_url = f"https://github.com/{repository}/security/policy"
+        expected_url = f"https://github.com/{config['repository']}/security/policy"
         url_match = re.search(r'(?m)^\s+url:\s*["\']?([^"\'\s]+)["\']?\s*$', intake_config)
         actual_url = url_match.group(1) if url_match else None
         if actual_url != expected_url:

@@ -387,14 +387,9 @@ def _build_changes(
         source = (root / path).read_bytes()
         text = _decode(path, source)
         matches = list(token_pattern.finditer(text))
-        issue_template_yaml = (
-            path.startswith(".github/ISSUE_TEMPLATE/")
-            and PurePosixPath(path).suffix.casefold() in {".yml", ".yaml"}
-        )
         if (
             matches
             and PurePosixPath(path).suffix.casefold() in EXECUTABLE_SUFFIXES
-            and not issue_template_yaml
         ):
             raise InitializationError(f"Placeholders are prohibited in executable or VBA file {path}.")
         rendered = _render_blocks(path, text, profile, scalars, repeatable, catalogue)
@@ -405,6 +400,18 @@ def _build_changes(
             seen.add(name)
         for name, value in values.items():
             rendered = rendered.replace("{{" + name + "}}", value)
+        if path == ".github/ISSUE_TEMPLATE/config.yml":
+            template_security_url = (
+                f"https://github.com/{config['repository']}/security/policy"
+            )
+            generated_security_url = (
+                f"https://github.com/{scalars['REPOSITORY_PATH']}/security/policy"
+            )
+            if template_security_url not in rendered:
+                raise InitializationError(
+                    f"{path}: canonical template security URL is missing."
+                )
+            rendered = rendered.replace(template_security_url, generated_security_url)
         unresolved = sorted({match.group(1) for match in token_pattern.finditer(rendered)})
         if unresolved:
             raise InitializationError(f"{path}: unresolved placeholders: {', '.join(unresolved)}")
@@ -706,6 +713,14 @@ def _assert_generated_cleanup(root: Path, profile: str) -> None:
     changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     if "No unreleased changes recorded." not in changelog:
         raise AssertionError(f"{profile} did not reset generated changelog history.")
+    issue_config = (root / ".github/ISSUE_TEMPLATE/config.yml").read_text(
+        encoding="utf-8"
+    )
+    expected_security_url = (
+        f"https://github.com/example/fixture-{profile}/security/policy"
+    )
+    if expected_security_url not in issue_config:
+        raise AssertionError(f"{profile} did not render its private-security URL.")
 
 
 def self_test(source: Path) -> None:
