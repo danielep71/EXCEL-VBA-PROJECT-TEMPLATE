@@ -61,12 +61,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for change and evidence requirements and
 | Version | `MAJOR.MINOR.PATCH`, without the leading `v` in headings |
 | Release heading | `## [X.Y.Z] - YYYY-MM-DD` |
 | Date | Gregorian calendar date in ISO `YYYY-MM-DD` format |
-| Ordering | Unreleased first; released versions newest to oldest |
-| Comparison | Unreleased → latest tag; each release → preceding tag |
+| Ordering | Unreleased first; released versions newest to oldest by SemVer precedence |
+| Comparison | Unreleased → latest tag; each later release → preceding tag; initial release → release tag |
 | Patch | Backward-compatible correction or hardening |
 | Minor | Backward-compatible capability |
 | Major | Incompatible public-contract change |
-| Pre-release | State maturity and compatibility boundaries explicitly |
+| Pre-release | Strict SemVer identifiers; numeric identifiers have no leading zeros |
 
 A repository may remain below `1.0.0` while its supported surface is still
 forming. Pre-release status does not excuse undocumented breaking changes.
@@ -105,7 +105,24 @@ messages. Generated projects replace every registered template token before
 publishing; releases of this canonical template retain the registered grammar.
 -->
 
-No unreleased changes.
+### Added
+
+- Added committed-candidate whitespace validation with explicit commit-range,
+  root-commit, staged, and unstaged fixtures and deterministic evidence.
+- Added procedure-scoped VBA jump validation and nested conditional-compilation
+  validation across the supported VBA6/VBA7 and Win32/Win64 environments.
+- Added complete public-API extraction with normalized signature records and a
+  strict explicit-visibility policy for all generated profiles.
+- Added repository-local GitHub Action containment, tracked-state, metadata,
+  and entrypoint validation alongside the pinned authoritative workflow parser.
+- Added strict release-semantics validation for SemVer precedence, prerelease
+  identifiers, changelog ordering, Gregorian dates, and comparison links.
+
+### Changed
+
+- Extended the hosted repository-integrity gate so each focused v1.1.0 hardening
+  check has deterministic self-tests, candidate evidence, artifact retention,
+  and fail-closed terminal enforcement.
 
 ## [1.0.0] - 2026-09-04
 
@@ -152,6 +169,7 @@ No unreleased changes.
 - Made profile and domain label selection a versioned repository policy that
   both the checker and trusted reconciliation workflow validate and consume.
 
+[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0
 
 ---
@@ -160,8 +178,8 @@ No unreleased changes.
 Release procedure:
 1. Move applicable Unreleased entries under: ## [X.Y.Z] - YYYY-MM-DD
 2. Remove empty categories.
-3. Add comparison links after the first release:
-   [Unreleased]: https://github.com/OWNER/REPOSITORY/compare/vX.Y.Z...HEAD
-   [X.Y.Z]: https://github.com/OWNER/REPOSITORY/releases/tag/vX.Y.Z
-4. Recreate an empty Unreleased section at the top.
+3. Set [Unreleased] to compare the new latest tag to HEAD.
+4. For the initial release, link directly to its release tag. For every later
+   release, compare the preceding tag to the new release tag.
+5. Recreate an empty Unreleased section at the top.
 -->
