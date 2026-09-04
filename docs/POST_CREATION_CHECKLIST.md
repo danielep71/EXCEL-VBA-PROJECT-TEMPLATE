@@ -95,9 +95,13 @@ Before the first stable release, create or verify an active ruleset targeting
 
 - [ ] tag deletion is blocked;
 - [ ] non-fast-forward tag updates are blocked;
-- [ ] creation is restricted to the intended release path; and
+- [ ] tag creation remains available so the documented pre-tag release gate can
+  publish a new version; and
 - [ ] no bypass silently permits a published tag to move.
 
+Restricting creation with an empty bypass list would also prevent legitimate
+new releases. `RELEASING.md` and the pre-tag release gate therefore own creation
+authorization; the ruleset makes every matching tag immutable after creation.
 Do not create `v1.0.0` until the release gate, generated pilots, and exact-SHA
 Excel evidence are complete.
 

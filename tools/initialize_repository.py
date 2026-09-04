@@ -170,6 +170,8 @@ def _validate_values(
     catalogue: dict[str, dict[str, object]],
     scalar_entries: Iterable[str],
     repeatable_entries: Iterable[str],
+    *,
+    require_preview_file: bool = True,
 ) -> tuple[dict[str, str], dict[str, list[str]]]:
     scalar_lists = _parse_assignments(scalar_entries, "--set")
     repeatable = _parse_assignments(repeatable_entries, "--add")
@@ -220,10 +222,15 @@ def _validate_values(
     preview = scalars.get("SOCIAL_PREVIEW_PATH")
     if preview:
         item = PurePosixPath(preview)
-        if item.is_absolute() or ".." in item.parts or preview not in tracked:
-            raise InitializationError("SOCIAL_PREVIEW_PATH must name a tracked repository-relative file.")
-        if not (root / item).is_file():
-            raise InitializationError("SOCIAL_PREVIEW_PATH does not exist in the working tree.")
+        if item.is_absolute() or ".." in item.parts:
+            raise InitializationError("SOCIAL_PREVIEW_PATH must name a repository-relative file.")
+        if require_preview_file:
+            if preview not in tracked:
+                raise InitializationError(
+                    "SOCIAL_PREVIEW_PATH must name a tracked repository-relative file."
+                )
+            if not (root / item).is_file():
+                raise InitializationError("SOCIAL_PREVIEW_PATH does not exist in the working tree.")
     return scalars, repeatable
 
 
@@ -361,7 +368,12 @@ def _build_changes(
     placeholders = config["placeholders"]
     catalogue = placeholders["catalogue"]
     scalars, repeatable = _validate_values(
-        root, tracked, catalogue, scalar_entries, repeatable_entries
+        root,
+        tracked,
+        catalogue,
+        scalar_entries,
+        repeatable_entries,
+        require_preview_file=config.get("mode") != "generated",
     )
     values = _replacement_values(profile, scalars, repeatable, catalogue)
     if _already_initialized(root, config, profile, scalars, repeatable):
@@ -699,6 +711,22 @@ def _assert_generated_cleanup(
     profile: str,
     repository: str | None = None,
 ) -> None:
+    for path in _tracked_files(root):
+        if PurePosixPath(path).suffix.casefold() != ".md":
+            continue
+        text = (root / path).read_text(encoding="utf-8")
+        if "<!-- template:" in text:
+            raise AssertionError(f"{profile} retained a template marker in {path}.")
+    issue_config = (root / ".github/ISSUE_TEMPLATE/config.yml").read_text(
+        encoding="utf-8"
+    )
+    repository = repository or f"example/fixture-{profile}"
+    expected_security_url = f"https://github.com/{repository}/security/policy"
+    if expected_security_url not in issue_config:
+        raise AssertionError(f"{profile} did not render its private-security URL.")
+
+
+def _assert_fresh_generated_content(root: Path, profile: str) -> None:
     headings = {
         "application": "### Application commitments",
         "library": "### Library commitments",
@@ -708,22 +736,66 @@ def _assert_generated_cleanup(
     for candidate, heading in headings.items():
         if (heading in readme) != (candidate == profile):
             raise AssertionError(f"{profile} retained an incorrect profile block: {candidate}.")
-    for path in _tracked_files(root):
-        if PurePosixPath(path).suffix.casefold() != ".md":
-            continue
-        text = (root / path).read_text(encoding="utf-8")
-        if "<!-- template:" in text:
-            raise AssertionError(f"{profile} retained a template marker in {path}.")
     changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     if "No unreleased changes recorded." not in changelog:
         raise AssertionError(f"{profile} did not reset generated changelog history.")
-    issue_config = (root / ".github/ISSUE_TEMPLATE/config.yml").read_text(
-        encoding="utf-8"
+
+
+def _make_evolved_generated_fixture(source: Path, destination: Path) -> None:
+    _copy_fixture(source, destination)
+
+    changelog = destination / "CHANGELOG.md"
+    changelog_text = changelog.read_text(encoding="utf-8")
+    sentinel = "No unreleased changes recorded."
+    if sentinel not in changelog_text:
+        raise AssertionError("Generated evolution fixture has no changelog sentinel.")
+    changelog.write_text(
+        changelog_text.replace(
+            sentinel, "- Added a user-visible generated-project change.", 1
+        ),
+        encoding="utf-8",
+        newline="\n",
     )
-    repository = repository or f"example/fixture-{profile}"
-    expected_security_url = f"https://github.com/{repository}/security/policy"
-    if expected_security_url not in issue_config:
-        raise AssertionError(f"{profile} did not render its private-security URL.")
+
+    preview = destination / "assets/social-preview.png"
+    if not preview.is_file():
+        raise AssertionError("Generated evolution fixture has no social-preview asset.")
+    preview.unlink()
+
+    readme = destination / "README.md"
+    readme_text = readme.read_text(encoding="utf-8")
+    profile = json.loads(
+        (destination / RECORD_PATH).read_text(encoding="utf-8")
+    )["profile"]
+    profile_heading = {
+        "application": "### Application commitments",
+        "library": "### Library commitments",
+        "ui-component": "### UI-component commitments",
+    }[profile]
+    if profile_heading not in readme_text:
+        raise AssertionError("Generated evolution fixture has no profile heading.")
+    readme_text = readme_text.replace(
+        profile_heading, "### Maintained project commitments", 1
+    )
+    preview_pattern = re.compile(
+        r'<p align="center">\n\s*<img src="assets/social-preview\.png".*?</p>\n\n---\n',
+        re.DOTALL,
+    )
+    readme_text, replacements = preview_pattern.subn("", readme_text, count=1)
+    if replacements != 1:
+        raise AssertionError(
+            "Generated evolution fixture could not remove its preview block."
+        )
+    readme.write_text(
+        readme_text
+        + "\n## Generated-project evolution fixture\n\n"
+        + "This maintained section proves that initializer self-tests tolerate "
+        + "normal README evolution.\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    _git(destination, "add", "--all")
+    _git(destination, "commit", "-m", "Evolve generated project content")
 
 
 def _record_arguments(root: Path) -> tuple[str, list[str], list[str]]:
@@ -756,10 +828,22 @@ def _generated_self_test(source: Path) -> None:
     repository = config.get("repository")
     if not isinstance(repository, str) or not repository:
         raise AssertionError("Generated repository policy has no repository identity.")
-    before = _tree_digest(source)
-    changes, _ = _build_changes(source, profile, scalars, repeatable)
-    if changes or _tree_digest(source) != before:
-        raise AssertionError("Generated repository initialization is not idempotent.")
+    tracked = set(_tracked_files(source))
+    placeholders = config["placeholders"]
+    scalar_values, repeatable_values = _validate_values(
+        source,
+        tracked,
+        placeholders["catalogue"],
+        scalars,
+        repeatable,
+        require_preview_file=False,
+    )
+    if not _already_initialized(
+        source, config, profile, scalar_values, repeatable_values
+    ):
+        raise AssertionError(
+            "Generated repository initialization record is not authoritative."
+        )
     if config.get("profile") != profile or config.get("repository") != repository:
         raise AssertionError("Generated repository policy and initialization record disagree.")
     _assert_generated_cleanup(source, profile, repository)
@@ -785,6 +869,11 @@ def self_test(source: Path) -> None:
             fixture = base / profile
             _copy_fixture(source, fixture)
             scalars, repeatable = _fixture_arguments(profile)
+            preview = fixture / "assets/social-preview.png"
+            preview.write_bytes(b"fixture-preview\n")
+            _git(fixture, "add", "--all")
+            _git(fixture, "commit", "-m", "Add social-preview fixture asset")
+            scalars.append("SOCIAL_PREVIEW_PATH=assets/social-preview.png")
 
             _assert_failure_without_change(
                 fixture,
@@ -805,7 +894,12 @@ def self_test(source: Path) -> None:
             _assert_failure_without_change(
                 unused_fixture,
                 profile,
-                scalars + ["SOCIAL_PREVIEW_PATH=assets/social-preview.png"],
+                [
+                    item
+                    for item in scalars
+                    if not item.startswith("SOCIAL_PREVIEW_PATH=")
+                ]
+                + ["SOCIAL_PREVIEW_PATH=assets/social-preview.png"],
                 repeatable,
                 "Unused substitutions: SOCIAL_PREVIEW_PATH",
             )
@@ -832,7 +926,25 @@ def self_test(source: Path) -> None:
             if any((fixture / path).exists() for path in ("docs/IMPLEMENTATION_PLAN.md", "docs/PORTFOLIO_AUDIT.md")):
                 raise AssertionError(f"{profile} retained template-only files.")
             _assert_generated_cleanup(fixture, profile)
+            _assert_fresh_generated_content(fixture, profile)
             _generated_self_test(fixture)
+
+            evolved = base / f"{profile}-evolved"
+            _make_evolved_generated_fixture(fixture, evolved)
+            evolved_profile, evolved_scalars, evolved_repeatable = _record_arguments(
+                evolved
+            )
+            evolved_rerun, _ = _build_changes(
+                evolved,
+                evolved_profile,
+                evolved_scalars,
+                evolved_repeatable,
+            )
+            if evolved_rerun:
+                raise AssertionError(
+                    f"{profile} evolved generated-project rerun was not idempotent."
+                )
+            _generated_self_test(evolved)
 
             completed, report = _quality_report(fixture)
             if completed.returncode != 0:
