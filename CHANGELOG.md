@@ -106,6 +106,9 @@ messages. Replace every registered template token before publishing.
 
 ### Added
 
+- Added a dependency-free release-integrity gate, versioned profile policy,
+  external evidence contract, SHA-256 asset-manifest validation, annotated-tag
+  verification, and 20 deterministic positive and negative fixtures.
 - Added a classified double-brace token schema and deterministic,
   dry-run-first repository initializer with atomic validation and all-profile
   fixtures.

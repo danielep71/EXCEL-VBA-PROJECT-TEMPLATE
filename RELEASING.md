@@ -133,6 +133,8 @@ Move relevant entries from **Unreleased** into a dated
 ## 5. Run static gates
 
 - Run `python3 tools/check_repo.py --root .` and every project-specific gate.
+- Run `python3 tools/check_release.py --root . --self-test` to certify the
+  release checker and its profile/failure fixtures.
 - Confirm formatting and exported-source integrity.
 - Scan for credentials, private data, generated noise, and unresolved placeholders.
 
@@ -183,6 +185,12 @@ sha256sum dist/<artifact>
 
 Publish only artifacts promised by the installation guide.
 
+Create the external evidence JSON and, for a binary distribution, the sorted
+SHA-256 asset manifest described in
+[`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md). Keeping evidence outside
+the candidate avoids a commit-hash self-reference while still requiring every
+record to identify the exact candidate.
+
 ## 8. Review and merge
 
 Where policy requires a pull request, make these items easy to verify:
@@ -198,19 +206,37 @@ Require configured checks and record the resulting `main` SHA. If the merge chan
 
 ## 9. Create the annotated tag
 
-Tag only the certified commit on `main`.
+Tag only the certified commit on `main`. Run the release gate before and after
+creating the local annotated tag:
 
 ```bash
 git switch main
 git pull --ff-only
-git rev-parse HEAD
+candidate_sha="$(git rev-parse HEAD)"
 release_version="$(tr -d '\r\n' < VERSION)"
-git tag -a "v${release_version}" -m "{{PROJECT_NAME}} ${release_version}"
-git show --no-patch --decorate "v${release_version}"
-git push origin "v${release_version}"
+release_tag="v${release_version}"
+python3 tools/check_release.py \
+  --root . \
+  --tag "$release_tag" \
+  --candidate-sha "$candidate_sha" \
+  --evidence ../release-evidence.json \
+  --output test-results/release-integrity.json \
+  --summary test-results/release-integrity.md
+git tag -a "$release_tag" -m "{{PROJECT_NAME}} ${release_version}"
+python3 tools/check_release.py \
+  --root . \
+  --tag "$release_tag" \
+  --candidate-sha "$candidate_sha" \
+  --evidence ../release-evidence.json \
+  --require-tag-ref
+git show --no-patch --decorate "$release_tag"
+git push origin "$release_tag"
 ```
 
-Before pushing, confirm the tag equals `VERSION`, targets the certified commit, and has a matching dated changelog section. Never delete and recreate a public tag to hide a mistake.
+Add `--asset-manifest ../release-assets.sha256` to both checker invocations for
+a binary distribution. Do not push the tag if either invocation fails.
+The checker enforces tag/version/changelog equality and the exact annotated-tag
+target. Never delete and recreate or move a public tag to hide a mistake.
 
 <a id="evidence-record"></a>
 ## 🧾 Evidence record
@@ -221,6 +247,7 @@ Retain at least:
 - static-check output
 - Excel version and bitness
 - compile and regression result
+- checked external evidence JSON and release-integrity reports
 - artifact SHA-256 hashes
 - version and tag
 - previous release tag

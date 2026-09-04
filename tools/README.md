@@ -82,6 +82,32 @@ review both the [release notes](https://github.com/rhysd/actionlint/releases/tag
 and [published checksums](https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_checksums.txt)
 before changing either pin.
 
+## Release-integrity gate
+
+`check_release.py` validates one initialized release candidate against the
+versioned `.github/release-policy.json`. It requires version, dated changelog,
+tag, Git source, external evidence, profile assurance, and any staged assets to
+name the same full candidate SHA. Reports are deterministic and written
+atomically.
+
+Exercise all three valid profiles and every named failure path with:
+
+```bash
+python3 tools/check_release.py --root . --self-test \
+  --summary test-results/release-self-test.md
+```
+
+Candidate validation requires `--tag`, `--candidate-sha`, and `--evidence`.
+Binary UI/application distributions also require `--asset-manifest`; a
+source-only release omits it. After creating the local annotated tag, add
+`--require-tag-ref` to prove its object type and target. See
+[`docs/RELEASE_EVIDENCE.md`](../docs/RELEASE_EVIDENCE.md) for the exact JSON,
+manifest, profile, and command contracts.
+
+The hosted repository gate runs the complete self-test and fails if the tool or
+its report is missing. The tool validates recorded evidence but does not execute
+Excel or claim that a manually packaged Office file was built from source.
+
 ## Canonical repository initializer
 
 `initialize_repository.py` converts a clean generated repository from template

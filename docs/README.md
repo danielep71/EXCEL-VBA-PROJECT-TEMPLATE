@@ -19,6 +19,7 @@ Keep portfolio governance files at the repository root: `README.md`, `CHANGELOG.
 | [`INITIALIZATION.md`](INITIALIZATION.md) | Canonical token schema, profile selection, dry-run/apply procedure, and manual fallback |
 | [`POST_CREATION_CHECKLIST.md`](POST_CREATION_CHECKLIST.md) | Live GitHub settings, label reconciliation, protection, and read-back evidence after generation |
 | [`PUBLIC_API.txt`](PUBLIC_API.txt) | Machine-checked declarations supported by public-role VBA components |
+| [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) | External evidence JSON, profile checks, asset manifests, and exact-SHA release validation |
 | [`REPOSITORY_STRUCTURE.md`](REPOSITORY_STRUCTURE.md) | Canonical directory ownership and permitted profile alternatives |
 <!-- template:remove:start -->
 | [`PORTFOLIO_AUDIT.md`](PORTFOLIO_AUDIT.md) | Evidence used to design this portfolio template; remove it from a generated project unless that project deliberately maintains the portfolio audit |

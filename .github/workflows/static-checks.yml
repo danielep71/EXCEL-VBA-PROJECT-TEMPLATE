@@ -82,6 +82,15 @@ jobs:
           --actionlint "$ACTIONLINT_PATH"
           --summary test-results/workflow-validation.md
 
+      - name: Exercise release-integrity candidates and failures
+        id: release-self-test
+        continue-on-error: true
+        run: >-
+          python3 tools/check_release.py
+          --root .
+          --self-test
+          --summary test-results/release-self-test.md
+
       - name: Exercise all repository-initialization profiles
         id: initializer-self-test
         continue-on-error: true
@@ -124,6 +133,15 @@ jobs:
               echo "The authoritative validator did not produce its report."
               exit 1
             fi
+            echo
+            if [[ -f test-results/release-self-test.md ]]; then
+              cat test-results/release-self-test.md
+            else
+              echo "## Release-integrity self-test"
+              echo
+              echo "The release checker did not produce its self-test report."
+              exit 1
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload static-check evidence
@@ -138,6 +156,7 @@ jobs:
             test-results/static-checks.md
             test-results/actionlint-version.txt
             test-results/workflow-validation.md
+            test-results/release-self-test.md
           if-no-files-found: error
           retention-days: 30
           compression-level: 9
@@ -148,6 +167,7 @@ jobs:
           INITIALIZER_SELF_TEST_OUTCOME: ${{ steps.initializer-self-test.outcome }}
           VALIDATOR_INSTALL_OUTCOME: ${{ steps.validator-install.outcome }}
           AUTHORITATIVE_WORKFLOWS_OUTCOME: ${{ steps.authoritative-workflows.outcome }}
+          RELEASE_SELF_TEST_OUTCOME: ${{ steps.release-self-test.outcome }}
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
@@ -160,6 +180,10 @@ jobs:
           fi
           if [[ "$AUTHORITATIVE_WORKFLOWS_OUTCOME" != "success" ]]; then
             echo "::error::Authoritative workflow-validation outcome: $AUTHORITATIVE_WORKFLOWS_OUTCOME"
+            failed=1
+          fi
+          if [[ "$RELEASE_SELF_TEST_OUTCOME" != "success" ]]; then
+            echo "::error::Release-integrity self-test outcome: $RELEASE_SELF_TEST_OUTCOME"
             failed=1
           fi
           if [[ "$INITIALIZER_SELF_TEST_OUTCOME" != "success" ]]; then

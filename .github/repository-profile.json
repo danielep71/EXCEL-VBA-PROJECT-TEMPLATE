@@ -13,6 +13,7 @@
     ".github/ISSUE_TEMPLATE/feature.yml",
     ".github/labels.json",
     ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/release-policy.json",
     ".github/repository-profile.json",
     ".github/scripts/labels-sync.mjs",
     ".github/workflows/labels-sync.yml",
@@ -26,6 +27,7 @@
     "docs/POST_CREATION_CHECKLIST.md",
     "docs/PUBLIC_API.txt",
     "docs/README.md",
+    "docs/RELEASE_EVIDENCE.md",
     "docs/REPOSITORY_STRUCTURE.md",
     "examples/README.md",
     "INSTALLATION.md",
@@ -35,6 +37,7 @@
     "SECURITY.md",
     "src/README.md",
     "tests/README.md",
+    "tools/check_release.py",
     "tools/check_repo.py",
     "tools/initialize_repository.py",
     "tools/README.md",
@@ -216,6 +219,7 @@
     "exclude_paths": [
       ".editorconfig",
       ".github/repository-profile.json",
+      "tools/check_release.py",
       "tools/check_repo.py",
       "tools/initialize_repository.py"
     ]

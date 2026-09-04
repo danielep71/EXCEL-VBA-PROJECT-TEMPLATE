@@ -173,6 +173,8 @@ python3 tools/check_repo.py --root . --self-test
 python3 tools/check_repo.py --root . \
   --output test-results/static-checks.json \
   --summary test-results/static-checks.md
+python3 tools/check_release.py --root . --self-test \
+  --summary test-results/release-self-test.md
 ~~~
 
 <!-- template:repeatable:ADDITIONAL_TEST_COMMAND:start -->
@@ -193,6 +195,9 @@ content-verified actionlint version documented in
 [`tools/README.md`](tools/README.md#authoritative-workflow-validation), validates
 the complete GitHub Actions schema, and exercises known-invalid workflow and
 local-action fixtures. A missing validator or report fails the terminal result.
+The same job exercises valid release candidates for all three profiles and the
+complete deterministic release-failure matrix; its release self-test report is
+also a required artifact and terminal outcome.
 
 ## 3. Complete repository provisioning
 
@@ -378,6 +383,8 @@ The [static-check workflow](.github/workflows/static-checks.yml):
 - self-tests one passing fixture and one degraded fixture per rule;
 - resolves the selected profile's mandatory façade, core, and test contract;
 - validates the configured repository tree;
+- exercises the release-integrity gate across all supported profiles and named
+  failure paths;
 - publishes a readable job summary;
 - uploads deterministic JSON and Markdown evidence; and
 - enforces every intermediate outcome through one terminal verdict.
@@ -447,6 +454,7 @@ Do not instruct users to import test modules as production dependencies.
 | [Changelog](CHANGELOG.md) | Unreleased work, version history and compatibility |
 | [Security](SECURITY.md) | Supported versions and private vulnerability reporting |
 | [Releasing](RELEASING.md) | Versioning, certification, artifacts, provenance and recovery |
+| [Release evidence](docs/RELEASE_EVIDENCE.md) | Evidence JSON, profile checks, asset manifests and exact-SHA validation |
 | [Repository structure](docs/REPOSITORY_STRUCTURE.md) | Canonical directory and VBA ownership |
 | [Initialization](docs/INITIALIZATION.md) | Token schema, profile selection, dry-run/apply and manual fallback |
 | [Post-creation checklist](docs/POST_CREATION_CHECKLIST.md) | Labels, metadata, merge settings, branch/tag protection and read-back evidence |
