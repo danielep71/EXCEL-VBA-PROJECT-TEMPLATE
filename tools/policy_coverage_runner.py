@@ -67,7 +67,36 @@ def run_core_coverage(root: Path) -> dict[str, object]:
         run_case(f"rule-{expected_rule}", expected_rule, mutate)
     for case_name, expected_rule, mutate in module.BRANCH_SELF_TEST_CASES:
         run_case(f"branch-{case_name}", expected_rule, mutate)
-    for name, expected_rule, pattern, mutate in [*configuration_cases(module), *repository_cases(module), *quality_cases(module)]:
+
+    selected_quality_cases = [
+        item for item in quality_cases(module)
+        if item[0] != "vba-export-name-not-leading"
+    ]
+
+    def late_class_header(fixture_root: Path) -> None:
+        prefix = "\n".join(
+            ["VERSION 1.0 CLASS", "BEGIN", "  MultiUse = -1", "END"]
+            + ["' pad"] * 18
+        )
+        module._write_fixture(
+            fixture_root / "src/modules/Late.cls",
+            prefix + '\nAttribute VB_Name = "Late"\nOption Explicit\n',
+            crlf=True,
+        )
+        module._run_git(fixture_root, "add", "src/modules/Late.cls")
+
+    extra_cases = [
+        *configuration_cases(module),
+        *repository_cases(module),
+        *selected_quality_cases,
+        (
+            "vba-export-name-not-leading",
+            "vba-export-header",
+            "leading export header",
+            late_class_header,
+        ),
+    ]
+    for name, expected_rule, pattern, mutate in extra_cases:
         run_case(name, expected_rule, mutate, pattern)
 
     current_case = "operational-rule-crash"
