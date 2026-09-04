@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from typing import Any
 
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
 TOOL_NAME = "Procedure-scoped VBA jumps"
@@ -104,10 +105,10 @@ def label_at_start(code: str) -> str | None:
     return match.group(1) if match else None
 
 
-def analyze_component(path: str, text: str) -> list[dict[str, object]]:
-    findings: list[dict[str, object]] = []
-    procedures: list[dict[str, object]] = []
-    current: dict[str, object] | None = None
+def analyze_component(path: str, text: str) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    procedures: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
 
     for start_line, end_line, code in logical_statements(text.splitlines()):
         stripped = code.strip()
@@ -220,9 +221,9 @@ def analyze_component(path: str, text: str) -> list[dict[str, object]]:
     return findings
 
 
-def run_check(root: Path) -> dict[str, object]:
+def run_check(root: Path) -> dict[str, Any]:
     paths = tracked_vba(root)
-    findings: list[dict[str, object]] = []
+    findings: list[dict[str, Any]] = []
     procedure_count = 0
     for relative in paths:
         data = (root / relative).read_bytes()
@@ -243,7 +244,7 @@ def run_check(root: Path) -> dict[str, object]:
     }
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     lines = [
         "## Procedure-scoped VBA jumps",
         "",
@@ -299,7 +300,7 @@ def init_repo(root: Path, source: str) -> None:
             raise RuntimeError(completed.stderr.decode("utf-8", errors="replace").strip())
 
 
-def fixture_result(source: str) -> dict[str, object]:
+def fixture_result(source: str) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="vba-jump-") as temporary:
         root = Path(temporary)
         init_repo(root, source)

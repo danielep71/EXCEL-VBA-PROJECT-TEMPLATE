@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from typing import Any
 
 TOOL_NAME = "Repository-local GitHub Actions"
 WORKFLOW_SUFFIXES = {".yml", ".yaml"}
@@ -132,8 +133,8 @@ def finding(
     *,
     line: int | None = None,
     reference: str | None = None,
-) -> dict[str, object]:
-    item: dict[str, object] = {"path": path, "message": message}
+) -> dict[str, Any]:
+    item: dict[str, Any] = {"path": path, "message": message}
     if line is not None:
         item["line"] = line
     if reference is not None:
@@ -148,7 +149,7 @@ def validate_entrypoint(
     action_relative: str,
     key: str,
     value: str,
-) -> list[dict[str, object]]:
+) -> list[dict[str, Any]]:
     entry = PurePosixPath(value)
     if (
         not value
@@ -186,8 +187,8 @@ def validate_action(
     workflow: str,
     line: int,
     reference: str,
-) -> list[dict[str, object]]:
-    findings: list[dict[str, object]] = []
+) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
     relative = safe_relative(reference)
     if relative is None:
         return [
@@ -317,10 +318,10 @@ def validate_action(
     return findings
 
 
-def run_check(root: Path) -> dict[str, object]:
+def run_check(root: Path) -> dict[str, Any]:
     files = tracked_files(root)
-    findings: list[dict[str, object]] = []
-    references: list[dict[str, object]] = []
+    findings: list[dict[str, Any]] = []
+    references: list[dict[str, Any]] = []
     workflows = workflow_paths(files)
     for workflow in workflows:
         text = (root / workflow).read_text(encoding="utf-8")
@@ -350,7 +351,7 @@ def run_check(root: Path) -> dict[str, object]:
     }
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     lines = [
         "## Repository-local GitHub Actions",
         "",
@@ -380,7 +381,7 @@ def fixture_report(
     workflow_reference: str,
     action_files: dict[str, str] | None,
     tracked: tuple[str, ...],
-) -> dict[str, object]:
+) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="local-action-") as temporary:
         root = Path(temporary)
         workflow = root / ".github/workflows/test.yml"

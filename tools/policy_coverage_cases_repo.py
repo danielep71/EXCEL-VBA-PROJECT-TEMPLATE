@@ -10,6 +10,13 @@ from policy_coverage_core import add_force, mutate_config, mutate_labels, rewrit
 def repository_cases(module: ModuleType) -> list[tuple[str, str, str | None, Callable[[Path], None]]]:
     cases: list[tuple[str, str, str | None, Callable[[Path], None]]] = []
 
+    def template_mode(document: dict) -> None:
+        document.update(
+            mode="template",
+            profile=None,
+            repository="example/TEMPLATE-IDENTITY",
+        )
+
     def case(name: str, rule: str, pattern: str | None = None):
         def register(function: Callable[[Path], None]) -> Callable[[Path], None]:
             cases.append((name, rule, pattern, function))
@@ -42,13 +49,13 @@ def repository_cases(module: ModuleType) -> list[tuple[str, str, str | None, Cal
 
     @case("placeholder-template-unregistered", "placeholders", "not registered")
     def _(root: Path) -> None:
-        mutate_config(module, root, lambda d: (d.__setitem__("mode", "template"), d.__setitem__("profile", None), d.__setitem__("repository", "example/TEMPLATE-IDENTITY")))
+        mutate_config(module, root, template_mode)
         token = "{{" + "UNKNOWN_NOTE}}"
         module._write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
 
     @case("placeholder-template-unused", "placeholders", "unused")
     def _(root: Path) -> None:
-        mutate_config(module, root, lambda d: (d.__setitem__("mode", "template"), d.__setitem__("profile", None), d.__setitem__("repository", "example/TEMPLATE-IDENTITY")))
+        mutate_config(module, root, template_mode)
 
     @case("dotfile-editor-unreadable", "dotfile-policy", "Cannot read policy")
     def _(root: Path) -> None:

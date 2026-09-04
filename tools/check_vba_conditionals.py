@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from typing import Any
 
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
 TOOL_NAME = "VBA conditional compilation"
@@ -129,12 +130,12 @@ class ExpressionParser:
         if lowered == "false":
             return False
         if re.fullmatch(r"-?\d+", token):
-            value = int(token)
-            if value not in {-1, 0}:
+            integer_value = int(token)
+            if integer_value not in {-1, 0}:
                 raise ExpressionError(
                     "only VBA Boolean integer literals -1 and 0 are supported"
                 )
-            return value == -1
+            return integer_value == -1
         upper = token.upper()
         if upper not in SUPPORTED_SYMBOLS:
             raise ExpressionError(
@@ -237,9 +238,9 @@ def parse_condition(kind: str, remainder: str) -> str:
     return match.group(1).strip()
 
 
-def analyze_component(path: str, text: str) -> list[dict[str, object]]:
-    findings: list[dict[str, object]] = []
-    stacks = {name: [] for name in ENVIRONMENTS}
+def analyze_component(path: str, text: str) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    stacks: dict[str, list[Frame]] = {name: [] for name in ENVIRONMENTS}
     depth = 0
 
     for start_line, end_line, unit_kind, code in logical_units(text.splitlines()):
@@ -401,9 +402,9 @@ def analyze_component(path: str, text: str) -> list[dict[str, object]]:
     return findings
 
 
-def run_check(root: Path) -> dict[str, object]:
+def run_check(root: Path) -> dict[str, Any]:
     paths = tracked_vba(root)
-    findings: list[dict[str, object]] = []
+    findings: list[dict[str, Any]] = []
     declare_count = 0
     for relative in paths:
         text = (root / relative).read_bytes().decode("cp1252")
@@ -424,7 +425,7 @@ def run_check(root: Path) -> dict[str, object]:
     }
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     lines = [
         "## VBA conditional compilation",
         "",
@@ -463,7 +464,7 @@ def write_text(path: Path | None, text: str) -> None:
     path.write_text(text, encoding="utf-8", newline="\n")
 
 
-def fixture_result(source: str) -> dict[str, object]:
+def fixture_result(source: str) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="vba-conditional-") as temporary:
         root = Path(temporary)
         (root / "src").mkdir()
@@ -600,7 +601,7 @@ Option Explicit
         ),
     }
     failures: list[str] = []
-    reports: dict[str, dict[str, object]] = {}
+    reports: dict[str, dict[str, Any]] = {}
     for name, (expected, source) in fixtures.items():
         report = fixture_result(source)
         reports[name] = report

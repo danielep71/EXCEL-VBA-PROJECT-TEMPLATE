@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 from types import ModuleType
+from typing import Any
 
 TOOL_NAME = "Checker development contract"
 CHECKER_PATH = Path("tools/check_repo.py")
@@ -92,7 +93,7 @@ def node_name(node: ast.AST) -> str:
     raise ContractError("Unexpected non-definition node.")
 
 
-def section_report(source: str, tree: ast.Module) -> tuple[list[dict[str, object]], list[str]]:
+def section_report(source: str, tree: ast.Module) -> tuple[list[dict[str, Any]], list[str]]:
     del source
     definitions = definition_nodes(tree)
     positions = {node_name(node): index for index, node in enumerate(definitions)}
@@ -108,7 +109,7 @@ def section_report(source: str, tree: ast.Module) -> tuple[list[dict[str, object
         indexes = [index for _, index in starts]
         if indexes != sorted(indexes) or len(indexes) != len(set(indexes)):
             failures.append("section sentinels are not strictly ordered")
-    rows: list[dict[str, object]] = []
+    rows: list[dict[str, Any]] = []
     if failures:
         return rows, failures
     for offset, (section, start) in enumerate(starts):
@@ -157,8 +158,8 @@ def import_report(tree: ast.Module) -> tuple[list[str], list[str]]:
     return sorted(observed), failures
 
 
-def parser_tests(module: ModuleType) -> list[dict[str, object]]:
-    results: list[dict[str, object]] = []
+def parser_tests(module: ModuleType) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
 
     def record(name: str, ok: bool, detail: str = "") -> None:
         results.append({"id": name, "status": "pass" if ok else "fail", "detail": detail})
@@ -200,7 +201,7 @@ def parser_tests(module: ModuleType) -> list[dict[str, object]]:
     return results
 
 
-def reporter_tests(module: ModuleType) -> list[dict[str, object]]:
+def reporter_tests(module: ModuleType) -> list[dict[str, Any]]:
     finding = module.finding("README.md", "Pipe | must be escaped", 7)
     failed = module.rule_result("sample", "Sample", [finding], "")
     report = {
@@ -243,7 +244,7 @@ def reporter_tests(module: ModuleType) -> list[dict[str, object]]:
     ]
 
 
-def cli_tests(module: ModuleType, checker: Path) -> list[dict[str, object]]:
+def cli_tests(module: ModuleType, checker: Path) -> list[dict[str, Any]]:
     parsed = module.parse_arguments(
         ["--root", ".", "--output", "out.json", "--summary", "out.md"]
     )
@@ -282,7 +283,7 @@ def check_ids(module: ModuleType) -> tuple[list[str], list[str]]:
     return functions, failures
 
 
-def build_report(root: Path) -> dict[str, object]:
+def build_report(root: Path) -> dict[str, Any]:
     checker = (root / CHECKER_PATH).resolve()
     source = checker.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(checker))
@@ -322,7 +323,7 @@ def build_report(root: Path) -> dict[str, object]:
     }
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     artifact = report["artifact"]
     lines = [
         "## Checker development contract",

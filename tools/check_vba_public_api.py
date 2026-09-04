@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from typing import Any
 
 CONFIG_PATH = ".github/repository-profile.json"
 TOOL_NAME = "VBA public API"
@@ -124,7 +125,7 @@ def top_comma(text: str) -> bool:
     return False
 
 
-def record(out: list[dict[str, object]], supported: bool, component: str,
+def record(out: list[dict[str, Any]], supported: bool, component: str,
            kind: str, name: str, signature: str, path: str, line: int) -> None:
     if supported:
         out.append({
@@ -135,8 +136,8 @@ def record(out: list[dict[str, object]], supported: bool, component: str,
 
 def parse_component(path: str, text: str, supported: bool):
     component = Path(path).stem
-    decls: list[dict[str, object]] = []
-    findings: list[dict[str, object]] = []
+    decls: list[dict[str, Any]] = []
+    findings: list[dict[str, Any]] = []
     statements = logical(text.splitlines())
     inside = False
     i = 0
@@ -223,7 +224,7 @@ def read_manifest(root: Path, relative: str):
         return set(), {}, [{"path": relative, "message": "Configured public API manifest is missing."}]
     rows: set[str] = set()
     sigs: dict[str, str] = {}
-    findings: list[dict[str, object]] = []
+    findings: list[dict[str, Any]] = []
     for n, raw in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
         if not raw.strip(): continue
         if raw.startswith(SIG_PREFIX):
@@ -250,7 +251,7 @@ def is_property(kind: str) -> bool:
     return kind.casefold() in PROPERTY_KINDS
 
 
-def property_pair(a: dict[str, object], b: dict[str, object]) -> bool:
+def property_pair(a: dict[str, Any], b: dict[str, Any]) -> bool:
     return (
         str(a["component"]).casefold() == str(b["component"]).casefold()
         and is_property(str(a["kind"])) and is_property(str(b["kind"]))
@@ -258,12 +259,12 @@ def property_pair(a: dict[str, object], b: dict[str, object]) -> bool:
     )
 
 
-def run_check(root: Path) -> dict[str, object]:
+def run_check(root: Path) -> dict[str, Any]:
     config = json.loads((root / CONFIG_PATH).read_text(encoding="utf-8"))
     vba = config["vba"]
     components: dict[str, str] = vba["components"]
     manifest = vba["public_api_manifest"]
-    findings: list[dict[str, object]] = []
+    findings: list[dict[str, Any]] = []
 
     if manifest not in config["required_paths"]:
         findings.append({"path": CONFIG_PATH,
@@ -273,15 +274,15 @@ def run_check(root: Path) -> dict[str, object]:
             findings.append({"path": CONFIG_PATH,
                              "message": f"Profile {profile!r} must require at least one public-role component."})
 
-    decls: list[dict[str, object]] = []
+    decls: list[dict[str, Any]] = []
     tracked = set(tracked_vba(root))
     for path, role in sorted(components.items()):
         if path not in tracked or not (root / path).is_file(): continue
         parsed, errs = parse_component(path, (root / path).read_bytes().decode("cp1252"), role == "public")
         decls.extend(parsed); findings.extend(errs)
 
-    keys: dict[str, dict[str, object]] = {}
-    names: dict[str, list[dict[str, object]]] = {}
+    keys: dict[str, dict[str, Any]] = {}
+    names: dict[str, list[dict[str, Any]]] = {}
     for d in decls:
         k = key(str(d["component"]), str(d["kind"]), str(d["name"]))
         if any(existing.casefold() == k.casefold() for existing in keys):
@@ -336,7 +337,7 @@ def run_check(root: Path) -> dict[str, object]:
     }
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     lines = [
         "## VBA public API", "",
         f"- **Status:** {str(report['status']).upper()}",
@@ -400,7 +401,7 @@ def init_fixture(root: Path, facade: str, manifest: list[str], other: str | None
         if cp.returncode: raise RuntimeError(cp.stderr.decode("utf-8", errors="replace").strip())
 
 
-def fixture(facade: str, manifest: list[str], other: str | None = None) -> dict[str, object]:
+def fixture(facade: str, manifest: list[str], other: str | None = None) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="vba-api-") as tmp:
         root = Path(tmp); init_fixture(root, facade, manifest, other); return run_check(root)
 
@@ -445,7 +446,7 @@ End Property
         "Facade\tProperty Let\tCurrent", "# SIG\tFacade\tProperty Let\tCurrent\tPublic Property Let Current(ByVal value As Long)",
     ]
     failures: list[str] = []
-    tests = []
+    tests: list[tuple[str, dict[str, Any], str, str | None]] = []
     tests.append(("positive", fixture(facade, manifest), "pass", None))
     tests.append(("implicit", fixture(facade.replace("Public Function Echo","Function Echo"), manifest),
                   "fail", "Implicit public procedure"))

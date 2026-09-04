@@ -20,7 +20,7 @@ import subprocess
 import sys
 import tempfile
 from types import ModuleType
-from typing import Callable
+from typing import Any, Callable
 
 TOOL_NAME = "Policy branch coverage"
 CORE_TOOL = "tools/check_repo.py"
@@ -40,7 +40,7 @@ def load_module(path: Path, name: str) -> ModuleType:
     return module
 
 
-def production_finding_sites(source_path: Path) -> dict[str, dict[str, object]]:
+def production_finding_sites(source_path: Path) -> dict[str, dict[str, Any]]:
     source = source_path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(source_path))
     fixture_boundary = None
@@ -50,23 +50,30 @@ def production_finding_sites(source_path: Path) -> dict[str, dict[str, object]]:
             break
     if fixture_boundary is None:
         raise CoverageError("Cannot locate the canonical fixture boundary in check_repo.py")
+    boundary = fixture_boundary
 
-    sites: dict[str, dict[str, object]] = {}
+    sites: dict[str, dict[str, Any]] = {}
 
     class Visitor(ast.NodeVisitor):
         def __init__(self) -> None:
             self.functions: list[str] = []
 
-        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        def _visit_function(
+            self, node: ast.FunctionDef | ast.AsyncFunctionDef
+        ) -> None:
             self.functions.append(node.name)
             self.generic_visit(node)
             self.functions.pop()
 
-        visit_AsyncFunctionDef = visit_FunctionDef
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            self._visit_function(node)
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+            self._visit_function(node)
 
         def visit_Call(self, node: ast.Call) -> None:
             if (
-                node.lineno < fixture_boundary
+                node.lineno < boundary
                 and isinstance(node.func, ast.Name)
                 and node.func.id == "finding"
             ):
@@ -85,7 +92,7 @@ def production_finding_sites(source_path: Path) -> dict[str, dict[str, object]]:
     return dict(sorted(sites.items(), key=lambda item: (item[1]["line"], item[0])))
 
 
-def rule_by_id(report: dict[str, object], rule_id: str) -> dict[str, object] | None:
+def rule_by_id(report: dict[str, Any], rule_id: str) -> dict[str, Any] | None:
     for result in report.get("rules", []):
         if result.get("id") == rule_id:
             return result
@@ -96,7 +103,7 @@ def write_json(module: ModuleType, root: Path, relative: str, document: object) 
     module._write_fixture(root / relative, json.dumps(document, indent=2, ensure_ascii=False) + "\n")
 
 
-def config_document(root: Path, module: ModuleType) -> dict[str, object]:
+def config_document(root: Path, module: ModuleType) -> dict[str, Any]:
     return json.loads((root / module.CONFIG_PATH).read_text(encoding="utf-8"))
 
 

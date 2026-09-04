@@ -22,6 +22,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from typing import Any
 
 
 SCHEMA_VERSION = 1
@@ -92,7 +93,7 @@ def _read_json(path: Path, label: str) -> tuple[object | None, list[dict[str, st
         )]
 
 
-def _load_configuration(root: Path) -> tuple[dict[str, object] | None, list[dict[str, str]]]:
+def _load_configuration(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
     value, findings = _read_json(root / PROFILE_PATH, "repository-profile")
     if findings:
         return None, findings
@@ -101,7 +102,7 @@ def _load_configuration(root: Path) -> tuple[dict[str, object] | None, list[dict
     return value, []
 
 
-def _load_policy(root: Path) -> tuple[dict[str, object] | None, list[dict[str, str]]]:
+def _load_policy(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
     value, findings = _read_json(root / POLICY_PATH, "release-policy")
     if findings:
         return None, findings
@@ -190,8 +191,8 @@ def _is_text(path: str) -> bool:
 
 def _validate_source(
     root: Path,
-    configuration: dict[str, object],
-    policy: dict[str, object],
+    configuration: dict[str, Any],
+    policy: dict[str, Any],
     candidate_sha: str,
     tag: str,
     require_tag_ref: bool,
@@ -280,14 +281,14 @@ def _validate_source(
         tracked = _tracked_files(root)
         identity = configuration.get("identity")
         identity_excludes: set[str] = set()
-        template_tokens: list[str] = []
+        source_template_tokens: list[str] = []
         if isinstance(identity, dict):
             raw_excludes = identity.get("exclude_paths")
             raw_tokens = identity.get("template_tokens")
             if isinstance(raw_excludes, list):
                 identity_excludes.update(item for item in raw_excludes if isinstance(item, str))
             if isinstance(raw_tokens, list):
-                template_tokens.extend(item for item in raw_tokens if isinstance(item, str))
+                source_template_tokens.extend(item for item in raw_tokens if isinstance(item, str))
         excludes = set(policy["source_scan_exclude_paths"]) | identity_excludes
         placeholder_pattern = re.compile(r"\{\{[A-Z][A-Z0-9_]*\}\}")
         for relative in tracked:
@@ -305,7 +306,7 @@ def _validate_source(
                     "unresolved placeholder or template block marker",
                 ))
             folded = text.casefold()
-            for token in template_tokens:
+            for token in source_template_tokens:
                 if token.casefold() in folded:
                     findings.append(_finding(
                         "template-identity", relative,
@@ -443,7 +444,7 @@ def _validate_evidence_and_assets(
     root: Path,
     evidence_path: Path,
     manifest_path: Path | None,
-    policy: dict[str, object],
+    policy: dict[str, Any],
     profile: str | None,
     version: str | None,
     tag: str,
@@ -524,7 +525,7 @@ def _validate_evidence_and_assets(
             continue
         relative = asset.get("path")
         digest = asset.get("sha256")
-        if not _safe_relative(relative):
+        if not isinstance(relative, str) or not _safe_relative(relative):
             findings.append(_finding("invalid-release-asset", item_path, "path must be safe and repository-relative"))
             continue
         if relative in evidence_entries:
@@ -540,7 +541,7 @@ def _validate_evidence_and_assets(
             findings.append(_finding("failed-package-test", item_path, "package_test must be PASS"))
         if not any(PurePosixPath(relative).match(pattern) for pattern in allowed):
             findings.append(_finding("unapproved-binary", relative, "asset path is not approved for this profile"))
-        target = root / PurePosixPath(relative)
+        target = root / relative
         try:
             resolved = target.resolve(strict=True)
             resolved.relative_to(root.resolve())
@@ -565,7 +566,7 @@ def build_report(
     evidence_path: Path,
     manifest_path: Path | None,
     require_tag_ref: bool,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     findings: list[dict[str, str]] = []
     configuration, configuration_findings = _load_configuration(root)
     policy, policy_findings = _load_policy(root)
@@ -603,7 +604,7 @@ def build_report(
     }
 
 
-def console_report(report: dict[str, object]) -> str:
+def console_report(report: dict[str, Any]) -> str:
     lines = []
     for item in report["findings"]:
         lines.append(f"[FAIL] {item['code']}: {item['path']}: {item['message']}")
@@ -615,7 +616,7 @@ def console_report(report: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     status = str(report["status"]).upper()
     lines = [
         "# Release-integrity validation", "",
@@ -649,7 +650,7 @@ def _write_atomic(path: Path, content: str) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def _fixture_configuration(profile: str) -> dict[str, object]:
+def _fixture_configuration(profile: str) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "mode": "template" if profile == "template" else "generated",
@@ -669,12 +670,12 @@ def _fixture_configuration(profile: str) -> dict[str, object]:
 def _fixture_evidence(
     profile: str,
     sha: str,
-    policy: dict[str, object],
+    policy: dict[str, Any],
     *,
     distribution: str = "source-only",
-    assets: list[dict[str, object]] | None = None,
-) -> dict[str, object]:
-    checks: dict[str, dict[str, object]] = {}
+    assets: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    checks: dict[str, dict[str, Any]] = {}
     for check_id in policy["core_checks"] + policy["profiles"][profile]["required_checks"]:
         checks[check_id] = {
             "status": "PASS",
@@ -704,7 +705,7 @@ def _fixture_evidence(
     }
 
 
-def _fixture_repository(root: Path, profile: str, policy: dict[str, object]) -> str:
+def _fixture_repository(root: Path, profile: str, policy: dict[str, Any]) -> str:
     (root / ".github").mkdir(parents=True)
     (root / "src").mkdir()
     (root / PROFILE_PATH).write_text(json.dumps(_fixture_configuration(profile), indent=2) + "\n", encoding="utf-8")
@@ -782,7 +783,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             evidence = temporary / f"positive-{profile}.json"
             manifest: Path | None = None
             distribution = "source-only"
-            assets: list[dict[str, object]] = []
+            assets: list[dict[str, Any]] = []
             if profile in {"application", "ui-component"}:
                 distribution = "binary"
                 asset = case / "dist" / f"fixture-{profile}.xlsm"
@@ -818,7 +819,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             evidence_data = _fixture_evidence(profile, sha, policy)
             evidence.write_text(json.dumps(evidence_data, indent=2) + "\n", encoding="utf-8")
             manifest_path: Path | None = None
-            context = {
+            context: dict[str, Any] = {
                 "root": case, "sha": sha, "evidence": evidence,
                 "evidence_data": evidence_data, "manifest": manifest,
                 "manifest_path": manifest_path, "tag": "v1.0.0",
@@ -922,9 +923,13 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             "incorrect-digest", lambda c: binary_mutation(c, approved=True, digest_matches=False),
             "asset-digest-mismatch", profile="application",
         )
+        def missing_manifest_mutation(context) -> None:
+            binary_mutation(context, approved=True, digest_matches=True)
+            context.update(manifest_path=None)
+
         negative(
             "missing-asset-manifest",
-            lambda c: (binary_mutation(c, approved=True, digest_matches=True), c.update(manifest_path=None)),
+            missing_manifest_mutation,
             "missing-asset-manifest", profile="application",
         )
         def asset_binding_mutation(context) -> None:

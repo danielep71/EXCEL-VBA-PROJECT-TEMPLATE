@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 import re
 import sys
+from typing import Any
 
 CONFIG_PATH = ".github/repository-profile.json"
 SEMVER_RE = re.compile(
@@ -82,8 +83,8 @@ def valid_date(value: str) -> bool:
     return True
 
 
-def analyze(version: str, changelog: str, repository: str) -> dict[str, object]:
-    findings: list[dict[str, object]] = []
+def analyze(version: str, changelog: str, repository: str) -> dict[str, Any]:
+    findings: list[dict[str, Any]] = []
     try:
         version_semver = parse_semver(version)
     except ValueError as error:
@@ -100,7 +101,7 @@ def analyze(version: str, changelog: str, repository: str) -> dict[str, object]:
             "message": f"Changelog requires exactly one [Unreleased] heading; observed {len(unreleased_lines)}.",
         })
 
-    releases: list[dict[str, object]] = []
+    releases: list[dict[str, Any]] = []
     seen: dict[str, int] = {}
     for number, raw in enumerate(changelog.splitlines(), start=1):
         match = HEADING_RE.match(raw)
@@ -218,14 +219,14 @@ def analyze(version: str, changelog: str, repository: str) -> dict[str, object]:
     }
 
 
-def run_check(root: Path) -> dict[str, object]:
+def run_check(root: Path) -> dict[str, Any]:
     version = (root / "VERSION").read_text(encoding="utf-8").strip()
     changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     config = json.loads((root / CONFIG_PATH).read_text(encoding="utf-8"))
     return analyze(version, changelog, config["repository"])
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     lines = [
         "## Release semantics",
         "",
@@ -248,7 +249,7 @@ def markdown_report(report: dict[str, object]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def fixture(version: str, headings: list[tuple[str, str]], links: dict[str, str]) -> dict[str, object]:
+def fixture(version: str, headings: list[tuple[str, str]], links: dict[str, str]) -> dict[str, Any]:
     repository = "example/repo"
     lines = ["# Changelog", "", "## [Unreleased]", "", "No unreleased changes.", ""]
     for value, date_text in headings:
@@ -270,7 +271,7 @@ def canonical_links(versions: list[str]) -> dict[str, str]:
 
 
 def run_self_test() -> int:
-    cases: list[tuple[str, str, dict[str, object]]] = []
+    cases: list[tuple[str, str, dict[str, Any]]] = []
     stable_versions = ["1.1.0", "1.0.0"]
     cases.append(("valid-stable", "pass", fixture("1.1.0", [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-04")], canonical_links(stable_versions))))
     pre_versions = ["1.1.0-rc.1", "1.0.0"]

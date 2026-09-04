@@ -19,7 +19,7 @@ import stat
 import subprocess
 import sys
 import tempfile
-from typing import Iterable
+from typing import Any, Iterable
 
 
 CONFIG_PATH = ".github/repository-profile.json"
@@ -118,7 +118,7 @@ def _encode(path: str, text: str) -> bytes:
     return text.encode(encoding)
 
 
-def _load_config(root: Path) -> dict[str, object]:
+def _load_config(root: Path) -> dict[str, Any]:
     try:
         document = json.loads((root / CONFIG_PATH).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
@@ -168,7 +168,7 @@ def _parse_assignments(entries: Iterable[str], option: str) -> dict[str, list[st
 def _validate_values(
     root: Path,
     tracked: set[str],
-    catalogue: dict[str, dict[str, object]],
+    catalogue: dict[str, dict[str, Any]],
     scalar_entries: Iterable[str],
     repeatable_entries: Iterable[str],
     *,
@@ -241,7 +241,7 @@ def _render_blocks(
     profile: str,
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
-    catalogue: dict[str, dict[str, object]],
+    catalogue: dict[str, dict[str, Any]],
 ) -> str:
     output: list[str] = []
     active: tuple[str, bool] | None = None
@@ -285,7 +285,7 @@ def _replacement_values(
     profile: str,
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
-    catalogue: dict[str, dict[str, object]],
+    catalogue: dict[str, dict[str, Any]],
 ) -> dict[str, str]:
     values = dict(scalars)
     for name, specification in catalogue.items():
@@ -327,7 +327,7 @@ def _directory_readme(project_name: str, profile: str, directory: str) -> bytes:
 
 
 def _record(profile: str, scalars: dict[str, str], repeatable: dict[str, list[str]]) -> bytes:
-    values: dict[str, object] = dict(sorted(scalars.items()))
+    values: dict[str, Any] = dict(sorted(scalars.items()))
     values.update({name: items for name, items in sorted(repeatable.items())})
     document = {
         "schema_version": 1,
@@ -339,7 +339,7 @@ def _record(profile: str, scalars: dict[str, str], repeatable: dict[str, list[st
 
 def _already_initialized(
     root: Path,
-    config: dict[str, object],
+    config: dict[str, Any],
     profile: str,
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
@@ -488,7 +488,7 @@ def _sha256(data: bytes | None) -> str | None:
     return hashlib.sha256(data).hexdigest() if data is not None else None
 
 
-def _plan(root: Path, profile: str, changes: dict[str, bytes | None]) -> dict[str, object]:
+def _plan(root: Path, profile: str, changes: dict[str, bytes | None]) -> dict[str, Any]:
     entries = []
     for path, after in changes.items():
         target = root / path
@@ -531,7 +531,8 @@ def _apply_changes(root: Path, changes: dict[str, bytes | None]) -> None:
                 stream.write(after)
                 stream.flush()
                 os.fsync(stream.fileno())
-            mode = stat.S_IMODE(originals[path][1]) if originals[path] is not None else 0o644
+            original = originals[path]
+            mode = stat.S_IMODE(original[1]) if original is not None else 0o644
             os.chmod(temporary, mode)
             staged[path] = temporary
 
@@ -599,7 +600,7 @@ def _copy_fixture(source: Path, destination: Path) -> None:
 
 def _quality_report(
     root: Path,
-) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
     report_path = root.parent / f"{root.name}-quality.json"
     try:
         completed = subprocess.run(

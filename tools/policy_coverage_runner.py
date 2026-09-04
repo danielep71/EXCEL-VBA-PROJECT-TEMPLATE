@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from typing import Callable
+from typing import Any, Callable
 
 from policy_coverage_core import (CORE_TOOL, TOOL_NAME, CoverageError, load_module, production_finding_sites, rule_by_id)
 from policy_coverage_cases_config import configuration_cases
@@ -15,8 +15,8 @@ from policy_coverage_cases_repo import repository_cases
 from policy_coverage_cases_quality import quality_cases
 
 
-def run_core_coverage(root: Path) -> dict[str, object]:
-    module = load_module(root / CORE_TOOL, "coverage_check_repo")
+def run_core_coverage(root: Path) -> dict[str, Any]:
+    module: Any = load_module(root / CORE_TOOL, "coverage_check_repo")
     source_sites = production_finding_sites(root / CORE_TOOL)
     executed: dict[str, set[str]] = {key: set() for key in source_sites}
     unexpected_sites: dict[str, set[str]] = {}
@@ -35,7 +35,7 @@ def run_core_coverage(root: Path) -> dict[str, object]:
         return original_finding(*args, **kwargs)
 
     module.finding = recording_finding
-    case_results: list[dict[str, object]] = []
+    case_results: list[dict[str, Any]] = []
 
     def run_case(name: str, expected_rule: str, mutate: Callable[[Path], None], pattern: str | None = None) -> None:
         nonlocal current_case
@@ -129,19 +129,19 @@ def run_core_coverage(root: Path) -> dict[str, object]:
     }
 
 
-def run_tool_selftest(root: Path, relative: str) -> dict[str, object]:
+def run_tool_selftest(root: Path, relative: str) -> dict[str, Any]:
     completed = subprocess.run([sys.executable, str(root / relative), "--root", str(root), "--self-test"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     output = (completed.stdout + completed.stderr).strip()
     return {"tool": relative, "status": "pass" if completed.returncode == 0 else "fail", "exit_code": completed.returncode, "summary": output.splitlines()[-1] if output else "no output"}
 
 
-def operational_exit_fixture(root: Path) -> dict[str, object]:
+def operational_exit_fixture(root: Path) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="policy-coverage-not-git-") as temporary:
         completed = subprocess.run([sys.executable, str(root / CORE_TOOL), "--root", temporary], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     return {"id": "top-level-operational-error", "status": "pass" if completed.returncode == 2 else "fail", "exit_code": completed.returncode, "expected_exit_code": 2}
 
 
-def delegated_workflow_fixtures(root: Path) -> dict[str, object]:
+def delegated_workflow_fixtures(root: Path) -> dict[str, Any]:
     workflow_source = (root / "tools/test_workflow_validation.py").read_text(encoding="utf-8")
     workflow = (root / ".github/workflows/static-checks.yml").read_text(encoding="utf-8")
     fixture_probes = ("valid-local-action", "invalid-yaml", "duplicate-job", "invalid-job-structure", "malformed-local-action", "missing-local-entrypoint")
@@ -150,7 +150,7 @@ def delegated_workflow_fixtures(root: Path) -> dict[str, object]:
     return {"owner": "tools/test_workflow_validation.py", "execution": "delegated-authoritative-workflow-step", "fixtures": list(fixture_probes), "status": "pass" if not missing and wired else "fail", "missing": missing, "terminally_required": wired}
 
 
-def build_report(root: Path) -> dict[str, object]:
+def build_report(root: Path) -> dict[str, Any]:
     core = run_core_coverage(root)
     focused_tools = (
         "tools/check_committed_whitespace.py",
@@ -205,7 +205,7 @@ def build_report(root: Path) -> dict[str, object]:
     }
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     counts = report["counts"]
     lines = ["## Policy branch coverage", "", f"- **Status:** {str(report['status']).upper()}", f"- **Canonical finding sites:** {counts['canonical_covered']}/{counts['canonical_sites']} covered", f"- **Canonical synthetic cases:** {counts['canonical_cases']}", f"- **Focused gate self-tests:** {counts['focused_selftests']}", f"- **Matrix rows:** {counts['matrix_rows']}", f"- **Reviewed non-blocking exclusions:** {counts['exclusions']}"]
     if report["uncovered"]:

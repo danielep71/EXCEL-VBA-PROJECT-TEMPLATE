@@ -10,6 +10,11 @@ from policy_coverage_core import add_force, mutate_config, mutate_labels, rewrit
 def configuration_cases(module: ModuleType) -> list[tuple[str, str, str | None, Callable[[Path], None]]]:
     cases: list[tuple[str, str, str | None, Callable[[Path], None]]] = []
 
+    def assign(**values: object) -> Callable[[dict], None]:
+        def mutate(document: dict) -> None:
+            document.update(values)
+        return mutate
+
     def case(name: str, rule: str, pattern: str | None = None):
         def register(function: Callable[[Path], None]) -> Callable[[Path], None]:
             cases.append((name, rule, pattern, function))
@@ -28,14 +33,14 @@ def configuration_cases(module: ModuleType) -> list[tuple[str, str, str | None, 
 
     ccase("config-root-keys", lambda d: d.__setitem__("extra", True), "canonical configuration keys")
     ccase("config-mode-invalid", lambda d: d.__setitem__("mode", "invalid"), "mode must be")
-    ccase("config-template-profile", lambda d: (d.__setitem__("mode", "template"), d.__setitem__("profile", "library")), "Template mode requires profile")
+    ccase("config-template-profile", assign(mode="template", profile="library"), "Template mode requires profile")
     ccase("config-generated-profile", lambda d: d.__setitem__("profile", "invalid"), "Generated mode requires profile")
     ccase("config-repository-form", lambda d: d.__setitem__("repository", "invalid"), "owner/name")
     ccase("config-string-list-type", lambda d: d.__setitem__("required_paths", None), "array of strings")
     ccase("config-string-list-duplicate-order", lambda d: d.__setitem__("required_paths", ["z", "a", "a"]), None)
     ccase("config-invalid-relative-path", lambda d: d.__setitem__("required_paths", ["../bad"]), "invalid relative path")
     ccase("config-label-domain-name", lambda d: d.__setitem__("label_domains", ["Bad_Name"]), "non-kebab-case")
-    ccase("config-template-domains", lambda d: (d.__setitem__("mode", "template"), d.__setitem__("profile", None), d.__setitem__("repository", "example/TEMPLATE-IDENTITY"), d.__setitem__("label_domains", ["domain"])), "Template mode requires label_domains")
+    ccase("config-template-domains", assign(mode="template", profile=None, repository="example/TEMPLATE-IDENTITY", label_domains=["domain"]), "Template mode requires label_domains")
     ccase("config-profiles-shape", lambda d: d.__setitem__("profiles", {}), "profiles must contain exactly")
     ccase("config-profile-entry-shape", lambda d: d["profiles"]["library"].__setitem__("extra", True), "required_paths, required_directories")
     ccase("config-contract-shape", lambda d: d["profiles"]["library"].__setitem__("vba_contract", {}), "minimum_roles and required_components")
@@ -68,7 +73,7 @@ def configuration_cases(module: ModuleType) -> list[tuple[str, str, str | None, 
     ccase("config-identity-shape", lambda d: d.__setitem__("identity", {}), "identity must contain exactly")
     ccase("config-template-tokens-empty", lambda d: d["identity"].__setitem__("template_tokens", []), "template_tokens must not be empty")
     ccase("config-repository-forbidden-token", lambda d: d.__setitem__("repository", "example/DONOR-PROJECT"), "forbidden donor token")
-    ccase("config-template-identity-missing", lambda d: (d.__setitem__("mode", "template"), d.__setitem__("profile", None), d.__setitem__("repository", "example/plain")), "Template mode repository")
+    ccase("config-template-identity-missing", assign(mode="template", profile=None, repository="example/plain"), "Template mode repository")
     ccase("config-generated-template-identity", lambda d: d.__setitem__("repository", "example/TEMPLATE-IDENTITY"), "Generated mode repository")
     ccase("config-vba-shape", lambda d: d.__setitem__("vba", {}), "vba must contain exactly")
     ccase("config-vba-roots-overlap", lambda d: d["vba"].__setitem__("test_roots", ["src"]), "source and test roots must not overlap")

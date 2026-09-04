@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from typing import Any
 
 EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 TOOL_NAME = "Committed whitespace"
@@ -58,7 +59,7 @@ def run_check(
     mode: str,
     head_revision: str = "HEAD",
     base_revision: str | None = None,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     if mode == "committed":
         base, head, basis = resolve_committed_scope(root, head_revision, base_revision)
         completed = git(root, "diff", "--check", base, head, "--")
@@ -108,7 +109,7 @@ def run_check(
     }
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     lines = [
         "## Committed whitespace" if report["mode"] == "committed" else "## Working-tree whitespace",
         "",

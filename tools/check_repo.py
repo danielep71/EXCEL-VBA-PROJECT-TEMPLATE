@@ -21,7 +21,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from typing import Callable, Iterable
+from typing import Any, Callable, Iterable
 from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
 
@@ -239,8 +239,8 @@ class Repository:
 
 def finding(
     path: str, message: str, line: int | None = None
-) -> dict[str, object]:
-    item: dict[str, object] = {"path": path, "message": message}
+) -> dict[str, Any]:
+    item: dict[str, Any] = {"path": path, "message": message}
     if line is not None:
         item["line"] = line
     return item
@@ -249,9 +249,9 @@ def finding(
 def rule_result(
     rule_id: str,
     title: str,
-    failures: list[dict[str, object]],
+    failures: list[dict[str, Any]],
     success_summary: str,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     if failures:
         count = len(failures)
         return {
@@ -301,7 +301,7 @@ def _valid_relative_path(value: str) -> bool:
 def _string_list(
     value: object,
     field: str,
-    failures: list[dict[str, object]],
+    failures: list[dict[str, Any]],
     *,
     paths: bool = False,
 ) -> list[str]:
@@ -326,8 +326,8 @@ def _string_list(
 
 def load_configuration(
     repo: Repository,
-) -> tuple[dict[str, object] | None, dict[str, object]]:
-    failures: list[dict[str, object]] = []
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    failures: list[dict[str, Any]] = []
     try:
         document = json.loads(repo.text(CONFIG_PATH))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
@@ -572,6 +572,7 @@ def load_configuration(
             )
         )
     else:
+        assert isinstance(placeholders, dict)
         pattern = placeholders.get("pattern")
         if not isinstance(pattern, str):
             failures.append(finding(CONFIG_PATH, "placeholders.pattern must be a string."))
@@ -711,6 +712,7 @@ def load_configuration(
             )
         )
     else:
+        assert isinstance(identity, dict)
         forbidden_tokens = _string_list(
             identity.get("forbidden_tokens"),
             "identity.forbidden_tokens",
@@ -769,6 +771,7 @@ def load_configuration(
             )
         )
     else:
+        assert isinstance(vba, dict)
         source_roots = _string_list(
             vba.get("source_roots"), "vba.source_roots", failures, paths=True
         )
@@ -828,7 +831,7 @@ def load_configuration(
 
 
 def _effective_requirements(
-    config: dict[str, object],
+    config: dict[str, Any],
 ) -> tuple[list[str], list[str]]:
     paths = list(config["required_paths"])
     directories = list(config["required_directories"])
@@ -843,9 +846,9 @@ def _effective_requirements(
 
 
 def check_required_paths(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    failures: list[dict[str, object]] = []
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
     tracked = set(repo.files)
     paths, directories = _effective_requirements(config)
     for path in paths:
@@ -878,14 +881,14 @@ def _markdown_link_label(text: str, end: int) -> bool:
 
 
 def check_placeholders(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     settings = config["placeholders"]
     pattern = re.compile(settings["pattern"])
     excluded = set(settings["exclude_paths"])
     allowed = {"{{" + name + "}}" for name in settings["catalogue"]}
     seen: set[str] = set()
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     checked = 0
     for path in repo.files:
         if path in excluded or not is_text_file(path):
@@ -948,14 +951,14 @@ def check_placeholders(
 
 
 def check_identity(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     settings = config["identity"]
     tokens = list(settings["forbidden_tokens"])
     if config["mode"] == "generated":
         tokens.extend(settings["template_tokens"])
     excluded = set(settings["exclude_paths"])
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     checked = 0
     for path in repo.files:
         if path in excluded or not is_text_file(path):
@@ -1017,10 +1020,10 @@ def _is_ignored(repo: Repository, probe: str) -> bool:
 
 
 def check_dotfile_policy(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     try:
         sections = _editorconfig_sections(repo.text(".editorconfig"))
     except (OSError, UnicodeError) as error:
@@ -1191,10 +1194,10 @@ def validate_yaml_subset(text: str) -> list[tuple[int, str]]:
 
 
 def check_structured_data(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     counts = {"json": 0, "yaml": 0, "xml": 0}
     for path in repo.files:
         suffix = PurePosixPath(path).suffix.casefold()
@@ -1256,9 +1259,9 @@ def _markdown_destinations(text: str) -> Iterable[tuple[int, str]]:
             continue
         for match in inline.finditer(line):
             yield number, match.group(1).strip()
-        match = reference.match(line)
-        if match:
-            yield number, match.group(1).strip()
+        reference_match = reference.match(line)
+        if reference_match:
+            yield number, reference_match.group(1).strip()
 
 
 def _split_destination(raw: str) -> tuple[str, str]:
@@ -1309,10 +1312,10 @@ def _github_slugs(text: str) -> set[str]:
 
 
 def check_markdown_links(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     checked = 0
     slug_cache: dict[Path, set[str]] = {}
     for path in repo.files:
@@ -1384,10 +1387,10 @@ def check_markdown_links(
 
 
 def check_text_integrity(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     conflict = re.compile(r"^(?:<{7}|={7}|>{7})(?:\s|$)", re.MULTILINE)
     private_key_marker = "-----BEGIN " + "PRIVATE KEY-----"
     github_token_prefix = "gh" + "p_"
@@ -1433,13 +1436,13 @@ def check_text_integrity(
                         line_number(text, offset),
                     )
                 )
-        match = aws_key.search(text)
-        if match:
+        aws_match = aws_key.search(text)
+        if aws_match:
             failures.append(
                 finding(
                     path,
                     "Possible AWS access key is tracked.",
-                    line_number(text, match.start()),
+                    line_number(text, aws_match.start()),
                 )
             )
     return rule_result(
@@ -1451,9 +1454,9 @@ def check_text_integrity(
 
 
 def check_forbidden_artifacts(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    failures: list[dict[str, object]] = []
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
     allowed = config["allowed_office_binary_globs"]
     for path in repo.files:
         pure = PurePosixPath(path)
@@ -1504,10 +1507,10 @@ def _has_bare_cr(data: bytes) -> bool:
 
 
 def check_line_endings(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     checked = 0
     for path in repo.files:
         if not is_text_file(path):
@@ -1561,7 +1564,7 @@ def _validate_label_array(
     labels: object,
     location: str,
     seen: dict[str, str],
-    failures: list[dict[str, object]],
+    failures: list[dict[str, Any]],
 ) -> None:
     if not isinstance(labels, list):
         failures.append(finding(LABEL_MANIFEST_PATH, f"{location} must be an array."))
@@ -1638,9 +1641,9 @@ def _validate_label_array(
 
 
 def check_label_manifest(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    failures: list[dict[str, object]] = []
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
     try:
         document = json.loads(repo.text(LABEL_MANIFEST_PATH))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
@@ -1683,6 +1686,7 @@ def check_label_manifest(
             )
         )
     else:
+        assert isinstance(overlays, dict)
         profiles = overlays.get("profile")
         if not isinstance(profiles, dict) or set(profiles) != set(SUPPORTED_PROFILES):
             failures.append(
@@ -1756,7 +1760,7 @@ def check_label_manifest(
     return result
 
 
-ISSUE_FORM_SPECS: dict[str, dict[str, object]] = {
+ISSUE_FORM_SPECS: dict[str, dict[str, Any]] = {
     "bug.yml": {
         "label": "bug",
         "title": "[Bug]: ",
@@ -1819,9 +1823,9 @@ def _issue_form_blocks(text: str) -> list[tuple[str, str | None]]:
 
 
 def check_issue_forms(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    failures: list[dict[str, object]] = []
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
     try:
         manifest = json.loads(repo.text(LABEL_MANIFEST_PATH))
     except (OSError, UnicodeError, json.JSONDecodeError):
@@ -1921,10 +1925,10 @@ def check_issue_forms(
 
 
 def check_workflow_actions(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     checked = 0
     uses_line = re.compile(
         r"^\s*(?:-\s*)?uses:\s*([^\s#]+)(?:\s+#\s*(.+?))?\s*$"
@@ -1986,9 +1990,9 @@ def check_workflow_actions(
 
 
 def check_version_changelog(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    failures: list[dict[str, object]] = []
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
     try:
         version = repo.text("VERSION").strip()
     except (OSError, UnicodeError) as error:
@@ -2040,11 +2044,11 @@ def check_version_changelog(
 
 
 def check_git_diff(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
     completed = repo._git("diff", "--check", "HEAD", "--", check=False)
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     if completed.returncode != 0:
         detail = (completed.stdout + completed.stderr).strip()
         failures.append(finding(".", detail or "git diff --check failed"))
@@ -2065,10 +2069,10 @@ def _vba_paths(repo: Repository) -> list[str]:
 
 
 def check_vba_option_explicit(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     declaration = re.compile(
         r"^\s*Option\s+Explicit\b", re.IGNORECASE | re.MULTILINE
     )
@@ -2089,10 +2093,10 @@ def check_vba_option_explicit(
 
 
 def check_vba_export_header(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     declaration = re.compile(r'^Attribute VB_Name = "([^"]*)"$')
     identifier = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
     declared: dict[str, str] = {}
@@ -2200,10 +2204,10 @@ def _strip_vba_line(line: str) -> str:
 
 
 def check_vba_structure(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     opener = re.compile(
         r"^\s*(?:Public|Private|Friend)?\s*(?:Static\s+)?"
         r"(Sub|Function|Property\s+(?:Get|Let|Set))\s+([A-Za-z_]\w*)\b",
@@ -2328,13 +2332,13 @@ def check_vba_structure(
 
 
 def check_vba_visibility(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     settings = config["vba"]
     components = settings["components"]
     source_roots = settings["source_roots"]
     test_roots = settings["test_roots"]
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     tracked_vba = set(_vba_paths(repo))
     governed = {
         path
@@ -2389,8 +2393,8 @@ def check_vba_visibility(
 
 
 def check_generated_vba_contract(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     """Require substantive facade, core, and test assets for each profile."""
 
     profiles = config["profiles"]
@@ -2401,8 +2405,8 @@ def check_generated_vba_contract(
         if config["mode"] == "template"
         else (config["profile"],)
     )
-    failures: list[dict[str, object]] = []
-    profile_evidence: dict[str, object] = {}
+    failures: list[dict[str, Any]] = []
+    profile_evidence: dict[str, Any] = {}
 
     for profile in selected_profiles:
         contract = profiles[profile]["vba_contract"]
@@ -2476,7 +2480,7 @@ def check_generated_vba_contract(
 
 def _public_surface(
     repo: Repository, components: dict[str, str]
-) -> tuple[list[str], list[dict[str, object]]]:
+) -> tuple[list[str], list[dict[str, Any]]]:
     declaration = re.compile(
         r"^\s*Public\s+(?:Static\s+)?"
         r"(Sub|Function|Property\s+(?:Get|Let|Set)|Enum|Type|Const)"
@@ -2484,7 +2488,7 @@ def _public_surface(
         re.IGNORECASE,
     )
     surface: list[str] = []
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     global_names: dict[str, str] = {}
     for path, role in components.items():
         if role != "public" or not repo.path(path).is_file():
@@ -2515,8 +2519,8 @@ def _public_surface(
 
 
 def check_vba_public_api(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     settings = config["vba"]
     manifest = settings["public_api_manifest"]
     actual, failures = _public_surface(repo, settings["components"])
@@ -2559,7 +2563,7 @@ def check_vba_public_api(
     )
 
 
-Check = Callable[[Repository, dict[str, object]], dict[str, object]]
+Check = Callable[[Repository, dict[str, Any]], dict[str, Any]]
 CHECKS: tuple[Check, ...] = (
     check_required_paths,
     check_placeholders,
@@ -2584,7 +2588,7 @@ CHECKS: tuple[Check, ...] = (
 )
 
 
-def build_report(root: Path) -> dict[str, object]:
+def build_report(root: Path) -> dict[str, Any]:
     """Run the complete canonical rule set and return a deterministic report."""
 
     repo = Repository(root)
@@ -2636,7 +2640,7 @@ def _markdown_escape(value: object) -> str:
     return str(value).replace("|", r"\|").replace("\n", " ")
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     status = str(report["status"]).upper()
     counts = report["counts"]
     lines = [
@@ -2687,7 +2691,7 @@ def markdown_report(report: dict[str, object]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def console_report(report: dict[str, object]) -> str:
+def console_report(report: dict[str, Any]) -> str:
     lines = []
     for result in report["rules"]:
         marker = "PASS" if result["status"] == "pass" else "FAIL"
@@ -2723,7 +2727,7 @@ def _write_fixture(path: Path, content: str | bytes, *, crlf: bool = False) -> N
         path.write_text(normalized, encoding="utf-8", newline="\n")
 
 
-def _fixture_configuration() -> dict[str, object]:
+def _fixture_configuration() -> dict[str, Any]:
     forbidden_identity = "DONOR" + "-PROJECT"
     template_identity = "TEMPLATE" + "-IDENTITY"
     return {
@@ -2835,7 +2839,7 @@ def _fixture_configuration() -> dict[str, object]:
     }
 
 
-def _fixture_labels() -> dict[str, object]:
+def _fixture_labels() -> dict[str, Any]:
     return {
         "schema_version": 1,
         "prune": False,
