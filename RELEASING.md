@@ -1,93 +1,55 @@
 # 🚀 {{PROJECT_NAME}} Release Guide
 
 [![Release model: exact source](https://img.shields.io/badge/release-exact%20source-0969da)](#release-invariants)
-[![Versioning: SemVer](https://img.shields.io/badge/versioning-SemVer-3f4551)](#versioning)
-[![Evidence: required](https://img.shields.io/badge/evidence-required-success)](#evidence-record)
-[![Security policy](https://img.shields.io/badge/security-policy-success)](SECURITY.md)
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![SemVer contract](https://img.shields.io/badge/versioning-SemVer-3f4551)](docs/RELEASE_SEMANTICS.md)
+[![Evidence contract](https://img.shields.io/badge/evidence-required-success)](docs/RELEASE_EVIDENCE.md)
+[![Security policy](https://img.shields.io/badge/security-private-d73a49)](SECURITY.md)
 
-This maintainer guide turns a reviewed commit into a traceable {{PROJECT_NAME}} release. Source identity, validation, packaging, provenance, and publication must describe the same candidate.
+This document is authoritative for the **maintainer release sequence**. Strict
+version/changelog semantics are owned by
+[`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md); external evidence JSON,
+profile evidence and asset-manifest schemas are owned by
+[`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
 
 > [!IMPORTANT]
-> Release only an initialized project. Never publish example commands, artifact
-> names, inherited evidence, or unresolved template tokens.
+> Generated-project releases must be fully initialized. The canonical template's
+> own release is the documented exception: it preserves registered template
+> tokens and uses the `template` release-evidence profile.
 
-## 🧭 Release profile
+## 🧭 Release identity
 
-| Property | Requirement |
+| Property | Authority |
 | --- | --- |
-| Project maturity | Initialized {{PROFILE_NAME}} project |
-| Version source | [VERSION](VERSION) |
-| Version scheme | Semantic Versioning |
-| Tag format | Lower-case `vMAJOR.MINOR.PATCH` matching `VERSION` |
-| Changelog | [CHANGELOG.md](CHANGELOG.md) |
-| Installation contract | [INSTALLATION.md](INSTALLATION.md) |
-| Vulnerability handling | [SECURITY.md](SECURITY.md) |
-| License | [MIT](LICENSE) |
+| Project/profile | {{PROJECT_NAME}} / {{PROFILE_NAME}} |
+| Current version | [`VERSION`](VERSION) |
+| User-visible history | [`CHANGELOG.md`](CHANGELOG.md) |
+| SemVer/changelog policy | [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) |
+| Installation contract | [`INSTALLATION.md`](INSTALLATION.md) |
+| Evidence schema | [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) |
+| Vulnerability handling | [`SECURITY.md`](SECURITY.md) |
 
 <a id="release-invariants"></a>
+
 ## 🔒 Release invariants
 
-A release is valid only when all of these statements are true:
+A release is valid only when:
 
-1. The candidate is identified by its full SHA and is reachable from protected `main`.
-2. Release scope is frozen; unrelated work is deferred.
-3. `VERSION`, changelog, source headers, package metadata, and documentation agree.
-4. Static checks pass on the exact candidate.
-5. VBA compiles and project-specific certification passes on that candidate.
-6. Every binary artifact is built from that candidate, then tested as packaged.
-7. Hashes and evidence bind artifacts to the candidate and tool environment.
-8. The annotated lower-case tag points to the certified commit.
-9. The GitHub Release uses that tag and the reviewed notes and assets.
-10. Post-publication checks confirm that a new user can retrieve and validate it.
+1. one exact candidate SHA is frozen and reviewable;
+2. version/changelog/tag semantics pass the strict release-semantic gate;
+3. repository/static checks pass on that candidate;
+4. VBA compile and applicable regression/specialist checks pass on that candidate;
+5. every distributed artifact is derived from and tested against that candidate;
+6. external evidence and optional asset hashes bind to the candidate;
+7. the annotated lower-case `v*` tag targets the certified commit; and
+8. post-publication retrieval/installation checks pass.
 
-If an invariant is false, stop and repair the candidate. Never compensate by editing an already-tested artifact manually.
-
-## 🗂️ Authority map
-
-| Concern | Authoritative record |
-| --- | --- |
-| Current project version | `VERSION` |
-| User-visible changes | `CHANGELOG.md` |
-| Released source identity | Annotated Git tag and full commit SHA |
-| Supported installation | `INSTALLATION.md` |
-| Published binaries | GitHub Release assets |
-| Integrity | SHA-256 hashes recorded with the release |
-| Validation | Evidence record retained for the candidate |
-| Vulnerability disclosure | `SECURITY.md` |
-
-<a id="versioning"></a>
-## 🧮 Versioning
-
-Use `MAJOR.MINOR.PATCH` without a leading `v` inside `VERSION`.
-
-- **MAJOR**: incompatible public API, behavior, file-format, or migration change.
-- **MINOR**: backward-compatible capability.
-- **PATCH**: backward-compatible correction or package/documentation fix included in the release.
-- Use pre-release identifiers only when their support meaning is documented.
-
-The Git tag adds the lower-case prefix: version `1.2.3` becomes annotated tag `v1.2.3`. Do not use upper-case `V`, moving tags, or a tag that differs from `VERSION`.
-
-## ✅ Readiness review
-
-- All template placeholders have been replaced.
-- The actual support matrix and import order are documented in `INSTALLATION.md`.
-- Every planned item is merged or explicitly deferred.
-- Compatibility and migration consequences are understood.
-- Security-sensitive work has completed private handling where necessary.
-- The working tree and exported VBA sources are reproducible.
-- Maintainers and required reviewers are available.
-
-Use this document as a release-control baseline. Delete an irrelevant gate only when the project cannot exercise it, and document the reason.
+If source changes after certification, the affected evidence is stale and must be
+rerun. Never compensate by manually editing an already-tested artifact.
 
 ## 1. Freeze and identify the candidate
 
-1. Update refs and start from current protected `main`.
-2. Create the release-preparation branch required by repository policy.
-3. Record the base and candidate full commit SHAs.
-4. Stop feature work on that branch.
-5. Review the complete diff from the previous release tag.
-6. Confirm that generated and binary changes are intentional.
+Start from the repository's protected release path, freeze scope, and record the
+exact base/candidate revisions.
 
 ```bash
 git fetch --tags --prune
@@ -96,123 +58,117 @@ git status --short
 git diff --stat <previous-tag>...HEAD
 ```
 
-A dirty tree, unknown generated file, or unreviewed binary delta is blocking.
+A dirty tree, unexplained generated file or unreviewed binary delta is blocking.
 
-## 2. Synchronize version surfaces
+## 2. Synchronize version and user-visible change surfaces
 
-Update every applicable surface in one reviewable change:
+Update the applicable release surfaces in one reviewable change:
 
-- `VERSION`
-- `CHANGELOG.md`
-- authoritative exported source files and component manifests
-- README installation examples
-- package metadata, if any
+- `VERSION`;
+- the dated `CHANGELOG.md` release section and comparison links;
+- user-facing documentation/examples affected by the release; and
+- package metadata where the project actually has one.
 
-Search for the prior version and retain only intentional historical references. Never rewrite historical changelog sections or immutable evidence.
-
-## 3. Finalize the changelog
-
-Move relevant entries from **Unreleased** into a dated
-`[MAJOR.MINOR.PATCH] - YYYY-MM-DD` section.
-
-- Describe user-visible behavior, not commit mechanics.
-- Use Added, Changed, Deprecated, Removed, Fixed, and Security where applicable.
-- Link issues or pull requests when they improve traceability.
-- Do not claim an artifact, platform, or guarantee that was not certified.
-- Keep an empty Unreleased section for future work.
-- Add or verify the comparison link for the new version.
-
-## 4. Verify documentation and installation
-
-- Follow [INSTALLATION.md](INSTALLATION.md) from a clean environment.
-- Verify source paths, import order, module names, prerequisites, and upgrades.
-- Confirm README examples use the supported API and current version.
-- Check [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and license links.
-- Remove stale commands and promises beyond the tested support matrix.
-- For a generated-project release, confirm all template tokens and construction
-  history are gone. For this canonical template's own release, preserve the
-  registered tokens and template-only blocks and require the `template`
-  evidence profile instead.
-
-## 5. Run static gates
-
-- Run `python3 tools/check_repo.py --root .` and every project-specific gate.
-- Run `python3 tools/check_release.py --root . --self-test` to certify the
-  release checker and its profile/failure fixtures.
-- Confirm formatting and exported-source integrity.
-- Scan for credentials, private data, generated noise, and unresolved placeholders.
-
-Capture commands, tool versions, timestamps, and complete results. Rerun affected gates after any change.
-
-## 6. Certify in Excel
-
-- Open the exact candidate in each supported Excel environment. For a template
-  release, import the candidate's neutral starter exports directly; do not
-  initialize or rename them before certification.
-- Run **Debug → Compile VBAProject**.
-- Run the documented Excel regression entry point and record the result. The
-  neutral baseline is `ProjectTests.RunProjectTests`; it must report four cases,
-  six assertions, zero failures, complete execution, and passing cleanup until
-  the generated project deliberately replaces that starter contract.
-- Exercise every required UI, lifecycle, platform, or manual smoke test.
-
-Certification rules:
-
-- Use a clean workbook or documented clean fixture.
-- Import only candidate files.
-- Record Excel version, Windows version, and Office bitness.
-- Test the advertised environment matrix.
-- Treat warnings, repairs, or unexplained numerical deltas as failures.
-- If code changes after certification, restart static and Excel validation.
-
-## 7. Build release artifacts
-
-List the exact planned primary, demo, and source artifacts before building.
-Source-only library releases do not need an artificial binary asset.
-
-For each artifact:
-
-1. Start from a clean build location.
-2. Use only candidate-controlled inputs.
-3. Preserve required form and resource companions.
-4. Compile before saving.
-5. Exclude developer-only tests unless the artifact promises them.
-6. Reopen and run the packaged smoke or regression test.
-7. Record filename, size, and SHA-256.
-8. Never edit the artifact after hashing.
-
-```powershell
-Get-FileHash -Algorithm SHA256 .\dist\<artifact>
-```
+Do not duplicate SemVer/order/link rules here. Run the authoritative semantic
+contract:
 
 ```bash
-sha256sum dist/<artifact>
+python3 tools/check_release_semantics.py --root . --self-test
+python3 tools/check_release_semantics.py --root .
 ```
 
-Publish only artifacts promised by the installation guide.
+Historical changelog sections and immutable evidence remain historical.
 
-Create the external evidence JSON and, for a binary distribution, the sorted
-SHA-256 asset manifest described in
-[`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md). Keeping evidence outside
-the candidate avoids a commit-hash self-reference while still requiring every
-record to identify the exact candidate.
+## 3. Verify documentation and installation
 
-## 8. Review and merge
+From a clean environment:
 
-Where policy requires a pull request, make these items easy to verify:
+- follow [`INSTALLATION.md`](INSTALLATION.md);
+- verify source paths, component names, prerequisites and supported upgrade path;
+- verify README examples and the supported public surface;
+- confirm the security and license links; and
+- remove stale compatibility or evidence claims.
 
-- intended version, previous tag, and candidate SHA;
-- changelog and version synchronization;
-- static and Excel results;
-- artifact manifest and hashes;
-- compatibility, migration, and security notes;
+For a generated-project release, verify no unresolved template state remains.
+For the canonical template's own release, preserve registered template state and
+use the `template` evidence profile.
+
+## 4. Run repository and release gates
+
+At minimum:
+
+```bash
+python3 tools/check_repo.py --root . --self-test
+python3 tools/check_repo.py --root .
+python3 tools/check_release.py --root . --self-test
+```
+
+Run every project-specific numerical, UI, lifecycle, performance or packaging
+gate as well. A stronger specialist gate is additive; the generic repository
+gate never replaces it.
+
+For changes to checker behavior, also run the checker-development and semantic
+policy-coverage contracts documented in
+[`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md).
+
+## 5. Certify in Excel
+
+Use the exact candidate source in each advertised Excel environment:
+
+1. import only candidate-controlled exports;
+2. run **Debug → Compile VBAProject**;
+3. execute the documented regression entry point;
+4. run applicable UI/lifecycle/platform/manual checks; and
+5. record environment, counts, failures, completeness and cleanup.
+
+The neutral starter baseline is `ProjectTests.RunProjectTests`; until replaced by
+the generated project's own contract it reports four cases, six assertions,
+zero failures, complete execution and passing cleanup.
+
+Source inspection is not Excel execution. If code changes, recertify.
+
+## 6. Build and test release artifacts
+
+Source-only libraries do not need an artificial binary asset. When the project
+ships a workbook/add-in/package:
+
+1. build from a clean location using only candidate-controlled inputs;
+2. preserve required binary companions such as `.frx` files;
+3. exclude development-only material unless promised;
+4. reopen and smoke/regression-test the packaged artifact;
+5. record filename, size and SHA-256; and
+6. never edit the artifact after hashing.
+
+The exact manifest format and profile-specific evidence requirements are defined
+only in [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
+
+## 7. Create and validate external evidence
+
+Keep candidate-binding release evidence outside the candidate tree to avoid
+self-referential commit hashes. Prepare the evidence JSON and, when applicable,
+the sorted asset manifest according to
+[`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
+
+The evidence must identify the exact candidate, executed checks, environment and
+material limitations. A release note summarizes evidence; it does not replace it.
+
+## 8. Review and merge the release candidate
+
+The release review should make these facts easy to verify:
+
+- target version and previous tag;
+- candidate SHA and final diff;
+- semantic/repository/release gate results;
+- Excel and specialist evidence;
+- artifact manifest/hashes when applicable;
+- compatibility/migration/security notes; and
 - remaining limitations.
 
-Require configured checks and record the resulting `main` SHA. If the merge changes source identity, certify that commit before tagging.
+If the merge changes source identity, certify the merged commit before tagging.
 
-## 9. Create the annotated tag
+## 9. Create the protected annotated tag
 
-Tag only the certified commit on `main`. Run the release gate before and after
+Tag only the certified commit. Run the release-integrity checker before and after
 creating the local annotated tag:
 
 ```bash
@@ -221,6 +177,7 @@ git pull --ff-only
 candidate_sha="$(git rev-parse HEAD)"
 release_version="$(tr -d '\r\n' < VERSION)"
 release_tag="v${release_version}"
+
 python3 tools/check_release.py \
   --root . \
   --tag "$release_tag" \
@@ -228,118 +185,68 @@ python3 tools/check_release.py \
   --evidence ../release-evidence.json \
   --output test-results/release-integrity.json \
   --summary test-results/release-integrity.md
+
 git tag -a "$release_tag" -m "{{PROJECT_NAME}} ${release_version}"
+
 python3 tools/check_release.py \
   --root . \
   --tag "$release_tag" \
   --candidate-sha "$candidate_sha" \
   --evidence ../release-evidence.json \
   --require-tag-ref
-git show --no-patch --decorate "$release_tag"
+
 git push origin "$release_tag"
 ```
 
-Add `--asset-manifest ../release-assets.sha256` to both checker invocations for
-a binary distribution. Do not push the tag if either invocation fails.
-The checker enforces tag/version/changelog equality and the exact annotated-tag
-target. Never delete and recreate or move a public tag to hide a mistake.
-
-<a id="evidence-record"></a>
-## 🧾 Evidence record
-
-Retain at least:
-
-- candidate commit SHA
-- static-check output
-- Excel version and bitness
-- compile and regression result
-- checked external evidence JSON and release-integrity reports
-- artifact SHA-256 hashes
-- version and tag
-- previous release tag
-- release-preparation pull request
-- artifact filenames and sizes
-- validation timestamps
-- known deviations and approving reviewer
-
-A release note summarizes evidence; it does not replace it.
+Add `--asset-manifest ../release-assets.sha256` when the release distributes
+binary assets. Do not push the tag if either check fails. Never move or recreate
+a public tag to hide an error.
 
 ## 10. Publish the GitHub Release
 
-Create the release from the annotated tag and include:
+Create the release from the protected annotated tag. Include:
 
-1. User-facing summary and highlights.
-2. Upgrade or migration notes.
-3. Supported platform statement.
-4. Known limitations.
-5. Installation link.
-6. Asset table with SHA-256 hashes.
-7. Full changelog comparison link.
-8. Security-reporting link.
+- user-facing summary/highlights;
+- upgrade or migration notes;
+- supported platform statement;
+- known limitations;
+- installation link;
+- artifact/hash table when applicable;
+- changelog comparison link; and
+- security-reporting link.
 
-Upload the already-hashed artifacts. Do not rebuild between tagging and upload.
+Upload the already-tested, already-hashed artifacts. Do not rebuild between
+certification/tagging and publication.
 
 ## 11. Verify after publication
 
-| Check | Result |
-| --- | :---: |
-| Tag resolves to the certified SHA | ☐ |
-| `VERSION` and changelog match the tag | ☐ |
-| Assets download and hashes match | ☐ |
-| Installation links and examples work | ☐ |
-| Packaged artifact opens and passes its smoke test | ☐ |
-| Source archive contains expected release files | ☐ |
-| Default branch is ready for the next Unreleased cycle | ☐ |
+- [ ] Tag resolves to the certified SHA.
+- [ ] `VERSION` and changelog agree with the tag.
+- [ ] Published assets download and hashes match.
+- [ ] Installation and documentation links work.
+- [ ] Packaged artifact, when present, passes its published smoke test.
+- [ ] Source archive contains the expected release tree.
+- [ ] Default branch is ready for the next Unreleased cycle.
 
 Do not announce broad availability until these checks pass.
 
 ## 🧯 Recovery
 
-### Before tag publication
+Before publication, repair the candidate and rerun every affected gate. After a
+public release, never silently replace assets or move the tag: document the
+problem and publish a corrected patch release. Vulnerability handling follows
+[`SECURITY.md`](SECURITY.md).
 
-Fix the branch or pull request, update evidence, and rerun affected gates. Rebuilding invalidates the prior hash and packaged-test result.
+## 📚 Related authorities
 
-### After tag, before GitHub Release
-
-Pause publication and document the correction. Prefer a new patch candidate whenever the tag may have propagated.
-
-### After public release
-
-Do not silently replace assets or move the tag.
-
-- Mark a dangerous release clearly and remove assets only for user safety.
-- Publish a corrected patch with a new tag.
-- Record the problem and remedy in the changelog.
-- Use [SECURITY.md](SECURITY.md) for vulnerabilities.
-- Preserve evidence explaining what users received.
-
-## ☑️ Final maintainer checklist
-
-| # | Gate | Done |
-| ---: | --- | :---: |
-| 1 | Scope frozen and diff reviewed | ☐ |
-| 2 | Version surfaces synchronized | ☐ |
-| 3 | Changelog finalized | ☐ |
-| 4 | Installation verified cleanly | ☐ |
-| 5 | Static checks pass | ☐ |
-| 6 | Excel certification passes | ☐ |
-| 7 | Artifacts built and packaged-tested | ☐ |
-| 8 | Hashes and evidence recorded | ☐ |
-| 9 | Required pull request merged | ☐ |
-| 10 | Annotated tag targets certified main SHA | ☐ |
-| 11 | GitHub Release published | ☐ |
-| 12 | Post-publication checks pass | ☐ |
-
-## 📚 Related documents
-
-- [README.md](README.md) — project overview
-- [INSTALLATION.md](INSTALLATION.md) — deployment and removal
-- [CONTRIBUTING.md](CONTRIBUTING.md) — change and review workflow
-- [CHANGELOG.md](CHANGELOG.md) — release history
-- [SECURITY.md](SECURITY.md) — supported versions and private reporting
-- [VERSION](VERSION) — authoritative version
-- [LICENSE](LICENSE) — MIT license
+- [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) — exact version/changelog semantics
+- [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) — evidence and asset-manifest schema
+- [`INSTALLATION.md`](INSTALLATION.md) — clean install/upgrade validation
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — change/review workflow
+- [`SECURITY.md`](SECURITY.md) — vulnerability handling
+- [`docs/README.md`](docs/README.md) — complete documentation authority map
 
 ---
 
-**Release principle:** certify one exact source revision, build from it once, and publish only evidence-backed artifacts derived from it.
+**Release principle:** certify one exact source revision, derive artifacts from it
+once, and publish only evidence-backed output bound to that revision.
