@@ -3,7 +3,7 @@
 [![P1: certified](https://img.shields.io/badge/P1-certified-success)](#p1-certification-gate)
 [![Release: v1.0.0](https://img.shields.io/badge/release-v1.0.0-217346)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0)
 [![v1.1.0: active](https://img.shields.io/badge/v1.1.0-active-1D76DB)](#v110-execution)
-[![P2: 10/12](https://img.shields.io/badge/P2-10%2F12-6F42C1)](#p2-hardening)
+[![P2: 11/12](https://img.shields.io/badge/P2-11%2F12-6F42C1)](#p2-hardening)
 [![Policy branches: 175/175](https://img.shields.io/badge/policy%20branches-175%2F175-success)](#p2-07)
 
 **Owner:** Daniele Penza
@@ -16,7 +16,7 @@
 
 **Certified baseline:** `v1.0.0`
 
-**Plan revision:** 21 — P2-08 complete; v1.1.0 execution state synchronized
+**Plan revision:** 22 — P2-09 complete; P2-12 is the final v1.1.0 finding
 
 **Plan date:** 4 September 2026
 
@@ -43,19 +43,19 @@ merge back to `main`.
 | Measure | State |
 | --- | ---: |
 | P2 findings | 12 |
-| Complete | **10** |
-| Open | **2** |
+| Complete | **11** |
+| Open | **1** |
 | Canonical repository rules | **21/21** |
 | Canonical blocking finding sites covered | **175/175** |
 | Final merge to `main` | Not yet |
 
 ### Remaining execution order
 
-1. **#16 / P2-09** — consolidate duplicated documentation contracts.
-2. **#20 / P2-12** — detect live label drift without untrusted writes.
-3. Synchronize maintained documentation, changelog and release notes.
-4. Run the complete `v1.1.0` certification gate at one exact branch head.
-5. Merge PR #41 once into `main`.
+1. **#20 / P2-12** — detect live label drift without untrusted writes.
+2. Synchronize maintained documentation, changelog and release notes.
+3. Run the complete `v1.1.0` certification gate at one exact branch head.
+4. Merge PR #41 once into `main`.
+5. Revalidate the merged candidate.
 6. Tag/publish `v1.1.0` only from the certified merged candidate.
 
 ## 2. 🏛️ Certified v1.0.0 Baseline
@@ -98,12 +98,12 @@ GitHub Actions evidence and the published v1.0.0 release.
 | P2-06 | #10 — release semantics | ✅ Complete | Strict SemVer precedence, dates, release ordering, duplicates, VERSION agreement and comparison links are deterministic. |
 | P2-07 | #18 — blocking policy-branch fixtures | ✅ Complete | AST inventory proves every canonical production finding site is exercised; 175/175 covered with deterministic machine-readable evidence. |
 | P2-08 | #17 — checker development contract | ✅ Complete | `check_repo.py` remains the single-file standard-library runtime; seven internal ownership boundaries, independent parser/reporter/CLI tests, canonical check order and artifact SHA-256 are enforced by `checker_development.py` and a dedicated read-only workflow. |
-| P2-09 | #16 — documentation authority/consolidation | 🔵 Active | Assign one authority per evolving contract, eliminate contradictory duplication and shorten the first-use path without deleting substantive controls. |
+| P2-09 | #16 — documentation authority/consolidation | ✅ Complete | `docs/README.md` assigns one authority per evolving contract; root onboarding surfaces are task-focused and duplicate normative text was replaced by links without weakening initializer/security/release/evidence boundaries. |
 | P2-10 | #15 — metadata/public presentation | ✅ Complete | Specific description/topics, intentional features/merge settings, social preview and private vulnerability reporting are established. |
 | P2-11 | #19 — operational label overlays | ✅ Complete | Versioned profile/domain selection drives deterministic label reconciliation and exact post-run evidence. |
-| P2-12 | #20 — live label drift detection | ⏳ Next | Add read-only scheduled/explicit drift detection; writes remain restricted to trusted reconciliation events. |
+| P2-12 | #20 — live label drift detection | 🔵 Active | Add read-only scheduled/explicit drift detection; writes remain restricted to trusted reconciliation events. |
 
-**P2 completion:** **10 / 12 findings complete.**
+**P2 completion:** **11 / 12 findings complete.**
 
 ### Evidence ledger
 
@@ -112,12 +112,13 @@ GitHub Actions evidence and the published v1.0.0 release.
 | P2-01–P2-06 | Dedicated focused gates and their deterministic self-tests pass on `v1.1.0`; each issue is closed with exact implementation/run evidence. |
 | P2-07 | Closure head `1748b22285fb3e3e24cc8bc7cfa7d0720353ef82`; PR run `33915808719` passed 175/175 policy sites, all focused gates, initializer, 21/21 repository rules, artifact publication and terminal enforcement. |
 | P2-08 | Head `678762f1986200b90ded002fd17de12547bb6eaf`; checker-development run `33917719222` and full repository run `33917719103` both passed. Runtime CLI and standard-library-only dependency contract remain unchanged. |
+| P2-09 | Closure head `f4db29cdcda8338eedea90375e0e6f7597ea5e6e`; checker-development run `33918544152` and full run `33918544321` both passed, including all three initialized profiles, 175/175 coverage and 21/21 repository rules. |
 | P2-10 | Certified repository metadata/social-preview state retained from v1.0.0 work. |
 | P2-11 | Certified versioned label-selection and exact reconciliation evidence retained from v1.0.0 work. |
 
 ## 4. 🔬 Current Checker Assurance Model
 
-The repository-quality stack now has distinct responsibilities:
+The repository-quality stack has distinct responsibilities:
 
 | Layer | Purpose |
 | --- | --- |
@@ -143,31 +144,22 @@ if a production site becomes uncovered. Current certified branch evidence is
 **175/175**. Numeric Python line coverage is deliberately not used as a proxy
 for policy assurance.
 
-## 5. 📚 P2-09 — Documentation Consolidation
+## 5. 📚 P2-09 — Documentation Consolidation — Complete
 
-Issue #16 now owns the next work package.
+`docs/README.md` now acts as the durable authority map. The root README is the
+short first-use/navigation surface; detailed operational rules are owned by the
+specialized documents that maintain them.
 
-### Required outcome
-
-- define one maintained authority for each evolving contract;
-- convert duplicated normative text elsewhere into concise summaries plus links;
-- preserve historical evidence as historical evidence rather than current instruction;
-- keep first-use/navigation material short and task-oriented;
-- retain exact security, release, initialization, contribution and certification protections;
-- keep all internal Markdown links/anchors passing the repository gate.
-
-### Acceptance gate
-
-- no contradictory duplicate for any maintained operational contract;
-- README/installation/contribution/release/security/checker-development navigation is coherent;
-- specialized detail remains discoverable without copying the same policy into multiple files;
-- all documentation links and anchors pass;
-- initializer, policy coverage, repository checker and hosted terminal gate remain green.
+The consolidation retained initializer tokens and profile-removable blocks,
+private security reporting, source-first rules, exact-SHA release/evidence
+boundaries, conduct enforcement, and all generated-profile links. A first hosted
+run caught a profile-heading mismatch; the established initializer sentinels were
+restored in the README rather than weakening the initializer. The final exact
+head passed all three generated profiles and the complete hosted gate.
 
 ## 6. 🔭 P2-12 — Live Label Drift Detection
 
-After P2-09, issue #20 will add a read-only drift control around the already
-trusted label reconciliation path.
+Issue #20 is the final P2 work package.
 
 Required properties:
 
@@ -175,7 +167,7 @@ Required properties:
 - no writes from untrusted pull-request or scheduled drift-check contexts;
 - deterministic report of missing, extra or changed labels;
 - explicit trusted reconciliation remains the only mutation path;
-- terminal CI evidence distinguishes drift detection from synchronization.
+- terminal evidence distinguishes drift detection from synchronization.
 
 ## 7. 🌱 v1.2.0 / P3 Roadmap
 
@@ -199,8 +191,7 @@ No P3 work is required to merge or release v1.1.0.
 
 The branch may be merged only when all statements below are true:
 
-- [x] P2-01 through P2-08 are closed with exact evidence.
-- [ ] P2-09 documentation authority/consolidation is closed.
+- [x] P2-01 through P2-09 are closed with exact evidence.
 - [x] P2-10 and P2-11 certified capabilities remain intact.
 - [ ] P2-12 read-only label drift detection is closed.
 - [ ] All open v1.1.0 issues are zero.
@@ -215,8 +206,8 @@ The branch may be merged only when all statements below are true:
 
 ## 9. ➡️ Immediate Next Action
 
-Implement **#16 / P2-09**: consolidate duplicated documentation contracts while
-preserving every substantive control and every historical evidence boundary.
+Implement **#20 / P2-12**: add read-only live-label drift detection while keeping
+all mutation in the existing trusted reconciliation path.
 
 ---
 
