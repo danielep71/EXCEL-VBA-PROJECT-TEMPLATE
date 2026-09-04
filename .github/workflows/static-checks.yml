@@ -106,23 +106,25 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          if [[ -f test-results/static-checks.md ]]; then
-            cat test-results/static-checks.md >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "## Static repository checks" >> "$GITHUB_STEP_SUMMARY"
-            echo >> "$GITHUB_STEP_SUMMARY"
-            echo "The checker did not produce its Markdown report." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-          echo >> "$GITHUB_STEP_SUMMARY"
-          if [[ -f test-results/workflow-validation.md ]]; then
-            cat test-results/workflow-validation.md >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "## Authoritative workflow validation" >> "$GITHUB_STEP_SUMMARY"
-            echo >> "$GITHUB_STEP_SUMMARY"
-            echo "The authoritative validator did not produce its report." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
+          {
+            if [[ -f test-results/static-checks.md ]]; then
+              cat test-results/static-checks.md
+            else
+              echo "## Static repository checks"
+              echo
+              echo "The checker did not produce its Markdown report."
+              exit 1
+            fi
+            echo
+            if [[ -f test-results/workflow-validation.md ]]; then
+              cat test-results/workflow-validation.md
+            else
+              echo "## Authoritative workflow validation"
+              echo
+              echo "The authoritative validator did not produce its report."
+              exit 1
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload static-check evidence
         id: artifact
