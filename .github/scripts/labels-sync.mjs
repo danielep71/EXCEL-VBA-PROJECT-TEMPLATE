@@ -330,7 +330,28 @@ function markdownEscape(value) {
   return String(value).replaceAll("|", "\\|").replaceAll("\n", " ");
 }
 
-function renderSummary({ mode, manifest, desiredCount, profile, domains, changes = [], verified = null, dryRun = false, error = null }) {
+function renderLabelNames(labels) {
+  if (labels.length === 0) return "none";
+  return labels.map(label => markdownEscape(JSON.stringify(label.name))).join(", ");
+}
+
+function renderSummary({
+  mode,
+  manifest,
+  manifestPath,
+  policyPath,
+  desiredLabels,
+  profile,
+  domains,
+  changes = [],
+  verified = null,
+  dryRun = false,
+  error = null
+}) {
+  const coreLabels = manifest?.core ?? [];
+  const profileLabels = profile === null ? [] : manifest?.overlays?.profile?.[profile] ?? [];
+  const domainLabels = domains.flatMap(domain => manifest?.overlays?.domain?.[domain] ?? []);
+  const resolvedLabels = desiredLabels ?? [];
   const counts = Object.fromEntries(["create", "update", "delete"].map(action => [
     action,
     changes.filter(change => change.action === action).length
@@ -339,8 +360,10 @@ function renderSummary({ mode, manifest, desiredCount, profile, domains, changes
     "# Repository label synchronization",
     "",
     `- Mode: \`${mode}\`${dryRun ? " (dry run)" : ""}`,
+    `- Policy source: \`${policyPath ?? "unavailable"}\``,
+    `- Label manifest: \`${manifestPath ?? "unavailable"}\``,
     `- Schema: **${manifest?.schema_version ?? "unavailable"}**`,
-    `- Core / selected labels: **${manifest?.core?.length ?? 0} / ${desiredCount}**`,
+    `- Core / selected labels: **${coreLabels.length} / ${resolvedLabels.length}**`,
     `- Profile overlay: **${profile ?? "none"}**`,
     `- Domain overlays: **${domains.length > 0 ? domains.join(", ") : "none"}**`,
     `- Prune: **${manifest?.prune ? "enabled" : "disabled"}**`,
@@ -348,6 +371,15 @@ function renderSummary({ mode, manifest, desiredCount, profile, domains, changes
     `- Create / update / delete: **${counts.create} / ${counts.update} / ${counts.delete}**`
   ];
   if (verified !== null) lines.push(`- Post-run exact match: **${verified ? "yes" : "no"}**`);
+  lines.push(
+    "",
+    "## Resolved label catalogue",
+    "",
+    `- Core labels (${coreLabels.length}): ${renderLabelNames(coreLabels)}`,
+    `- Profile labels (${profile ?? "none"}; ${profileLabels.length}): ${renderLabelNames(profileLabels)}`,
+    `- Domain labels (${domains.length > 0 ? domains.join(", ") : "none"}; ${domainLabels.length}): ${renderLabelNames(domainLabels)}`,
+    `- Complete resolved set (${resolvedLabels.length}): ${renderLabelNames(resolvedLabels)}`
+  );
   if (error) {
     lines.push("", "## Failure", "", `\`${markdownEscape(error)}\``);
   } else if (changes.length === 0) {
@@ -457,9 +489,12 @@ async function runSelfTest(manifestPath, policyPath) {
   assert.deepEqual(planChanges(desired, caseDrift)[0].fields, ["name"]);
 
   const overlay = structuredClone(baseline);
+  overlay.overlays.profile.library = [{ name: "library", color: "654321", description: "Library profile label" }];
   overlay.overlays.domain.alpha = [{ name: "alpha", color: "123ABC", description: "Alpha domain label" }];
   overlay.overlays.domain.example = [{ name: "example", color: "ABCDEF", description: "Example domain label" }];
-  assert.equal(resolveDesired(overlay, { profile: "library", domains: ["example"] }).length, desired.length + 1);
+  const selectedOverlay = validateManifest(overlay);
+  const selectedLabels = resolveDesired(selectedOverlay, { profile: "library", domains: ["example"] });
+  assert.equal(selectedLabels.length, desired.length + 2);
 
   const domainPolicy = structuredClone(generatedPolicy);
   domainPolicy.label_domains = ["example"];
@@ -477,6 +512,23 @@ async function runSelfTest(manifestPath, policyPath) {
   unsortedDomainPolicy.label_domains = ["example", "alpha"];
   expectFailure(() => resolvePolicySelection(unsortedDomainPolicy, overlay), /sorted/);
 
+  const summary = renderSummary({
+    mode: "plan",
+    manifest: selectedOverlay,
+    manifestPath: "fixture-labels.json",
+    policyPath: "fixture-policy.json",
+    desiredLabels: selectedLabels,
+    profile: "library",
+    domains: ["example"],
+    dryRun: true
+  });
+  assert.match(summary, /Policy source: `fixture-policy\.json`/);
+  assert.match(summary, /Label manifest: `fixture-labels\.json`/);
+  assert.match(summary, /Profile labels \(library; 1\): "library"/);
+  assert.match(summary, /Domain labels \(example; 1\): "example"/);
+  assert.match(summary, new RegExp(`Complete resolved set \\(${selectedLabels.length}\\):`));
+  for (const label of selectedLabels) assert.match(summary, new RegExp(`"${label.name}"`));
+
   process.stdout.write("SELF-TEST PASS: validation, policy, overlay, and reconciliation fixtures\n");
 }
 
@@ -492,7 +544,9 @@ async function main() {
   const desired = resolveDesired(manifest, selection);
   const summaryBase = {
     manifest,
-    desiredCount: desired.length,
+    manifestPath: options.manifest,
+    policyPath: options.policy,
+    desiredLabels: desired,
     profile: selection.profile,
     domains: selection.domains
   };
@@ -536,7 +590,9 @@ main().catch(async error => {
     await publishSummary(renderSummary({
       mode: "failed",
       manifest: null,
-      desiredCount: 0,
+      manifestPath: null,
+      policyPath: null,
+      desiredLabels: [],
       profile: null,
       domains: [],
       error: message

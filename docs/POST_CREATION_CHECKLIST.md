@@ -30,7 +30,9 @@ On the first trusted push to `main`, or by a deliberate manual dispatch, run
 `Sync issue labels`. The workflow must resolve policy itself; do not supply an
 unrecorded profile or domain at dispatch time.
 
-- [ ] The workflow summary names the selected profile and every domain.
+- [ ] The workflow summary names `.github/repository-profile.json` as the
+  policy source and lists the complete resolved core, profile, domain, and
+  combined label sets.
 - [ ] Post-run verification reports an exact match.
 - [ ] API read-back contains every resolved label with the expected name,
   uppercase color, and description, and contains no label pruned by policy.

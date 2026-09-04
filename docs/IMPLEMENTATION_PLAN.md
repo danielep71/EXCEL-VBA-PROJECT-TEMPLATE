@@ -8,7 +8,7 @@
 
 **Review date:** 3 September 2026
 
-**Plan revision:** 10 — canonical repository identity
+**Plan revision:** 11 — complete label-selection evidence
 
 **Plan status:** Active — P1 certification blockers remain
 
@@ -349,13 +349,15 @@ remain independently open.
 
 ### P1-07 — Post-creation and profile provisioning — file contract complete; pilot pending
 
-**Evidence:** There is no `docs/POST_CREATION_CHECKLIST.md`. Template generation
-does not inherit labels, rulesets, topics, security settings or merge settings.
-The label workflow always reconciles the core taxonomy and does not consume the
+**Original evidence:** Template generation does not inherit labels, rulesets,
+topics, security settings or merge settings. The original tree had no
+`docs/POST_CREATION_CHECKLIST.md`, and the label workflow did not consume the
 selected profile/domain overlay from repository policy.
 
-**Impact:** A correctly generated file tree can still have incorrect live
-governance. Future non-empty label overlays could be silently omitted or pruned.
+**Remaining impact:** A correctly generated file tree can still have incorrect
+live governance until the checklist is applied to and read back from a real
+pilot. The source-level label-selection and evidence gaps are closed under
+P2-11.
 
 **Required implementation:**
 
@@ -417,7 +419,7 @@ touching the same P1 code. It must not delay a necessary P1 safety correction.
 | P2-08 | The checker is a 2,600-plus-line single module | Portability is excellent, but configuration, parsers, reporters and fixtures are tightly coupled and costly to review. | Preserve a single-file distributable if desired, but develop from small tested modules or clearly separated internal sections with generated bundling. | Runtime artifact stays dependency-light; maintainers can test parsers independently. |
 | P2-09 | Documentation duplicates evolving contracts | README, contribution, installation, release, security and conduct files repeat some source/evidence rules; the combined onboarding surface exceeds 10,000 words. | Assign one authority per contract, shorten root navigation and link to specialized guidance; retain all substantive protections. | No contradictory duplicate; first-use path is short; detailed policy remains discoverable. |
 | P2-10 | Repository metadata is below template quality | Live description is only “Template repository,” topics are empty, and unused Projects/Wiki features remain enabled. | Add a specific description and relevant topics; disable unused surfaces or document their purpose; add a social preview after identity stabilizes. | Metadata explains Excel/VBA scope and template profiles; enabled features are intentional. |
-| P2-11 | Label overlays are declarative but not operationally selected | The reconciler supports profile/domain flags, while the workflow supplies neither and `workflow_dispatch` exposes no inputs. | Resolve the selected profile from versioned policy and add validated optional domain inputs; show the resolved set in evidence. | Non-empty overlay fixture reconciles and remains idempotent without unintended pruning. |
+| P2-11 — **complete** | Label overlays were declarative but not operationally selected | The reconciler now resolves profile and optional domain overlays only from `.github/repository-profile.json`; unknown, duplicate and unsorted selections fail before mutation. Plan/apply summaries name both policy files and enumerate the core, selected profile, selected domain and complete resolved label sets. | Complete. Preserve the versioned-policy trust boundary and the catalogue assertions in the self-test. | Non-empty profile/domain fixtures resolve through policy, summary evidence contains every selected label, reconciliation remains idempotent and exact-match verification prevents unintended pruning. |
 | P2-12 | Drift is not detected unless label files change | Label reconciliation runs on changes to its three files or manual dispatch only. Manual live-label edits can persist unnoticed. | Add a safe scheduled read/plan check or a portfolio drift control; reserve writes for trusted explicit events. | Live drift is reported with no untrusted mutation and can be reconciled deliberately. |
 
 ### 5.1 P2 portfolio migration rules
@@ -465,7 +467,7 @@ domain-specific gate is replaced by a weaker generic check.
 | 1 | Finalize placeholder schema and deterministic initializer — **complete** | P1-03 | None | 1.5–2.5 days |
 | 2 | Add neutral VBA façade/core modules, premium headers and harness — **complete** | P1-01 | Placeholder identifier policy | 2.5–4 days |
 | 3 | Enforce substantive generated-profile contracts and full-tree fixtures — **complete** | P1-02 | Starter assets | 1.5–2.5 days |
-| 4 | Add issue forms and post-creation checklist; wire label profile selection — **source complete; pilot pending** | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
+| 4 | Add issue forms and post-creation checklist; wire label profile selection — **P1-04 and P2-11 complete; P1-07 pilot pending** | P1-04, P1-07, P2-11 | Final token/profile schema | 1–2 days |
 | 5 | Add authoritative workflow validation and close checker false negatives — **P1-06 complete; P2 hardening remains** | P1-06, P2-01–P2-07 | Stable checker/profile schema | 2–3.5 days |
 | 6 | Add release gate, fixtures and protected-tag specification — **complete** | P1-05 | Static and placeholder gates | 1.5–2.5 days |
 | 7 | Strengthen live `main` protection and complete metadata | P1-08, P2-10 | Stable required context | 0.5–1 day |
@@ -486,7 +488,7 @@ are the largest uncertainties.
 | Root documentation | **Strong / incomplete** | Core documents and exact post-creation checklist exist; deduplication remains |
 | Canonical directories | **Complete** | All profiles retain substantive façade, core, and test assets; optional UI assets remain profile-driven |
 | Placeholder governance | **Complete** | Classified schema, dry-run/apply initializer, manual fallback and all-profile fixtures pass |
-| Collaboration files | **Complete at source level** | PR template, three issue forms/config and versioned label selection are implemented; live pilot verification remains |
+| Collaboration files | **P1-04 and P2-11 complete / P1-07 pilot pending** | PR template, three issue forms/config, policy-bound label selection and complete resolved-catalogue evidence are implemented; live pilot verification remains |
 | Repository-quality checker | **P1 complete / P2 hardening open** | The portable 21-rule gate includes direct YAML/XML fixtures; content-pinned authoritative workflow validation passed at the exact hosted SHA, while identified P2 false negatives remain |
 | Release controls | **Complete** | Dependency-free gate, profile policy, evidence contract, asset manifests and 20 fixtures pass locally and at the exact hosted SHA; active immutable `v*` protection was read back with no bypass |
 | Reusable VBA assets | **Complete** | Four governed exports, public API manifest, clean import/compile, 4-case/6-assertion Excel pass, and exact-SHA hosted checks evidenced |
