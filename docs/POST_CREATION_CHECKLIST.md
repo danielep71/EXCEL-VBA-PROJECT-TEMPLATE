@@ -1,4 +1,9 @@
-# Post-creation repository checklist
+# ✅ Post-Creation Repository Checklist
+
+[![Phase: after initialization](https://img.shields.io/badge/phase-after%20initialization-217346)](#1-confirm-the-initialized-source)
+[![Live settings: required](https://img.shields.io/badge/live%20settings-required-6f42c1)](#3-repository-identity-and-maintained-features)
+[![Evidence: read-back](https://img.shields.io/badge/evidence-read--back-success)](#8-capture-read-back-evidence)
+[![Tags: immutable](https://img.shields.io/badge/tags-immutable-1D76DB)](#6-protect-releases)
 
 Use this checklist immediately after generating and initializing a repository.
 File generation does not inherit GitHub labels, rulesets, features, topics,
@@ -8,7 +13,7 @@ Record the generated repository, selected profile, exact source SHA, operator,
 and completion date before applying settings. Evidence must come from API or UI
 read-back after each change, not from the setup command or intended values.
 
-## 1. Confirm the initialized source
+## 1. 🔎 Confirm the Initialized Source
 
 - [ ] `.github/repository-profile.json` has `mode: generated`, the correct
   `repository`, one selected `profile`, and the intended `label_domains`.
@@ -18,7 +23,7 @@ read-back after each change, not from the setup command or intended values.
 - [ ] The issue chooser renders bug, feature, and documentation forms; blank
   issues are disabled and the security link opens this repository's policy.
 
-## 2. Resolve and reconcile labels
+## 2. 🏷️ Resolve and Reconcile Labels
 
 The versioned selection authority is `.github/repository-profile.json`:
 
@@ -37,7 +42,7 @@ unrecorded profile or domain at dispatch time.
 - [ ] API read-back contains every resolved label with the expected name,
   uppercase color, and description, and contains no label pruned by policy.
 
-## 3. Repository identity and maintained features
+## 3. 🪪 Repository Identity and Maintained Features
 
 Set and then read back:
 
@@ -57,7 +62,7 @@ Never publish a private reporting address as an issue-form assignee or public
 issue body. The issue chooser points to `SECURITY.md`, which owns the reporting
 channels and disclosure process.
 
-## 4. Merge policy
+## 4. 🔀 Merge Policy
 
 The canonical single-maintainer baseline is:
 
@@ -72,7 +77,7 @@ The canonical single-maintainer baseline is:
 A project may narrow merge methods, but it must record the reason. It may not
 weaken protected-branch, exact-SHA evidence, or release-provenance requirements.
 
-## 5. Protect `main`
+## 5. 🛡️ Protect `main`
 
 Create or verify one ruleset targeting the default branch:
 
@@ -88,7 +93,7 @@ Create or verify one ruleset targeting the default branch:
 Stronger controls are allowed. A plan limitation that prevents rulesets must be
 recorded explicitly; it does not justify weakening the public baseline.
 
-## 6. Protect releases
+## 6. 🔐 Protect Releases
 
 Before the first stable release, create or verify an active ruleset targeting
 `refs/tags/v*`:
@@ -102,10 +107,13 @@ Before the first stable release, create or verify an active ruleset targeting
 Restricting creation with an empty bypass list would also prevent legitimate
 new releases. `RELEASING.md` and the pre-tag release gate therefore own creation
 authorization; the ruleset makes every matching tag immutable after creation.
-Do not create `v1.0.0` until the release gate, generated pilots, and exact-SHA
-Excel evidence are complete.
+Do not create the first stable tag until the release gate, selected-profile
+pilot or equivalent deployment proof, and exact-SHA Excel evidence are
+complete. The canonical template itself additionally requires all three
+generated-profile pilots. Follow the
+[`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) contract for the final candidate.
 
-## 7. Profile-specific controls
+## 7. 🧩 Profile-Specific Controls
 
 | Profile | Required additional review |
 | --- | --- |
@@ -116,7 +124,7 @@ Excel evidence are complete.
 Profile differences add controls; they never remove the common façade, core,
 test, issue-intake, branch, tag, or evidence baseline.
 
-## 8. Capture read-back evidence
+## 8. 📸 Capture Read-Back Evidence
 
 Preserve links or JSON responses for:
 
@@ -133,3 +141,7 @@ profile, selected domains, and the account or automation that performed the
 verification. Redact credentials and private contact details. Re-read the live
 settings after any correction and retain the final state only as certification
 evidence.
+
+---
+
+**Provisioning principle:** configure deliberately, read back independently, and retain only final verified state as evidence.

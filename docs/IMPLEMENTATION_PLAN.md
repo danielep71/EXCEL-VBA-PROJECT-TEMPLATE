@@ -1,4 +1,9 @@
-# GitHub Template and Portfolio Standardization — Code Review and Implementation Plan
+# 🗺️ GitHub Template and Portfolio Standardization — Implementation Plan
+
+[![P1: certified](https://img.shields.io/badge/P1-certified-success)](#9-p1-certification-gate)
+[![Release: v1.0.0](https://img.shields.io/badge/release-v1.0.0-217346)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0)
+[![P2: active](https://img.shields.io/badge/P2-active-1D76DB)](#5-p2-findings--material-hardening-and-portfolio-adoption)
+[![Repository rules: 21/21](https://img.shields.io/badge/repository%20rules-21%2F21-6f42c1)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions)
 
 **Owner:** Daniele Penza
 
@@ -8,7 +13,7 @@
 
 **Review date:** 4 September 2026
 
-**Plan revision:** 18 — P1 baseline certified and released
+**Plan revision:** 19 — P1 certified; documentation and P2 roadmap synchronized
 
 **Plan status:** Active — P1 complete; P2 and P3 remain
 
@@ -18,7 +23,7 @@
 > of done is satisfied. Preserve durable decisions in maintained documentation,
 > release notes, the portfolio audit and the final conformance report.
 
-## 1. Executive verdict
+## 1. 🎯 Executive Verdict
 
 At the review snapshot, `EXCEL-VBA-PROJECT-TEMPLATE` had a strong governance and
 static-analysis foundation but was not yet a complete or certifiable VBA project
@@ -42,11 +47,12 @@ must also prove that a generated repository is usable. At the reviewed snapshot:
 - there is no protected `v*` tag policy, pilot repository or published template
   release.
 
-**Historical release verdict at the review snapshot:** **NOT READY for v1.0.0.** The then-current green static check was
-valid evidence for repository-text integrity only. It is not evidence that the
-template can generate, compile, test, provision and release a VBA project.
+**Historical release verdict at the review snapshot:** **NOT READY for
+v1.0.0.** The then-current green static check was valid evidence for
+repository-text integrity only. It was not evidence that the template could
+generate, compile, test, provision, and release a VBA project.
 
-## 2. Review method and evidence
+## 2. 🔬 Review Method and Evidence
 
 The review treated this repository as a reusable Excel/VBA project template,
 not as a Python utility repository and not as a finished VBA library.
@@ -85,7 +91,7 @@ The latest reviewed static workflow completed successfully at the review SHA.
 The score nevertheless reflects the difference between **a green source tree**
 and **a proven generated VBA repository**.
 
-## 3. Detailed scoring
+## 3. 📊 Detailed Scoring
 
 | Axis | Weight | Score | Weighted points | Review judgment |
 | --- | ---: | ---: | ---: | --- |
@@ -101,7 +107,7 @@ and **a proven generated VBA repository**.
 | Pilot and certification evidence | 5% | 3.0 | 1.5 | Hosted text checks are green, but no generated-repository, Excel or release certification exists. |
 | **Overall** | **100%** |  | **65.7/100** | **6.6/10 — strong foundation, incomplete template product.** |
 
-### 3.1 Strongest current elements
+### 3.1 💎 Strongest Elements at the Review Snapshot
 
 1. The checker reports deterministic JSON and Markdown, distinguishes policy
    findings from operational failure, and documents what it cannot prove.
@@ -123,12 +129,13 @@ and **a proven generated VBA repository**.
 8. The repository avoids opaque Office binaries, secrets, locks and donor VBA
    source.
 
-## 4. P1 findings — certification blockers
+## 4. ✅ P1 Findings — Certified Baseline
 
-P1 findings must close before the template is tagged `v1.0.0` or used as the
-formal benchmark for portfolio migration.
+These findings were required to close before the template could be tagged
+`v1.0.0` or used as the formal benchmark for portfolio migration. All eight are
+complete and retained here as historical rationale and exact evidence.
 
-### P1-01 — Reusable VBA starter and harness — **complete**
+### ✅ P1-01 — Reusable VBA Starter and Harness — Complete
 
 **Original evidence:** `src/` and `tests/` contained instructional READMEs only.
 The quality report said “All 0 VBA components” and “Observed 0 public
@@ -167,7 +174,7 @@ returned `ProjectRatio(12, 4) = 3`. Hosted static checks passed 19/19 at the sam
 source SHA; all checker degradation fixtures and all three initialized-profile
 fixtures also passed.
 
-### P1-02 — Generated profiles can pass structure checks without substantive VBA — **complete**
+### ✅ P1-02 — Substantive Generated-Profile Contracts — Complete
 
 **Evidence:** Profile definitions require non-empty directories, while the VBA
 component map and public API manifest may remain empty. An instructional README
@@ -204,7 +211,7 @@ and three example-removal fixtures pass. Hosted run
 checked out that exact source SHA and passed every initializer, checker,
 repository, summary, artifact, and terminal-enforcement step.
 
-### P1-03 — Placeholder and initialization governance — closed
+### ✅ P1-03 — Placeholder and Initialization Governance — Complete
 
 **Evidence:** The catalogue contains 45 square-bracket tokens used 108 times in
 eight files, but only two tokens are classified as required. Required, optional,
@@ -242,7 +249,7 @@ generated changelog; records initialization; and accepts an identical second
 run as a no-op. Its self-test exercises positive and negative fixtures for all
 three profiles and runs the repository-quality gate over each generated tree.
 
-### P1-04 — Structured issue intake — **complete**
+### ✅ P1-04 — Structured Issue Intake — Complete
 
 **Evidence:** `.github/ISSUE_TEMPLATE/` does not exist. There are no bug,
 feature or documentation forms and no issue-template configuration.
@@ -272,7 +279,7 @@ canonical labels with no assignee; blank intake was maintainer-only and both
 security entries resolved to this repository's policy. The 21-rule checker
 also includes a positive fixture and a targeted degraded-form fixture.
 
-### P1-05 — Release integrity gate — complete
+### ✅ P1-05 — Release Integrity Gate — Complete
 
 **Evidence:** `VERSION`, the changelog and the release guide exist, but no release
 gate validates the candidate tag, dated changelog heading, required files,
@@ -315,7 +322,7 @@ targets `refs/tags/v*`, has no bypass actors, and prevents updates, deletions an
 force pushes. The documented pre-tag and annotated-tag verification commands
 bind the release path to the certified candidate; publication remains P1-08.
 
-### P1-06 — Authoritative workflow and structured-data validation — complete
+### ✅ P1-06 — Authoritative Workflow and Structured-Data Validation — Complete
 
 **Evidence:** `validate_yaml_subset` checks indentation parity, mapping-like lines,
 quotes and flow-bracket balance. It is not a complete YAML or GitHub Actions
@@ -351,7 +358,7 @@ corrected those findings without weakening enforcement, and exact-SHA hosted
 passed all steps. P1-06 is complete; the broader P2 checker-hardening findings
 remain independently open.
 
-### P1-07 — Post-creation and profile provisioning — complete
+### ✅ P1-07 — Post-Creation and Profile Provisioning — Complete
 
 **Original evidence:** Template generation does not inherit labels, rulesets,
 topics, security settings or merge settings. The original tree had no
@@ -400,7 +407,7 @@ updates, deletion and force-pushes. Generated-mode initializer fixtures also
 prove that maintained README/CHANGELOG evolution and removal of a once-recorded
 optional preview asset do not invalidate the durable initialization contract.
 
-### P1-08 — Complete: live governance, three pilots and `v1.0.0` certification
+### ✅ P1-08 — Live Governance, Three Pilots, and `v1.0.0` — Complete
 
 **Original evidence:** `main` had deletion and non-fast-forward protection only.
 The stable `Repository integrity` job was not required and pull requests were
@@ -468,10 +475,11 @@ release was published on 4 September 2026. Both generated source archives were
 read back successfully with the expected consumable tree; repository plumbing
 is intentionally excluded by `.gitattributes`.
 
-## 5. P2 findings — material hardening and portfolio adoption
+## 5. 🛠️ P2 Findings — Material Hardening and Portfolio Adoption
 
-P2 work begins after P1 certification unless a finding is safely corrected while
-touching the same P1 code. It must not delay a necessary P1 safety correction.
+P2 work is active after P1 certification. A P2 finding may still be corrected
+opportunistically when touching the same code, provided scope and evidence
+remain explicit.
 
 | ID | Finding | Evidence and risk | Required correction | Acceptance |
 | --- | --- | --- | --- | --- |
@@ -479,9 +487,9 @@ touching the same P1 code. It must not delay a necessary P1 safety correction.
 | P2-02 | VBA jump labels are scoped to the file, not the procedure | The structure checker collects all labels in a component before validating jumps. A jump can incorrectly resolve to a label in another procedure. | Parse procedure boundaries and resolve each `GoTo`/`Resume` target within its owning procedure. | Cross-procedure-label fixture fails; valid local handlers pass. |
 | P2-03 | Conditional-compilation analysis is approximate | Nested `#If`, `#ElseIf` and parent-active state are not modelled as a full branch stack, which can miss a non-PtrSafe declaration in a reachable VBA7 branch. | Track parent activity, prior branch selection and nested alternatives; add VBA6/VBA7/Win64 fixtures. | Each reachable VBA7 declaration requires `PtrSafe`; legacy branches remain allowed when policy permits. |
 | P2-04 | Public API extraction is incomplete | Only explicitly `Public` Sub/Function/Property/Enum/Type/Const declarations on one physical line are recorded. Default-public procedures, variables, events, declares and continuations can escape the manifest. | Either prohibit implicit visibility and unsupported public declarations or extend the extractor; define when a manifest becomes mandatory. | Every supported public declaration appears exactly once in the manifest and collision checks. |
-| P2-05 | Local action references are not validated | Workflow references beginning with `./` bypass pin checks but are not checked for existence or action metadata. | Resolve local action paths and require tracked `action.yml` or `action.yaml`. | Missing or malformed local actions fail. |
-| P2-06 | SemVer and changelog checks are intentionally shallow | Pre-release numeric identifiers with leading zero, actual calendar validity, ordering, duplicate versions and comparison links are not enforced. | Put strict release semantics in the release gate and keep the generic rule narrowly documented. | SemVer edge fixtures and invalid dates fail the release gate. |
-| P2-07 | Rule-level fixtures do not cover important branches | One degraded fixture per rule proves routing, not every sub-check: YAML/XML, secret patterns, BOM/VBA endings, changelog, Office locks and several VBA paths remain unexercised. | Add a table-driven branch matrix and coverage report for checker logic. | Every blocking branch has a positive or negative fixture; coverage exclusions are explicit. |
+| P2-05 | Local-action validation is incomplete | P1-06 resolves local action paths and exercises valid metadata, malformed metadata, and a missing Node entry point. Missing action directories, traversal/out-of-tree references, tracked-state enforcement, and dual `action.yml`/`action.yaml` handling remain uncovered. | Enforce repository boundaries and tracked-state, require exactly one supported metadata file, and add the missing fixtures. | Missing, traversing, untracked, malformed, or dual-metadata actions fail; a valid tracked local action passes. |
+| P2-06 | Strict SemVer and full changelog semantics are incomplete | The release gate already enforces canonical candidate version/tag agreement, one candidate heading, and real Gregorian dates. Numeric pre-release leading zeros, full precedence, global ordering/duplicates, comparison links, and valid pre-release fixtures remain. | Complete strict release semantics in the release gate while keeping the generic repository rule narrow. | SemVer precedence, ordering, duplicate, comparison-link, and valid/invalid pre-release fixtures behave deterministically. |
+| P2-07 | Blocking-branch fixture coverage is incomplete | P1-06 now covers authoritative YAML structure, malformed XML, and core local-action branches. Secret-pattern variants, BOM/VBA endings, changelog branches, Office locks, several VBA parser paths, operational-error mapping, and a machine-readable branch matrix remain. | Add a table-driven branch inventory, remaining positive/negative fixtures, and coverage evidence. | Every blocking branch maps to an asserted fixture; operational errors remain distinct and exclusions are explicit. |
 | P2-08 | The checker is a 2,600-plus-line single module | Portability is excellent, but configuration, parsers, reporters and fixtures are tightly coupled and costly to review. | Preserve a single-file distributable if desired, but develop from small tested modules or clearly separated internal sections with generated bundling. | Runtime artifact stays dependency-light; maintainers can test parsers independently. |
 | P2-09 | Documentation duplicates evolving contracts | README, contribution, installation, release, security and conduct files repeat some source/evidence rules; the combined onboarding surface exceeds 10,000 words. | Assign one authority per contract, shorten root navigation and link to specialized guidance; retain all substantive protections. | No contradictory duplicate; first-use path is short; detailed policy remains discoverable. |
 | P2-10 — **complete** | Repository metadata was below template quality | The live repository now has a specific Excel/VBA template description, ten relevant topics, an uploaded social preview, intentional feature/merge settings and enabled private vulnerability reporting. | Complete. Preserve the tracked preview source and initializer lifecycle contract; re-verify live settings during release certification. | Metadata explains Excel/VBA scope and template profiles; enabled features are intentional. |
@@ -509,7 +517,7 @@ passed. Live read-back confirmed the specific description, ten topics, disabled
 Wiki/Projects/Discussions/Sponsorships, intentional merge controls, the uploaded
 1280-by-640 preview and private vulnerability reporting enabled.
 
-### 5.1 P2 portfolio migration rules
+### 5.1 🧭 P2 Portfolio Migration Rules
 
 After `v1.0.0`, assess every existing repository against the certified baseline.
 Classify each difference as:
@@ -533,7 +541,7 @@ Migration order:
 No folder, workflow or document is renamed solely to imitate the template. No
 domain-specific gate is replaced by a weaker generic check.
 
-## 6. P3 findings — automation and long-term maturity
+## 6. 🌱 P3 Findings — Automation and Long-Term Maturity
 
 | ID | Improvement | Intended outcome |
 | --- | --- | --- |
@@ -547,7 +555,7 @@ domain-specific gate is replaced by a weaker generic check.
 | P3-08 | Add external-link and documentation-drift review. | Local links remain blocking; network-dependent links are checked separately with retry and allow-list policy. |
 | P3-09 | Add an optional Windows/Excel reusable evidence pattern. | Eligible projects can produce exact-SHA compilation/regression evidence without pretending every repository has the same runner or trust boundary. |
 
-## 7. Findings-driven implementation sequence
+## 7. 🧭 Findings-Driven Implementation Sequence
 
 | Sequence | Work package | Findings closed | Dependency | Estimated effort |
 | ---: | --- | --- | --- | ---: |
@@ -566,12 +574,12 @@ The earlier **12–21 person-day** estimate described the work from the review
 snapshot to certification and is now retired. Remaining effort belongs to the
 P2/P3 packages and portfolio-specific adoption work below.
 
-## 8. Delivery status
+## 8. 📦 Delivery Status
 
 | Package | Status after review | Evidence or remaining boundary |
 | --- | --- | --- |
 | Portfolio audit and donor decisions | **Complete** | Frozen decision record remains authoritative |
-| Root documentation | **Strong / incomplete** | Core documents and exact post-creation checklist exist; deduplication remains |
+| Root and `docs/` documentation | **Premium / P2 consolidation open** | Canonical navigation, status badges, glyph hierarchy, current/historical scoping, and the exact post-creation checklist are aligned; cross-document contract deduplication remains P2-09 |
 | Canonical directories | **Complete** | All profiles retain substantive façade, core, and test assets; optional UI assets remain profile-driven |
 | Placeholder governance | **Complete** | Classified schema, dry-run/apply initializer, manual fallback and all-profile fixtures pass |
 | Collaboration files | **Complete** | PR template, three issue forms/config, policy-bound label selection, complete resolved-catalogue evidence and all-profile pilot live read-back are certified |
@@ -588,7 +596,7 @@ for the scope it measured. This review reopens the package because template
 certification requires additional end-to-end and parser guarantees that the
 synthetic rule fixtures did not claim to provide.
 
-## 9. P1 certification gate
+## 9. ✅ P1 Certification Gate
 
 P1 passes only when all statements below are true:
 
@@ -608,7 +616,7 @@ P1 passes only when all statements below are true:
 - [x] Static, compile, regression and release evidence bind to the same candidate SHA.
 - [x] `v1.0.0` is published from that protected exact SHA.
 
-## 10. P2 and P3 exit gates
+## 10. 🏁 P2 and P3 Exit Gates
 
 P2 passes when every portfolio repository has a profile, a conformance result and
 documented deviations; generic controls are aligned; stronger specialist gates
@@ -619,8 +627,12 @@ P3 passes when template adoption is versioned, drift is detected semantically,
 repository provisioning is reproducible, reusable workflows are released and
 pinned, and automation cannot rewrite a repository without a reviewed change.
 
-## 11. Immediate next action
+## 11. ➡️ Immediate Next Action
 
 Begin **P2-01**: make committed trailing whitespace fail in a clean hosted
 checkout by validating the candidate commit/range rather than comparing `HEAD`
 with itself, and add a deterministic committed-whitespace fixture.
+
+---
+
+**Execution principle:** close findings only with exact evidence, preserve stronger specialist controls, and keep the next action unambiguous.

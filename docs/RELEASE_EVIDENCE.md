@@ -1,11 +1,16 @@
-# Release evidence contract
+# 🔐 Release Evidence Contract
+
+[![Binding: exact SHA](https://img.shields.io/badge/binding-exact%20SHA-217346)](#-evidence-json)
+[![Profiles: 4](https://img.shields.io/badge/profiles-4-6f42c1)](#-policy)
+[![Tags: annotated](https://img.shields.io/badge/tags-annotated-1D76DB)](#-commands)
+[![Assets: digest verified](https://img.shields.io/badge/assets-digest%20verified-success)](#-source--only-and-binary-distributions)
 
 This contract defines the machine-readable evidence consumed by
 `tools/check_release.py`. It binds version, changelog, tag, source checks,
 Excel evidence, profile-specific assurance, and any staged binary assets to one
 full candidate commit SHA.
 
-## Why evidence stays outside the candidate
+## 🧩 Why Evidence Stays Outside the Candidate
 
 The evidence JSON is deliberately supplied separately from the candidate Git
 tree. A committed file cannot contain the hash of the commit that contains that
@@ -14,7 +19,7 @@ evidence in the release review, a protected workflow artifact, or the draft
 release record. The checker proves that every record names the exact candidate;
 the retention mechanism preserves that checked file.
 
-## Policy
+## 📜 Policy
 
 `.github/release-policy.json` is the versioned policy. Every profile requires:
 
@@ -36,9 +41,12 @@ All checks use `status: "PASS"`, a non-empty `detail`, and the same
 `candidate_sha`. Project-specific checks may be added with lower-case,
 hyphen-separated identifiers and the same three base fields.
 
-## Evidence JSON
+## 🧾 Evidence JSON
 
 The top-level object contains exactly these fields:
+
+> **Example values:** replace the version, tag, candidate SHA, profile,
+> distribution, checks, and assets with the exact release candidate values.
 
 ```json
 {
@@ -73,7 +81,7 @@ The record reports evidence; it does not manufacture it. Copy counts and
 environment details from the exact Excel run, and retain its raw output beside
 the checked JSON.
 
-## Source-only and binary distributions
+## 📦 Source-Only and Binary Distributions
 
 A library or template release is source-only by default. Set `distribution` to
 `source-only`, keep `assets` empty, and omit the asset manifest. UI-component
@@ -111,7 +119,7 @@ identity. It does not prove that a manually built workbook was produced from
 the exported source; compile, regression, package-test, and build-process
 evidence carry that separate claim.
 
-## Commands
+## 🛠️ Commands
 
 First certify the checker itself:
 
@@ -138,7 +146,7 @@ After creating the annotated tag locally, repeat the command with
 `--require-tag-ref`. That final mode requires the tag object to be annotated and
 to resolve to the same candidate SHA. Any non-zero result blocks publication.
 
-## What the gate rejects
+## 🚫 What the Gate Rejects
 
 The deterministic self-test covers all four release profiles and rejects:
 
@@ -156,3 +164,7 @@ The deterministic self-test covers all four release profiles and rejects:
 
 The live `v*` ruleset provides the complementary server-side control: release
 tags cannot be deleted, updated, or recreated outside the protected policy.
+
+---
+
+**Release principle:** certify one immutable candidate, bind every claim to it, and publish only what the evidence proves.

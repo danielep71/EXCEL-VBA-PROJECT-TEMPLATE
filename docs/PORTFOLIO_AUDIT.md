@@ -1,6 +1,11 @@
-# Portfolio audit — canonical repository baseline
+# 🧭 Portfolio Audit — Canonical Repository Baseline
 
-> **Status:** P1.1 frozen and passed; post-audit implementation delta maintained in Section 0
+[![Status: frozen baseline](https://img.shields.io/badge/status-frozen%20baseline-1D76DB)](#2-method-and-scoring)
+[![Evidence: commit pinned](https://img.shields.io/badge/evidence-commit%20pinned-217346)](#3-frozen-default-branch-and-settings-register)
+[![Scope: 7 repositories](https://img.shields.io/badge/scope-7%20repositories-6f42c1)](#4-seven-repository-comparison-matrix)
+[![Decision: composite](https://img.shields.io/badge/decision-composite-success)](#8-canonical-donor-map)
+
+> **Status:** Donor baseline frozen; P1 implementation certified; P2 conformance pending
 >
 > **Evidence cut:** 2026-09-03 11:19 UTC
 >
@@ -8,60 +13,74 @@
 >
 > **Decision rule:** evidence quality and reusability take precedence over recency
 
-## 0. Post-audit implementation delta — 2026-09-03
+## 0. 📈 Post-Audit Implementation Outcome — 2026-09-04
 
-The evidence cut, original scores and donor decisions in Sections 1–9 remain frozen. They describe the portfolio before canonical construction began and must not be silently rewritten as repositories change. This section records implementation completed after that cut. Current-quality scores will be recalculated only after P1 certification, when the baseline is stable.
+The evidence cut, original scores, and donor decisions in Sections 1–9 remain
+frozen. They describe the portfolio before canonical construction began and
+must not be silently rewritten as repositories change. P1 certification was
+completed after that cut and the canonical template was released as `v1.0.0`.
+Portfolio repositories have not yet been rescored against the released
+baseline; that conformance assessment remains P2 work.
 
-### 0.1 Completed after the evidence cut
+### 0.1 ✅ Completed After the Evidence Cut
 
 | Area | Implemented delta | Audit consequence |
 |---|---|---|
 | Canonical root policy | The template's canonical `.editorconfig`, `.gitattributes` and `.gitignore` were adapted across all seven repositories. | Dotfile differences now reflect repository needs rather than unmanaged drift. |
-| Root governance documents | The root `README.md` was benchmarked against all seven current portfolio READMEs. It combines the mature repositories' centered identity and badge hierarchy, quick navigation, quick start, architecture, assurance ladder, documentation map, recovery, security and release boundaries without importing APIs, screenshots, test counts or compatibility claims. `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `INSTALLATION.md`, `RELEASING.md`, `VERSION` and MIT `LICENSE` were created or standardized across the eight repositories. | The root README sub-gate and reciprocal links pass. The original documentation and release scores remain historical; this work is credited in the implementation plan and the later conformance rescore. |
+| Root governance documents | The root `README.md` was benchmarked against all seven captured portfolio READMEs. It combines the mature repositories' centered identity and badge hierarchy, quick navigation, quick start, architecture, assurance ladder, documentation map, recovery, security and release boundaries without importing APIs, screenshots, test counts or compatibility claims. `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `INSTALLATION.md`, `RELEASING.md`, `VERSION` and MIT `LICENSE` were created or standardized across the eight repositories. | The root README sub-gate and reciprocal links pass. The original documentation and release scores remain historical; this work is credited in the implementation plan and the later conformance rescore. |
 | Canonical structure | `EXCEL-VBA-PROJECT-TEMPLATE` now contains `src/`, `tests/`, `examples/`, `assets/`, `docs/` and `tools/`, each with an instructional README where needed. `docs/REPOSITORY_STRUCTURE.md` defines ownership, canonical separation, legitimate legacy alternatives and non-duplication rules. | P1.3 passes. Existing repositories are not renamed merely to imitate the new template. |
-| Pull-request intake | A canonical `.github/PULL_REQUEST_TEMPLATE.md` was selected after portfolio comparison and installed in all eight repositories. The implementations score 9.6–9.9/10, share exact-source, test/evidence, risk, rollback, security, provenance, documentation and release checks, and retain justified specialist blocks. | The PR portion of P1.5 is complete. Issue forms remain separate open work. |
-| Issue labels | `EXCEL-VBA-PROJECT-TEMPLATE` now declares the frozen 20-label core in `.github/labels.json`, with `schema_version`, explicit `prune`, and separate profile/domain overlay arrays. A pinned, least-privilege workflow performs read-only pull-request validation and trusted reconciliation; the dependency-free reconciler self-tests, creates/updates/prunes deterministically and verifies an exact post-run match without a hard-coded label count. | The label portion of P1.5 passes. The audit scores and donor decision remain frozen; this implementation becomes the baseline for the later conformance assessment. |
-| Repository quality | `tools/check_repo.py` combines the reusable KPR and Excel UI patterns as 19 generic, profile-driven rules configured by `.github/repository-profile.json`. It emits readable console plus deterministic JSON and Markdown evidence; a positive fixture, 19 degraded fixtures and read-only hashes self-certify the tool. The canonical `static-checks.yml` adds fixed runner generation, bounded execution, non-persistent checkout credentials, rerun-safe dual-format artifacts and an always-executed terminal verdict. | P1.6 passes, including all 19 rules against the current template tree. Domain-specific Excel, UI, numerical and release certification remains additive. |
-| Repository settings | Merge, squash and rebase remain enabled; auto-merge remains disabled; merged branches are deleted; Update branch is enabled. The live protection matrix was rechecked without weakening documented exceptions. | Provisioning remains separate from file-template inheritance and still requires a post-creation contract. |
-| Execution control | `docs/IMPLEMENTATION_PLAN.md` now records completed work, remaining P1–P3 tasks, dependencies and acceptance gates. | The plan is temporary and will be deleted after the programme definition of done is satisfied. |
+| Pull-request intake | A canonical `.github/PULL_REQUEST_TEMPLATE.md` was selected after portfolio comparison and installed in all eight repositories. The implementations score 9.6–9.9/10, share exact-source, test/evidence, risk, rollback, security, provenance, documentation and release checks, and retain justified specialist blocks. The canonical template now also supplies validated bug, feature, and documentation issue forms with private security routing. | The reusable collaboration baseline is complete; portfolio-specific adoption remains part of conformance work. |
+| Issue labels | `EXCEL-VBA-PROJECT-TEMPLATE` declares the frozen 20-label core in `.github/labels.json`, with `schema_version`, explicit `prune`, and separate profile/domain overlay arrays. Selection resolves only from versioned repository policy; summaries enumerate every resolved label, and reconciliation verifies an exact post-run match. | P1 label governance and P2-11 are complete. The frozen donor score is unchanged; the delivered mechanism becomes the conformance baseline. |
+| Repository quality | `tools/check_repo.py` now enforces 21 generic, profile-driven rules configured by `.github/repository-profile.json`, with deterministic JSON/Markdown evidence and targeted positive/degraded fixtures. The hosted gate adds content-pinned authoritative workflow validation, all-profile initialization, a 22-case release matrix, bounded evidence upload, and an always-executed terminal verdict. | The complete P1 gate passes 21/21 on the released template. Identified parser, coverage, and commit-range hardening remain explicit P2 work. |
+| Repository settings | Merge, squash, and rebase remain enabled; auto-merge remains disabled; merged branches are deleted; Update branch is enabled. `main` now requires pull-request routing and strict `Repository integrity` with no bypass; immutable `v*` protection is active. | Live governance is certified on the template and all three generated-profile pilots; generated repositories still require deliberate post-creation provisioning. |
+| Execution control | `docs/IMPLEMENTATION_PLAN.md` revision 19 records the completed P1 baseline, remaining P2/P3 work, dependencies, and acceptance gates. | The plan remains temporary and will be deleted only after the programme definition of done is satisfied. |
+| P1 certification and release | Three initialized profile pilots passed repository, label, issue-intake, metadata, branch, and tag-policy read-back. Exact-candidate Excel compilation and regression passed; the protected annotated tag resolves to the certified SHA; source-only `v1.0.0` is published. | The canonical baseline is released. Portfolio conformance and selective migration can now proceed without changing the frozen donor audit. |
 
-No production VBA, workbook runtime behavior, numerical contract or release history was changed as part of this foundation standardization.
+The earlier foundation standardization changed no donor production VBA,
+workbook runtime behavior, numerical contract, or release history. Later P1
+work added only neutral starter VBA and certification assets to the template;
+it did not import donor-specific behavior.
 
-### 0.2 Current construction boundary
+### 0.2 🎯 P1 Certification Boundary
 
-Completed:
+Completed in the released baseline:
 
-- P1.1 portfolio audit;
-- P1.3 canonical directory structure;
-- canonical dotfiles and most root governance/release documents;
-- canonical root README with profile and generated-repository initialization guidance;
-- portfolio-wide pull-request template standardization;
-- canonical 20-label manifest, overlays and idempotent synchronization in `EXCEL-VBA-PROJECT-TEMPLATE`;
-- canonical profile-driven repository checker, fixture certification and required workflow;
-- repository-settings normalization and live protection review.
+- frozen seven-repository donor audit and three canonical profiles;
+- deterministic initialization, canonical structure, and substantive VBA starter;
+- root governance, structured issue intake, pull-request intake, and labels-as-code;
+- 21-rule repository gate, authoritative workflow validation, and 22 release fixtures;
+- strict protected-`main` routing and immutable protected release tags;
+- live application, library, and UI-component pilots;
+- exact-SHA Excel compile/regression evidence; and
+- protected annotated tag and source-only `v1.0.0` publication.
 
-Still required before P1 certification:
+Remaining programme scope:
 
-- `docs/POST_CREATION_CHECKLIST.md`;
-- one placeholder syntax, optional/profile categories and template-facing documentation;
-- bug, feature and documentation issue forms plus issue-template configuration;
-- executable release gates and release fixtures;
-- neutral VBA façade/core modules, premium headers and deterministic test harness;
-- generated-repository pilots and the template `v1.0.0` certification.
+- P2 checker, release-semantics, and documentation hardening;
+- selective portfolio migration and `PORTFOLIO_CONFORMANCE.md`;
+- revalidation or repair of donor-specific exceptions; and
+- P3 drift, provisioning, reusable-workflow, and reporting automation.
 
-### 0.3 Blocking donor defects after standardization
+### 0.3 🚧 Recorded Donor Defects and Carry-Forward Disposition
 
-| Audit ID | Current state | Required disposition |
+| Audit ID | State recorded at the audit/foundation cut | Required disposition |
 |---|---|---|
-| `AUD-P1-01` — Logistic Regression source/test identity | **Still open.** Production and test paths still resolve to the same blob and declare the test module. Root governance and PR intake are improved, but functional certification would still be false. | Restore the production export and independently validate source and harness before using either as template evidence. |
-| `AUD-P1-02` — Progress Bar inherited identity | **Still open.** Tracked production, test and demo content still exposes `cPerformanceManager`/`M_cPM_*` identity and Performance Manager artifacts. Root governance and PR intake are improved, but runtime provenance remains unresolved. | Reconcile the source manifest and reconstruct the actual Progress Bar export before any functional or release certification. |
+| `AUD-P1-01` — Logistic Regression source/test identity | **Open at the recorded cut.** Production and test paths resolved to the same blob and declared the test module. Root governance and PR intake had improved, but functional certification would still have been false. | Restore the production export and independently validate source and harness before using either as template evidence. Reassess against a new exact SHA before claiming current status. |
+| `AUD-P1-02` — Progress Bar inherited identity | **Open at the recorded cut.** Tracked production, test, and demo content exposed `cPerformanceManager`/`M_cPM_*` identity and Performance Manager artifacts. Root governance and PR intake had improved, but runtime provenance remained unresolved. | Reconcile the source manifest and reconstruct the actual Progress Bar export before any functional or release certification. Reassess against a new exact SHA before claiming current status. |
 | `AUD-P1-03` — Probability accuracy evidence | **Unchanged as frozen evidence.** The red run at the audit cut remains relevant to what was certifiable at that SHA. | Reassess only against a later exact source SHA; do not retroactively rewrite the audit verdict. |
 
-The two code-identity defects are P2 repository-repair blockers, not reasons to import contaminated donor code into P1. The template must continue to use neutral VBA assets.
+The two recorded code-identity defects remain P2 carry-forward items until a
+separate exact-SHA revalidation closes or supersedes them. They were not reasons
+to import contaminated donor code into P1; the template continues to use
+neutral VBA assets.
 
-### 0.4 Score interpretation
+### 0.4 📊 Score Interpretation
 
-The comparison matrix below is the **pre-standardization donor-selection baseline**, not a current portfolio league table. Root-document and PR-template improvements would change several present-day scores, but rescoring now would mix a partially built template with repositories at different migration stages. The next formal score replaces nothing: it will appear in `docs/PORTFOLIO_CONFORMANCE.md` after P1 certification and P2 migration.
+The comparison matrix below is the **pre-standardization donor-selection
+baseline**, not a current portfolio league table. P1 is now certified, but the
+seven portfolio repositories have not been migrated or re-audited against the
+released baseline. The next formal score replaces nothing: it will appear in
+`docs/PORTFOLIO_CONFORMANCE.md` after P2 migration and exact-SHA revalidation.
 
 The frozen donor decisions remain unchanged:
 
@@ -73,11 +92,11 @@ The frozen donor decisions remain unchanged:
 
 ---
 
-## 1. Executive conclusion
+## 1. 🧭 Executive Conclusion
 
 The canonical baseline must be a composite. No repository is strong enough across all eight axes to be copied wholesale.
 
-| Axis | Strongest current implementation | Canonical decision |
+| Axis | Strongest implementation at the evidence cut | Canonical decision |
 |---|---|---|
 | Documentation | `VBA-DATETIMEPICKER` | Reuse its operational coverage model, with project identity and subsystem detail moved to profile overlays. |
 | Workflows | `KPR` for the generic baseline; `VBA-PROBABILITY-DISTRIBUTIONS` for specialised assurance | Make static integrity and label validation mandatory; keep Excel execution and numerical accuracy as opt-in extensions. |
@@ -97,7 +116,7 @@ Four constraints govern every later template-construction task:
 3. Checks must be deterministic, self-testing and honest about what they cannot prove. Hosted text checks do not certify Excel execution; a workbook hash does not prove how the workbook was built.
 4. Repository settings, rulesets and live labels are provisioning concerns. They must be specified beside the file template because GitHub does not copy them from a template repository.
 
-## 2. Method and scoring
+## 2. 🔬 Method and Scoring
 
 Each repository was inspected at the exact default-branch commit listed in the snapshot register. The recursive Git tree, repository metadata, releases, workflow definitions, rulesets, root documentation, declarative labels, checkers, exported VBA component headers and test-harness entry points were reviewed.
 
@@ -114,9 +133,9 @@ Scores use this scale:
 
 Scores measure fitness as template evidence, not the intrinsic value or functional maturity of a project. A project-specific numerical gate can be excellent and still require separation from the generic baseline.
 
-## 3. Frozen default-branch and settings register
+## 3. 📌 Frozen Default-Branch and Settings Register
 
-### 3.1 Default-branch trees
+### 3.1 🌳 Default-Branch Trees
 
 Every tree link below is commit-pinned. The recursive manifest is the complete captured tree; the shape column summarises tracked blobs by top-level location.
 
@@ -130,7 +149,7 @@ Every tree link below is commit-pinned. The recursive manifest is the complete c
 | `VBA-PROBABILITY-DISTRIBUTIONS` | [`f888215`](https://github.com/danielep71/VBA-PROBABILITY-DISTRIBUTIONS/commit/f8882155f5a61051bf6eec50f8b8977437b4cde1) | 237 | root 8; `.github` 8; `assets` 3; `benchmark` 206; `ci` 1; `docs` 2; `examples` 2; `src` 6; `tests` 1 | [recursive tree](https://api.github.com/repos/danielep71/VBA-PROBABILITY-DISTRIBUTIONS/git/trees/f8882155f5a61051bf6eec50f8b8977437b4cde1?recursive=1) |
 | `KPR` | [`686018e`](https://github.com/danielep71/KPR/commit/686018e1ab60e336840401b1856933182f9540a9) | 30 | root 11; `.github` 8; `assets` 1; `docs` 3; `src` 5; `test` 1; `tools` 1 | [recursive tree](https://api.github.com/repos/danielep71/KPR/git/trees/686018e1ab60e336840401b1856933182f9540a9?recursive=1) |
 
-### 3.2 Repository metadata
+### 3.2 ⚙️ Repository Metadata
 
 All seven use `main`, report VBA as the primary language, use MIT where a licence is detected, enable Issues, disable Discussions, allow merge/squash/rebase, disable auto-merge, delete merged branches and expose the Update branch option. Those common settings are already the suite convention.
 
@@ -138,15 +157,15 @@ All seven use `main`, report VBA as the primary language, use MIT where a licenc
 |---|---|---|---:|---:|---|
 | `VBA-PERFORMANCE_MANAGER` | Public | Specific description; 8 relevant topics | On | On | Active default-branch deletion/non-fast-forward and PR rule; no required status check in the ruleset. [Rule](https://github.com/danielep71/VBA-PERFORMANCE_MANAGER/rules/20905954) |
 | `VBA-EXCEL_UI` | Public | Specific description; 9 relevant topics | On | On | Strongest: deletion/non-fast-forward, PR rule and strict `Repository and module checks`; no bypass actor. [Rule](https://github.com/danielep71/VBA-EXCEL_UI/rules/21104519) |
-| `VBA-PROGRESS_BAR` | Private | Specific description; 5 relevant topics | On | Off | Branch unprotected. Repository rulesets are unavailable for this private repository under the current GitHub plan. |
+| `VBA-PROGRESS_BAR` | Private | Specific description; 5 relevant topics | On | Off | Branch unprotected. Repository rulesets were unavailable for this private repository under the GitHub plan at the evidence cut. |
 | `VBA-DATETIMEPICKER` | Public | Specific description; 16 relevant topics | On | On | Deletion/non-fast-forward and PR rule on `main`; a separate deletion/non-fast-forward rule protects `traffic-history`; no required quality check. [Main rule](https://github.com/danielep71/VBA-DATETIMEPICKER/rules/22186296) |
-| `EXCEL-VBA-LOGISTIC-REGRESSION` | Private | Specific description; no topics | On | Off | Branch unprotected. Repository rulesets are unavailable for this private repository under the current GitHub plan. |
+| `EXCEL-VBA-LOGISTIC-REGRESSION` | Private | Specific description; no topics | On | Off | Branch unprotected. Repository rulesets were unavailable for this private repository under the GitHub plan at the evidence cut. |
 | `VBA-PROBABILITY-DISTRIBUTIONS` | Public | Specific description; 13 relevant topics; Wiki homepage | Off | On | Deliberate project exception: deletion/non-fast-forward only, preserving direct pushes to `main`; no required check. [Rule](https://github.com/danielep71/VBA-PROBABILITY-DISTRIBUTIONS/rules/22186928) |
 | `KPR` | Public | Specific description; 8 relevant topics | Off | Off | Deletion/non-fast-forward plus strict `Repository integrity`; administrator-role always-bypass. Separate `v*` tag creation/update/deletion protection. [Main rule](https://github.com/danielep71/KPR/rules/21826384) · [tag rule](https://github.com/danielep71/KPR/rules/21826445) |
 
-The target repository itself was at [`64095e2`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/commit/64095e269688043257c0ef5e84a65f5082807b7d) with four files: `.editorconfig`, `.gitattributes`, `.gitignore` and `CODE_OF_CONDUCT.md`. It is marked as a template and has active deletion/non-fast-forward protection. Its deliberately minimal current state is why this audit specifies a composite future baseline rather than treating the target as an eighth donor.
+The target repository itself was at [`64095e2`](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/commit/64095e269688043257c0ef5e84a65f5082807b7d) with four files: `.editorconfig`, `.gitattributes`, `.gitignore` and `CODE_OF_CONDUCT.md`. It was marked as a template and had active deletion/non-fast-forward protection. Its deliberately minimal captured state is why this audit specified a composite future baseline rather than treating the target as an eighth donor.
 
-## 4. Seven-repository comparison matrix
+## 4. 📊 Seven-Repository Comparison Matrix
 
 Abbreviations: **Docs** documentation; **WF** workflows; **Static** static checks; **Intake** issue/PR templates; **Repo** metadata and protection. Each score links to the principal evidence; secondary evidence is recorded in the axis assessments below.
 
@@ -160,9 +179,9 @@ Abbreviations: **Docs** documentation; **WF** workflows; **Static** static check
 | `EXCEL-VBA-LOGISTIC-REGRESSION` | [4.8](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/blob/d44fde5f7cfb5027bdbface4c1c38b9cdaf1659e/README.md) | [0.0](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/tree/d44fde5f7cfb5027bdbface4c1c38b9cdaf1659e) | [0.0](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/tree/d44fde5f7cfb5027bdbface4c1c38b9cdaf1659e) | [0.0](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/tree/d44fde5f7cfb5027bdbface4c1c38b9cdaf1659e) | [0.0](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/tree/d44fde5f7cfb5027bdbface4c1c38b9cdaf1659e) | [0.0](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/releases) | [4.2](https://api.github.com/repos/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION) | [1.0](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/blob/d44fde5f7cfb5027bdbface4c1c38b9cdaf1659e/src/modules/M_LOGIT_REGRESSION.bas) | **1.3** |
 | `VBA-PROGRESS_BAR` | [3.2](https://github.com/danielep71/VBA-PROGRESS_BAR/blob/f61a33ac1959a92e5bf9a7cafdc35ed0edafe8be/README.md) | [0.0](https://github.com/danielep71/VBA-PROGRESS_BAR/tree/f61a33ac1959a92e5bf9a7cafdc35ed0edafe8be) | [0.0](https://github.com/danielep71/VBA-PROGRESS_BAR/tree/f61a33ac1959a92e5bf9a7cafdc35ed0edafe8be) | [0.0](https://github.com/danielep71/VBA-PROGRESS_BAR/tree/f61a33ac1959a92e5bf9a7cafdc35ed0edafe8be) | [0.0](https://github.com/danielep71/VBA-PROGRESS_BAR/tree/f61a33ac1959a92e5bf9a7cafdc35ed0edafe8be) | [0.0](https://github.com/danielep71/VBA-PROGRESS_BAR/releases) | [4.8](https://api.github.com/repos/danielep71/VBA-PROGRESS_BAR) | [2.0](https://github.com/danielep71/VBA-PROGRESS_BAR/tree/f61a33ac1959a92e5bf9a7cafdc35ed0edafe8be/src) | **1.3** |
 
-## 5. Axis assessments and template decisions
+## 5. 🧩 Axis Assessments and Template Decisions
 
-### 5.1 Documentation
+### 5.1 📚 Documentation
 
 | Required field | Audit finding |
 |---|---|
@@ -173,7 +192,7 @@ Abbreviations: **Docs** documentation; **WF** workflows; **Static** static check
 | Defects before reuse | Performance Manager has no `CONTRIBUTING.md`. KPR's installation guide is intentionally a pre-release placeholder. Probability Distributions lacks root `CHANGELOG.md`, `INSTALLATION.md`, `RELEASING.md` and `VERSION`. The two private repositories contain only a README and conduct/licence layer. DateTimePicker's documentation explicitly admits its release evidence is procedural rather than automated. |
 | Final decision and rationale | Use DateTimePicker's operational completeness as the model, Performance Manager's release language as the release chapter, and KPR's contract-first language for engineering guidance. Keep common documents short enough to remain maintainable; profile overlays own domain-specific sections. A generated repository must contain every root document with valid generic content, not “coming later” text. |
 
-### 5.2 Workflows
+### 5.2 ⚙️ Workflows
 
 | Required field | Audit finding |
 |---|---|
@@ -181,10 +200,10 @@ Abbreviations: **Docs** documentation; **WF** workflows; **Static** static check
 | Useful secondary implementations | Probability Distributions separates a pure-Python accuracy gate from a self-hosted Windows/Excel regression workflow. Excel UI runs both its checker and a house-style normal-form check. Performance Manager always publishes lint evidence. |
 | Reusable elements | `push`, `pull_request` and manual triggers; path filters only where they cannot skip a required gate; read-only default permissions; explicit write permission only in reconciliation jobs; concurrency cancellation; exact-SHA checkout; self-tests; machine-readable artifacts; an explicit terminal enforcement step after evidence upload. |
 | Project-specific elements to exclude | DateTimePicker's traffic export and `traffic-history` branch; benchmark dependency installation; KPR date-layer checks; workbook names; self-hosted runner labels; donor-specific artifact names; label maps embedded in workflow source. |
-| Defects before reuse | Excel UI, Performance Manager and Probability Distributions use floating major action tags such as `@v4`, `@v5` or `@v7`; DateTimePicker pins checkout by SHA but lacks an audited version comment. Probability Distributions is not a green donor at this cut: its most recent observed Accuracy Gate [failed](https://github.com/danielep71/VBA-PROBABILITY-DISTRIBUTIONS/actions/runs/33745235318), its Excel run was queued on an earlier SHA, and the current head has no matching successful run. DateTimePicker has no software-quality workflow. The private repositories have no workflows. |
+| Defects before reuse | Excel UI, Performance Manager and Probability Distributions used floating major action tags such as `@v4`, `@v5` or `@v7`; DateTimePicker pinned checkout by SHA but lacked an audited version comment. Probability Distributions was not a green donor at this cut: its most recent observed Accuracy Gate [failed](https://github.com/danielep71/VBA-PROBABILITY-DISTRIBUTIONS/actions/runs/33745235318), its Excel run was queued on an earlier SHA, and the captured head had no matching successful run. DateTimePicker had no software-quality workflow. The private repositories had no workflows. |
 | Final decision and rationale | Require `static-checks.yml` and `labels-sync.yml` in all profiles, based on KPR. Pin every external action to a full commit SHA with an audited semantic-version comment. Add `excel-vba-regression.yml` only to profiles configured with an eligible runner; add `accuracy-gate.yml` only to numerical libraries. Operational analytics workflows never count as quality gates. |
 
-### 5.3 Static checks
+### 5.3 🔍 Static Checks
 
 | Required field | Audit finding |
 |---|---|
@@ -192,10 +211,10 @@ Abbreviations: **Docs** documentation; **WF** workflows; **Static** static check
 | Useful secondary implementations | Excel UI adds a versioned public-API manifest, procedure/control-flow checks and a reformatter self-test. Probability Distributions contributes reference provenance, grid coverage, holdouts, degradation tests and source-claim consistency. Performance Manager contributes released-changelog freezing, version consistency and API declaration checks. |
 | Reusable elements | Generic required-file manifest; unresolved-template-token and stale-identity scan; JSON/YAML/XML parse checks; internal Markdown links; secret/conflict-marker scan; forbidden artifact policy; LF/CRLF and encoding policy; label-manifest validation; immutable action references; `git diff --check`; `Option Explicit`; VBE export header/component-name validation; balanced procedures/directives; optional public-API manifest. |
 | Project-specific elements to exclude | KPR's date system, locale parser, array engine, date-window constants and exact public members; Probability's tolerances, grids and reference engines; Performance Manager's historical version freeze and expected case count; Excel UI's module list and allowed labels. |
-| Defects before reuse | KPR's checker hard-codes the KPR repository identity, 23-label count, module graph and implementation-plan references. Excel UI's checker is generic in technique but fixed to one module set. Performance Manager's lint covers only three known files. None is currently profile-configured. |
+| Defects before reuse | KPR's checker hard-coded the KPR repository identity, 23-label count, module graph, and implementation-plan references. Excel UI's checker was generic in technique but fixed to one module set. Performance Manager's lint covered only three known files. None was profile-configured at the evidence cut. |
 | Final decision and rationale | Fork KPR's checker architecture, not its rule constants. Drive required paths, component roles, profile and optional checks from a small versioned manifest. The template repository runs in `template` mode; generated repositories run in one of the three frozen profile modes. Both modes must self-test and produce the same JSON schema. |
 
-### 5.4 Issue and pull-request templates
+### 5.4 🗂️ Issue and Pull-Request Templates
 
 | Required field | Audit finding |
 |---|---|
@@ -206,7 +225,7 @@ Abbreviations: **Docs** documentation; **WF** workflows; **Static** static check
 | Defects before reuse | Markdown issue templates cannot require fields and become very long when every specialised subsystem is embedded. Assignee handling is inconsistent. Template URLs and maintainers are donor-specific. The two private repositories have no intake templates. |
 | Final decision and rationale | Provide `bug.yml`, `feature.yml` and `documentation.yml` as concise GitHub issue forms, plus `config.yml` and `PULL_REQUEST_TEMPLATE.md`. Use Performance Manager's field balance, then inject small profile-specific blocks. The generator substitutes the maintainer placeholder; no donor username is embedded in reusable source. |
 
-### 5.5 Labels
+### 5.5 🏷️ Labels
 
 | Required field | Audit finding |
 |---|---|
@@ -217,7 +236,7 @@ Abbreviations: **Docs** documentation; **WF** workflows; **Static** static check
 | Defects before reuse | KPR and Probability use different root keys (`version` versus `schema_version`), casing (`ci` versus `CI`) and work labels (`tests` versus `testing`). KPR hard-codes exactly 23 labels. Performance Manager has no manifest, descriptions, creation or pruning. Repositories without a manifest cannot recreate their live taxonomy from source. |
 | Final decision and rationale | Freeze a 20-label core: `behavior-change`, `blocked`, `bug`, `ci`, `documentation`, `duplicate`, `enhancement`, `good first issue`, `help wanted`, `invalid`, `P1`, `P2`, `P3`, `question`, `refactor`, `release`, `repository`, `security`, `tests`, `wontfix`. Profile/domain overlays are separate arrays. Use `schema_version` and explicit `prune`; never hard-code a total label count in executable logic. |
 
-### 5.6 Release process
+### 5.6 📦 Release Process
 
 | Required field | Audit finding |
 |---|---|
@@ -228,7 +247,7 @@ Abbreviations: **Docs** documentation; **WF** workflows; **Static** static check
 | Defects before reuse | Performance Manager's provenance tool has a fixed donor file list and explicitly cannot prove workbook-from-source construction. KPR's only release is a setup pre-release with no distributable asset. DateTimePicker lacks a committed provenance manifest. Excel UI lacks `VERSION` and a release guide. Probability Distributions and the private repositories have no releases in the captured state. |
 | Final decision and rationale | Make `VERSION`, `CHANGELOG.md` and `RELEASING.md` common. Initialise generated repositories at `0.0.0` with an `Unreleased` section. Parameterise the provenance tool by profile manifest. Library releases may remain source-only; UI/application binary releases require a manifest and explicit build-provenance boundary. Provision a no-delete/no-update/no-create-without-bypass rule for `refs/tags/v*`. |
 
-### 5.7 Repository metadata and protection
+### 5.7 🛡️ Repository Metadata and Protection
 
 | Required field | Audit finding |
 |---|---|
@@ -236,10 +255,10 @@ Abbreviations: **Docs** documentation; **WF** workflows; **Static** static check
 | Useful secondary implementations | KPR adds protected release tags and a required generic integrity status. DateTimePicker demonstrates protection for an automation-owned history branch. Performance Manager has PR routing. Probability Distributions documents a valid project-specific exception where direct pushes remain permitted. |
 | Reusable elements | Specific description; maintained topic set; MIT detection; Issues enabled; Discussions off by default; merge/squash/rebase enabled; auto-merge disabled; merged-branch deletion and Update branch enabled; template flag only on `EXCEL-VBA-PROJECT-TEMPLATE`; deletion/non-fast-forward protection; PR rule; strict required status; protected `v*` tags. |
 | Project-specific elements to exclude | Wiki homepage, traffic-history branch, project-specific check names, admin bypasses and Probability's direct-push exception. Those can be applied after generation as explicit deviations. |
-| Defects before reuse | Rulesets and repository metadata are not inherited by GitHub template generation. The two private repositories cannot enable repository rulesets under the current plan. KPR permits administrator-role bypass and does not require PRs. DateTimePicker and Performance Manager require PR routing but no quality status. Probability protects history only, intentionally. |
+| Defects before reuse | Rulesets and repository metadata are not inherited by GitHub template generation. At the evidence cut, the two private repositories could not enable repository rulesets under the applicable GitHub plan. KPR permitted administrator-role bypass and did not require PRs. DateTimePicker and Performance Manager required PR routing but no quality status. Probability protected history only, intentionally. |
 | Final decision and rationale | The canonical provisioning specification combines Excel UI's `main` rule with KPR's tag rule. Require the canonical `Repository integrity` status, PR routing with zero mandatory approvals for a single-maintainer repository, stale-review dismissal, deletion and non-fast-forward protection, and no default bypass. Keep the Probability direct-push policy as a documented repository exception, not a baseline rule. |
 
-### 5.8 VBA structure and test harnesses
+### 5.8 🧪 VBA Structure and Test Harnesses
 
 | Required field | Audit finding |
 |---|---|
@@ -250,24 +269,24 @@ Abbreviations: **Docs** documentation; **WF** workflows; **Static** static check
 | Defects before reuse | `EXCEL-VBA-LOGISTIC-REGRESSION` is blocked: [`src/modules/M_LOGIT_REGRESSION.bas`](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/blob/d44fde5f7cfb5027bdbface4c1c38b9cdaf1659e/src/modules/M_LOGIT_REGRESSION.bas) and [`test/M_LOGIT_REGRESSION_TESTS.bas`](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/blob/d44fde5f7cfb5027bdbface4c1c38b9cdaf1659e/test/M_LOGIT_REGRESSION_TESTS.bas) are the same blob (`0ea505e7…`) and both declare the test module. `VBA-PROGRESS_BAR` is also blocked as a donor: its tracked source/test names still describe Performance Manager, and two demo blobs are byte-identical to Performance Manager. Folder naming is inconsistent (`test` versus `tests`; flat versus `modules`). Several mature repositories rely on very large single exported modules. |
 | Final decision and rationale | Standardise on `src/modules`, `src/classes`, `src/forms`, `src/ribbon` and `tests/modules`, with only profile-relevant component folders populated. Start from neutral facade/core/test placeholders, not donor production code. Use Excel UI's certification contract as the generic harness base, KPR's layering for libraries, DateTimePicker's lifecycle assertions for stateful UI and Probability's external-evidence extension for numerical libraries. |
 
-## 6. Blocking defect and exclusion register
+## 6. 🚧 Blocking Defect and Exclusion Register
 
 | ID | Severity | Repository/evidence | Finding | Reuse disposition |
 |---|---|---|---|---|
 | `AUD-P1-01` | P1 | [Logistic source](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/blob/d44fde5f7cfb5027bdbface4c1c38b9cdaf1659e/src/modules/M_LOGIT_REGRESSION.bas) · [test](https://github.com/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION/blob/d44fde5f7cfb5027bdbface4c1c38b9cdaf1659e/test/M_LOGIT_REGRESSION_TESTS.bas) | Production and test paths resolve to the same blob and test-module identity. | Exclude all code and harness content until the production export is restored and independently tested. README structure only may be consulted. |
 | `AUD-P1-02` | P1 | [Progress Bar tree](https://github.com/danielep71/VBA-PROGRESS_BAR/tree/f61a33ac1959a92e5bf9a7cafdc35ed0edafe8be) | Source and test components retain `cPerformanceManager`/`M_cPM_*` identities; demo-builder and demo module blobs match Performance Manager. | Exclude code, demos and harness. Treat the repository as needing reconstruction, not standardisation. |
-| `AUD-P1-03` | P1 | [Probability Accuracy Gate run 189](https://github.com/danielep71/VBA-PROBABILITY-DISTRIBUTIONS/actions/runs/33745235318) | Latest observed accuracy gate failed; current snapshot head has no matching successful run. | Reuse architecture and check patterns only. Do not import the workflow as certified-green baseline evidence until the gate is green at the source SHA. |
+| `AUD-P1-03` | P1 | [Probability Accuracy Gate run 189](https://github.com/danielep71/VBA-PROBABILITY-DISTRIBUTIONS/actions/runs/33745235318) | Latest observed accuracy gate failed; the captured snapshot head had no matching successful run. | Reuse architecture and check patterns only. Do not import the workflow as certified-green baseline evidence until the gate is green at the source SHA. |
 | `AUD-P1-04` | P2 | [DateTimePicker workflows](https://github.com/danielep71/VBA-DATETIMEPICKER/tree/d28586577900e465f323d4bae6d673fd041dc02c/.github/workflows) | Only committed workflow is traffic collection, not a software-quality gate. | Reuse the UI source layout and harness concepts, never the operational workflow. |
 | `AUD-P1-05` | P2 | [KPR workflow pins](https://github.com/danielep71/KPR/blob/686018e1ab60e336840401b1856933182f9540a9/.github/workflows/static-checks.yml) | Other donor workflows use floating action tags; KPR demonstrates the required immutable pattern. | Repin every canonical action to a full audited SHA. |
 | `AUD-P1-06` | P2 | [KPR checker](https://github.com/danielep71/KPR/blob/686018e1ab60e336840401b1856933182f9540a9/tools/check_repo.py) | The best checker mixes generic repository rules with KPR identity, date architecture and exact label count. | Extract generic rules and move profile/project rules to data-driven configuration. |
-| `AUD-P1-07` | P2 | [Private Logistic repository](https://api.github.com/repos/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION) · [private Progress Bar repository](https://api.github.com/repos/danielep71/VBA-PROGRESS_BAR) | Current GitHub plan does not expose repository rulesets for these private repositories; both default branches are unprotected. | Document plan limitation. Do not weaken the public baseline to match it. |
+| `AUD-P1-07` | P2 | [Private Logistic repository](https://api.github.com/repos/danielep71/EXCEL-VBA-LOGISTIC-REGRESSION) · [private Progress Bar repository](https://api.github.com/repos/danielep71/VBA-PROGRESS_BAR) | At the evidence cut, the applicable GitHub plan did not expose repository rulesets for these private repositories; both default branches were unprotected. | Document the recorded plan limitation. Do not weaken the public baseline to match it. |
 | `AUD-P1-08` | P3 | [Portfolio tree register](#31-default-branch-trees) | `test`/`tests`, PR-template case, label schema keys and label casing are inconsistent. | Canonicalise paths and schemas in the template; migrate donors separately without blind renaming. |
 
-## 7. Frozen repository profiles
+## 7. 🧱 Frozen Repository Profiles
 
 Profiles are structural contracts for generated repositories. They are not quality tiers and do not classify a repository by size. All profiles inherit the common baseline; an extension may add requirements but may not remove common gates.
 
-### 7.1 Common baseline — inherited by all profiles
+### 7.1 🌐 Common Baseline — Inherited by All Profiles
 
 | Area | Required contract |
 |---|---|
@@ -280,7 +299,7 @@ Profiles are structural contracts for generated repositories. They are not quali
 | Placeholders | A single documented token vocabulary (`PROJECT_NAME`, `PROJECT_PREFIX`, `MAINTAINER`, `DESCRIPTION`, `PROFILE`). Template mode validates tokens; generated mode rejects unresolved tokens. Donor names are forbidden. |
 | Provisioned settings | Standard merge policy; deletion/non-fast-forward protection; PR routing; required `Repository integrity`; protected `v*` tags. Settings are applied after generation and then verified. |
 
-### 7.2 Profile manifest
+### 7.2 📋 Profile Manifest
 
 | Contract | `library` | `ui-component` | `application` |
 |---|---|---|---|
@@ -292,9 +311,9 @@ Profiles are structural contracts for generated repositories. They are not quali
 | Workflow overlay | Optional pure-Python accuracy or oracle gate; optional Excel runner. | Excel/VBA runner when eligible; optional packaging validation. | Excel/VBA and package smoke gates; provenance and release-asset validation required. |
 | Release default | Source-authoritative release; binary optional. | Source-authoritative release; binary convenience asset optional and hashed. | Versioned binary package expected; manifest, environment record and post-download smoke evidence required. |
 | Explicit exclusions | Forms, Ribbon, WinAPI and application lifecycle unless the profile is changed. | Unrelated numerical grids, application deployment and operational analytics. | Donor-specific business data, credentials, generated local state and unreviewable workbook-only source. |
-| Principal donors | KPR layering; Probability specialised assurance; Excel UI API manifest. | Excel UI modularity/certification; DateTimePicker component layout/lifecycle harness. | Composite only: DateTimePicker packaging, Performance Manager release provenance and the common baseline. No current repository qualifies as a complete application-profile donor. |
+| Principal donors | KPR layering; Probability specialised assurance; Excel UI API manifest. | Excel UI modularity/certification; DateTimePicker component layout/lifecycle harness. | Composite only: DateTimePicker packaging, Performance Manager release provenance and the common baseline. No repository at the evidence cut qualified as a complete application-profile donor. |
 
-### 7.3 Profile invariants
+### 7.3 🔒 Profile Invariants
 
 1. A selected profile is recorded in one versioned configuration file and is validated by the generic checker.
 2. The generated tree contains only folders and checks relevant to that profile; optional empty subsystems are not presented as implemented features.
@@ -303,7 +322,7 @@ Profiles are structural contracts for generated repositories. They are not quali
 5. Numerical assurance is an extension of `library`, not a requirement imposed on every library.
 6. `application` is not shorthand for “large.” It means the repository owns deployment and lifecycle of a complete Excel solution.
 
-## 8. Canonical donor map
+## 8. 🗺️ Canonical Donor Map
 
 | Canonical component | Primary donor | Secondary donor(s) | Reuse condition |
 |---|---|---|---|
@@ -320,7 +339,7 @@ Profiles are structural contracts for generated repositories. They are not quali
 | Deterministic test harness | Excel UI | DateTimePicker, KPR, Probability, Performance Manager | Standardise verdicts, counts, cleanup and evidence output; no project-specific assertions. |
 | Main/tag protection | Excel UI main rule | KPR tag rule | Provision after generation and verify separately from file checks. |
 
-## 9. P1.1 acceptance gate
+## 9. ✅ P1.1 Acceptance Gate
 
 - [x] Seven repositories captured at exact default-branch commits.
 - [x] Relevant metadata, merge settings and branch/ruleset state recorded.
@@ -331,4 +350,12 @@ Profiles are structural contracts for generated repositories. They are not quali
 - [x] `library`, `ui-component` and `application` profiles are frozen.
 - [x] Selection is demonstrably evidence-led rather than recency-led.
 
-**P1.1 verdict: PASS.** The audit is complete. This verdict certifies the decision record and evidence coverage; it does not certify the still-unbuilt canonical repository baseline, which belongs to the remaining P1 work.
+**P1.1 verdict: PASS.** The audit is complete. This verdict certifies the
+decision record and evidence coverage; at the evidence cut it did not certify
+the then-unbuilt canonical repository baseline. That baseline is now separately
+certified and released, while this audit remains the frozen donor decision
+record.
+
+---
+
+**Audit principle:** freeze the evidence, preserve the decision rationale, and revalidate current claims at a new exact SHA.
