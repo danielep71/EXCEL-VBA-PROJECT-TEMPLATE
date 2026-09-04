@@ -226,6 +226,22 @@ def _validate_source(
                     ))
     elif mode == "template" and configured_profile is None:
         release_profile = "template"
+        identity = configuration.get("identity")
+        repository = configuration.get("repository")
+        template_tokens = identity.get("template_tokens") if isinstance(identity, dict) else None
+        contains_template_identity = (
+            isinstance(repository, str)
+            and isinstance(template_tokens, list)
+            and any(
+                isinstance(token, str) and token.casefold() in repository.casefold()
+                for token in template_tokens
+            )
+        )
+        if not contains_template_identity:
+            findings.append(_finding(
+                "template-identity", PROFILE_PATH,
+                "template release candidates must retain a declared template identity token",
+            ))
         if initialization.exists():
             findings.append(_finding(
                 "template-identity", INITIALIZATION_PATH,
@@ -638,7 +654,11 @@ def _fixture_configuration(profile: str) -> dict[str, object]:
         "schema_version": 1,
         "mode": "template" if profile == "template" else "generated",
         "profile": None if profile == "template" else profile,
-        "repository": f"example/release-{profile}",
+        "repository": (
+            "example/TEMPLATE-IDENTITY"
+            if profile == "template"
+            else f"example/release-{profile}"
+        ),
         "identity": {
             "template_tokens": ["TEMPLATE-IDENTITY"],
             "exclude_paths": [PROFILE_PATH],
