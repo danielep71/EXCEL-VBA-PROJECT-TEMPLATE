@@ -83,9 +83,9 @@ Public Sub RunProjectTests()
     End If
 
 CleanExit:
+    On Error GoTo 0
     cleanupPassed = CleanupRun(cleanupDetail)
     PrintSummary cleanupPassed, cleanupDetail
-    On Error GoTo 0
 
     If savedNumber <> 0 Then
         Err.Raise savedNumber, savedSource, savedDescription
