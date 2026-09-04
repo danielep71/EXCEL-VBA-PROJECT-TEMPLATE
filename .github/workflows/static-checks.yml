@@ -45,6 +45,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Install the pinned authoritative workflow validator
         id: validator-install
@@ -96,6 +97,30 @@ jobs:
         continue-on-error: true
         run: python3 tools/initialize_repository.py --root . --self-test
 
+      - name: Exercise committed-whitespace fixtures
+        id: whitespace-self-test
+        continue-on-error: true
+        run: python3 tools/check_committed_whitespace.py --root . --self-test
+
+      - name: Validate committed candidate whitespace
+        id: committed-whitespace
+        continue-on-error: true
+        env:
+          CANDIDATE_SHA: ${{ github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+        run: |
+          args=(
+            --root .
+            --mode committed
+            --head "$CANDIDATE_SHA"
+            --output test-results/committed-whitespace.json
+            --summary test-results/committed-whitespace.md
+          )
+          if [[ -n "$BASE_SHA" ]]; then
+            args+=(--base "$BASE_SHA")
+          fi
+          python3 tools/check_committed_whitespace.py "${args[@]}"
+
       - name: Exercise positive and degraded checker paths
         id: self-test
         continue-on-error: true
@@ -122,6 +147,15 @@ jobs:
               echo "## Static repository checks"
               echo
               echo "The checker did not produce its Markdown report."
+              exit 1
+            fi
+            echo
+            if [[ -f test-results/committed-whitespace.md ]]; then
+              cat test-results/committed-whitespace.md
+            else
+              echo "## Committed whitespace"
+              echo
+              echo "The committed-whitespace checker did not produce its report."
               exit 1
             fi
             echo
@@ -154,6 +188,8 @@ jobs:
           path: |
             test-results/static-checks.json
             test-results/static-checks.md
+            test-results/committed-whitespace.json
+            test-results/committed-whitespace.md
             test-results/actionlint-version.txt
             test-results/workflow-validation.md
             test-results/release-self-test.md
@@ -168,6 +204,8 @@ jobs:
           VALIDATOR_INSTALL_OUTCOME: ${{ steps.validator-install.outcome }}
           AUTHORITATIVE_WORKFLOWS_OUTCOME: ${{ steps.authoritative-workflows.outcome }}
           RELEASE_SELF_TEST_OUTCOME: ${{ steps.release-self-test.outcome }}
+          WHITESPACE_SELF_TEST_OUTCOME: ${{ steps.whitespace-self-test.outcome }}
+          COMMITTED_WHITESPACE_OUTCOME: ${{ steps.committed-whitespace.outcome }}
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
@@ -188,6 +226,14 @@ jobs:
           fi
           if [[ "$INITIALIZER_SELF_TEST_OUTCOME" != "success" ]]; then
             echo "::error::Initializer self-test outcome: $INITIALIZER_SELF_TEST_OUTCOME"
+            failed=1
+          fi
+          if [[ "$WHITESPACE_SELF_TEST_OUTCOME" != "success" ]]; then
+            echo "::error::Committed-whitespace self-test outcome: $WHITESPACE_SELF_TEST_OUTCOME"
+            failed=1
+          fi
+          if [[ "$COMMITTED_WHITESPACE_OUTCOME" != "success" ]]; then
+            echo "::error::Committed-whitespace candidate outcome: $COMMITTED_WHITESPACE_OUTCOME"
             failed=1
           fi
           if [[ "$SELF_TEST_OUTCOME" != "success" ]]; then
