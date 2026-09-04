@@ -140,6 +140,12 @@ No unreleased changes recorded.
 - Required generated repositories to retain the read-only label-drift control in
   addition to the existing trusted label-reconciliation workflow.
 
+### Fixed
+
+- Disarmed the regression runner's procedure-level error handler before cleanup
+  and summary reporting so a cleanup/reporting fault cannot re-enter `CleanExit`
+  indefinitely through `RunFailed`.
+
 ### Compatibility
 
 - The neutral starter VBA public API and profile architecture are unchanged from
