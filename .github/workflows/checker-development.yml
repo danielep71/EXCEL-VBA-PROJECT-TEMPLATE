@@ -1,0 +1,45 @@
+name: Checker development contract
+run-name: Checker development — ${{ github.ref_name }} @ ${{ github.sha }}
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checker-development-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  checker-development:
+    name: Checker development
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out the exact SHA under review
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Exercise independent checker development contract
+        run: python3 tools/checker_development.py --root . --self-test
+
+      - name: Publish checker development evidence
+        run: >-
+          python3 tools/checker_development.py
+          --root .
+          --output checker-development.json
+          --summary checker-development.md
+
+      - name: Add readable summary
+        if: always()
+        run: cat checker-development.md >> "$GITHUB_STEP_SUMMARY"
