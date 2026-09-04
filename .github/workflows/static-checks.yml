@@ -92,6 +92,20 @@ jobs:
           --self-test
           --summary test-results/release-self-test.md
 
+      - name: Exercise strict release-semantics fixtures
+        id: release-semantics-self-test
+        continue-on-error: true
+        run: python3 tools/check_release_semantics.py --root . --self-test
+
+      - name: Validate release semantics
+        id: release-semantics
+        continue-on-error: true
+        run: >-
+          python3 tools/check_release_semantics.py
+          --root .
+          --output test-results/release-semantics.json
+          --summary test-results/release-semantics.md
+
       - name: Exercise all repository-initialization profiles
         id: initializer-self-test
         continue-on-error: true
@@ -205,7 +219,8 @@ jobs:
               test-results/vba-public-api.md \
               test-results/local-actions.md \
               test-results/workflow-validation.md \
-              test-results/release-self-test.md; do
+              test-results/release-self-test.md \
+              test-results/release-semantics.md; do
               if [[ ! -f "$report" ]]; then
                 echo "## Missing required evidence"
                 echo
@@ -240,6 +255,8 @@ jobs:
             test-results/actionlint-version.txt
             test-results/workflow-validation.md
             test-results/release-self-test.md
+            test-results/release-semantics.json
+            test-results/release-semantics.md
           if-no-files-found: error
           retention-days: 30
           compression-level: 9
@@ -251,6 +268,8 @@ jobs:
           VALIDATOR_INSTALL_OUTCOME: ${{ steps.validator-install.outcome }}
           AUTHORITATIVE_WORKFLOWS_OUTCOME: ${{ steps.authoritative-workflows.outcome }}
           RELEASE_SELF_TEST_OUTCOME: ${{ steps.release-self-test.outcome }}
+          RELEASE_SEMANTICS_SELF_TEST_OUTCOME: ${{ steps.release-semantics-self-test.outcome }}
+          RELEASE_SEMANTICS_OUTCOME: ${{ steps.release-semantics.outcome }}
           WHITESPACE_SELF_TEST_OUTCOME: ${{ steps.whitespace-self-test.outcome }}
           COMMITTED_WHITESPACE_OUTCOME: ${{ steps.committed-whitespace.outcome }}
           VBA_JUMP_SELF_TEST_OUTCOME: ${{ steps.vba-jump-self-test.outcome }}
@@ -271,6 +290,8 @@ jobs:
             "Authoritative-validator installation:$VALIDATOR_INSTALL_OUTCOME" \
             "Authoritative workflow-validation:$AUTHORITATIVE_WORKFLOWS_OUTCOME" \
             "Release-integrity self-test:$RELEASE_SELF_TEST_OUTCOME" \
+            "Release-semantics self-test:$RELEASE_SEMANTICS_SELF_TEST_OUTCOME" \
+            "Release semantics:$RELEASE_SEMANTICS_OUTCOME" \
             "Initializer self-test:$INITIALIZER_SELF_TEST_OUTCOME" \
             "Committed-whitespace self-test:$WHITESPACE_SELF_TEST_OUTCOME" \
             "Committed-whitespace candidate:$COMMITTED_WHITESPACE_OUTCOME" \
