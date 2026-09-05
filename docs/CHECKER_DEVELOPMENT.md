@@ -8,7 +8,30 @@
 
 ## 🔧 Shared focused-gate primitives
 
-`tools/_gatelib.py` owns the small cross-tool mechanics that are genuinely identical: Git subprocess wrappers, tracked-file enumeration, deterministic UTF-8/LF report writes, and the common `--root` / `--output` / `--summary` / `--self-test` parser. Focused gates import those primitives instead of maintaining copies. Tool-specific `main`, `run_check`, `build_report`, `run_self_test`, and Markdown renderers remain local because their behavior and evidence schemas differ.
+`tools/_gatelib.py` owns the small cross-tool mechanics that are genuinely identical: Git subprocess wrappers, tracked-file enumeration, deterministic UTF-8/LF report writes, the common `--root` / `--output` / `--summary` / `--self-test` parser, and `run_gate`, the typed runner that owns the shared console, evidence and exit-code contract. Focused gates import those primitives instead of maintaining copies. Tool-specific `run_check`, `build_report`, `run_self_test`, semantic rules, fixtures and Markdown renderers remain local because their behavior and evidence schemas differ.
+
+### `run_gate` ownership
+
+`run_gate` centralizes only the orchestration that was provably identical across gates: self-test dispatch, report construction, canonical JSON serialization, Markdown summary writing, console output, and the `0` / `1` / `2` exit mapping. It never widens a gate's exception handling. Each caller passes its own operational-exception tuple, so a programming error still surfaces as a traceback instead of being reported as exit code `2`.
+
+Gates that historically evaluated `--self-test` outside their operational handler reported failures as `SELF-TEST ERROR`; gates that evaluated it inside reported `ERROR`. `run_gate` preserves both wordings through `self_test_error_prefix`.
+
+| Gate | Uses `run_gate` | Reason when excluded |
+| --- | :---: | --- |
+| `check_committed_whitespace.py` | yes | — |
+| `check_local_actions.py` | yes | — |
+| `check_release_semantics.py` | yes | — |
+| `check_vba_conditionals.py` | yes | — |
+| `check_vba_jumps.py` | yes | — |
+| `check_vba_public_api.py` | yes | — |
+| `checker_development.py` | yes | — |
+| `policy_coverage_runner.py` | yes | — |
+| `check_release.py` | no | atomic evidence writes and a console rendering distinct from its Markdown summary |
+| `test_workflow_validation.py` | no | text-only report with no JSON evidence output |
+| `initialize_repository.py` | no | repository provisioning CLI, not a focused report gate |
+| `check_repo.py` | no | self-contained distributable that must not import `_gatelib.py` |
+
+`checker_development.py` enforces this table. Every tool defining a top-level `main` must be either a declared `run_gate` consumer or a documented exclusion; adding a gate without updating the declaration fails the contract, as does an excluded tool quietly adopting the runner. Sixteen independent unit tests exercise the runner's CLI flags, defaults and `--help`, self-test dispatch, both self-test diagnostic prefixes, pass/fail/operational exits, deterministic JSON and Markdown evidence, report-write failures, and the propagation of non-operational exceptions.
 
 `tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused operational gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary in the canonical template. The checker-development workflow, this document, and the `policy_coverage_*` semantic-coverage harness are template-maintainer assets and are removed by initialization rather than shipped into generated projects.
 

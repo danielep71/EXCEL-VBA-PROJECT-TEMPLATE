@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
+import argparse
 import ast
+import contextlib
 import hashlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -13,7 +16,7 @@ import sys
 import tempfile
 from types import ModuleType
 from typing import Any
-from _gatelib import parse_report_args as parse_arguments, write_text
+from _gatelib import parse_report_args as parse_arguments, run_gate
 
 TOOL_NAME = "Checker development contract"
 CHECKER_PATH = Path("tools/check_repo.py")
@@ -49,6 +52,25 @@ EXPECTED_CHECK_FUNCTIONS = (
     "check_generated_vba_contract",
     "check_vba_public_api",
 )
+GATE_RUNNER_CONSUMERS = frozenset(
+    {
+        "check_committed_whitespace.py",
+        "check_local_actions.py",
+        "check_release_semantics.py",
+        "check_vba_conditionals.py",
+        "check_vba_jumps.py",
+        "check_vba_public_api.py",
+        "checker_development.py",
+        "policy_coverage_runner.py",
+    }
+)
+GATE_RUNNER_EXCLUSIONS = {
+    "check_release.py": (
+        "atomic evidence writes and a console rendering distinct from its Markdown summary"
+    ),
+    "test_workflow_validation.py": "text-only report with no JSON evidence output",
+    "initialize_repository.py": "repository provisioning CLI, not a focused report gate",
+}
 ALLOWED_IMPORT_ROOTS = {
     "argparse",
     "fnmatch",
@@ -276,12 +298,292 @@ def cli_tests(module: ModuleType, checker: Path) -> list[dict[str, Any]]:
     ]
 
 
+def _invoke_gate(
+    options: argparse.Namespace, **keywords: Any
+) -> tuple[int | None, str, str, BaseException | None]:
+    """Run ``run_gate`` with captured streams, reporting propagated exceptions."""
+    out, err = io.StringIO(), io.StringIO()
+    code: int | None = None
+    raised: BaseException | None = None
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        try:
+            code = run_gate(options, **keywords)
+        except BaseException as error:
+            raised = error
+    return code, out.getvalue(), err.getvalue(), raised
+
+
+def gate_runner_tests() -> list[dict[str, Any]]:
+    """Exercise the shared focused-gate runner's CLI, report and exit contract."""
+    results: list[dict[str, Any]] = []
+
+    def record(identifier: str, ok: bool, detail: str = "") -> None:
+        results.append(
+            {"id": identifier, "status": "pass" if ok else "fail", "detail": "" if ok else detail}
+        )
+
+    def options(self_test: bool = False, **paths: Any) -> argparse.Namespace:
+        return argparse.Namespace(
+            self_test=self_test, output=paths.get("output"), summary=paths.get("summary")
+        )
+
+    def markdown(report: dict[str, Any]) -> str:
+        return f"## gate\n\n- **Status:** {report['status']}\n"
+
+    def passing() -> dict[str, Any]:
+        return {"status": "pass", "findings": []}
+
+    def failing() -> dict[str, Any]:
+        return {"status": "fail", "findings": ["one"]}
+
+    def operational() -> dict[str, Any]:
+        raise OSError("build failed")
+
+    def programming_error() -> dict[str, Any]:
+        raise ZeroDivisionError("division by zero")
+
+    def self_test_ok() -> int:
+        return 0
+
+    def self_test_broken() -> int:
+        raise OSError("self-test failed")
+
+    parsed = parse_arguments(
+        ["--root", ".", "--output", "o.json", "--summary", "o.md", "--self-test"]
+    )
+    record(
+        "gate-cli-flags",
+        parsed.root == Path(".")
+        and parsed.output == Path("o.json")
+        and parsed.summary == Path("o.md")
+        and parsed.self_test is True,
+        repr(parsed),
+    )
+    defaults = parse_arguments([])
+    record(
+        "gate-cli-defaults",
+        defaults.output is None and defaults.summary is None and defaults.self_test is False,
+        repr(defaults),
+    )
+    help_code: object = None
+    with contextlib.redirect_stdout(io.StringIO()):
+        try:
+            parse_arguments(["--help"])
+        except SystemExit as exit_error:
+            help_code = exit_error.code
+    record("gate-cli-help", help_code == 0, f"observed {help_code!r}")
+
+    with tempfile.TemporaryDirectory(prefix="gate-runner-evidence-") as temporary:
+        output = Path(temporary) / "nested" / "report.json"
+        summary = Path(temporary) / "nested" / "report.md"
+        code, out, err, raised = _invoke_gate(
+            options(output=output, summary=summary),
+            build=passing,
+            markdown=markdown,
+            errors=(OSError,),
+        )
+        record("gate-pass-exit", code == 0 and raised is None, f"exit {code!r} stderr {err!r}")
+        record(
+            "gate-pass-stdout", out == markdown(passing()).rstrip() + "\n", repr(out)
+        )
+        record(
+            "gate-pass-json",
+            output.read_text(encoding="utf-8")
+            == json.dumps(passing(), indent=2, sort_keys=True) + "\n",
+            "JSON evidence does not match the canonical serialization",
+        )
+        record(
+            "gate-pass-markdown",
+            summary.read_text(encoding="utf-8") == markdown(passing()),
+            "Markdown evidence does not match the rendered summary",
+        )
+        first = (output.read_bytes(), summary.read_bytes())
+        _invoke_gate(
+            options(output=output, summary=summary),
+            build=passing,
+            markdown=markdown,
+            errors=(OSError,),
+        )
+        record(
+            "gate-deterministic-evidence",
+            (output.read_bytes(), summary.read_bytes()) == first,
+            "evidence bytes changed between identical runs",
+        )
+
+    code, out, err, raised = _invoke_gate(
+        options(), build=failing, markdown=markdown, errors=(OSError,)
+    )
+    record("gate-fail-exit", code == 1 and raised is None, f"exit {code!r}")
+
+    code, out, err, raised = _invoke_gate(
+        options(), build=operational, markdown=markdown, errors=(OSError,)
+    )
+    record(
+        "gate-operational-exit",
+        code == 2 and err.strip() == "ERROR: build failed",
+        f"exit {code!r} stderr {err!r}",
+    )
+
+    code, out, err, raised = _invoke_gate(
+        options(), build=programming_error, markdown=markdown, errors=(OSError,)
+    )
+    record(
+        "gate-programming-error-propagates",
+        code is None and isinstance(raised, ZeroDivisionError),
+        f"exit {code!r} raised {raised!r}",
+    )
+
+    with tempfile.TemporaryDirectory(prefix="gate-runner-write-") as temporary:
+        blocker = Path(temporary) / "blocked"
+        blocker.write_text("not a directory\n", encoding="utf-8")
+        code, out, err, raised = _invoke_gate(
+            options(output=blocker / "report.json"),
+            build=passing,
+            markdown=markdown,
+            errors=(OSError,),
+        )
+        record(
+            "gate-write-failure-exit",
+            code == 2 and err.startswith("ERROR: ") and raised is None,
+            f"exit {code!r} stderr {err!r}",
+        )
+
+    code, out, err, raised = _invoke_gate(
+        options(self_test=True),
+        build=programming_error,
+        markdown=markdown,
+        errors=(OSError,),
+        self_test=self_test_ok,
+    )
+    record(
+        "gate-self-test-dispatch",
+        code == 0 and raised is None,
+        f"exit {code!r} raised {raised!r}",
+    )
+
+    code, out, err, raised = _invoke_gate(
+        options(self_test=True),
+        build=passing,
+        markdown=markdown,
+        errors=(OSError,),
+        self_test=self_test_broken,
+    )
+    record(
+        "gate-self-test-default-prefix",
+        code == 2 and err.strip() == "ERROR: self-test failed",
+        repr(err),
+    )
+
+    code, out, err, raised = _invoke_gate(
+        options(self_test=True),
+        build=passing,
+        markdown=markdown,
+        errors=(OSError,),
+        self_test=self_test_broken,
+        self_test_error_prefix="SELF-TEST ERROR",
+    )
+    record(
+        "gate-self-test-isolated-prefix",
+        code == 2 and err.strip() == "SELF-TEST ERROR: self-test failed",
+        repr(err),
+    )
+
+    code, out, err, raised = _invoke_gate(
+        options(self_test=True), build=passing, markdown=markdown, errors=(OSError,)
+    )
+    record("gate-no-self-test-runs-build", code == 0 and raised is None, f"exit {code!r}")
+
+    return results
+
+
 def check_ids(module: ModuleType) -> tuple[list[str], list[str]]:
     functions = [check.__name__ for check in module.CHECKS]
     failures = []
     if tuple(functions) != EXPECTED_CHECK_FUNCTIONS:
         failures.append("canonical CHECKS order drifted: " + ", ".join(functions))
     return functions, failures
+
+
+def ownership_scan(root: Path) -> tuple[dict[str, Any], list[str]]:
+    """Prove that shared focused-gate helpers have exactly one owner and one consumer set."""
+    failures: list[str] = []
+    forbidden_helpers = {"git", "run_gate", "tracked_files", "write_text"}
+    parser_consumers = {
+        "check_local_actions.py",
+        "check_release_semantics.py",
+        "check_vba_conditionals.py",
+        "check_vba_jumps.py",
+        "check_vba_public_api.py",
+        "checker_development.py",
+        "policy_coverage_runner.py",
+    }
+    local_helper_owners: list[str] = []
+    parser_imports: list[str] = []
+    gate_runner_imports: list[str] = []
+    entry_points: list[str] = []
+    for tool in sorted((root / "tools").glob("*.py")):
+        if tool.name in {CHECKER_PATH.name, GATELIB_PATH.name}:
+            continue
+        tool_tree = ast.parse(tool.read_text(encoding="utf-8"), filename=str(tool))
+        definitions = {
+            node.name
+            for node in tool_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        duplicates = sorted(definitions & forbidden_helpers)
+        if duplicates:
+            local_helper_owners.append(f"{tool.name}: {', '.join(duplicates)}")
+        if tool.name in parser_consumers:
+            if _imports_helper(tool_tree, "parse_report_args"):
+                parser_imports.append(tool.name)
+            else:
+                failures.append(f"{tool.name} does not consume _gatelib.parse_report_args")
+        consumes_runner = _imports_helper(tool_tree, "run_gate")
+        if "main" in definitions:
+            entry_points.append(tool.name)
+        if tool.name in GATE_RUNNER_CONSUMERS:
+            gate_runner_imports.append(tool.name)
+            if not consumes_runner:
+                failures.append(f"{tool.name} does not consume _gatelib.run_gate")
+        elif consumes_runner:
+            failures.append(
+                f"{tool.name} consumes _gatelib.run_gate but is not a declared consumer"
+            )
+    declared = set(GATE_RUNNER_CONSUMERS) | set(GATE_RUNNER_EXCLUSIONS)
+    undeclared = sorted(set(entry_points) - declared)
+    if undeclared:
+        failures.append(
+            "focused-gate entry points are neither run_gate consumers nor documented "
+            "exclusions: " + ", ".join(undeclared)
+        )
+    stale = sorted(declared - set(entry_points))
+    if stale:
+        failures.append(
+            "declared run_gate consumers or exclusions no longer define main: " + ", ".join(stale)
+        )
+    if local_helper_owners:
+        failures.append(
+            "shared helpers redefined outside _gatelib.py: " + "; ".join(local_helper_owners)
+        )
+    evidence = {
+        "parser_consumers": parser_imports,
+        "gate_runner_consumers": gate_runner_imports,
+        "gate_runner_exclusions": [
+            {"tool": name, "reason": reason}
+            for name, reason in sorted(GATE_RUNNER_EXCLUSIONS.items())
+        ],
+        "entry_points": sorted(entry_points),
+    }
+    return evidence, failures
+
+
+def _imports_helper(tree: ast.Module, name: str) -> bool:
+    return any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == "_gatelib"
+        and any(alias.name == name for alias in node.names)
+        for node in tree.body
+    )
 
 
 def shared_library_report(root: Path) -> tuple[dict[str, Any], list[str]]:
@@ -311,49 +613,13 @@ def shared_library_report(root: Path) -> tuple[dict[str, Any], list[str]]:
         elif isinstance(node, ast.Import) and any(alias.name == "_gatelib" for alias in node.names):
             failures.append("check_repo.py must remain independent of _gatelib.py")
 
-    forbidden_helpers = {"git", "write_text", "tracked_files"}
-    local_helper_owners: list[str] = []
-    parser_consumers = {
-        "check_local_actions.py",
-        "check_release_semantics.py",
-        "check_vba_conditionals.py",
-        "check_vba_jumps.py",
-        "check_vba_public_api.py",
-        "checker_development.py",
-        "policy_coverage_runner.py",
-    }
-    parser_imports: list[str] = []
-    for tool in sorted((root / "tools").glob("*.py")):
-        if tool.name in {CHECKER_PATH.name, GATELIB_PATH.name}:
-            continue
-        tool_tree = ast.parse(tool.read_text(encoding="utf-8"), filename=str(tool))
-        definitions = {
-            node.name
-            for node in tool_tree.body
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        }
-        duplicates = sorted(definitions & forbidden_helpers)
-        if duplicates:
-            local_helper_owners.append(f"{tool.name}: {', '.join(duplicates)}")
-        if tool.name in parser_consumers:
-            imported = any(
-                isinstance(node, ast.ImportFrom)
-                and node.module == "_gatelib"
-                and any(alias.name == "parse_report_args" for alias in node.names)
-                for node in tool_tree.body
-            )
-            if imported:
-                parser_imports.append(tool.name)
-            else:
-                failures.append(f"{tool.name} does not consume _gatelib.parse_report_args")
-    if local_helper_owners:
-        failures.append("shared helpers redefined outside _gatelib.py: " + "; ".join(local_helper_owners))
-
+    ownership, ownership_failures = ownership_scan(root)
+    failures.extend(ownership_failures)
     evidence = {
         "path": GATELIB_PATH.as_posix(),
         "imports": sorted(import_roots),
-        "parser_consumers": parser_imports,
         "check_repo_independent": not any("check_repo.py must remain" in item for item in failures),
+        **ownership,
     }
     return evidence, failures
 
@@ -375,7 +641,8 @@ def build_report(root: Path) -> dict[str, Any]:
     parser_results = parser_tests(module)
     reporter_results = reporter_tests(module)
     cli_results = cli_tests(module, checker)
-    all_unit_results = [*parser_results, *reporter_results, *cli_results]
+    gate_results = gate_runner_tests()
+    all_unit_results = [*parser_results, *reporter_results, *cli_results, *gate_results]
     failed_units = [item for item in all_unit_results if item["status"] != "pass"]
     if failed_units:
         failures.append(f"{len(failed_units)} independent parser/reporter/CLI test(s) failed")
@@ -462,24 +729,19 @@ def run_self_test(root: Path) -> int:
 
 def main(arguments: list[str] | None = None) -> int:
     options = parse_arguments(sys.argv[1:] if arguments is None else arguments)
-    try:
-        if options.self_test:
-            return run_self_test(options.root)
-        report = build_report(options.root)
-        write_text(options.output, json.dumps(report, indent=2, sort_keys=True) + "\n")
-        write_text(options.summary, markdown_report(report))
-        print(markdown_report(report).rstrip())
-        return 0 if report["status"] == "pass" else 1
-    except (
-        OSError,
-        UnicodeError,
-        SyntaxError,
-        ContractError,
-        subprocess.SubprocessError,
-    ) as error:
-        print(f"ERROR: {error}", file=sys.stderr)
-        return 2
-
+    return run_gate(
+        options,
+        build=lambda: build_report(options.root),
+        markdown=markdown_report,
+        errors=(
+            OSError,
+            UnicodeError,
+            SyntaxError,
+            ContractError,
+            subprocess.SubprocessError,
+        ),
+        self_test=lambda: run_self_test(options.root),
+    )
 
 if __name__ == "__main__":
     raise SystemExit(main())

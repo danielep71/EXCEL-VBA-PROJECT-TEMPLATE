@@ -14,6 +14,10 @@ Appropriate contents include:
 
 `_gatelib.py` is the private, standard-library-only owner of Git, report-output, tracked-file, and common focused-gate CLI primitives. `check_repo.py` deliberately does not import it: the canonical checker remains a self-contained distributable artifact. The canonical template also carries checker-development and semantic policy-coverage harnesses; initialization strips those maintainer-only files while retaining the operational gates needed by generated projects.
 
+`_gatelib.run_gate` additionally owns the orchestration shared by focused gates: `--self-test` dispatch, canonical JSON serialization, Markdown summary writing, console output, and the `0` (pass) / `1` (findings) / `2` (could not complete) exit mapping. Each gate keeps its own semantic checks, fixtures, report schema, Markdown renderer and operational-exception tuple; the runner never widens exception handling, so a programming error still raises rather than being reported as exit `2`.
+
+Eight gates consume it: `check_committed_whitespace.py`, `check_local_actions.py`, `check_release_semantics.py`, `check_vba_conditionals.py`, `check_vba_jumps.py`, `check_vba_public_api.py`, `checker_development.py` and `policy_coverage_runner.py`. Three entry points are deliberately excluded and keep their own `main`: `check_release.py` (atomic evidence writes and a console rendering distinct from its Markdown summary), `test_workflow_validation.py` (text-only report with no JSON evidence output) and `initialize_repository.py` (a provisioning CLI, not a report gate). `check_repo.py` is excluded by the self-containment contract. `checker_development.py` enforces that list, so a new gate must declare itself as a consumer or a documented exclusion.
+
 ## Canonical repository-quality gate
 
 `check_repo.py` is the dependency-free baseline gate for all three supported

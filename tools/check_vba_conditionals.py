@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 import re
@@ -12,7 +11,7 @@ import sys
 import tempfile
 from typing import Any
 
-from _gatelib import git_bytes as git, parse_report_args as parse_args, write_text
+from _gatelib import git_bytes as git, parse_report_args as parse_args, run_gate
 
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
 TOOL_NAME = "VBA conditional compilation"
@@ -676,34 +675,20 @@ Option Explicit
 
 def main(argv: list[str] | None = None) -> int:
     options = parse_args(sys.argv[1:] if argv is None else argv)
-    if options.self_test:
-        try:
-            return run_self_test()
-        except (
+    return run_gate(
+        options,
+        build=lambda: run_check(options.root),
+        markdown=markdown_report,
+        errors=(
             OSError,
             UnicodeError,
             RuntimeError,
             subprocess.SubprocessError,
             ExpressionError,
-        ) as error:
-            print(f"SELF-TEST ERROR: {error}", file=sys.stderr)
-            return 2
-    try:
-        report = run_check(options.root)
-        write_text(options.output, json.dumps(report, indent=2, sort_keys=True) + "\n")
-        write_text(options.summary, markdown_report(report))
-        print(markdown_report(report).rstrip())
-        return 0 if report["status"] == "pass" else 1
-    except (
-        OSError,
-        UnicodeError,
-        RuntimeError,
-        subprocess.SubprocessError,
-        ExpressionError,
-    ) as error:
-        print(f"ERROR: {error}", file=sys.stderr)
-        return 2
-
+        ),
+        self_test=run_self_test,
+        self_test_error_prefix="SELF-TEST ERROR",
+    )
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -99,6 +99,11 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+### Changed
+
+- Consolidated the focused-gate CLI orchestration that was provably identical across gates into the typed `run_gate` runner in `tools/_gatelib.py`: `--self-test` dispatch, canonical JSON serialization, Markdown summary writing, console output and the pass/findings/could-not-complete exit mapping. Eight gates now consume it; `check_release.py`, `test_workflow_validation.py` and `initialize_repository.py` keep their own entry points, and `check_repo.py` remains a self-contained single file that never imports the helper. Each gate keeps its own semantic rules, fixtures, report schema, Markdown renderer and operational-exception tuple, so no gate's exception handling was widened and programming errors still raise instead of being reported as an operational exit.
+- Extended the checker-development contract to own the shared-runner boundary: every tool defining a top-level `main` must be a declared `run_gate` consumer or a documented exclusion, no tool may redefine the shared helpers locally, and sixteen independent unit tests exercise the runner's CLI flags, defaults and `--help`, self-test dispatch, both self-test diagnostic prefixes, pass/fail/operational exits, deterministic evidence, report-write failures and exception propagation.
+
 ### Fixed
 
 - Distinguish local reusable-workflow job calls from local action steps, and require tracked workflow files.
