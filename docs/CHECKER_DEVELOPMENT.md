@@ -2,7 +2,7 @@
 
 [![Runtime: single file](https://img.shields.io/badge/runtime-single--file-217346)](../tools/check_repo.py)
 [![Dependencies: stdlib only](https://img.shields.io/badge/dependencies-stdlib%20only-success)](../tools/checker_development.py)
-[![P2-08](https://img.shields.io/badge/P2--08-checker%20development-6F42C1)](IMPLEMENTATION_PLAN.md#p2-hardening)
+[![Coverage: semantic policy](https://img.shields.io/badge/coverage-semantic%20policy-6F42C1)](../tools/check_policy_coverage.py)
 
 `tools/check_repo.py` remains the canonical portable checker delivered to generated repositories. **The single-file identity rule applies to that canonical checker only.** Its reviewed source is the distributable artifact, so there is no bundle transform that can drift from source. Focused sibling gates are development/runtime tools within the repository and may share private standard-library infrastructure.
 
@@ -42,7 +42,7 @@ Maintainers can exercise parser and reporter behavior without running the full s
 python3 tools/checker_development.py --root . --self-test
 ```
 
-The contract directly tests representative YAML, GitHub-style Markdown anchors, EditorConfig parsing, VBA lexical stripping, Markdown/console serialization, CLI flags and operational exit-code mapping. The full `check_repo.py --self-test` and P2-07 policy-coverage matrix remain separate higher-level gates.
+The contract directly tests representative YAML, GitHub-style Markdown anchors, EditorConfig parsing, VBA lexical stripping, Markdown/console serialization, CLI flags and operational exit-code mapping. The full `check_repo.py --self-test` and semantic policy-coverage matrix remain separate higher-level gates.
 
 ## 📦 Portability and artifact identity
 
