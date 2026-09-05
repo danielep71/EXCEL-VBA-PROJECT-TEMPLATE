@@ -44,16 +44,35 @@ jobs:
           --output test-results/checker-development.json
           --summary test-results/checker-development.md
 
+      - name: Exercise semantic policy-coverage contract
+        id: policy-coverage-self-test
+        continue-on-error: true
+        run: python3 tools/check_policy_coverage.py --root . --self-test
+
+      - name: Publish semantic policy-coverage evidence
+        id: policy-coverage
+        continue-on-error: true
+        run: >-
+          python3 tools/check_policy_coverage.py
+          --root .
+          --output test-results/policy-coverage.json
+          --summary test-results/policy-coverage.md
+
       - name: Add readable summary
         id: summary
         if: always()
         continue-on-error: true
         run: |
-          if [[ ! -f test-results/checker-development.md ]]; then
-            echo "Required checker-development summary was not produced."
-            exit 1
-          fi
-          cat test-results/checker-development.md >> "$GITHUB_STEP_SUMMARY"
+          for report in \
+            test-results/checker-development.md \
+            test-results/policy-coverage.md; do
+            if [[ ! -f "$report" ]]; then
+              echo "Required checker-maintenance summary was not produced: $report"
+              exit 1
+            fi
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+          done
 
       - name: Upload checker-development evidence
         id: artifact
@@ -65,6 +84,8 @@ jobs:
           path: |
             test-results/checker-development.json
             test-results/checker-development.md
+            test-results/policy-coverage.json
+            test-results/policy-coverage.md
           if-no-files-found: error
           retention-days: 30
           compression-level: 9
@@ -74,6 +95,8 @@ jobs:
         env:
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           EVIDENCE_OUTCOME: ${{ steps.evidence.outcome }}
+          POLICY_COVERAGE_SELF_TEST_OUTCOME: ${{ steps.policy-coverage-self-test.outcome }}
+          POLICY_COVERAGE_OUTCOME: ${{ steps.policy-coverage.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
           ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
         run: |
@@ -81,6 +104,8 @@ jobs:
           for item in \
             "Checker-development self-test:$SELF_TEST_OUTCOME" \
             "Checker-development evidence:$EVIDENCE_OUTCOME" \
+            "Policy-coverage self-test:$POLICY_COVERAGE_SELF_TEST_OUTCOME" \
+            "Policy coverage:$POLICY_COVERAGE_OUTCOME" \
             "Job summary:$SUMMARY_OUTCOME" \
             "Evidence upload:$ARTIFACT_OUTCOME"; do
             name="${item%%:*}"
