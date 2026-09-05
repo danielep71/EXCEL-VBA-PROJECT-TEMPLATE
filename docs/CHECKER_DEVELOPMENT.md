@@ -12,6 +12,8 @@
 
 `tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused operational gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary in the canonical template. The checker-development workflow, this document, and the `policy_coverage_*` semantic-coverage harness are template-maintainer assets and are removed by initialization rather than shipped into generated projects.
 
+The public API gate also uses `check_vba_conditionals.py` to evaluate the same three supported compilation environments. It checks name collisions only where declarations can coexist, and requires one manifest declaration row plus a `# SIG` record for every distinct reachable signature. Unknown conditions fail closed. These are static models, not evidence of Excel runtime certification.
+
 ### Supported invocation mode
 
 The supported focused-tool interface is **path execution from the repository checkout**, for example `python3 tools/check_vba_public_api.py --root . --self-test`. Python places the executed script's directory on `sys.path`, which is the declared mechanism by which focused sibling gates resolve the private `_gatelib.py` module.
