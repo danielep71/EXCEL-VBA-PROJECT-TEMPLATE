@@ -35,7 +35,18 @@ jobs:
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'release/1.1.0' && hashFiles('tools/_apply_complexity_refactor.py') != '' }}
         run: |
           set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tools/_apply_complexity_refactor.py')
+          text = path.read_text(encoding='utf-8')
+          old = '    "def _validate_version_and_changelog(\\n",\n'
+          new = '    "def _validate_version_and_changelog(",\n'
+          if text.count(old) != 1:
+              raise SystemExit(f'anchor patch count: {text.count(old)}')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8', newline='\n')
+          PY
           python3 tools/_apply_complexity_refactor.py
+          git show HEAD^^:.github/workflows/checker-development.yml > .github/workflows/checker-development.yml
           python3 -m pip install --disable-pip-version-check 'ruff==0.16.6' 'mypy==2.3.1'
           ruff check tools
           mypy
