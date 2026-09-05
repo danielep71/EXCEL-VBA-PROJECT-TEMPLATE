@@ -17,6 +17,13 @@ def _register(cases: list[Case], name: str, rule: str, pattern: str | None = Non
     return decorator
 
 
+def _case(cases: list[Case]):
+    def register(name: str, rule: str, pattern: str | None = None):
+        return _register(cases, name, rule, pattern)
+
+    return register
+
+
 def _required_and_placeholder_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
 
@@ -27,7 +34,7 @@ def _required_and_placeholder_cases(module: ModuleType) -> list[Case]:
             repository="example/TEMPLATE-IDENTITY",
         )
 
-    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+    case = _case(cases)
 
     @case("required-file-not-tracked", "required-paths", "Required file is not tracked")
     def _(root: Path) -> None:
@@ -78,7 +85,7 @@ def _required_and_placeholder_cases(module: ModuleType) -> list[Case]:
 
 def _dotfile_and_structured_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+    case = _case(cases)
 
     @case("dotfile-editor-unreadable", "dotfile-policy", "Cannot read policy")
     def _(root: Path) -> None:
@@ -148,7 +155,7 @@ def _dotfile_and_structured_cases(module: ModuleType) -> list[Case]:
 
 def _markdown_and_text_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+    case = _case(cases)
 
     @case("markdown-escape", "markdown-links", "escapes the repository")
     def _(root: Path) -> None:
@@ -198,7 +205,7 @@ def _markdown_and_text_cases(module: ModuleType) -> list[Case]:
 
 def _artifact_and_line_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+    case = _case(cases)
 
     @case("artifact-office-lock", "forbidden-artifacts", "Office lock file")
     def _(root: Path) -> None:
