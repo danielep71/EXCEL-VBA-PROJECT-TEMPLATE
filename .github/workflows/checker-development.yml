@@ -39,11 +39,15 @@ jobs:
           from pathlib import Path
           path = Path('tools/_apply_complexity_refactor.py')
           text = path.read_text(encoding='utf-8')
-          old = '    "def _validate_version_and_changelog(\\n",\n'
-          new = '    "def _validate_version_and_changelog(",\n'
-          if text.count(old) != 1:
-              raise SystemExit(f'anchor patch count: {text.count(old)}')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8', newline='\n')
+          replacements = {
+              '    "def _validate_version_and_changelog(\\n",\n': '    "def _validate_version_and_changelog(",\n',
+              'def _reject_executable_placeholders(path: str, matches: list[object]) -> None:': 'def _reject_executable_placeholders(path: str, matches: list[Any]) -> None:',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'guard patch count for {old!r}: {text.count(old)}')
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8', newline='\n')
           PY
           python3 tools/_apply_complexity_refactor.py
           git show HEAD^^:.github/workflows/checker-development.yml > .github/workflows/checker-development.yml
