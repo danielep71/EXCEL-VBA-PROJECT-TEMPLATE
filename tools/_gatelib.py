@@ -11,7 +11,6 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
-from typing import Any
 
 
 def git_bytes(
