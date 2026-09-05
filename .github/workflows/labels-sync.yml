@@ -9,6 +9,7 @@ on:
   pull_request:
     branches:
       - main
+      - "release/**"
     paths:
       - .github/labels.json
       - .github/repository-profile.json

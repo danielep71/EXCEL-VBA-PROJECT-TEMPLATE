@@ -105,6 +105,8 @@ Use only the categories needed by a release.
 - Ignore quoted VBA text when checking jump targets, while retaining checks for executable jumps on the same line.
 - Validate public API declarations across the supported conditional-compilation environments; accept mutually exclusive variants and require every distinct signature in the manifest.
 - Restore bounded exponential retry delays in label synchronization and drift checks when `Retry-After` is absent or empty.
+- Run the checker-development contract and the label-drift and label-validation fixtures on `release/**` pull requests, and run the checker-development contract on `release/**` pushes, so milestone work developed on a release branch is gated by the same hosted checks as `main`.
+- Keep the live label paths off release branches: label reconciliation still runs only on trusted pushes to `main`, and live label-drift detection stays on its schedule, manual dispatch, and pull-request fixtures.
 
 ## [1.1.0] - 2026-09-05
 
