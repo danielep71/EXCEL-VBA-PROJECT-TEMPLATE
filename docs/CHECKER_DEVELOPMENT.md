@@ -12,6 +12,12 @@
 
 `tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary.
 
+### Supported invocation mode
+
+The supported focused-tool interface is **path execution from the repository checkout**, for example `python3 tools/check_vba_public_api.py --root . --self-test`. Python places the executed script's directory on `sys.path`, which is the declared mechanism by which focused sibling gates resolve the private `_gatelib.py` module.
+
+`python -m tools.<module>` is **not** part of the supported contract: `tools/` is not a public Python package and no package-installation interface is promised. If module-mode execution is added later, it must be introduced deliberately with package-aware imports and fixtures for both invocation modes rather than relying on incidental interpreter path behavior. The canonical `check_repo.py` remains unaffected because it has no sibling import.
+
 ## 🧭 Internal boundaries
 
 `tools/checker_development.py` parses the checker with Python AST and requires the following ordered ownership boundaries:
