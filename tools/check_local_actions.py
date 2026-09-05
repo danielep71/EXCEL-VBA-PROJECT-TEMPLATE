@@ -329,7 +329,7 @@ def workflow_references(text: str) -> list[tuple[int, str, bool]]:
         match = re.match(r"^\s*(?:-\s*)?([^:#]+):\s*(.*?)\s*$", raw)
         if match:
             key, value = match.groups()
-            if re.match(r'^[|>][+-]?[1-9]?(?:\s+#.*)?$', value):
+            if re.match(r'^[|>](?:[+-][1-9]?|[1-9][+-]?)?(?:\s+#.*)?$', value):
                 scalar_indent = indent
             if not value or value.startswith('#'):
                 parents.append((indent, unquote_scalar(key)))
@@ -650,6 +650,18 @@ def run_self_test() -> int:
         report = fixture_report('./' + reusable, files, tracked, source)
         if report["status"] != expected:
             failures.append(f"{name}: expected {expected}, got {report}")
+    for header in ('|2-', '>2+', '|-2', '>+2', '|2', '>-', '|2- # script'):
+        source = (
+            'name: Script\non: push\njobs:\n  test:\n'
+            '    runs-on: ubuntu-latest\n    steps:\n'
+            f'      - run: {header}\n          uses: ./missing\n'
+        )
+        report = fixture_report('', {}, (workflow_path,), source)
+        if report['status'] != 'pass' or report['local_references']:
+            failures.append(f'block-header {header}: script text was scanned: {report}')
+        report = fixture_report('', {}, (workflow_path,), source + '      - uses: ./missing\n')
+        if report['status'] != 'fail' or len(report['local_references']) != 1:
+            failures.append(f'block-header {header}: following action was not checked: {report}')
     if failures:
         for failure in failures:
             print(f"[FAIL] {failure}")
