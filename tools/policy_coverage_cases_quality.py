@@ -18,9 +18,16 @@ def _register(cases: list[Case], name: str, rule: str, pattern: str | None = Non
     return decorator
 
 
+def _case(cases: list[Case]):
+    def register(name: str, rule: str, pattern: str | None = None):
+        return _register(cases, name, rule, pattern)
+
+    return register
+
+
 def _label_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+    case = _case(cases)
 
     @case("labels-array-type", "label-manifest", "must be an array")
     def _(root: Path) -> None:
@@ -95,7 +102,7 @@ def _label_cases(module: ModuleType) -> list[Case]:
 
 def _issue_form_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+    case = _case(cases)
     form_path = f"{module.ISSUE_TEMPLATE_DIRECTORY}/bug.yml"
     form_config = f"{module.ISSUE_TEMPLATE_DIRECTORY}/config.yml"
 
@@ -197,7 +204,7 @@ def _issue_form_cases(module: ModuleType) -> list[Case]:
 
 def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+    case = _case(cases)
     workflow_path = ".github/workflows/static-checks.yml"
 
     @case("workflow-action-unparseable", "workflow-actions", "cannot be parsed")
@@ -244,7 +251,7 @@ def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
 
 def _vba_export_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+    case = _case(cases)
     path = "src/modules/Quality.bas"
 
     @case("vba-export-unreadable", "vba-export-header", "cannot be read")
@@ -309,7 +316,7 @@ def _vba_export_cases(module: ModuleType) -> list[Case]:
 
 def _vba_structure_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+    case = _case(cases)
     path = "src/modules/Quality.bas"
 
     @case("vba-nested-opener", "vba-structure", "has no closing statement")
@@ -349,7 +356,7 @@ def _vba_structure_cases(module: ModuleType) -> list[Case]:
 
 def _vba_contract_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+    case = _case(cases)
 
     @case("vba-unconfigured-component", "vba-visibility", "not assigned a profile role")
     def _(root: Path) -> None:

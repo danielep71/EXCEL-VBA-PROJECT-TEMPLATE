@@ -357,6 +357,13 @@ def _already_initialized(
     return True
 
 
+def _reject_executable_placeholders(path: str, matches: list[Any]) -> None:
+    if matches and PurePosixPath(path).suffix.casefold() in EXECUTABLE_SUFFIXES:
+        raise InitializationError(
+            f"Placeholders are prohibited in executable or VBA file {path}."
+        )
+
+
 def _build_changes(
     root: Path,
     profile: str,
@@ -415,11 +422,7 @@ def _build_changes(
         source = (root / path).read_bytes()
         text = _decode(path, source)
         matches = list(token_pattern.finditer(text))
-        if (
-            matches
-            and PurePosixPath(path).suffix.casefold() in EXECUTABLE_SUFFIXES
-        ):
-            raise InitializationError(f"Placeholders are prohibited in executable or VBA file {path}.")
+        _reject_executable_placeholders(path, matches)
         rendered = _render_blocks(path, text, profile, scalars, repeatable, catalogue)
         for match in token_pattern.finditer(rendered):
             name = match.group(1)
