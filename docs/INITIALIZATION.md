@@ -124,7 +124,10 @@ An applied initialization:
 - retains only the selected profile block;
 - retains supplied optional and repeatable blocks and removes unused ones;
 - deletes every path declared under `placeholders.template_only_paths`, subject
-  only to the documented social-preview retention exception;
+  only to the documented social-preview retention exception; template-maintainer
+  checker-development and semantic policy-coverage tooling is deliberately in
+  that set, while operational repository/release/VBA gates remain in generated
+  projects;
 - resets the changelog's `Unreleased` section so template-construction history
   is not attributed to the generated project;
 - creates explanatory files in currently empty profile-required directories;
@@ -180,7 +183,9 @@ python3 tools/check_repo.py --root . \
 
 The initializer self-test exercises missing, unknown, and unused inputs; dry-run
 immutability; application; second-run idempotence; template-only cleanup; and a
-green generated tree for every profile. For each profile it also proves that a
+green generated tree for every profile. It also verifies that template-maintainer
+checker-development/policy-coverage files are absent after generation while the
+operational gate set remains. For each profile it proves that a
 README-only tree and removal of the façade, core, or test module fail only the
 named `generated-vba-contract` rule, while removal of the optional example still
 passes.

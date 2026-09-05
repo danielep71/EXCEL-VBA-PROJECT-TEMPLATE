@@ -107,9 +107,11 @@ Run every project-specific numerical, UI, lifecycle, performance or packaging
 gate as well. A stronger specialist gate is additive; the generic repository
 gate never replaces it.
 
-For changes to checker behavior, also run the checker-development and semantic
-policy-coverage contracts documented in
+<!-- template:remove:start -->
+For changes to checker behavior in the canonical template, also run the
+checker-development and semantic policy-coverage contracts documented in
 [`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md).
+<!-- template:remove:end -->
 
 ## 5. Certify in Excel
 

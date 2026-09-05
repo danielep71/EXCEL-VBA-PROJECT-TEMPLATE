@@ -31,6 +31,8 @@ CONFIG_PATH = ".github/repository-profile.json"
 LABEL_MANIFEST_PATH = ".github/labels.json"
 ISSUE_TEMPLATE_DIRECTORY = ".github/ISSUE_TEMPLATE"
 TOOL_NAME = "Canonical repository quality"
+MAX_XML_BYTES = 1024 * 1024
+UNSAFE_XML_DECLARATION = re.compile(r"<!\s*(?:DOCTYPE|ENTITY)\b", re.IGNORECASE)
 SUPPORTED_PROFILES = ("application", "library", "ui-component")
 PLACEHOLDER_CATEGORIES = ("optional", "profile-specific", "repeatable", "required")
 PLACEHOLDER_NAME_PATTERN = re.compile(r"[A-Z][A-Z0-9_]*")
@@ -941,6 +943,27 @@ def validate_yaml_subset(text: str) -> list[tuple[int, str]]:
     return errors
 
 
+def _validate_xml_text(path: str, text: str) -> dict[str, Any] | None:
+    size = len(text.encode("utf-8"))
+    if size > MAX_XML_BYTES:
+        return finding(
+            path,
+            f"XML input exceeds the {MAX_XML_BYTES}-byte structural-validation limit.",
+        )
+    match = UNSAFE_XML_DECLARATION.search(text)
+    if match is not None:
+        return finding(
+            path,
+            "XML DTD and entity declarations are prohibited by the portable checker.",
+            line_number(text, match.start()),
+        )
+    try:
+        ET.fromstring(text)  # noqa: S314 -- bounded input with DTD/entity declarations rejected above.
+    except ET.ParseError as error:
+        return finding(path, f"Invalid XML: {error}", error.position[0])
+    return None
+
+
 def check_structured_data(
     repo: Repository, config: dict[str, Any]
 ) -> dict[str, Any]:
@@ -971,10 +994,13 @@ def check_structured_data(
         elif suffix == ".xml":
             counts["xml"] += 1
             try:
-                ET.fromstring(repo.text(path))
-            except (OSError, UnicodeError, ET.ParseError) as error:
-                line = error.position[0] if isinstance(error, ET.ParseError) else None
-                failures.append(finding(path, f"Invalid XML: {error}", line))
+                text = repo.text(path)
+            except (OSError, UnicodeError) as error:
+                failures.append(finding(path, f"Cannot decode XML as UTF-8: {error}"))
+                continue
+            xml_failure = _validate_xml_text(path, text)
+            if xml_failure is not None:
+                failures.append(xml_failure)
     summary = (
         f"Parsed {counts['json']} JSON, {counts['yaml']} YAML, "
         f"and {counts['xml']} XML files"
@@ -2865,6 +2891,28 @@ def _degrade_structured_xml(root: Path) -> None:
     _run_git(root, "add", path.relative_to(root).as_posix())
 
 
+def _degrade_structured_xml_encoding(root: Path) -> None:
+    path = root / "docs/invalid-encoding.xml"
+    _write_fixture(path, b"<repository>\xff</repository>\n")
+    _run_git(root, "add", path.relative_to(root).as_posix())
+
+
+def _degrade_structured_xml_doctype(root: Path) -> None:
+    path = root / "docs/doctype.xml"
+    _write_fixture(
+        path,
+        '<!DOCTYPE repository [<!ENTITY sample "value">]><repository>&sample;</repository>\n',
+    )
+    _run_git(root, "add", path.relative_to(root).as_posix())
+
+
+def _degrade_structured_xml_oversize(root: Path) -> None:
+    path = root / "docs/oversize.xml"
+    padding = "x" * MAX_XML_BYTES
+    _write_fixture(path, f"<repository>{padding}</repository>\n")
+    _run_git(root, "add", path.relative_to(root).as_posix())
+
+
 def _degrade_markdown_links(root: Path) -> None:
     _write_fixture(root / "README.md", "# Fixture\n\n[Missing](docs/MISSING.md)\n")
 
@@ -2990,6 +3038,9 @@ BRANCH_SELF_TEST_CASES: tuple[
 ] = (
     ("structured-yaml", "structured-data", _degrade_structured_yaml),
     ("structured-xml", "structured-data", _degrade_structured_xml),
+    ("structured-xml-encoding", "structured-data", _degrade_structured_xml_encoding),
+    ("structured-xml-doctype", "structured-data", _degrade_structured_xml_doctype),
+    ("structured-xml-oversize", "structured-data", _degrade_structured_xml_oversize),
 )
 
 

@@ -10,7 +10,7 @@
 
 `tools/_gatelib.py` owns the small cross-tool mechanics that are genuinely identical: Git subprocess wrappers, tracked-file enumeration, deterministic UTF-8/LF report writes, and the common `--root` / `--output` / `--summary` / `--self-test` parser. Focused gates import those primitives instead of maintaining copies. Tool-specific `main`, `run_check`, `build_report`, `run_self_test`, and Markdown renderers remain local because their behavior and evidence schemas differ.
 
-`tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary.
+`tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused operational gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary in the canonical template. The checker-development workflow, this document, and the `policy_coverage_*` semantic-coverage harness are template-maintainer assets and are removed by initialization rather than shipped into generated projects.
 
 ### Supported invocation mode
 

@@ -230,9 +230,11 @@ The hosted `Repository integrity` workflow checks source/repository facts and
 fails closed when a required validator or evidence report does not complete. It
 does **not** compile VBA or execute Excel.
 
+<!-- template:remove:start -->
 For checker maintenance, the independent
 [`CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md) contract protects the
 single-file, standard-library runtime and parser/reporter development boundaries.
+<!-- template:remove:end -->
 
 For a release candidate, use [`RELEASING.md`](RELEASING.md). SemVer/changelog
 semantics and release-evidence schemas are maintained separately in
@@ -273,7 +275,9 @@ document that owns your task:
 | Define release evidence | [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) |
 | Check release semantics | [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) |
 | Provision repository settings | [`docs/POST_CREATION_CHECKLIST.md`](docs/POST_CREATION_CHECKLIST.md) |
+<!-- template:remove:start -->
 | Maintain the portable checker | [`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md) |
+<!-- template:remove:end -->
 
 ## ⚠️ Known limitations
 

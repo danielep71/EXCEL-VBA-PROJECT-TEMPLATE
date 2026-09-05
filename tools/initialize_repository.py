@@ -364,6 +364,30 @@ def _reject_executable_placeholders(path: str, matches: list[Any]) -> None:
         )
 
 
+def _strip_template_maintenance_workflow(path: str, text: str) -> str:
+    if path != ".github/workflows/static-checks.yml":
+        return text
+    lines = text.splitlines(keepends=True)
+    output: list[str] = []
+    skipping = False
+    for line in lines:
+        if line.startswith("      - name: Exercise policy-branch coverage determinism"):
+            skipping = True
+            continue
+        if skipping and line.startswith("      - name: Exercise positive and degraded checker paths"):
+            skipping = False
+        if skipping:
+            continue
+        if "test-results/policy-coverage." in line:
+            continue
+        if "POLICY_COVERAGE_" in line:
+            continue
+        if '"Policy-coverage self-test:' in line or '"Policy coverage:' in line:
+            continue
+        output.append(line)
+    return "".join(output)
+
+
 def _build_changes(
     root: Path,
     profile: str,
@@ -431,6 +455,7 @@ def _build_changes(
             seen.add(name)
         for name, value in values.items():
             rendered = rendered.replace("{{" + name + "}}", value)
+        rendered = _strip_template_maintenance_workflow(path, rendered)
         if path == ".github/ISSUE_TEMPLATE/config.yml":
             template_security_url = (
                 f"https://github.com/{config['repository']}/security/policy"
@@ -959,16 +984,20 @@ def self_test(source: Path) -> None:
             rerun, _ = _build_changes(fixture, profile, scalars, repeatable)
             if rerun:
                 raise AssertionError(f"{profile} second initialization was not idempotent.")
-            if any(
-                (fixture / path).exists()
-                for path in (
-                    "assets/social-preview.svg",
-                    "docs/IMPLEMENTATION_PLAN.md",
-                    "docs/PILOT_CERTIFICATION.md",
-                    "docs/PORTFOLIO_AUDIT.md",
+            generated_config = json.loads(
+                (fixture / CONFIG_PATH).read_text(encoding="utf-8")
+            )
+            retained_template_only = {CANONICAL_SOCIAL_PREVIEW_PATH}
+            forbidden_template_only = set(
+                generated_config["placeholders"]["template_only_paths"]
+            ) - retained_template_only
+            retained = sorted(
+                path for path in forbidden_template_only if (fixture / path).exists()
+            )
+            if retained:
+                raise AssertionError(
+                    f"{profile} retained template-only files: {', '.join(retained)}"
                 )
-            ):
-                raise AssertionError(f"{profile} retained template-only files.")
             if not (fixture / "assets/social-preview.png").is_file():
                 raise AssertionError(f"{profile} removed its selected social preview.")
             _assert_generated_cleanup(fixture, profile)

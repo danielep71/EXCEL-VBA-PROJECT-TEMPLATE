@@ -30,7 +30,9 @@ may summarize it, but must link here rather than restating a competing rule.
 | External release-evidence JSON, profile evidence and asset manifests | [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) | Reference to evidence requirements |
 | Public VBA surface | [`PUBLIC_API.txt`](PUBLIC_API.txt) | Human-readable API summary only |
 | Live repository provisioning and verification after generation | [`POST_CREATION_CHECKLIST.md`](POST_CREATION_CHECKLIST.md) | One reminder that settings are not inherited |
+<!-- template:remove:start -->
 | Portable checker development boundaries and independent tests | [`CHECKER_DEVELOPMENT.md`](CHECKER_DEVELOPMENT.md) | Link from tooling/contribution guidance |
+<!-- template:remove:end -->
 | Current version | [`../VERSION`](../VERSION) | Display/read the value; never redefine it |
 | User-visible release history | [`../CHANGELOG.md`](../CHANGELOG.md) | Link or current Unreleased summary only |
 | License terms | [`../LICENSE`](../LICENSE) | License name/link only |

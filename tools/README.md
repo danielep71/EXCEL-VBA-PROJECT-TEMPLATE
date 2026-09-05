@@ -12,7 +12,7 @@ Appropriate contents include:
 
 ### Shared focused-gate infrastructure
 
-`_gatelib.py` is the private, standard-library-only owner of Git, report-output, tracked-file, and common focused-gate CLI primitives. `check_repo.py` deliberately does not import it: the canonical checker remains a self-contained distributable artifact.
+`_gatelib.py` is the private, standard-library-only owner of Git, report-output, tracked-file, and common focused-gate CLI primitives. `check_repo.py` deliberately does not import it: the canonical checker remains a self-contained distributable artifact. The canonical template also carries checker-development and semantic policy-coverage harnesses; initialization strips those maintainer-only files while retaining the operational gates needed by generated projects.
 
 ## Canonical repository-quality gate
 
@@ -32,8 +32,9 @@ python3 tools/check_repo.py --root . \
 ```
 
 The first command exercises a passing fixture, one deliberately degraded
-fixture for each canonical rule, direct malformed-YAML and malformed-XML branch
-fixtures, deterministic JSON and Markdown rendering, and read-only execution.
+fixture for each canonical rule, malformed YAML/XML, prohibited XML DTD/entity
+declarations, oversized XML, deterministic JSON and Markdown rendering, and
+read-only execution.
 The second command validates the current tracked tree, prints a readable result,
 and writes optional machine-readable evidence.
 

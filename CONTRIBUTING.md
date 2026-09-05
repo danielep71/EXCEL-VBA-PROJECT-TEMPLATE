@@ -137,9 +137,11 @@ inspection cannot substitute for Excel execution. A skipped check is not a pass.
 Numerical or reference evidence must be independent of the implementation under
 test.
 
+<!-- template:remove:start -->
 For checker changes, additionally follow
-[`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md). For release-evidence
-schemas and exact-SHA binding, use
+[`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md).
+<!-- template:remove:end -->
+For release-evidence schemas and exact-SHA binding, use
 [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
 
 <a id="pull-requests"></a>
@@ -181,7 +183,9 @@ documentation or evidence. Discussion remains technical and respectful under the
 | Release procedure | [`RELEASING.md`](RELEASING.md) |
 | SemVer/changelog semantics | [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) |
 | Release evidence | [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) |
+<!-- template:remove:start -->
 | Checker changes | [`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md) |
+<!-- template:remove:end -->
 | Full authority map | [`docs/README.md`](docs/README.md) |
 
 ## 📄 Licensing and maintainer

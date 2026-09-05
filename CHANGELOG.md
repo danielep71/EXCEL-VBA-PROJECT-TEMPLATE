@@ -157,6 +157,12 @@ No unreleased changes recorded.
   common CLI mechanics into the private standard-library-only `tools/_gatelib.py`,
   while keeping `tools/check_repo.py` explicitly self-contained.
 - Removed residual unused imports exposed by the enforced Ruff baseline.
+- Reduced Python checker complexity under a permanently enforced McCabe ceiling
+  of 20 and normalized the VBA public-API checker so no style exception remains.
+- Hardened stdlib XML validation with a bounded input size and fail-closed
+  rejection of DTD/entity declarations before parsing.
+- Split template-maintainer checker-development and semantic policy-coverage
+  tooling from the operational tool payload retained by generated repositories.
 
 ### Compatibility
 
