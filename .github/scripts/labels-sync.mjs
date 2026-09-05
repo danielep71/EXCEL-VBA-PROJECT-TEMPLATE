@@ -9,6 +9,10 @@ const DEFAULT_MANIFEST = ".github/labels.json";
 const DEFAULT_POLICY = ".github/repository-profile.json";
 const API_VERSION = "2022-11-28";
 const PROFILE_NAMES = ["application", "library", "ui-component"];
+const LABELS_PER_PAGE = 100;
+const MAX_LABEL_PAGES = 100;
+const MAX_RATE_LIMIT_RETRIES = 2;
+const MAX_RETRY_DELAY_MS = 5000;
 
 function compareNames(left, right) {
   const leftKey = left.toLowerCase();
@@ -281,33 +285,69 @@ function apiUrl(repository, suffix) {
   return `https://api.github.com/repos/${owner}/${repo}${suffix}`;
 }
 
-async function githubRequest(repository, token, method, suffix, body) {
-  const response = await fetch(apiUrl(repository, suffix), {
-    method,
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${token}`,
-      "X-GitHub-Api-Version": API_VERSION,
-      "User-Agent": "canonical-vba-labels-sync"
-    },
-    body: body === undefined ? undefined : JSON.stringify(body)
-  });
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`${method} ${suffix} failed with HTTP ${response.status}: ${detail.slice(0, 500)}`);
+function sleep(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+function isRateLimited(response) {
+  return response.status === 429
+    || (
+      response.status === 403
+      && (
+        response.headers.get("x-ratelimit-remaining") === "0"
+        || response.headers.has("retry-after")
+      )
+    );
+}
+
+function retryDelayMs(response, attempt) {
+  const retryAfter = Number(response.headers.get("retry-after"));
+  if (Number.isFinite(retryAfter) && retryAfter >= 0) {
+    return Math.min(retryAfter * 1000, MAX_RETRY_DELAY_MS);
   }
-  if (response.status === 204) return null;
-  return response.json();
+  return Math.min(1000 * (2 ** attempt), MAX_RETRY_DELAY_MS);
+}
+
+async function githubRequest(repository, token, method, suffix, body) {
+  for (let attempt = 0; ; attempt += 1) {
+    const response = await fetch(apiUrl(repository, suffix), {
+      method,
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": API_VERSION,
+        "User-Agent": "canonical-vba-labels-sync"
+      },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    if (response.ok) {
+      if (response.status === 204) return null;
+      return response.json();
+    }
+
+    const detail = await response.text();
+    const retryable = method === "GET" && isRateLimited(response);
+    if (!retryable || attempt >= MAX_RATE_LIMIT_RETRIES) {
+      throw new Error(`${method} ${suffix} failed with HTTP ${response.status}: ${detail.slice(0, 500)}`);
+    }
+    await sleep(retryDelayMs(response, attempt));
+  }
 }
 
 async function listLiveLabels(repository, token) {
   const labels = [];
-  for (let page = 1; ; page += 1) {
-    const batch = await githubRequest(repository, token, "GET", `/labels?per_page=100&page=${page}`);
+  for (let page = 1; page <= MAX_LABEL_PAGES; page += 1) {
+    const batch = await githubRequest(
+      repository,
+      token,
+      "GET",
+      `/labels?per_page=${LABELS_PER_PAGE}&page=${page}`
+    );
+    if (!Array.isArray(batch)) throw new Error("GitHub labels response is not an array");
     labels.push(...batch.map(normalizedLiveLabel));
-    if (batch.length < 100) break;
+    if (batch.length < LABELS_PER_PAGE) return labels;
   }
-  return labels;
+  throw new Error(`GitHub label pagination exceeded ${MAX_LABEL_PAGES} pages`);
 }
 
 async function applyChanges(repository, token, changes) {
