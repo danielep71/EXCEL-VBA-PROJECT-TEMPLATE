@@ -45,6 +45,27 @@ that release.
 
 This repository is currently rendered for the **{{PROFILE_NAME}}** profile.
 
+### Complete repository checkout
+
+Use a **Git clone** when you intend to initialize, validate, contribute to, or
+release the project. The repository's `.gitattributes` deliberately marks
+repository-plumbing paths such as `.github/`, `.gitignore`, `.editorconfig`, and
+`.gitattributes` as `export-ignore`; GitHub source archives are generated with
+`git archive`, so **Code → Download ZIP is not a complete maintainer checkout**.
+In particular, a ZIP snapshot can omit workflows and
+`.github/repository-profile.json`, and repository gates that require those files
+will fail by design.
+
+```text
+git clone https://github.com/{{REPOSITORY_PATH}}.git
+cd <repository-directory>
+```
+
+Use a GitHub ZIP/tar source archive only when you intentionally need the
+consumable exported source subset and do not intend to run repository governance
+or initialization tooling. Do not diagnose missing workflow/profile files from
+such an archive as repository defects.
+
 <a id="deployment-model"></a>
 
 ## 🎯 Deployment model
