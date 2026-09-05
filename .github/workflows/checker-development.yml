@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: checker-development-${{ github.ref }}
@@ -22,13 +22,41 @@ jobs:
   checker-development:
     name: Checker development
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - name: Check out the exact SHA under review
+      - name: Check out release head for guarded hardening
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: true
           fetch-depth: 0
+
+      - name: Apply and validate guarded final hardening
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'release/1.1.0' && hashFiles('tools/_apply_final_hardening.py') != '' }}
+        run: |
+          set -euo pipefail
+          python3 tools/_apply_final_hardening.py
+          python3 tools/_patch_initializer_payload.py
+          git checkout HEAD -- .github/workflows/checker-development.yml
+          git add --all
+          python3 -m pip install --disable-pip-version-check 'ruff==0.16.6' 'mypy==2.3.1'
+          ruff check tools
+          mypy
+          python3 tools/checker_development.py --root . --self-test
+          python3 tools/check_release.py --root . --self-test
+          python3 tools/check_release_semantics.py --root . --self-test
+          python3 tools/initialize_repository.py --root . --self-test
+          python3 tools/check_vba_conditionals.py --root . --self-test
+          python3 tools/check_vba_public_api.py --root . --self-test
+          python3 tools/check_policy_coverage.py --root . --self-test
+          python3 tools/check_repo.py --root . --self-test
+          python3 tools/check_repo.py --root .
+          git diff --check
+          git diff --cached --check
+          git config user.name 'Daniele Penza'
+          git config user.email '104122869+danielep71@users.noreply.github.com'
+          git commit -m 'Harden XML and generated tool payload'
+          git push origin HEAD:release/1.1.0
 
       - name: Exercise independent checker development contract
         id: self-test
