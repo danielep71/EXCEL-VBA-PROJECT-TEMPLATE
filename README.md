@@ -18,25 +18,20 @@
 [![Static checks](https://github.com/{{REPOSITORY_PATH}}/actions/workflows/static-checks.yml/badge.svg?branch=main)](https://github.com/{{REPOSITORY_PATH}}/actions/workflows/static-checks.yml)
 [![Release](https://img.shields.io/github/v/release/{{REPOSITORY_PATH}}?style=flat-square&label=release&color=217346)](https://github.com/{{REPOSITORY_PATH}}/releases)
 [![Issues](https://img.shields.io/github/issues/{{REPOSITORY_PATH}}?style=flat-square&color=d73a49)](https://github.com/{{REPOSITORY_PATH}}/issues)
-[![Last commit](https://img.shields.io/github/last-commit/{{REPOSITORY_PATH}}?style=flat-square&color=0969da)](https://github.com/{{REPOSITORY_PATH}}/commits/main)
 
 <br>
 
 **Source-first VBA · Explicit contracts · Deterministic evidence**
 
-[Overview](#what-this-project-is)
-&nbsp;·&nbsp;
 [Quick start](#quick-start)
 &nbsp;·&nbsp;
 [Profiles](#supported-profiles)
 &nbsp;·&nbsp;
-[Architecture](#architecture)
+[Structure](#repository-shape)
 &nbsp;·&nbsp;
-[Quality](#quality-and-assurance)
+[Validation](#validation)
 &nbsp;·&nbsp;
-[Installation](INSTALLATION.md)
-&nbsp;·&nbsp;
-[Documentation](#documentation-map)
+[Documentation](#documentation)
 &nbsp;·&nbsp;
 [Security](SECURITY.md)
 
@@ -56,85 +51,43 @@
 
 <!-- template:remove:start -->
 > [!IMPORTANT]
-> This repository is still in template mode. Before publishing or developing a
-> generated project, run the dry-run-first initializer described below. A green
-> static gate does not constitute Excel execution or release certification.
+> This repository is still in template mode. Create a repository with **Use this
+> template**, then run the dry-run-first initializer before publishing or
+> developing the generated project. A green static gate does not prove Excel
+> execution or release certification.
 <!-- template:remove:end -->
-
-<a id="what-this-project-is"></a>
 
 ## ✨ What this project is
 
-{{PROJECT_NAME}} is an exported-source-first Excel/VBA project designed around
-reviewable source, explicit contracts, deterministic checks and evidence bound
-to an exact commit.
+{{PROJECT_NAME}} is a source-first Excel/VBA project. Exported VBA, tests,
+versioned policy and documentation are the reviewable source of truth; Office
+packages are generated or release artifacts unless an exact path is explicitly
+governed.
 
-The repository treats text source, tests, documentation, workflows and evidence
-as authoritative. Office workbooks and add-ins are generated or release
-artifacts unless an exact path is deliberately approved in the repository
-profile.
+The template separates five evidence layers that must not be conflated:
+repository integrity, VBA compilation, regression execution, specialist
+assurance, and release certification.
 
-### At a glance
-
-| Principle | Canonical expectation |
+| Principle | Project contract |
 | --- | --- |
-| Source of truth | Exported VBA and versioned text, not an opaque workbook |
-| Public surface | Document supported entry points separately from internal and host callbacks |
-| Failure behavior | Define invalid-input, error, cleanup and state-restoration contracts |
-| Verification | Separate static inspection, Excel execution and release certification |
-| Evidence | Bind every claim to the exact source SHA, environment and artifact tested |
-| Portability | State supported Excel hosts, Office bitness and deployment models explicitly |
-
-## ⭐ Why use this structure
-
-- **Reviewable by design.** Exported components, contracts and workflows produce
-  meaningful diffs.
-- **Profile-aware.** Libraries, UI components and applications share one core
-  without pretending that their runtime evidence is identical.
-- **Source-first.** Production source is separated from tests, examples,
-  generated workbooks and release packages.
-- **Evidence-led.** Repository checks, Excel regression and specialist assurance
-  have distinct meanings.
-- **Safe to extend.** Domain-specific workflows remain additive and may never be
-  replaced by a weaker generic check.
-- **Honest about boundaries.** Untested environments and unresolved limitations
-  remain visible.
-
-<a id="project-status"></a>
-
-## 🚦 Project status
-
-| Item | Current value |
-| --- | --- |
-| Lifecycle | Initialized source project |
-| Version source | [VERSION](VERSION) |
-| Repository profile | {{PROFILE_NAME}} |
-| Static integrity | [Static repository checks](.github/workflows/static-checks.yml) |
-| Excel/VBA execution | Project-specific evidence required |
-| Release state | Unreleased until the release gate and profile evidence pass |
-
-Keep this table synchronized with the project’s actual lifecycle, supported
-version, evidence and release status. Never publish inherited test counts,
-compatibility claims or badges that were not produced for this project.
+| Source identity | Exported text source and exact Git revision |
+| Public surface | Explicitly documented and machine-checked |
+| State ownership | Caller/host state is changed and restored deliberately |
+| Failure behavior | Invalid inputs, errors and cleanup are part of the contract |
+| Evidence | Claims name the exact candidate and environment tested |
+| Portability | Supported Excel/Office environments are stated, not inferred |
 
 <a id="quick-start"></a>
 
-# ⚡ Quick start
+## ⚡ Quick start
 
 <!-- template:remove:start -->
-## Initialize the generated repository
+### 1. Initialize one generated profile
 
-Create a new repository with **Use this template**, then clone the generated
-repository:
+Clone the new repository, review this deterministic dry-run, then repeat the
+same command with `--apply`:
 
-~~~bash
-git clone https://github.com/{{REPOSITORY_PATH}}.git
-~~~
-
-Review the deterministic dry-run, then repeat the same command with
-<code>--apply</code>:
-
-~~~bash
+```bash
 python3 tools/initialize_repository.py --profile library \
   --set PROJECT_NAME="Example Project" \
   --set PROJECT_TAGLINE="A concise project identity" \
@@ -143,96 +96,73 @@ python3 tools/initialize_repository.py --profile library \
   --set MAINTAINER_NAME="Example Maintainer" \
   --set SUPPORT_CONTACT="security@example.com" \
   --set COPYRIGHT_YEAR="2026"
-~~~
+```
 
-Choose <code>library</code>, <code>ui-component</code>, or
-<code>application</code>. See
-[Initialization](docs/INITIALIZATION.md) for optional, repeatable, manual and
-failure-safe procedures.
+Choose `library`, `ui-component`, or `application`. Optional values,
+repeatable values, failure behavior and the manual fallback are authoritative in
+[`docs/INITIALIZATION.md`](docs/INITIALIZATION.md).
 <!-- template:remove:end -->
 
-## 1. Review the starter source and tests
+### 1. Review the source contract
 
-- Import `ProjectCore`, then `ProjectFacade`, from the tracked starter source.
-- Import `ProjectTests` only into a development workbook and run
-  `ProjectTests.RunProjectTests`.
-- Run `ProjectExample.RunProjectExample` for the minimal supported-API example.
-- Replace or deliberately retain the neutral ratio example before release;
-  synchronize component identities, policy, API manifest, documentation, and
-  tests when renaming it.
-- Keep production components under [src/](src/).
-- Keep regression components, independent fixtures and test documentation under
-  [tests/](tests/).
-- Update [.github/repository-profile.json](.github/repository-profile.json) so
-  the configured component manifest matches the tracked tree.
+The neutral starter contains:
 
-## 2. Run the local quality sequence
+- [`ProjectCore`](src/core/ProjectCore.bas) — internal implementation;
+- [`ProjectFacade`](src/modules/ProjectFacade.bas) — supported public façade;
+- [`ProjectTests`](tests/modules/ProjectTests.bas) — regression harness; and
+- [`ProjectExample`](examples/modules/ProjectExample.bas) — minimal consumer example.
 
-~~~bash
+The starter proves the repository shape; it is not project-specific business
+logic. Rename or replace it only as one coherent change across source, tests,
+examples, repository policy and the [public API manifest](docs/PUBLIC_API.txt).
+
+### 2. Validate locally
+
+```bash
 python3 tools/check_repo.py --root . --self-test
 python3 tools/check_repo.py --root . \
   --output test-results/static-checks.json \
   --summary test-results/static-checks.md
 python3 tools/check_release.py --root . --self-test \
   --summary test-results/release-self-test.md
-~~~
+```
 
 <!-- template:repeatable:ADDITIONAL_TEST_COMMAND:start -->
-Run the project-specific checks as well:
+Run the project-specific check as well:
 
-~~~bash
+```bash
 {{ADDITIONAL_TEST_COMMAND}}
-~~~
+```
 <!-- template:repeatable:ADDITIONAL_TEST_COMMAND:end -->
 
-Then compile in a supported Excel host and execute the documented regression,
-UI, lifecycle or application smoke entry point applicable to this project.
+Then import the applicable VBA components into a supported Excel host, run
+**Debug → Compile VBAProject**, and execute the documented regression or smoke
+entry point. The neutral baseline is `ProjectTests.RunProjectTests`.
 
-Record only evidence actually produced for the exact candidate.
+### 3. Provision GitHub settings
 
-The hosted `Repository integrity` job additionally installs the
-content-verified actionlint version documented in
-[`tools/README.md`](tools/README.md#authoritative-workflow-validation), validates
-the complete GitHub Actions schema, and exercises known-invalid workflow and
-local-action fixtures. A missing validator or report fails the terminal result.
-The same job exercises valid release candidates for all three profiles and the
-complete deterministic release-failure matrix; its release self-test report is
-also a required artifact and terminal outcome.
-
-## 3. Complete repository provisioning
-
-GitHub template generation copies files, not repository settings. After
-creation:
-
-- apply the canonical labels;
-- configure repository topics, description and social preview;
-- enable the approved merge methods and automatic branch deletion;
-- create the applicable branch and tag rulesets;
-- select <code>Repository integrity</code> and any stronger project checks as
-  required; and
-- verify security, issue-routing and release settings.
+Template generation copies files, not labels, rulesets, topics, merge settings
+or security settings. Apply and verify the authoritative
+[`POST_CREATION_CHECKLIST.md`](docs/POST_CREATION_CHECKLIST.md) after generation.
 
 <a id="supported-profiles"></a>
 
-# 🧭 Supported profiles
+## 🧭 Supported profiles
 
-Choose one profile. A project may add specialist controls, but it must not
-silently combine profiles to avoid a requirement.
+Choose one profile. Specialist controls may be added, but a profile never
+weakens source integrity, security, action pinning or release provenance.
 
-| Profile | Intended use | Typical production structure | Additional evidence |
-| --- | --- | --- | --- |
-| <code>library</code> | Reusable VBA functions, services or numerical components | Public façade modules plus internal/core modules | Public API, caller contract and focused regression |
-| <code>ui-component</code> | UserForms, Ribbon controls, window or worksheet UI | Modules, classes, forms and host callbacks | UI state, cleanup, recovery, DPI/accessibility and lifecycle checks |
-| <code>application</code> | End-to-end workbook or add-in workflows | Modules, classes and workbook/application integration | Startup, shutdown, migration, scenario and package tests |
+| Profile | Use when | Additional evidence |
+| --- | --- | --- |
+| `library` | Reusable callable VBA with no owned end-user shell | Public API, caller contract and focused regression |
+| `ui-component` | An embeddable bounded interactive surface | UI state, cleanup, recovery, DPI/accessibility and lifecycle evidence |
+| `application` | An end-to-end workbook or add-in solution | Startup, shutdown, upgrade, recovery, packaging and smoke evidence |
 
-The selected profile changes required structure and evidence. It never weakens
-documentation, security, source integrity, action pinning or release provenance.
+### Selected profile contract
 
-## Selected profile contract
-
-This repository is a **{{PROFILE_NAME}}**: {{PROFILE_PURPOSE}}. Its source
-contract covers {{PROFILE_SOURCE_CONTRACT}}. At minimum, retain
-{{PROFILE_EVIDENCE}}.
+This repository is a **{{PROFILE_NAME}}**: {{PROFILE_PURPOSE}}.
+Its source contract covers {{PROFILE_SOURCE_CONTRACT}}.
+At minimum, retain {{PROFILE_EVIDENCE}}.
 
 <!-- template:profile:library:start -->
 ### Library commitments
@@ -258,280 +188,123 @@ upgrade and rollback. A distributable package requires provenance and
 post-package smoke evidence.
 <!-- template:profile:application:end -->
 
-<a id="architecture"></a>
+<a id="repository-shape"></a>
 
-# 🏗️ Architecture
+## 🏗️ Repository shape
 
-## Canonical repository map
-
-| Path | Responsibility | Keep when |
-| --- | --- | --- |
-| [src/](src/) | Authoritative exported production VBA | Always |
-| [tests/](tests/) | Regression modules, fixtures and evidence instructions | Always |
-| [examples/](examples/) | Minimal supported examples or demonstrations | The project can maintain them |
-| [assets/](assets/) | Documentation images and non-source visual assets | Referenced by tracked documentation |
-| [docs/](docs/) | Architecture, API, compatibility and durable contracts | Material exceeds the root overview |
-| [tools/](tools/) | Deterministic validation, evidence and packaging utilities | Tooling is versioned and documented |
-| [.github/](.github/) | Workflows, contribution templates and declarative policy | Always |
-
-See [REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md) for ownership rules,
-VBA separation and legitimate profile-specific alternatives.
-
-## VBA component separation
-
-| Layer | Responsibility | Dependency direction |
-| --- | --- | --- |
-| Public façade | Stable consumer-facing procedures, functions and types | May call internal/core code |
-| Internal/core | Algorithms, state management and implementation details | Must not depend on tests |
-| UI and host adapters | Forms, Ribbon callbacks and workbook/application integration | Translate host events into supported operations |
-| Regression tests | Contract, boundary, failure and cleanup verification | May exercise governed seams without becoming production API |
-
-~~~mermaid
-flowchart LR
-    Consumer["Workbook or add-in"] --> Public["Public façade"]
-    UI["UI and host adapters"] --> Public
-    Public --> Core["Internal core"]
-    Tests["Regression tests"] --> Public
-    Tests --> Core
-~~~
-
-The diagram is a dependency guide, not a mandatory module count. Record any
-justified alternative in the project architecture documentation.
-
-## Neutral starter contract
-
-| Component | Role | Contract |
-| --- | --- | --- |
-| [`ProjectFacade`](src/modules/ProjectFacade.bas) | Public façade | `ProjectRatio` and its fixed zero-denominator error number |
-| [`ProjectCore`](src/core/ProjectCore.bas) | Internal core | Host-independent division and input rejection behind `Option Private Module` |
-| [`ProjectTests`](tests/modules/ProjectTests.bas) | Regression harness | `RunProjectTests`; four cases, six assertions, expected-error checks, environment and cleanup report |
-| [`ProjectExample`](examples/modules/ProjectExample.bas) | Example | One scalar façade call with Immediate-window output and no Excel state mutation |
-
-The starter proves the repository shape; it is not project-specific business
-logic. Its fixed component and member identifiers are intentionally valid VBA,
-not initializer tokens. A generated project may rename or replace them only as
-one coherent change across source, tests, examples, the component map, the
-[public API manifest](docs/PUBLIC_API.txt), and installation documentation.
-
-## Source contract
-
-- Exported <code>.bas</code>, <code>.cls</code> and <code>.frm</code> files are
-  the reviewable source of truth.
-- Production and regression components have distinct tracked identities.
-- Exported component names match filenames and remain unique
-  case-insensitively.
-- VBA source uses Windows-1252-compatible text, CRLF line endings and
-  <code>Option Explicit</code>.
-- Internal standard modules declare <code>Option Private Module</code>.
-- Public declarations match the tracked [API manifest](docs/PUBLIC_API.txt).
-- UserForm <code>.frx</code> companions are tracked only with their authoritative
-  <code>.frm</code> export.
-- Generated Office packages remain untracked unless the profile and release
-  process explicitly govern an exact path.
-
-# 🛡️ Engineering contracts
-
-## Source-first
-
-A workbook or add-in is not a substitute for exported source. Release artifacts
-must be reproducible from, or cryptographically bound to, the exact versioned
-source.
-
-## Caller-owned state
-
-Code must restore only state it successfully acquired or changed. Cleanup paths
-receive the same attention as successful paths, particularly for
-<code>Application</code> state, Windows resources, callbacks and modeless UI.
-
-## Deterministic failures
-
-Public behavior defines invalid inputs, expected error values or numbers,
-partial-success rules, cleanup and diagnostics. Tests assert the contract rather
-than implementation accidents.
-
-## No self-referencing evidence
-
-Expected results come from an independent oracle, frozen contract or explicitly
-reviewed reference—not from the implementation under test.
-
-## Environment honesty
-
-Source inspection does not compile VBA. One Office bitness does not execute the
-other conditional branch. A workbook opened manually does not prove a headless
-runner. State these boundaries directly.
-
-<a id="quality-and-assurance"></a>
-
-# ✅ Quality and assurance
-
-## Assurance ladder
-
-| Layer | What it can establish | What it cannot establish |
-| --- | --- | --- |
-| Repository integrity | Structure, links, placeholders, identities, policy files, action pins and exported-source hygiene | VBA compilation or Excel behavior |
-| VBA compilation | Importability and compile-clean source in a stated host | Functional correctness |
-| Regression execution | Contract behavior for executed cases and environment | Untested cases or platforms |
-| Specialist assurance | UI, numerical, performance, lifecycle or packaging claims | Broader claims than its measured scope |
-| Release certification | Version, source, artifact and evidence consistency | Correctness beyond the recorded evidence |
-
-## Canonical static gate
-
-The [static-check workflow](.github/workflows/static-checks.yml):
-
-- runs against the exact SHA under review;
-- uses pinned external actions and read-only repository permissions;
-- self-tests one passing fixture and one degraded fixture per rule;
-- resolves the selected profile's mandatory façade, core, and test contract;
-- validates the configured repository tree;
-- exercises the release-integrity gate across all supported profiles and named
-  failure paths;
-- publishes a readable job summary;
-- uploads deterministic JSON and Markdown evidence; and
-- enforces every intermediate outcome through one terminal verdict.
-
-The machine-readable report records the selected profile, required role minima,
-observed role counts, and mandatory component paths. Instructional READMEs do
-not satisfy this contract, while UI assets and examples remain optional unless
-the selected profile explicitly requires them.
-
-Run it locally with the commands shown in [Quick start](#quick-start).
-
-## Evidence record
-
-Replace the entries below with facts from the exact candidate:
-
-| Evidence | Result |
+| Path | Responsibility |
 | --- | --- |
-| Commit SHA | Full 40-character candidate SHA |
-| Static checks | Command, rule count and workflow URL |
-| VBA compilation | Host, version, build, bitness and outcome |
-| Regression | Entry point, cases, assertions, failures and cleanup |
-| Specialist checks | Record only evidence actually produced, including environment and limitations |
-| Release artifact | Name, SHA-256 digest and source relationship |
+| [`src/`](src/) | Authoritative exported production VBA |
+| [`tests/`](tests/) | Regression source, stable fixtures and evidence instructions |
+| [`examples/`](examples/) | Minimal examples using supported APIs |
+| [`assets/`](assets/) | Versioned documentation/visual assets |
+| [`docs/`](docs/) | Durable specialized contracts |
+| [`tools/`](tools/) | Deterministic validation and release tooling |
+| [`.github/`](.github/) | Workflows, intake forms and declarative repository policy |
 
-> [!NOTE]
-> Hosted static checks validate repository evidence only. They do not execute
-> Excel, prove numerical accuracy, exercise UI state, validate a workbook
-> lifecycle, or certify a release package.
+Directory ownership, VBA façade/core/UI/test separation, export format and
+legitimate profile-specific alternatives are authoritative in
+[`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md).
 
 <a id="requirements"></a>
 
-# 💻 Requirements
+## 🖥️ Requirements
 
-Replace this table with the environments actually supported and tested.
+A generated project must state its actual support matrix before release:
 
-| Item | Requirement |
+- supported Excel/Microsoft 365 versions/builds;
+- Windows/operating-system scope;
+- Office bitness and VBA generation;
+- required references, native APIs or external dependencies; and
+- supported deployment model.
+
+Do not infer compatibility from source inspection or from one successful host.
+Installation, import, upgrade and removal procedures are authoritative in
+[`INSTALLATION.md`](INSTALLATION.md).
+
+<a id="validation"></a>
+
+## ✅ Validation
+
+The hosted `Repository integrity` workflow checks source/repository facts and
+fails closed when a required validator or evidence report does not complete. It
+does **not** compile VBA or execute Excel.
+
+<!-- template:remove:start -->
+For checker maintenance, the independent
+[`CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md) contract protects the
+single-file, standard-library runtime and parser/reporter development boundaries.
+<!-- template:remove:end -->
+
+For a release candidate, use [`RELEASING.md`](RELEASING.md). SemVer/changelog
+semantics and release-evidence schemas are maintained separately in
+[`RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) and
+[`RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
+
+## 🛡️ Engineering boundaries
+
+- Treat exported source as authoritative; never use an opaque workbook as the
+  only record of a code change.
+- Restore only Excel/Windows state the component successfully acquired or
+  changed and still owns.
+- Define invalid-input, error, cleanup and partial-success behavior explicitly.
+- Use independent expected results for numerical or behavioral verification.
+- Record skips and untested environments as limitations, not passes.
+- Keep stronger project-specific numerical, UI, lifecycle, performance or
+  packaging gates additive to the generic repository baseline.
+
+Detailed source ownership belongs to
+[`REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md); contributor workflow
+belongs to [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+<a id="documentation"></a>
+
+## 📚 Documentation
+
+The canonical authority map is [`docs/README.md`](docs/README.md). Start with the
+document that owns your task:
+
+| Task | Authority |
 | --- | --- |
-| Excel / Office host | State every supported and tested host version |
-| Office bitness | State each supported and tested bitness |
-| Operating system | State every supported platform and material limitation |
-| VBA references | List required references or state that none are non-standard |
-| Deployment model | Embedded source, add-in, workbook, or another supported package |
-| Trust settings | Document macro, trusted-location and signing requirements |
+| Initialize a generated repository | [`docs/INITIALIZATION.md`](docs/INITIALIZATION.md) |
+| Understand source/repository structure | [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md) |
+| Install, upgrade or remove | [`INSTALLATION.md`](INSTALLATION.md) |
+| Contribute or review a change | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| Report a vulnerability | [`SECURITY.md`](SECURITY.md) |
+| Prepare a release | [`RELEASING.md`](RELEASING.md) |
+| Define release evidence | [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) |
+| Check release semantics | [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) |
+| Provision repository settings | [`docs/POST_CREATION_CHECKLIST.md`](docs/POST_CREATION_CHECKLIST.md) |
+<!-- template:remove:start -->
+| Maintain the portable checker | [`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md) |
+<!-- template:remove:end -->
 
-# 📦 Installation
+## ⚠️ Known limitations
 
-Use [INSTALLATION.md](INSTALLATION.md) as the authoritative deployment and
-removal guide. At minimum it must state:
-
-1. the exact production source manifest;
-2. the required import order;
-3. workbook, add-in or application integration steps;
-4. references, trust settings and host requirements;
-5. verification and smoke-test procedures; and
-6. rollback, removal and recovery steps.
-
-Do not instruct users to import test modules as production dependencies.
-
-<a id="documentation-map"></a>
-
-# 📚 Documentation map
-
-| Document | Purpose |
-| --- | --- |
-| [Installation](INSTALLATION.md) | Requirements, import, deployment, verification and removal |
-| [Contributing](CONTRIBUTING.md) | Branch, source, testing, evidence and review standards |
-| [Changelog](CHANGELOG.md) | Unreleased work, version history and compatibility |
-| [Security](SECURITY.md) | Supported versions and private vulnerability reporting |
-| [Releasing](RELEASING.md) | Versioning, certification, artifacts, provenance and recovery |
-| [Release evidence](docs/RELEASE_EVIDENCE.md) | Evidence JSON, profile checks, asset manifests and exact-SHA validation |
-| [Repository structure](docs/REPOSITORY_STRUCTURE.md) | Canonical directory and VBA ownership |
-| [Initialization](docs/INITIALIZATION.md) | Token schema, profile selection, dry-run/apply and manual fallback |
-| [Post-creation checklist](docs/POST_CREATION_CHECKLIST.md) | Labels, metadata, merge settings, branch/tag protection and read-back evidence |
-| [Documentation index](docs/README.md) | Durable architecture, API and specialist contracts |
-| [Code of Conduct](CODE_OF_CONDUCT.md) | Participation expectations |
-
-Keep one authoritative statement for each contract and link to it. Do not copy
-the same evolving rule into the README, Wiki and multiple documents.
-
-# 🆘 Recovery and troubleshooting
-
-Project-specific recovery guidance belongs in
-[INSTALLATION.md](INSTALLATION.md). It should cover:
-
-- incomplete imports or missing references;
-- failed startup and partially initialized state;
-- workbook or application state left altered after an error;
-- UI controls, callbacks or shortcuts that remain installed;
-- removal of generated packages and local evidence; and
-- the safe route back to the last certified source and artifact.
-
-Never advise deleting evidence, suppressing errors or bypassing a gate merely to
-obtain a green result.
-
-# 🔐 Security and trust
-
-- Report suspected vulnerabilities privately through
-  [SECURITY.md](SECURITY.md).
-- Never commit credentials, private keys, confidential workbooks, customer data
-  or private review material.
-- Treat macros, add-ins, Ribbon XML, WinAPI declarations and generated Office
-  packages as trust-boundary changes.
-- Keep workflow permissions minimal and external actions pinned to audited
-  immutable SHAs.
-- Do not present unsigned or unverified packages as certified releases.
-
-# ⚠️ Known limitations and boundaries
+Do not hide an unresolved support or assurance boundary.
 
 <!-- template:repeatable:KNOWN_LIMITATION:start -->
 {{KNOWN_LIMITATION}}
 <!-- template:repeatable:KNOWN_LIMITATION:end -->
-- Add every untested Excel version, Office bitness, locale, deployment mode or
-  specialist scenario.
-- Distinguish unsupported behavior from behavior that is merely untested.
-- Link each material defect or deferred boundary to its owning issue.
 
-# 🧭 Versioning and releases
+If no project-specific limitation is rendered, the general evidence boundaries
+above still apply: static inspection is not Excel execution, and one tested
+environment does not certify another.
 
-- [VERSION](VERSION) is the authoritative version without a leading
-  <code>v</code>.
-- [CHANGELOG.md](CHANGELOG.md) stages material changes under
-  <code>Unreleased</code>.
-- Release tags use <code>vMAJOR.MINOR.PATCH</code> and target the exact certified
-  commit.
-- Release notes identify evidence, known limitations and compatibility impact.
-- Published artifacts record SHA-256 digests and their relationship to source.
+## 🔐 Security and conduct
 
-Follow [RELEASING.md](RELEASING.md). A tag or uploaded workbook is not certified
-merely because it exists.
+Never include credentials, client/personal data, proprietary workbooks or other
+restricted material. Suspected vulnerabilities must be reported privately using
+[`SECURITY.md`](SECURITY.md). Participation is governed by
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
-# 🤝 Contributing
+## 📄 License and maintainer
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing source, tests,
-documentation, workflows or release evidence.
+Distributed under the [MIT License](LICENSE). Maintained by
+**{{MAINTAINER_NAME}}**.
 
-Every pull request should:
+---
 
-- state one coherent outcome and its supported-surface impact;
-- identify the exact source and environment tested;
-- update tests and documentation with the change;
-- record skipped checks and limitations honestly;
-- explain compatibility, migration, risk and rollback; and
-- leave the repository-quality gate green.
-
-# 📄 License
-
-This template uses the [MIT License](LICENSE). Confirm that MIT is appropriate
-for the generated project before publication. If the license changes, update
-the root license, badges, documentation, package notices and release statements
-consistently.
+**Project principle:** keep source reviewable, contracts explicit, evidence
+bounded to what was actually tested, and detailed policy in one authoritative
+location.

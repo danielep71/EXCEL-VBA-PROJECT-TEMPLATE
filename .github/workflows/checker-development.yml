@@ -1,0 +1,119 @@
+name: Checker development contract
+run-name: Checker development — ${{ github.ref_name }} @ ${{ github.sha }}
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checker-development-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  checker-development:
+    name: Checker development
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out the exact SHA under review
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Exercise independent checker development contract
+        id: self-test
+        continue-on-error: true
+        run: python3 tools/checker_development.py --root . --self-test
+
+      - name: Publish checker development evidence
+        id: evidence
+        continue-on-error: true
+        run: >-
+          python3 tools/checker_development.py
+          --root .
+          --output test-results/checker-development.json
+          --summary test-results/checker-development.md
+
+      - name: Exercise semantic policy-coverage contract
+        id: policy-coverage-self-test
+        continue-on-error: true
+        run: python3 tools/check_policy_coverage.py --root . --self-test
+
+      - name: Publish semantic policy-coverage evidence
+        id: policy-coverage
+        continue-on-error: true
+        run: >-
+          python3 tools/check_policy_coverage.py
+          --root .
+          --output test-results/policy-coverage.json
+          --summary test-results/policy-coverage.md
+
+      - name: Add readable summary
+        id: summary
+        if: always()
+        continue-on-error: true
+        run: |
+          for report in \
+            test-results/checker-development.md \
+            test-results/policy-coverage.md; do
+            if [[ ! -f "$report" ]]; then
+              echo "Required checker-maintenance summary was not produced: $report"
+              exit 1
+            fi
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload checker-development evidence
+        id: artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: checker-development-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            test-results/checker-development.json
+            test-results/checker-development.md
+            test-results/policy-coverage.json
+            test-results/policy-coverage.md
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 9
+
+      - name: Enforce checker-development results
+        if: always()
+        env:
+          SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
+          EVIDENCE_OUTCOME: ${{ steps.evidence.outcome }}
+          POLICY_COVERAGE_SELF_TEST_OUTCOME: ${{ steps.policy-coverage-self-test.outcome }}
+          POLICY_COVERAGE_OUTCOME: ${{ steps.policy-coverage.outcome }}
+          SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
+          ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
+        run: |
+          failed=0
+          for item in \
+            "Checker-development self-test:$SELF_TEST_OUTCOME" \
+            "Checker-development evidence:$EVIDENCE_OUTCOME" \
+            "Policy-coverage self-test:$POLICY_COVERAGE_SELF_TEST_OUTCOME" \
+            "Policy coverage:$POLICY_COVERAGE_OUTCOME" \
+            "Job summary:$SUMMARY_OUTCOME" \
+            "Evidence upload:$ARTIFACT_OUTCOME"; do
+            name="${item%%:*}"
+            outcome="${item#*:}"
+            if [[ "$outcome" != "success" ]]; then
+              echo "::error::$name outcome: $outcome"
+              failed=1
+            fi
+          done
+          exit "$failed"

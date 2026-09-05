@@ -22,6 +22,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from typing import Any
 
 
 SCHEMA_VERSION = 1
@@ -92,7 +93,7 @@ def _read_json(path: Path, label: str) -> tuple[object | None, list[dict[str, st
         )]
 
 
-def _load_configuration(root: Path) -> tuple[dict[str, object] | None, list[dict[str, str]]]:
+def _load_configuration(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
     value, findings = _read_json(root / PROFILE_PATH, "repository-profile")
     if findings:
         return None, findings
@@ -101,7 +102,7 @@ def _load_configuration(root: Path) -> tuple[dict[str, object] | None, list[dict
     return value, []
 
 
-def _load_policy(root: Path) -> tuple[dict[str, object] | None, list[dict[str, str]]]:
+def _load_policy(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
     value, findings = _read_json(root / POLICY_PATH, "release-policy")
     if findings:
         return None, findings
@@ -188,18 +189,12 @@ def _is_text(path: str) -> bool:
     return item.name in TEXT_NAMES or item.suffix.casefold() in TEXT_SUFFIXES
 
 
-def _validate_source(
-    root: Path,
-    configuration: dict[str, object],
-    policy: dict[str, object],
-    candidate_sha: str,
-    tag: str,
-    require_tag_ref: bool,
+def _resolve_release_profile(
+    root: Path, configuration: dict[str, Any]
 ) -> tuple[str | None, list[dict[str, str]]]:
     findings: list[dict[str, str]] = []
     mode = configuration.get("mode")
     configured_profile = configuration.get("profile")
-    release_profile: str | None = None
     initialization = root / INITIALIZATION_PATH
     if mode == "generated" and configured_profile in GENERATED_PROFILES:
         release_profile = str(configured_profile)
@@ -208,24 +203,24 @@ def _validate_source(
                 "template-identity", INITIALIZATION_PATH,
                 "generated release candidates require an initialization record",
             ))
-        else:
-            record, record_findings = _read_json(initialization, "initialization-record")
-            findings.extend(record_findings)
-            if isinstance(record, dict):
-                if record.get("profile") != release_profile:
-                    findings.append(_finding(
-                        "template-identity", INITIALIZATION_PATH,
-                        "profile differs from repository policy",
-                    ))
-                values = record.get("values")
-                repository = configuration.get("repository")
-                if not isinstance(values, dict) or values.get("REPOSITORY_PATH") != repository:
-                    findings.append(_finding(
-                        "template-identity", INITIALIZATION_PATH,
-                        "repository identity differs from repository policy",
-                    ))
-    elif mode == "template" and configured_profile is None:
-        release_profile = "template"
+            return release_profile, findings
+        record, record_findings = _read_json(initialization, "initialization-record")
+        findings.extend(record_findings)
+        if isinstance(record, dict):
+            if record.get("profile") != release_profile:
+                findings.append(_finding(
+                    "template-identity", INITIALIZATION_PATH,
+                    "profile differs from repository policy",
+                ))
+            values = record.get("values")
+            repository = configuration.get("repository")
+            if not isinstance(values, dict) or values.get("REPOSITORY_PATH") != repository:
+                findings.append(_finding(
+                    "template-identity", INITIALIZATION_PATH,
+                    "repository identity differs from repository policy",
+                ))
+        return release_profile, findings
+    if mode == "template" and configured_profile is None:
         identity = configuration.get("identity")
         repository = configuration.get("repository")
         template_tokens = identity.get("template_tokens") if isinstance(identity, dict) else None
@@ -247,12 +242,18 @@ def _validate_source(
                 "template-identity", INITIALIZATION_PATH,
                 "template release candidates must not contain a generated-project initialization record",
             ))
-    else:
-        findings.append(_finding(
-            "template-identity", PROFILE_PATH,
-            "release candidates must be an initialized generated profile or the canonical template profile",
-        ))
+        return "template", findings
+    findings.append(_finding(
+        "template-identity", PROFILE_PATH,
+        "release candidates must be an initialized generated profile or the canonical template profile",
+    ))
+    return None, findings
 
+
+def _validate_candidate_git_state(
+    root: Path, candidate_sha: str, tag: str, require_tag_ref: bool
+) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
     head = _git_output(root, "rev-parse", "HEAD")
     if head is None:
         raise OperationalError("git could not resolve HEAD")
@@ -263,68 +264,86 @@ def _validate_source(
         raise OperationalError("git could not inspect the working tree")
     if dirty:
         findings.append(_finding("dirty-candidate", ".", "tracked candidate files differ from HEAD"))
+    if not require_tag_ref:
+        return findings
+    reference = f"refs/tags/{tag}"
+    object_type = _git_output(root, "cat-file", "-t", reference)
+    target = _git_output(root, "rev-list", "-n", "1", reference)
+    if object_type is None or target is None:
+        findings.append(_finding("missing-tag-ref", tag, "annotated tag is not available in this clone"))
+        return findings
+    if object_type != "tag":
+        findings.append(_finding("lightweight-tag", tag, "release tag must be annotated"))
+    if target != candidate_sha:
+        findings.append(_finding("tag-target-mismatch", tag, f"tag targets {target}, expected {candidate_sha}"))
+    return findings
 
-    if require_tag_ref:
-        reference = f"refs/tags/{tag}"
-        object_type = _git_output(root, "cat-file", "-t", reference)
-        target = _git_output(root, "rev-list", "-n", "1", reference)
-        if object_type is None or target is None:
-            findings.append(_finding("missing-tag-ref", tag, "annotated tag is not available in this clone"))
-        else:
-            if object_type != "tag":
-                findings.append(_finding("lightweight-tag", tag, "release tag must be annotated"))
-            if target != candidate_sha:
-                findings.append(_finding("tag-target-mismatch", tag, f"tag targets {target}, expected {candidate_sha}"))
 
-    if release_profile in GENERATED_PROFILES:
-        tracked = _tracked_files(root)
-        identity = configuration.get("identity")
-        identity_excludes: set[str] = set()
-        template_tokens: list[str] = []
-        if isinstance(identity, dict):
-            raw_excludes = identity.get("exclude_paths")
-            raw_tokens = identity.get("template_tokens")
-            if isinstance(raw_excludes, list):
-                identity_excludes.update(item for item in raw_excludes if isinstance(item, str))
-            if isinstance(raw_tokens, list):
-                template_tokens.extend(item for item in raw_tokens if isinstance(item, str))
-        excludes = set(policy["source_scan_exclude_paths"]) | identity_excludes
-        placeholder_pattern = re.compile(r"\{\{[A-Z][A-Z0-9_]*\}\}")
-        for relative in tracked:
-            if relative in excludes or not _is_text(relative):
-                continue
-            path = root / relative
-            try:
-                text = path.read_text(encoding="utf-8", errors="strict")
-            except (OSError, UnicodeError) as error:
-                findings.append(_finding("unreadable-release-text", relative, str(error)))
-                continue
-            if placeholder_pattern.search(text) or "<!-- template:" in text:
-                findings.append(_finding(
-                    "unresolved-template-token", relative,
-                    "unresolved placeholder or template block marker",
-                ))
-            folded = text.casefold()
-            for token in template_tokens:
-                if token.casefold() in folded:
-                    findings.append(_finding(
-                        "template-identity", relative,
-                        f"contains template identity token {token}",
-                    ))
-                    break
-
-        changelog_path = root / "CHANGELOG.md"
+def _validate_generated_source(
+    root: Path, configuration: dict[str, Any], policy: dict[str, Any]
+) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    tracked = _tracked_files(root)
+    identity = configuration.get("identity")
+    identity_excludes: set[str] = set()
+    source_template_tokens: list[str] = []
+    if isinstance(identity, dict):
+        raw_excludes = identity.get("exclude_paths")
+        raw_tokens = identity.get("template_tokens")
+        if isinstance(raw_excludes, list):
+            identity_excludes.update(item for item in raw_excludes if isinstance(item, str))
+        if isinstance(raw_tokens, list):
+            source_template_tokens.extend(item for item in raw_tokens if isinstance(item, str))
+    excludes = set(policy["source_scan_exclude_paths"]) | identity_excludes
+    placeholder_pattern = re.compile(r"\{\{[A-Z][A-Z0-9_]*\}\}")
+    for relative in tracked:
+        if relative in excludes or not _is_text(relative):
+            continue
+        path = root / relative
         try:
-            changelog = changelog_path.read_text(encoding="utf-8")
-        except OSError as error:
-            findings.append(_finding("missing-changelog", "CHANGELOG.md", str(error)))
-            changelog = ""
-        for marker in policy["template_construction_markers"]:
-            if str(marker).casefold() in changelog.casefold():
+            text = path.read_text(encoding="utf-8", errors="strict")
+        except (OSError, UnicodeError) as error:
+            findings.append(_finding("unreadable-release-text", relative, str(error)))
+            continue
+        if placeholder_pattern.search(text) or "<!-- template:" in text:
+            findings.append(_finding(
+                "unresolved-template-token", relative,
+                "unresolved placeholder or template block marker",
+            ))
+        folded = text.casefold()
+        for token in source_template_tokens:
+            if token.casefold() in folded:
                 findings.append(_finding(
-                    "template-construction-history", "CHANGELOG.md",
-                    f"contains construction marker {marker!r}",
+                    "template-identity", relative,
+                    f"contains template identity token {token}",
                 ))
+                break
+    try:
+        changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+    except OSError as error:
+        findings.append(_finding("missing-changelog", "CHANGELOG.md", str(error)))
+        changelog = ""
+    for marker in policy["template_construction_markers"]:
+        if str(marker).casefold() in changelog.casefold():
+            findings.append(_finding(
+                "template-construction-history", "CHANGELOG.md",
+                f"contains construction marker {marker!r}",
+            ))
+    return findings
+
+
+def _validate_source(
+    root: Path,
+    configuration: dict[str, Any],
+    policy: dict[str, Any],
+    candidate_sha: str,
+    tag: str,
+    require_tag_ref: bool,
+) -> tuple[str | None, list[dict[str, str]]]:
+    release_profile, findings = _resolve_release_profile(root, configuration)
+    findings.extend(_validate_candidate_git_state(root, candidate_sha, tag, require_tag_ref))
+    if release_profile in GENERATED_PROFILES:
+        findings.extend(_validate_generated_source(root, configuration, policy))
     return release_profile, findings
 
 
@@ -439,23 +458,16 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _validate_evidence_and_assets(
-    root: Path,
+def _validate_evidence_metadata(
+    evidence: dict[str, Any],
     evidence_path: Path,
-    manifest_path: Path | None,
-    policy: dict[str, object],
+    policy: dict[str, Any],
     profile: str | None,
     version: str | None,
     tag: str,
     candidate_sha: str,
 ) -> list[dict[str, str]]:
-    evidence, findings = _read_json(evidence_path, "release-evidence")
-    manifest, manifest_findings = _parse_manifest(manifest_path)
-    findings.extend(manifest_findings)
-    if not isinstance(evidence, dict):
-        if evidence is not None:
-            findings.append(_finding("invalid-release-evidence", str(evidence_path), "root must be an object"))
-        return findings
+    findings: list[dict[str, str]] = []
     if set(evidence) != TOP_LEVEL_EVIDENCE_KEYS:
         missing = sorted(TOP_LEVEL_EVIDENCE_KEYS - set(evidence))
         extra = sorted(set(evidence) - TOP_LEVEL_EVIDENCE_KEYS)
@@ -476,38 +488,93 @@ def _validate_evidence_and_assets(
         if evidence.get(key) != expected_value:
             code = "evidence-sha-mismatch" if key == "candidate_sha" else "evidence-metadata-mismatch"
             findings.append(_finding(code, f"evidence.{key}", f"expected {expected_value!r}"))
-
-    distribution = evidence.get("distribution")
-    if distribution not in {"source-only", "binary"}:
+    if evidence.get("distribution") not in {"source-only", "binary"}:
         findings.append(_finding("invalid-release-evidence", "evidence.distribution", "must be source-only or binary"))
+    return findings
+
+
+def _validate_evidence_checks(
+    evidence: dict[str, Any],
+    policy: dict[str, Any],
+    profile: str | None,
+    candidate_sha: str,
+) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
     checks = evidence.get("checks")
     required_checks: set[str] = set(policy["core_checks"])
     if profile in SUPPORTED_PROFILES:
         required_checks.update(policy["profiles"][profile]["required_checks"])
     if not isinstance(checks, dict):
-        findings.append(_finding("invalid-release-evidence", "evidence.checks", "must be an object"))
-    else:
-        invalid_ids = sorted(key for key in checks if not isinstance(key, str) or CHECK_ID_PATTERN.fullmatch(key) is None)
-        if invalid_ids:
-            findings.append(_finding("invalid-release-evidence", "evidence.checks", "invalid check identifiers"))
-        missing_checks = sorted(required_checks - set(checks))
-        if missing_checks:
-            findings.append(_finding("missing-profile-evidence", "evidence.checks", "missing checks: " + ", ".join(missing_checks)))
-        for check_id in sorted(checks):
-            findings.extend(_validate_check(check_id, checks[check_id], candidate_sha))
+        return [_finding("invalid-release-evidence", "evidence.checks", "must be an object")]
+    invalid_ids = sorted(
+        key for key in checks
+        if not isinstance(key, str) or CHECK_ID_PATTERN.fullmatch(key) is None
+    )
+    if invalid_ids:
+        findings.append(_finding("invalid-release-evidence", "evidence.checks", "invalid check identifiers"))
+    missing_checks = sorted(required_checks - set(checks))
+    if missing_checks:
+        findings.append(_finding(
+            "missing-profile-evidence", "evidence.checks",
+            "missing checks: " + ", ".join(missing_checks),
+        ))
+    for check_id in sorted(checks):
+        findings.extend(_validate_check(check_id, checks[check_id], candidate_sha))
+    return findings
 
-    assets = evidence.get("assets")
-    if not isinstance(assets, list):
-        findings.append(_finding("invalid-release-evidence", "evidence.assets", "must be an array"))
+
+def _validate_asset_record(
+    root: Path,
+    asset: object,
+    item_path: str,
+    allowed: list[str],
+    candidate_sha: str,
+    evidence_entries: dict[str, str],
+) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    if not isinstance(asset, dict) or set(asset) != ASSET_KEYS:
+        return [_finding("invalid-release-asset", item_path, "asset record has an invalid shape")]
+    relative = asset.get("path")
+    digest = asset.get("sha256")
+    if not isinstance(relative, str) or not _safe_relative(relative):
+        return [_finding("invalid-release-asset", item_path, "path must be safe and repository-relative")]
+    if relative in evidence_entries:
+        return [_finding("invalid-release-asset", item_path, f"duplicate asset {relative}")]
+    if not isinstance(digest, str) or SHA256_PATTERN.fullmatch(digest) is None:
+        return [_finding("invalid-release-asset", item_path, "sha256 must be 64 lowercase hexadecimal characters")]
+    evidence_entries[relative] = digest
+    if asset.get("candidate_sha") != candidate_sha:
+        findings.append(_finding("asset-sha-binding-mismatch", item_path, "candidate_sha does not match the release candidate"))
+    if asset.get("package_test") != "PASS":
+        findings.append(_finding("failed-package-test", item_path, "package_test must be PASS"))
+    if not any(PurePosixPath(relative).match(pattern) for pattern in allowed):
+        findings.append(_finding("unapproved-binary", relative, "asset path is not approved for this profile"))
+    target = root / relative
+    try:
+        resolved = target.resolve(strict=True)
+        resolved.relative_to(root.resolve())
+    except (OSError, ValueError):
+        findings.append(_finding("missing-release-asset", relative, "asset is missing or escapes the repository root"))
         return findings
-    if distribution == "source-only":
-        if assets:
-            findings.append(_finding("source-only-has-assets", "evidence.assets", "source-only releases cannot declare binary assets"))
-        if manifest:
-            findings.append(_finding("source-only-has-assets", str(manifest_path), "source-only manifest must be empty or omitted"))
+    if not resolved.is_file():
+        findings.append(_finding("missing-release-asset", relative, "asset is not a regular file"))
         return findings
-    if distribution != "binary":
-        return findings
+    actual = _sha256(resolved)
+    if actual != digest:
+        findings.append(_finding("asset-digest-mismatch", relative, f"actual SHA-256 is {actual}"))
+    return findings
+
+
+def _validate_binary_assets(
+    root: Path,
+    assets: list[object],
+    manifest: dict[str, str] | None,
+    manifest_path: Path | None,
+    policy: dict[str, Any],
+    profile: str | None,
+    candidate_sha: str,
+) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
     if profile == "library":
         findings.append(_finding("unapproved-binary", "evidence.distribution", "library profile is source-only by default"))
     if not assets:
@@ -518,43 +585,50 @@ def _validate_evidence_and_assets(
     allowed = policy["profiles"].get(profile, {}).get("allowed_asset_globs", []) if profile else []
     evidence_entries: dict[str, str] = {}
     for index, asset in enumerate(assets):
-        item_path = f"evidence.assets[{index}]"
-        if not isinstance(asset, dict) or set(asset) != ASSET_KEYS:
-            findings.append(_finding("invalid-release-asset", item_path, "asset record has an invalid shape"))
-            continue
-        relative = asset.get("path")
-        digest = asset.get("sha256")
-        if not _safe_relative(relative):
-            findings.append(_finding("invalid-release-asset", item_path, "path must be safe and repository-relative"))
-            continue
-        if relative in evidence_entries:
-            findings.append(_finding("invalid-release-asset", item_path, f"duplicate asset {relative}"))
-            continue
-        if not isinstance(digest, str) or SHA256_PATTERN.fullmatch(digest) is None:
-            findings.append(_finding("invalid-release-asset", item_path, "sha256 must be 64 lowercase hexadecimal characters"))
-            continue
-        evidence_entries[relative] = digest
-        if asset.get("candidate_sha") != candidate_sha:
-            findings.append(_finding("asset-sha-binding-mismatch", item_path, "candidate_sha does not match the release candidate"))
-        if asset.get("package_test") != "PASS":
-            findings.append(_finding("failed-package-test", item_path, "package_test must be PASS"))
-        if not any(PurePosixPath(relative).match(pattern) for pattern in allowed):
-            findings.append(_finding("unapproved-binary", relative, "asset path is not approved for this profile"))
-        target = root / PurePosixPath(relative)
-        try:
-            resolved = target.resolve(strict=True)
-            resolved.relative_to(root.resolve())
-        except (OSError, ValueError):
-            findings.append(_finding("missing-release-asset", relative, "asset is missing or escapes the repository root"))
-            continue
-        if not resolved.is_file():
-            findings.append(_finding("missing-release-asset", relative, "asset is not a regular file"))
-            continue
-        actual = _sha256(resolved)
-        if actual != digest:
-            findings.append(_finding("asset-digest-mismatch", relative, f"actual SHA-256 is {actual}"))
+        findings.extend(_validate_asset_record(
+            root, asset, f"evidence.assets[{index}]", allowed, candidate_sha, evidence_entries
+        ))
     if manifest != evidence_entries:
         findings.append(_finding("asset-manifest-mismatch", str(manifest_path), "manifest entries must exactly match evidence assets"))
+    return findings
+
+
+def _validate_evidence_and_assets(
+    root: Path,
+    evidence_path: Path,
+    manifest_path: Path | None,
+    policy: dict[str, Any],
+    profile: str | None,
+    version: str | None,
+    tag: str,
+    candidate_sha: str,
+) -> list[dict[str, str]]:
+    evidence, findings = _read_json(evidence_path, "release-evidence")
+    manifest, manifest_findings = _parse_manifest(manifest_path)
+    findings.extend(manifest_findings)
+    if not isinstance(evidence, dict):
+        if evidence is not None:
+            findings.append(_finding("invalid-release-evidence", str(evidence_path), "root must be an object"))
+        return findings
+    findings.extend(_validate_evidence_metadata(
+        evidence, evidence_path, policy, profile, version, tag, candidate_sha
+    ))
+    findings.extend(_validate_evidence_checks(evidence, policy, profile, candidate_sha))
+    assets = evidence.get("assets")
+    if not isinstance(assets, list):
+        findings.append(_finding("invalid-release-evidence", "evidence.assets", "must be an array"))
+        return findings
+    distribution = evidence.get("distribution")
+    if distribution == "source-only":
+        if assets:
+            findings.append(_finding("source-only-has-assets", "evidence.assets", "source-only releases cannot declare binary assets"))
+        if manifest:
+            findings.append(_finding("source-only-has-assets", str(manifest_path), "source-only manifest must be empty or omitted"))
+        return findings
+    if distribution == "binary":
+        findings.extend(_validate_binary_assets(
+            root, assets, manifest, manifest_path, policy, profile, candidate_sha
+        ))
     return findings
 
 
@@ -565,7 +639,7 @@ def build_report(
     evidence_path: Path,
     manifest_path: Path | None,
     require_tag_ref: bool,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     findings: list[dict[str, str]] = []
     configuration, configuration_findings = _load_configuration(root)
     policy, policy_findings = _load_policy(root)
@@ -603,7 +677,7 @@ def build_report(
     }
 
 
-def console_report(report: dict[str, object]) -> str:
+def console_report(report: dict[str, Any]) -> str:
     lines = []
     for item in report["findings"]:
         lines.append(f"[FAIL] {item['code']}: {item['path']}: {item['message']}")
@@ -615,7 +689,7 @@ def console_report(report: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     status = str(report["status"]).upper()
     lines = [
         "# Release-integrity validation", "",
@@ -649,7 +723,7 @@ def _write_atomic(path: Path, content: str) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def _fixture_configuration(profile: str) -> dict[str, object]:
+def _fixture_configuration(profile: str) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "mode": "template" if profile == "template" else "generated",
@@ -669,12 +743,12 @@ def _fixture_configuration(profile: str) -> dict[str, object]:
 def _fixture_evidence(
     profile: str,
     sha: str,
-    policy: dict[str, object],
+    policy: dict[str, Any],
     *,
     distribution: str = "source-only",
-    assets: list[dict[str, object]] | None = None,
-) -> dict[str, object]:
-    checks: dict[str, dict[str, object]] = {}
+    assets: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    checks: dict[str, dict[str, Any]] = {}
     for check_id in policy["core_checks"] + policy["profiles"][profile]["required_checks"]:
         checks[check_id] = {
             "status": "PASS",
@@ -704,7 +778,7 @@ def _fixture_evidence(
     }
 
 
-def _fixture_repository(root: Path, profile: str, policy: dict[str, object]) -> str:
+def _fixture_repository(root: Path, profile: str, policy: dict[str, Any]) -> str:
     (root / ".github").mkdir(parents=True)
     (root / "src").mkdir()
     (root / PROFILE_PATH).write_text(json.dumps(_fixture_configuration(profile), indent=2) + "\n", encoding="utf-8")
@@ -782,7 +856,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             evidence = temporary / f"positive-{profile}.json"
             manifest: Path | None = None
             distribution = "source-only"
-            assets: list[dict[str, object]] = []
+            assets: list[dict[str, Any]] = []
             if profile in {"application", "ui-component"}:
                 distribution = "binary"
                 asset = case / "dist" / f"fixture-{profile}.xlsm"
@@ -818,7 +892,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             evidence_data = _fixture_evidence(profile, sha, policy)
             evidence.write_text(json.dumps(evidence_data, indent=2) + "\n", encoding="utf-8")
             manifest_path: Path | None = None
-            context = {
+            context: dict[str, Any] = {
                 "root": case, "sha": sha, "evidence": evidence,
                 "evidence_data": evidence_data, "manifest": manifest,
                 "manifest_path": manifest_path, "tag": "v1.0.0",
@@ -922,9 +996,13 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             "incorrect-digest", lambda c: binary_mutation(c, approved=True, digest_matches=False),
             "asset-digest-mismatch", profile="application",
         )
+        def missing_manifest_mutation(context) -> None:
+            binary_mutation(context, approved=True, digest_matches=True)
+            context.update(manifest_path=None)
+
         negative(
             "missing-asset-manifest",
-            lambda c: (binary_mutation(c, approved=True, digest_matches=True), c.update(manifest_path=None)),
+            missing_manifest_mutation,
             "missing-asset-manifest", profile="application",
         )
         def asset_binding_mutation(context) -> None:

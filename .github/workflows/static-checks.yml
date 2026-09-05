@@ -1,8 +1,8 @@
 name: Static repository checks
 run-name: Static checks — ${{ github.ref_name }} @ ${{ github.sha }}
 
-# Canonical portable source-integrity gate plus a content-pinned authoritative
-# workflow validator. These complement, but never replace, Excel compilation,
+# Canonical portable source-integrity gate plus content-pinned authoritative
+# validators. These complement, but never replace, Excel compilation,
 # regression, numerical-accuracy, UI-state, packaging, or release certification.
 
 on:
@@ -37,6 +37,9 @@ jobs:
     env:
       PYTHONUTF8: "1"
       PYTHONDONTWRITEBYTECODE: "1"
+      PYTHON_VERSION: "3.10"
+      RUFF_VERSION: "0.16.6"
+      MYPY_VERSION: "2.3.1"
       ACTIONLINT_VERSION: "1.7.12"
       ACTIONLINT_LINUX_AMD64_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
 
@@ -45,6 +48,43 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up pinned Python runtime
+        id: python-runtime
+        continue-on-error: true
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install pinned Python quality tools
+        id: python-quality-install
+        continue-on-error: true
+        run: |
+          mkdir -p test-results
+          python -m pip install \
+            --disable-pip-version-check \
+            "ruff==${RUFF_VERSION}" \
+            "mypy==${MYPY_VERSION}"
+          {
+            python --version
+            ruff --version
+            mypy --version
+          } | tee test-results/python-quality-versions.txt
+
+      - name: Enforce Python lint baseline
+        id: ruff
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ruff check tools 2>&1 | tee test-results/ruff.txt
+
+      - name: Enforce Python type baseline
+        id: mypy
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mypy 2>&1 | tee test-results/mypy.txt
 
       - name: Install the pinned authoritative workflow validator
         id: validator-install
@@ -91,10 +131,104 @@ jobs:
           --self-test
           --summary test-results/release-self-test.md
 
+      - name: Exercise strict release-semantics fixtures
+        id: release-semantics-self-test
+        continue-on-error: true
+        run: python3 tools/check_release_semantics.py --root . --self-test
+
+      - name: Validate release semantics
+        id: release-semantics
+        continue-on-error: true
+        run: >-
+          python3 tools/check_release_semantics.py
+          --root .
+          --output test-results/release-semantics.json
+          --summary test-results/release-semantics.md
+
       - name: Exercise all repository-initialization profiles
         id: initializer-self-test
         continue-on-error: true
         run: python3 tools/initialize_repository.py --root . --self-test
+
+      - name: Exercise committed-whitespace fixtures
+        id: whitespace-self-test
+        continue-on-error: true
+        run: python3 tools/check_committed_whitespace.py --root . --self-test
+
+      - name: Validate committed candidate whitespace
+        id: committed-whitespace
+        continue-on-error: true
+        env:
+          CANDIDATE_SHA: ${{ github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+        run: |
+          args=(
+            --root .
+            --mode committed
+            --head "$CANDIDATE_SHA"
+            --output test-results/committed-whitespace.json
+            --summary test-results/committed-whitespace.md
+          )
+          if [[ -n "$BASE_SHA" ]]; then
+            args+=(--base "$BASE_SHA")
+          fi
+          python3 tools/check_committed_whitespace.py "${args[@]}"
+
+      - name: Exercise procedure-scoped VBA jump fixtures
+        id: vba-jump-self-test
+        continue-on-error: true
+        run: python3 tools/check_vba_jumps.py --root . --self-test
+
+      - name: Validate procedure-scoped VBA jumps
+        id: vba-jumps
+        continue-on-error: true
+        run: >-
+          python3 tools/check_vba_jumps.py
+          --root .
+          --output test-results/vba-jumps.json
+          --summary test-results/vba-jumps.md
+
+      - name: Exercise VBA conditional-compilation fixtures
+        id: vba-conditional-self-test
+        continue-on-error: true
+        run: python3 tools/check_vba_conditionals.py --root . --self-test
+
+      - name: Validate VBA conditional compilation
+        id: vba-conditionals
+        continue-on-error: true
+        run: >-
+          python3 tools/check_vba_conditionals.py
+          --root .
+          --output test-results/vba-conditionals.json
+          --summary test-results/vba-conditionals.md
+
+      - name: Exercise complete VBA public API fixtures
+        id: vba-api-self-test
+        continue-on-error: true
+        run: python3 tools/check_vba_public_api.py --root . --self-test
+
+      - name: Validate complete VBA public API
+        id: vba-api
+        continue-on-error: true
+        run: >-
+          python3 tools/check_vba_public_api.py
+          --root .
+          --output test-results/vba-public-api.json
+          --summary test-results/vba-public-api.md
+
+      - name: Exercise repository-local Action fixtures
+        id: local-action-self-test
+        continue-on-error: true
+        run: python3 tools/check_local_actions.py --root . --self-test
+
+      - name: Validate repository-local Actions
+        id: local-actions
+        continue-on-error: true
+        run: >-
+          python3 tools/check_local_actions.py
+          --root .
+          --output test-results/local-actions.json
+          --summary test-results/local-actions.md
 
       - name: Exercise positive and degraded checker paths
         id: self-test
@@ -116,32 +250,28 @@ jobs:
         continue-on-error: true
         run: |
           {
-            if [[ -f test-results/static-checks.md ]]; then
-              cat test-results/static-checks.md
-            else
-              echo "## Static repository checks"
+            for report in \
+              test-results/python-quality-versions.txt \
+              test-results/ruff.txt \
+              test-results/mypy.txt \
+              test-results/static-checks.md \
+              test-results/committed-whitespace.md \
+              test-results/vba-jumps.md \
+              test-results/vba-conditionals.md \
+              test-results/vba-public-api.md \
+              test-results/local-actions.md \
+              test-results/workflow-validation.md \
+              test-results/release-self-test.md \
+              test-results/release-semantics.md; do
+              if [[ ! -f "$report" ]]; then
+                echo "## Missing required evidence"
+                echo
+                echo "Required report was not produced: $report"
+                exit 1
+              fi
+              cat "$report"
               echo
-              echo "The checker did not produce its Markdown report."
-              exit 1
-            fi
-            echo
-            if [[ -f test-results/workflow-validation.md ]]; then
-              cat test-results/workflow-validation.md
-            else
-              echo "## Authoritative workflow validation"
-              echo
-              echo "The authoritative validator did not produce its report."
-              exit 1
-            fi
-            echo
-            if [[ -f test-results/release-self-test.md ]]; then
-              cat test-results/release-self-test.md
-            else
-              echo "## Release-integrity self-test"
-              echo
-              echo "The release checker did not produce its self-test report."
-              exit 1
-            fi
+            done
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload static-check evidence
@@ -152,11 +282,26 @@ jobs:
         with:
           name: static-checks-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            test-results/python-quality-versions.txt
+            test-results/ruff.txt
+            test-results/mypy.txt
             test-results/static-checks.json
             test-results/static-checks.md
+            test-results/committed-whitespace.json
+            test-results/committed-whitespace.md
+            test-results/vba-jumps.json
+            test-results/vba-jumps.md
+            test-results/vba-conditionals.json
+            test-results/vba-conditionals.md
+            test-results/vba-public-api.json
+            test-results/vba-public-api.md
+            test-results/local-actions.json
+            test-results/local-actions.md
             test-results/actionlint-version.txt
             test-results/workflow-validation.md
             test-results/release-self-test.md
+            test-results/release-semantics.json
+            test-results/release-semantics.md
           if-no-files-found: error
           retention-days: 30
           compression-level: 9
@@ -164,46 +309,62 @@ jobs:
       - name: Enforce self-test and repository results
         if: always()
         env:
+          PYTHON_RUNTIME_OUTCOME: ${{ steps.python-runtime.outcome }}
+          PYTHON_QUALITY_INSTALL_OUTCOME: ${{ steps.python-quality-install.outcome }}
+          RUFF_OUTCOME: ${{ steps.ruff.outcome }}
+          MYPY_OUTCOME: ${{ steps.mypy.outcome }}
           INITIALIZER_SELF_TEST_OUTCOME: ${{ steps.initializer-self-test.outcome }}
           VALIDATOR_INSTALL_OUTCOME: ${{ steps.validator-install.outcome }}
           AUTHORITATIVE_WORKFLOWS_OUTCOME: ${{ steps.authoritative-workflows.outcome }}
           RELEASE_SELF_TEST_OUTCOME: ${{ steps.release-self-test.outcome }}
+          RELEASE_SEMANTICS_SELF_TEST_OUTCOME: ${{ steps.release-semantics-self-test.outcome }}
+          RELEASE_SEMANTICS_OUTCOME: ${{ steps.release-semantics.outcome }}
+          WHITESPACE_SELF_TEST_OUTCOME: ${{ steps.whitespace-self-test.outcome }}
+          COMMITTED_WHITESPACE_OUTCOME: ${{ steps.committed-whitespace.outcome }}
+          VBA_JUMP_SELF_TEST_OUTCOME: ${{ steps.vba-jump-self-test.outcome }}
+          VBA_JUMPS_OUTCOME: ${{ steps.vba-jumps.outcome }}
+          VBA_CONDITIONAL_SELF_TEST_OUTCOME: ${{ steps.vba-conditional-self-test.outcome }}
+          VBA_CONDITIONALS_OUTCOME: ${{ steps.vba-conditionals.outcome }}
+          VBA_API_SELF_TEST_OUTCOME: ${{ steps.vba-api-self-test.outcome }}
+          VBA_API_OUTCOME: ${{ steps.vba-api.outcome }}
+          LOCAL_ACTION_SELF_TEST_OUTCOME: ${{ steps.local-action-self-test.outcome }}
+          LOCAL_ACTIONS_OUTCOME: ${{ steps.local-actions.outcome }}
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
           ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
         run: |
           failed=0
-          if [[ "$VALIDATOR_INSTALL_OUTCOME" != "success" ]]; then
-            echo "::error::Authoritative-validator installation outcome: $VALIDATOR_INSTALL_OUTCOME"
-            failed=1
-          fi
-          if [[ "$AUTHORITATIVE_WORKFLOWS_OUTCOME" != "success" ]]; then
-            echo "::error::Authoritative workflow-validation outcome: $AUTHORITATIVE_WORKFLOWS_OUTCOME"
-            failed=1
-          fi
-          if [[ "$RELEASE_SELF_TEST_OUTCOME" != "success" ]]; then
-            echo "::error::Release-integrity self-test outcome: $RELEASE_SELF_TEST_OUTCOME"
-            failed=1
-          fi
-          if [[ "$INITIALIZER_SELF_TEST_OUTCOME" != "success" ]]; then
-            echo "::error::Initializer self-test outcome: $INITIALIZER_SELF_TEST_OUTCOME"
-            failed=1
-          fi
-          if [[ "$SELF_TEST_OUTCOME" != "success" ]]; then
-            echo "::error::Checker self-test outcome: $SELF_TEST_OUTCOME"
-            failed=1
-          fi
-          if [[ "$GATE_OUTCOME" != "success" ]]; then
-            echo "::error::Repository gate outcome: $GATE_OUTCOME"
-            failed=1
-          fi
-          if [[ "$SUMMARY_OUTCOME" != "success" ]]; then
-            echo "::error::Job-summary outcome: $SUMMARY_OUTCOME"
-            failed=1
-          fi
-          if [[ "$ARTIFACT_OUTCOME" != "success" ]]; then
-            echo "::error::Evidence-upload outcome: $ARTIFACT_OUTCOME"
-            failed=1
-          fi
+          for item in \
+            "Pinned Python runtime:$PYTHON_RUNTIME_OUTCOME" \
+            "Python quality-tool installation:$PYTHON_QUALITY_INSTALL_OUTCOME" \
+            "Ruff lint:$RUFF_OUTCOME" \
+            "mypy type check:$MYPY_OUTCOME" \
+            "Authoritative-validator installation:$VALIDATOR_INSTALL_OUTCOME" \
+            "Authoritative workflow-validation:$AUTHORITATIVE_WORKFLOWS_OUTCOME" \
+            "Release-integrity self-test:$RELEASE_SELF_TEST_OUTCOME" \
+            "Release-semantics self-test:$RELEASE_SEMANTICS_SELF_TEST_OUTCOME" \
+            "Release semantics:$RELEASE_SEMANTICS_OUTCOME" \
+            "Initializer self-test:$INITIALIZER_SELF_TEST_OUTCOME" \
+            "Committed-whitespace self-test:$WHITESPACE_SELF_TEST_OUTCOME" \
+            "Committed-whitespace candidate:$COMMITTED_WHITESPACE_OUTCOME" \
+            "Procedure-scoped VBA jump self-test:$VBA_JUMP_SELF_TEST_OUTCOME" \
+            "Procedure-scoped VBA jump:$VBA_JUMPS_OUTCOME" \
+            "VBA conditional-compilation self-test:$VBA_CONDITIONAL_SELF_TEST_OUTCOME" \
+            "VBA conditional-compilation:$VBA_CONDITIONALS_OUTCOME" \
+            "VBA public API self-test:$VBA_API_SELF_TEST_OUTCOME" \
+            "VBA public API:$VBA_API_OUTCOME" \
+            "Repository-local Action self-test:$LOCAL_ACTION_SELF_TEST_OUTCOME" \
+            "Repository-local Actions:$LOCAL_ACTIONS_OUTCOME" \
+            "Checker self-test:$SELF_TEST_OUTCOME" \
+            "Repository gate:$GATE_OUTCOME" \
+            "Job-summary:$SUMMARY_OUTCOME" \
+            "Evidence-upload:$ARTIFACT_OUTCOME"; do
+            name="${item%%:*}"
+            outcome="${item#*:}"
+            if [[ "$outcome" != "success" ]]; then
+              echo "::error::$name outcome: $outcome"
+              failed=1
+            fi
+          done
           exit "$failed"

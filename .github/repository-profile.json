@@ -15,7 +15,9 @@
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/release-policy.json",
     ".github/repository-profile.json",
+    ".github/scripts/labels-drift.mjs",
     ".github/scripts/labels-sync.mjs",
+    ".github/workflows/labels-drift.yml",
     ".github/workflows/labels-sync.yml",
     ".github/workflows/static-checks.yml",
     ".gitignore",
@@ -37,6 +39,7 @@
     "SECURITY.md",
     "src/README.md",
     "tests/README.md",
+    "tools/_gatelib.py",
     "tools/check_release.py",
     "tools/check_repo.py",
     "tools/initialize_repository.py",
@@ -213,11 +216,19 @@
       "repeatable": "template:repeatable:{token}"
     },
     "template_only_paths": [
+      ".github/workflows/checker-development.yml",
       "assets/social-preview.png",
       "assets/social-preview.svg",
-      "docs/IMPLEMENTATION_PLAN.md",
+      "docs/CHECKER_DEVELOPMENT.md",
       "docs/PILOT_CERTIFICATION.md",
-      "docs/PORTFOLIO_AUDIT.md"
+      "docs/PORTFOLIO_AUDIT.md",
+      "tools/check_policy_coverage.py",
+      "tools/checker_development.py",
+      "tools/policy_coverage_cases_config.py",
+      "tools/policy_coverage_cases_quality.py",
+      "tools/policy_coverage_cases_repo.py",
+      "tools/policy_coverage_core.py",
+      "tools/policy_coverage_runner.py"
     ],
     "exclude_paths": [
       ".editorconfig",
@@ -242,7 +253,6 @@
     ],
     "exclude_paths": [
       ".github/repository-profile.json",
-      "docs/IMPLEMENTATION_PLAN.md",
       "docs/PORTFOLIO_AUDIT.md"
     ]
   },

@@ -21,8 +21,10 @@ Option Explicit
 '
 ' ERROR POLICY
 '   A zero denominator raises PROJECT_ERROR_ZERO_DENOMINATOR with this facade as
-'   the source. Other core errors retain their number, description, help file,
-'   and help context while the public source is normalized to this facade.
+'   the source. The public constant aliases the core-owned internal error code,
+'   so the numeric contract has one source of truth. Other core errors retain
+'   their number, description, help file, and help context while the public
+'   source is normalized to this facade.
 '
 ' WORKSHEET SAFETY
 '   Uses only explicit scalar arguments. It never reads Application.Caller,
@@ -33,7 +35,7 @@ Option Explicit
 '   addressable inside the VBA project without becoming supported public API.
 '===============================================================================
 
-Public Const PROJECT_ERROR_ZERO_DENOMINATOR As Long = vbObjectError + 2048
+Public Const PROJECT_ERROR_ZERO_DENOMINATOR As Long = ProjectCore.ERR_ZERO_DENOMINATOR
 
 Public Function ProjectRatio( _
     ByVal numerator As Double, _

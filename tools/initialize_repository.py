@@ -19,7 +19,7 @@ import stat
 import subprocess
 import sys
 import tempfile
-from typing import Iterable
+from typing import Any, Iterable
 
 
 CONFIG_PATH = ".github/repository-profile.json"
@@ -118,7 +118,7 @@ def _encode(path: str, text: str) -> bytes:
     return text.encode(encoding)
 
 
-def _load_config(root: Path) -> dict[str, object]:
+def _load_config(root: Path) -> dict[str, Any]:
     try:
         document = json.loads((root / CONFIG_PATH).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
@@ -168,7 +168,7 @@ def _parse_assignments(entries: Iterable[str], option: str) -> dict[str, list[st
 def _validate_values(
     root: Path,
     tracked: set[str],
-    catalogue: dict[str, dict[str, object]],
+    catalogue: dict[str, dict[str, Any]],
     scalar_entries: Iterable[str],
     repeatable_entries: Iterable[str],
     *,
@@ -241,7 +241,7 @@ def _render_blocks(
     profile: str,
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
-    catalogue: dict[str, dict[str, object]],
+    catalogue: dict[str, dict[str, Any]],
 ) -> str:
     output: list[str] = []
     active: tuple[str, bool] | None = None
@@ -285,7 +285,7 @@ def _replacement_values(
     profile: str,
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
-    catalogue: dict[str, dict[str, object]],
+    catalogue: dict[str, dict[str, Any]],
 ) -> dict[str, str]:
     values = dict(scalars)
     for name, specification in catalogue.items():
@@ -327,7 +327,7 @@ def _directory_readme(project_name: str, profile: str, directory: str) -> bytes:
 
 
 def _record(profile: str, scalars: dict[str, str], repeatable: dict[str, list[str]]) -> bytes:
-    values: dict[str, object] = dict(sorted(scalars.items()))
+    values: dict[str, Any] = dict(sorted(scalars.items()))
     values.update({name: items for name, items in sorted(repeatable.items())})
     document = {
         "schema_version": 1,
@@ -339,7 +339,7 @@ def _record(profile: str, scalars: dict[str, str], repeatable: dict[str, list[st
 
 def _already_initialized(
     root: Path,
-    config: dict[str, object],
+    config: dict[str, Any],
     profile: str,
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
@@ -355,6 +355,37 @@ def _already_initialized(
     if existing != _record(profile, scalars, repeatable):
         raise InitializationError("Repository is already initialized with different substitution inputs.")
     return True
+
+
+def _reject_executable_placeholders(path: str, matches: list[Any]) -> None:
+    if matches and PurePosixPath(path).suffix.casefold() in EXECUTABLE_SUFFIXES:
+        raise InitializationError(
+            f"Placeholders are prohibited in executable or VBA file {path}."
+        )
+
+
+def _strip_template_maintenance_workflow(path: str, text: str) -> str:
+    if path != ".github/workflows/static-checks.yml":
+        return text
+    lines = text.splitlines(keepends=True)
+    output: list[str] = []
+    skipping = False
+    for line in lines:
+        if line.startswith("      - name: Exercise policy-branch coverage determinism"):
+            skipping = True
+            continue
+        if skipping and line.startswith("      - name: Exercise positive and degraded checker paths"):
+            skipping = False
+        if skipping:
+            continue
+        if "test-results/policy-coverage." in line:
+            continue
+        if "POLICY_COVERAGE_" in line:
+            continue
+        if '"Policy-coverage self-test:' in line or '"Policy coverage:' in line:
+            continue
+        output.append(line)
+    return "".join(output)
 
 
 def _build_changes(
@@ -415,11 +446,7 @@ def _build_changes(
         source = (root / path).read_bytes()
         text = _decode(path, source)
         matches = list(token_pattern.finditer(text))
-        if (
-            matches
-            and PurePosixPath(path).suffix.casefold() in EXECUTABLE_SUFFIXES
-        ):
-            raise InitializationError(f"Placeholders are prohibited in executable or VBA file {path}.")
+        _reject_executable_placeholders(path, matches)
         rendered = _render_blocks(path, text, profile, scalars, repeatable, catalogue)
         for match in token_pattern.finditer(rendered):
             name = match.group(1)
@@ -428,6 +455,7 @@ def _build_changes(
             seen.add(name)
         for name, value in values.items():
             rendered = rendered.replace("{{" + name + "}}", value)
+        rendered = _strip_template_maintenance_workflow(path, rendered)
         if path == ".github/ISSUE_TEMPLATE/config.yml":
             template_security_url = (
                 f"https://github.com/{config['repository']}/security/policy"
@@ -488,7 +516,7 @@ def _sha256(data: bytes | None) -> str | None:
     return hashlib.sha256(data).hexdigest() if data is not None else None
 
 
-def _plan(root: Path, profile: str, changes: dict[str, bytes | None]) -> dict[str, object]:
+def _plan(root: Path, profile: str, changes: dict[str, bytes | None]) -> dict[str, Any]:
     entries = []
     for path, after in changes.items():
         target = root / path
@@ -531,7 +559,8 @@ def _apply_changes(root: Path, changes: dict[str, bytes | None]) -> None:
                 stream.write(after)
                 stream.flush()
                 os.fsync(stream.fileno())
-            mode = stat.S_IMODE(originals[path][1]) if originals[path] is not None else 0o644
+            original = originals[path]
+            mode = stat.S_IMODE(original[1]) if original is not None else 0o644
             os.chmod(temporary, mode)
             staged[path] = temporary
 
@@ -599,7 +628,7 @@ def _copy_fixture(source: Path, destination: Path) -> None:
 
 def _quality_report(
     root: Path,
-) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
     report_path = root.parent / f"{root.name}-quality.json"
     try:
         completed = subprocess.run(
@@ -955,16 +984,20 @@ def self_test(source: Path) -> None:
             rerun, _ = _build_changes(fixture, profile, scalars, repeatable)
             if rerun:
                 raise AssertionError(f"{profile} second initialization was not idempotent.")
-            if any(
-                (fixture / path).exists()
-                for path in (
-                    "assets/social-preview.svg",
-                    "docs/IMPLEMENTATION_PLAN.md",
-                    "docs/PILOT_CERTIFICATION.md",
-                    "docs/PORTFOLIO_AUDIT.md",
+            generated_config = json.loads(
+                (fixture / CONFIG_PATH).read_text(encoding="utf-8")
+            )
+            retained_template_only = {CANONICAL_SOCIAL_PREVIEW_PATH}
+            forbidden_template_only = set(
+                generated_config["placeholders"]["template_only_paths"]
+            ) - retained_template_only
+            retained = sorted(
+                path for path in forbidden_template_only if (fixture / path).exists()
+            )
+            if retained:
+                raise AssertionError(
+                    f"{profile} retained template-only files: {', '.join(retained)}"
                 )
-            ):
-                raise AssertionError(f"{profile} retained template-only files.")
             if not (fixture / "assets/social-preview.png").is_file():
                 raise AssertionError(f"{profile} removed its selected social preview.")
             _assert_generated_cleanup(fixture, profile)

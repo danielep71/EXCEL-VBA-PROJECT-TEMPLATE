@@ -25,7 +25,7 @@ read-back after each change, not from the setup command or intended values.
 - [ ] The issue chooser renders bug, feature, and documentation forms; blank
   issues are disabled and the security link opens this repository's policy.
 
-## 2. 🏷️ Resolve and Reconcile Labels
+## 2. 🏷️ Resolve, Reconcile, and Monitor Labels
 
 The versioned selection authority is `.github/repository-profile.json`:
 
@@ -33,16 +33,37 @@ The versioned selection authority is `.github/repository-profile.json`:
 - `label_domains` lists zero or more kebab-case domain overlays; and
 - `.github/labels.json` supplies the core, profile, and domain catalogues.
 
+### Trusted reconciliation
+
 On the first trusted push to `main`, or by a deliberate manual dispatch, run
 `Sync issue labels`. The workflow must resolve policy itself; do not supply an
 unrecorded profile or domain at dispatch time.
 
-- [ ] The workflow summary names `.github/repository-profile.json` as the
+- [ ] The synchronization summary names `.github/repository-profile.json` as the
   policy source and lists the complete resolved core, profile, domain, and
   combined label sets.
 - [ ] Post-run verification reports an exact match.
 - [ ] API read-back contains every resolved label with the expected name,
   uppercase color, and description, and contains no label pruned by policy.
+
+### Read-only drift detection
+
+`Detect issue-label drift` is separate from reconciliation. Pull requests run
+only deterministic offline fixtures. Scheduled and manual live checks use only
+`contents: read` and `issues: read`, compare the live catalogue with the same
+versioned policy, and have no mutation path.
+
+The detector cross-checks every local create/update/delete difference against the
+canonical reconciliation planner before reporting it. A no-drift run exits
+green. Drift exits non-zero and records the exact observed and desired label
+values in deterministic JSON and Markdown evidence retained for 30 days.
+
+- [ ] The drift workflow is enabled on the default branch after generation.
+- [ ] Its offline no-drift and simulated create/update/delete fixtures pass.
+- [ ] A live no-drift check reports zero differences.
+- [ ] The workflow permissions are read-only; it has no `issues: write` grant.
+- [ ] Label mutation remains exclusively in the trusted `Sync issue labels`
+  workflow.
 
 <a id="repository-identity"></a>
 
@@ -137,7 +158,9 @@ test, issue-intake, branch, tag, or evidence baseline.
 Preserve links or JSON responses for:
 
 - repository metadata and enabled features;
-- resolved labels and the successful reconciliation run;
+- resolved labels and the successful trusted reconciliation run;
+- the latest successful read-only label-drift check, or the exact drift report
+  when a difference is detected;
 - default-branch ruleset and exact required status context;
 - protected-tag ruleset;
 - private vulnerability-reporting state;
@@ -152,4 +175,6 @@ evidence.
 
 ---
 
-**Provisioning principle:** configure deliberately, read back independently, and retain only final verified state as evidence.
+**Provisioning principle:** configure deliberately, detect drift read-only, read
+back independently, and retain only final verified state as certification
+evidence.

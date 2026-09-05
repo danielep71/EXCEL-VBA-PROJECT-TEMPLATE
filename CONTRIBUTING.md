@@ -7,262 +7,102 @@
 [![Contributions](https://img.shields.io/badge/Contributions-Welcome-2ea44f?style=flat-square)](#ways-to-contribute)
 [![Conduct](https://img.shields.io/badge/Conduct-Required-6f42c1?style=flat-square)](CODE_OF_CONDUCT.md)
 [![Security](https://img.shields.io/badge/Security-Private_reporting-d73a49?style=flat-square)](SECURITY.md)
-[![Workflow](https://img.shields.io/badge/Workflow-Source--first-0969da?style=flat-square)](#source-first-vba)
+[![Evidence](https://img.shields.io/badge/Evidence-Exact_source-0969da?style=flat-square)](#validation-and-evidence)
 
 <br>
 
 **Focused scope · Reviewable source · Reproducible evidence · Honest limitations**
 
-<br>
-
-[Start here](#start-here)
-&nbsp;·&nbsp;
-[Workflow](#development-workflow)
-&nbsp;·&nbsp;
-[VBA rules](#source-first-vba)
-&nbsp;·&nbsp;
-[Validation](#validation-and-evidence)
-&nbsp;·&nbsp;
-[Pull requests](#pull-requests)
-
 </div>
 
 ---
 
-Thank you for helping improve **{{PROJECT_NAME}}**.
-
-Contributions are welcome when they strengthen correctness, clarity,
-maintainability, compatibility, documentation, tests, or reproducibility. The
-standard is not simply that a change works once: another person must be able to
-review it, reproduce the evidence, and understand its operational boundaries.
+This document is authoritative for the **contribution and review workflow**.
+Repository layout is owned by
+[`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md), vulnerability
+handling by [`SECURITY.md`](SECURITY.md), installation by
+[`INSTALLATION.md`](INSTALLATION.md), and publication by
+[`RELEASING.md`](RELEASING.md). The complete documentation authority map is
+[`docs/README.md`](docs/README.md).
 
 Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
-Report suspected vulnerabilities privately under [SECURITY.md](SECURITY.md);
-never disclose sensitive details in a public issue or pull request.
-
----
-
-<a id="start-here"></a>
-
-## 🧭 Start here
-
-Before opening work:
-
-1. Read the README, this guide, the [Code of Conduct](CODE_OF_CONDUCT.md),
-   [Security Policy](SECURITY.md), and [CHANGELOG.md](CHANGELOG.md).
-2. Search open and closed issues and pull requests for related work.
-3. Open an issue before a non-trivial feature, public-API change, dependency,
-   architectural change, compatibility break, or broad refactor.
-4. Agree the observable contract and validation approach before implementation.
-5. Keep credentials, personal/client data, proprietary workbooks, and restricted
-   reference material out of the repository.
-
-Small documentation corrections and narrowly obvious fixes may go directly to a
-focused pull request.
-
-> [!IMPORTANT]
-> The published guide must describe the repository as it actually works. Keep
-> validation commands, links and project contracts synchronized with source.
-
----
+Suspected vulnerabilities must never be disclosed in a public issue or pull
+request.
 
 <a id="ways-to-contribute"></a>
 
 ## 🌱 Ways to contribute
 
-| Contribution | Good first action |
-|---|---|
-| 🐛 Reproducible defect | Use the bug form with exact source, minimal inputs, expected/observed behavior, environment, and evidence. |
-| ✨ Feature or API change | Use the feature form to define users, contract, acceptance criteria, non-goals, compatibility, and validation. |
-| 🧪 Tests or reference evidence | Explain provenance, independence, precision, coverage, and expected failure detection. |
-| 📖 Documentation | Use the documentation form to identify the location, authoritative contract, correction, and verification. |
-| ⚙️ Repository/tooling | Explain developer impact, failure behavior, portability, and maintenance cost. |
-| 🔐 Security concern | Follow [SECURITY.md](SECURITY.md); do not open a public report. |
-| 💬 Usage question | Use the repository's supported discussion or issue channel without sensitive data. |
-
-A proposal may be adapted, deferred, or declined when it is out of scope,
-duplicates an existing capability, weakens a contract, or creates maintenance
-cost disproportionate to its benefit.
-
----
-
-## 📁 Repository model
-
-This is a **source-first template**. The Git diff, not an opaque workbook, is the review artifact.
-
-| Location | Canonical responsibility |
+| Contribution | First action |
 | --- | --- |
-| `src/` | Authoritative production VBA source |
-| `tests/` | Regression modules, stable fixtures, expected results, and certification entry points |
-| `examples/` | Reproducible examples and demo builders that use the supported API |
-| `assets/` | Versioned non-code source assets such as diagrams, icons, and social previews |
-| `docs/` | Contracts, architecture, numerical methods, migration notes, and maintained plans |
-| `tools/` | Deterministic validation, packaging, and release-evidence tooling |
+| 🐛 Reproducible defect | Use the bug form with exact source, environment, expected/observed behavior and evidence. |
+| ✨ Feature or API change | Use the feature form to define users, observable contract, compatibility, non-goals and validation. |
+| 🧪 Test/evidence improvement | Explain provenance, independence, coverage and what failure the test detects. |
+| 📖 Documentation | Use the documentation form and identify the authoritative contract being corrected. |
+| ⚙️ Tooling/governance | Explain failure behavior, portability, trust boundary and maintenance cost. |
+| 🔐 Security concern | Follow [`SECURITY.md`](SECURITY.md) privately. |
 
-Each canonical directory contains either real project material or a short instructional README. Create optional subdirectories only when they own real files:
-
-- `src/modules/` for public standard modules and thin facades;
-- `src/core/` for internal implementation modules;
-- `src/classes/` for production classes, event sinks, state managers, and UI hooks;
-- `src/forms/` for UserForms and their adjacent `.frx` companions; and
-- `tests/modules/` for test-only VBA modules.
-
-New repositories use `tests/`, `examples/`, and `assets/`. Profile-specific `test/`, `demo/`, `images/`, or `dist/` locations require a documented compatibility, packaging, or distribution reason and must not duplicate the canonical location.
-
-Follow [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md) for directory ownership, the generated-repository acceptance gate, and the permitted alternatives.
-
----
-
-<a id="development-workflow"></a>
+Open an issue before a non-trivial public-API change, dependency, architectural
+change, compatibility break or broad refactor. Small documentation corrections
+and narrowly obvious fixes may go directly to a focused pull request.
 
 ## 🌿 Development workflow
 
-1. Fork or clone the repository and start from the current `main`.
-2. Create a short, focused branch such as `fix/clear-description`,
-   `feat/clear-description`, `docs/clear-description`, or
-   `test/clear-description`.
-3. Reproduce the existing behavior before changing it.
-4. Define the intended contract, affected callers, compatibility impact, and
-   evidence plan.
-5. Make the smallest coherent source change; do not mix unrelated formatting,
-   refactoring, generated files, or cleanup.
-6. Compile and run the relevant static, regression, host, and manual checks.
-7. Re-export changed VBA components and review the complete text/binary diff.
-8. Update documentation and release notes required by the change.
-9. Push the branch and open a pull request with evidence and limitations.
+1. Start from the current protected development baseline and create one focused
+   branch unless the repository's maintainer workflow explicitly says otherwise.
+2. Reproduce the current behavior before changing it.
+3. Define the observable contract, affected callers, compatibility impact and
+   validation plan.
+4. Make the smallest coherent change; avoid unrelated formatting, generated
+   output or opportunistic refactoring.
+5. Keep exported VBA and repository policy synchronized with the actual tree.
+6. Run the applicable local static, compile, regression and specialist checks.
+7. Update the authoritative documentation and changelog surface affected by the
+   change.
+8. Review the complete diff, then open a pull request with evidence and explicit
+   limitations.
 
-Repository maintainers may use the repository's configured direct-push workflow
-where permitted. External contributions and reviewable portfolio changes should
-use branches and pull requests.
+Use imperative, specific commit subjects. Reference the issue when one exists.
+Do not place credentials, private links, attribution boilerplate or unverifiable
+test claims in commit messages.
 
-### Commit discipline
+## 📦 Source-change discipline
 
-Write imperative, specific subjects, normally in this form:
+The exact source/storage contract is maintained in
+[`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md). For contribution
+work, the practical rules are:
 
-```text
-fix: preserve formulas during write-back
-feat: add explicit tail calculation
-test: cover cleanup after initialization failure
-docs: clarify supported Office environments
-chore: harden repository validation
-```
+- exported VBA remains the reviewable source of truth;
+- component filenames and VBE identities stay coherent;
+- `.frm`/`.frx` pairs remain together and `.frx` stays binary;
+- production, tests, examples and generated artifacts remain in their governed
+  locations;
+- public-surface changes update [`docs/PUBLIC_API.txt`](docs/PUBLIC_API.txt) and
+  their regression coverage; and
+- a workbook/add-in is never the only record of a source change.
 
-Keep commits reviewable. Reference the issue when one exists. Do not include
-secrets, private links, generated attribution boilerplate, or unverifiable test
-claims in commit messages.
+Do not weaken a project-specific numerical, UI, lifecycle, performance or
+packaging gate merely because the generic repository gate passes.
 
----
+## 🔄 Compatibility and state ownership
 
-<a id="source-first-vba"></a>
+A change to documented procedures, functions, classes, enums, parameters,
+defaults, return values, errors, side effects, file formats or supported
+platforms is a contract change.
 
-## 📦 Source-first VBA
+Such a contribution must identify callers and migration impact, update permanent
+regression coverage, update the authoritative user documentation and state the
+release impact.
 
-Exported source is authoritative.
-
-- Use `Option Explicit`.
-- Preserve the repository's VBE export metadata, module names, encoding, and
-  line-ending policy.
-- Match `.bas`, `.cls`, and `.frm` filenames to their component identity.
-- Keep every required `.frm` / `.frx` pair together; treat `.frx` as binary.
-- Do not edit a binary form resource as text.
-- Do not use a workbook or add-in as the only record of a code change.
-- Do not commit Office lock files, recovery copies, local exports, test output,
-  or generated binaries unless the repository explicitly designates them as
-  source.
-- Qualify workbook, worksheet, range, and application references.
-- Avoid implicit active-workbook, active-sheet, selection, and default-member
-  dependencies.
-- Keep `On Error Resume Next` scopes narrow and intentional.
-- Preserve useful diagnostic context and clean up on success and failure.
-- Avoid new references, APIs, dependencies, or platform assumptions until their
-  support and deployment impact is agreed.
-
-### Public contracts and compatibility
-
-Treat documented procedures, functions, classes, enums, parameters, defaults,
-return values, errors, side effects, workbook formats, and supported platforms
-as contracts.
-
-A contract-changing contribution must:
-
-1. identify affected callers and migration needs;
-2. explain what changes and what remains unchanged;
-3. add or update regression coverage;
-4. update user-facing documentation and examples; and
-5. state whether the release impact is patch, minor, or major.
-
-Do not make an internal helper public merely to simplify a test. Use an explicit
-test seam where the project supports one.
-
-### Excel state ownership
-
-Assume these surfaces belong to the caller or host unless the project explicitly
-owns them:
-
-```text
-Application.Calculation
-Application.EnableEvents
-Application.ScreenUpdating
-Application.DisplayAlerts
-Application.StatusBar
-active workbook / worksheet / selection
-window styles, shortcuts, timers, names, links, connections, and shapes
-```
-
-Capture state before changing it. Restore only state the component successfully
-changed and still owns. Cleanup must not conceal the original failure.
-
----
-
-## 🧩 Project engineering contract
-
-| Area | Required behavior |
-|---|---|
-| **Public behavior** | Document API, compatibility, and error contracts. |
-| **State ownership** | Document Excel, application, and workbook state the project may change and restore. |
-| **Numerical behavior** | Document precision, tolerance, convergence, and reference requirements when applicable. |
-| **UI lifecycle** | Document initialization, reentrancy, cancellation, cleanup, and accessibility when applicable. |
-| **Platform support** | Document supported Excel, operating-system, and Office-bitness combinations. |
-| **Release evidence** | Document the project-specific certification and provenance boundary. |
-
----
+Excel/Windows state belongs to the caller or host unless the component
+explicitly owns it. Capture before mutation, restore only state successfully
+changed and still owned, and never let cleanup conceal the original failure.
 
 <a id="validation-and-evidence"></a>
 
 ## 🧪 Validation and evidence
 
-Validation must be proportional to risk and reproducible from the exact source
-under review.
-
-- Compile the complete VBA project in a supported Office host.
-- Run the repository's focused and full regression checks.
-- Run repository-level static checks or linting.
-- Exercise affected UI, workbook-state, platform, or numerical paths.
-- Record the exact commit, environment, results, skips, and cleanup outcome.
-
-Maintain the project-specific test order, commands, entry points and evidence
-requirements beside the source they govern.
-
-The neutral baseline entry point is `ProjectTests.RunProjectTests`. Import
-`ProjectCore`, `ProjectFacade`, and `ProjectTests` into a clean VBA project,
-compile, run the entry point, and retain its environment, case, assertion,
-failure, completeness, and cleanup lines. Static checks cannot substitute for
-that Excel-host evidence.
-
-### Evidence principles
-
-- Test the behavior, not only the implementation path.
-- Add a permanent regression for every corrected defect.
-- Include ordinary, boundary, invalid-input, error, and cleanup paths.
-- Use an independent source for expected numerical results.
-- State skips and unavailable environments explicitly; a skipped check is not a
-  pass.
-- Do not claim compatibility, accuracy, performance, or certification beyond
-  what was actually observed.
-- Treat cleanup failures and incomplete runs as failures.
-- Never generate expected values with the implementation under test.
-
-### Suggested evidence block
+Validation must be reproducible from the exact source under review. Record:
 
 ```text
 Source
@@ -272,29 +112,19 @@ Files or components changed:
 
 Environment
 -----------
-Excel:
+Excel / Office build:
 Office bitness:
 Operating system:
-Locale / date system:
-Deployment or host:
+Relevant deployment / locale / date system:
 
 Checks
 ------
 Compile:
-Static checks:
-Focused tests:
+Repository/static checks:
+Focused regression:
 Full regression:
-Manual / UI / platform checks:
+Specialist/manual checks:
 Cleanup:
-
-Evidence
---------
-Independent reference and version:
-Inputs / workload:
-Tolerance or acceptance rule:
-Expected:
-Observed:
-Worst discrepancy / dispersion:
 
 Limitations
 -----------
@@ -302,114 +132,71 @@ Skipped or unverified:
 Follow-up:
 ```
 
-Remove non-applicable fields, but do not omit a material limitation.
+Use only applicable fields, but never omit a material limitation. Static source
+inspection cannot substitute for Excel execution. A skipped check is not a pass.
+Numerical or reference evidence must be independent of the implementation under
+test.
 
----
-
-## 📖 Documentation and release notes
-
-Installation or packaging changes must keep [INSTALLATION.md](INSTALLATION.md) current. Release preparation must follow [RELEASING.md](RELEASING.md).
-
-Update the README and every affected contract, example, API reference, and release note. Define the repository's changelog policy before publishing.
-
-Documentation must say:
-
-- what users can rely on;
-- inputs, outputs, defaults, side effects, and failure behavior;
-- supported and untested environments;
-- installation or migration steps;
-- numerical or platform assumptions; and
-- any known limitation introduced or exposed by the change.
-
-Do not edit a released version or tag merely to describe unreleased work. Release
-numbers, artifacts, hashes, and dates belong to the repository's release
-workflow.
-
----
-
-## 🔐 Security, privacy, and provenance
-
-- Follow [SECURITY.md](SECURITY.md) for vulnerability reports.
-- Use synthetic, anonymized, or explicitly redistributable examples and data.
-- Remove names, email addresses, account identifiers, workbook properties,
-  document metadata, credentials, tokens, private URLs, and machine-specific
-  paths.
-- Verify the license and redistribution rights of copied code, formulas,
-  reference tables, images, and generated material.
-- Cite material algorithms and external reference data precisely enough for a
-  reviewer to verify them.
-- You remain responsible for the correctness, licensing, security, and
-  reviewability of tool-assisted contributions.
-
----
+<!-- template:remove:start -->
+For checker changes, additionally follow
+[`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md).
+<!-- template:remove:end -->
+For release-evidence schemas and exact-SHA binding, use
+[`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
 
 <a id="pull-requests"></a>
 
 ## 🚀 Pull requests
 
-A pull request should answer:
+A pull request should answer five questions:
 
-```text
-What problem does this solve?
-What observable contract changes?
-What remains compatible?
-How was it validated from this exact source?
-What evidence is independent?
-What remains unverified?
-```
+1. What problem does this solve?
+2. What observable contract changes?
+3. What remains compatible?
+4. How was the exact source validated?
+5. What remains unverified?
 
-### Checklist
+### Review checklist
 
-```text
-[ ] Scope is focused and the related issue is linked
-[ ] Public API, compatibility, and release impact are assessed
-[ ] Exported VBA source and required binary companions are synchronized
-[ ] Relevant compile, static, regression, and manual checks are recorded
-[ ] Numerical/performance evidence is independent and reproducible where relevant
-[ ] Error, boundary, recovery, and cleanup paths are covered
-[ ] Caller-owned Excel state and platform/bitness concerns are addressed
-[ ] README, contracts, examples, and release notes are updated
-[ ] No confidential, restricted, generated, or accidental binary content is added
-[ ] Unverified environments and skipped checks are stated plainly
-[ ] Final diff contains no unrelated formatting or local artifacts
-```
+- [ ] Scope is focused and the related issue is linked where applicable.
+- [ ] Public API, compatibility and release impact are assessed.
+- [ ] Exported VBA and required binary companions are synchronized.
+- [ ] Relevant compile, static, regression and specialist checks are recorded.
+- [ ] Error, boundary, recovery and cleanup paths are covered where affected.
+- [ ] Caller-owned state and platform/bitness concerns are addressed.
+- [ ] The authoritative documentation and changelog are updated.
+- [ ] No confidential, restricted, accidental binary or generated material is added.
+- [ ] Unverified environments and skipped checks are stated plainly.
+- [ ] Final diff contains no unrelated formatting or local artifacts.
 
-Reviews may request changes to scope, tests, contracts, compatibility,
-documentation, or evidence. Discussion must remain technical and respectful
-under the [Code of Conduct](CODE_OF_CONDUCT.md).
+Reviewers may request changes to scope, tests, contracts, compatibility,
+documentation or evidence. Discussion remains technical and respectful under the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
----
+## 📚 Where detailed rules live
 
-## 🤝 Review and maintainer decisions
+| Need | Authority |
+| --- | --- |
+| Repository/source ownership | [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md) |
+| Installation and upgrade | [`INSTALLATION.md`](INSTALLATION.md) |
+| Vulnerability reporting | [`SECURITY.md`](SECURITY.md) |
+| Release procedure | [`RELEASING.md`](RELEASING.md) |
+| SemVer/changelog semantics | [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) |
+| Release evidence | [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) |
+<!-- template:remove:start -->
+| Checker changes | [`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md) |
+<!-- template:remove:end -->
+| Full authority map | [`docs/README.md`](docs/README.md) |
 
-Reviewers evaluate correctness, safety, maintainability, compatibility,
-evidence, documentation, and fit with the project's direction. Approval of an
-idea does not guarantee acceptance of every implementation detail.
-
-The maintainer may edit, squash, defer, or decline a contribution to protect the
-coherence and supportability of the project. Contributors will be credited
-through Git history and release notes where appropriate.
-
----
-
-## 📄 Licensing
+## 📄 Licensing and maintainer
 
 This project is distributed under the [MIT License](LICENSE). Contributors must
 have the right to submit every part of a contribution, including code, tests,
-data, images, and generated material.
-
----
-
-## 👤 Maintainer
+data, images and generated material.
 
 Maintained by **{{MAINTAINER_NAME}}**.
 
-For ordinary contributions, use GitHub issues and pull requests. For sensitive
-security matters, use the private channel in [SECURITY.md](SECURITY.md).
-
 ---
 
-### Contribution principle
-
-> Make the contract explicit, keep the diff focused, and leave evidence another
-> person can reproduce.
+**Contribution principle:** make the contract explicit, keep the diff focused,
+and leave evidence another person can reproduce.

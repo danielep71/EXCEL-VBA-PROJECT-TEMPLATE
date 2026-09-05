@@ -21,7 +21,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from typing import Callable, Iterable
+from typing import Any, Callable, Iterable
 from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
 
@@ -31,6 +31,8 @@ CONFIG_PATH = ".github/repository-profile.json"
 LABEL_MANIFEST_PATH = ".github/labels.json"
 ISSUE_TEMPLATE_DIRECTORY = ".github/ISSUE_TEMPLATE"
 TOOL_NAME = "Canonical repository quality"
+MAX_XML_BYTES = 1024 * 1024
+UNSAFE_XML_DECLARATION = re.compile(r"<!\s*(?:DOCTYPE|ENTITY)\b", re.IGNORECASE)
 SUPPORTED_PROFILES = ("application", "library", "ui-component")
 PLACEHOLDER_CATEGORIES = ("optional", "profile-specific", "repeatable", "required")
 PLACEHOLDER_NAME_PATTERN = re.compile(r"[A-Z][A-Z0-9_]*")
@@ -239,8 +241,8 @@ class Repository:
 
 def finding(
     path: str, message: str, line: int | None = None
-) -> dict[str, object]:
-    item: dict[str, object] = {"path": path, "message": message}
+) -> dict[str, Any]:
+    item: dict[str, Any] = {"path": path, "message": message}
     if line is not None:
         item["line"] = line
     return item
@@ -249,9 +251,9 @@ def finding(
 def rule_result(
     rule_id: str,
     title: str,
-    failures: list[dict[str, object]],
+    failures: list[dict[str, Any]],
     success_summary: str,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     if failures:
         count = len(failures)
         return {
@@ -301,7 +303,7 @@ def _valid_relative_path(value: str) -> bool:
 def _string_list(
     value: object,
     field: str,
-    failures: list[dict[str, object]],
+    failures: list[dict[str, Any]],
     *,
     paths: bool = False,
 ) -> list[str]:
@@ -324,42 +326,208 @@ def _string_list(
     return items
 
 
-def load_configuration(
-    repo: Repository,
-) -> tuple[dict[str, object] | None, dict[str, object]]:
-    failures: list[dict[str, object]] = []
-    try:
-        document = json.loads(repo.text(CONFIG_PATH))
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        failures.append(
-            finding(
-                CONFIG_PATH,
-                f"Cannot load repository profile: {error}",
-                getattr(error, "lineno", None),
-            )
-        )
-        return None, rule_result(
-            "configuration",
-            "Repository profile configuration",
-            failures,
-            "",
-        )
+def _validate_profile_contract(
+    name: str, entry: object, failures: list[dict[str, Any]]
+) -> None:
+    if not _same_keys(entry, {"required_paths", "required_directories", "vba_contract"}):
+        failures.append(finding(
+            CONFIG_PATH,
+            f"profiles.{name} must contain exactly required_paths, required_directories, and vba_contract.",
+        ))
+        return
+    assert isinstance(entry, dict)
+    _string_list(entry.get("required_paths"), f"profiles.{name}.required_paths", failures, paths=True)
+    _string_list(entry.get("required_directories"), f"profiles.{name}.required_directories", failures, paths=True)
+    contract = entry.get("vba_contract")
+    field = f"profiles.{name}.vba_contract"
+    if not _same_keys(contract, {"minimum_roles", "required_components"}):
+        failures.append(finding(CONFIG_PATH, f"{field} must contain exactly minimum_roles and required_components."))
+        return
+    assert isinstance(contract, dict)
+    minimum_roles = contract.get("minimum_roles")
+    if not isinstance(minimum_roles, dict) or not minimum_roles:
+        failures.append(finding(CONFIG_PATH, f"{field}.minimum_roles must be a non-empty object."))
+        minimum_roles = {}
+    else:
+        role_names = list(minimum_roles)
+        if role_names != sorted(role_names, key=lambda item: (item.casefold(), item)):
+            failures.append(finding(CONFIG_PATH, f"{field}.minimum_roles keys must be sorted case-insensitively."))
+        for role, minimum in minimum_roles.items():
+            if role not in VBA_ROLES:
+                failures.append(finding(CONFIG_PATH, f"{field}.minimum_roles has invalid role {role!r}."))
+            if isinstance(minimum, bool) or not isinstance(minimum, int) or minimum < 1:
+                failures.append(finding(CONFIG_PATH, f"{field}.minimum_roles.{role} must be a positive integer."))
+    required_components = contract.get("required_components")
+    if not isinstance(required_components, dict) or not required_components:
+        failures.append(finding(CONFIG_PATH, f"{field}.required_components must be a non-empty object."))
+        required_components = {}
+    else:
+        paths = list(required_components)
+        if paths != sorted(paths, key=lambda item: (item.casefold(), item)):
+            failures.append(finding(CONFIG_PATH, f"{field}.required_components keys must be sorted case-insensitively."))
+        for path, role in required_components.items():
+            if not isinstance(path, str) or not _valid_relative_path(path):
+                failures.append(finding(CONFIG_PATH, f"{field}.required_components contains an invalid path: {path!r}."))
+            if role not in VBA_ROLES:
+                failures.append(finding(CONFIG_PATH, f"{field}.required_components.{path} has invalid role {role!r}."))
+    component_roles = {role for role in required_components.values() if isinstance(role, str)}
+    for role in VBA_BASELINE_ROLES:
+        if minimum_roles.get(role, 0) < 1:
+            failures.append(finding(CONFIG_PATH, f"{field}.minimum_roles must require the baseline role {role!r}."))
+        if role not in component_roles:
+            failures.append(finding(CONFIG_PATH, f"{field}.required_components must name a component with role {role!r}."))
 
-    if not _same_keys(document, CONFIG_KEYS):
-        failures.append(
-            finding(
-                CONFIG_PATH,
-                "Root object must contain exactly the canonical configuration keys.",
-            )
-        )
-    if not isinstance(document, dict):
-        document = {}
 
+def _validate_profiles(document: dict[str, Any], failures: list[dict[str, Any]]) -> None:
+    profiles = document.get("profiles")
+    if not isinstance(profiles, dict) or set(profiles) != set(SUPPORTED_PROFILES):
+        failures.append(finding(CONFIG_PATH, "profiles must contain exactly application, library, and ui-component."))
+        return
+    for name in SUPPORTED_PROFILES:
+        _validate_profile_contract(name, profiles[name], failures)
+
+
+def _validate_placeholder_spec(
+    name: object,
+    specification: object,
+    categories_seen: set[str],
+    failures: list[dict[str, Any]],
+) -> None:
+    field = f"placeholders.catalogue.{name}"
+    if not isinstance(name, str) or not PLACEHOLDER_NAME_PATTERN.fullmatch(name):
+        failures.append(finding(CONFIG_PATH, f"{field} is not a canonical placeholder name."))
+        return
+    if not isinstance(specification, dict):
+        failures.append(finding(CONFIG_PATH, f"{field} must be an object."))
+        return
+    category = specification.get("category")
+    description = specification.get("description")
+    if category not in PLACEHOLDER_CATEGORIES:
+        failures.append(finding(CONFIG_PATH, f"{field}.category must be optional, profile-specific, repeatable, or required."))
+        return
+    categories_seen.add(category)
+    if not isinstance(description, str) or not description.strip():
+        failures.append(finding(CONFIG_PATH, f"{field}.description must be non-empty."))
+    expected_keys = {"category", "description"}
+    if category == "profile-specific":
+        expected_keys.add("values")
+        values = specification.get("values")
+        if not isinstance(values, dict) or set(values) != set(SUPPORTED_PROFILES):
+            failures.append(finding(CONFIG_PATH, f"{field}.values must cover exactly all supported profiles."))
+        elif any(not isinstance(value, str) or not value.strip() for value in values.values()):
+            failures.append(finding(CONFIG_PATH, f"{field}.values must all be non-empty strings."))
+    elif category == "repeatable":
+        expected_keys.add("item_format")
+        item_format = specification.get("item_format")
+        if not isinstance(item_format, str) or item_format.count("{value}") != 1:
+            failures.append(finding(CONFIG_PATH, f"{field}.item_format must contain one {{value}} field."))
+    if set(specification) != expected_keys:
+        failures.append(finding(CONFIG_PATH, f"{field} has fields inconsistent with its category."))
+
+
+def _validate_placeholders(document: dict[str, Any], failures: list[dict[str, Any]]) -> None:
+    placeholders = document.get("placeholders")
+    keys = {"pattern", "catalogue", "block_markers", "template_only_paths", "exclude_paths"}
+    if not _same_keys(placeholders, keys):
+        failures.append(finding(CONFIG_PATH, "placeholders must contain exactly pattern, catalogue, block_markers, template_only_paths, and exclude_paths."))
+        return
+    assert isinstance(placeholders, dict)
+    pattern = placeholders.get("pattern")
+    if not isinstance(pattern, str):
+        failures.append(finding(CONFIG_PATH, "placeholders.pattern must be a string."))
+    else:
+        try:
+            compiled = re.compile(pattern)
+        except re.error as error:
+            failures.append(finding(CONFIG_PATH, f"placeholders.pattern is invalid: {error}."))
+        else:
+            if compiled.groups != 1:
+                failures.append(finding(CONFIG_PATH, "placeholders.pattern must contain exactly one capture group for the token name."))
+    catalogue = placeholders.get("catalogue")
+    categories_seen: set[str] = set()
+    if not isinstance(catalogue, dict) or not catalogue:
+        failures.append(finding(CONFIG_PATH, "placeholders.catalogue must be a non-empty object."))
+    else:
+        names = list(catalogue)
+        if names != sorted(names, key=lambda item: (item.casefold(), item)):
+            failures.append(finding(CONFIG_PATH, "placeholders.catalogue keys must be sorted case-insensitively."))
+        for name, specification in catalogue.items():
+            _validate_placeholder_spec(name, specification, categories_seen, failures)
+        missing_categories = set(PLACEHOLDER_CATEGORIES) - categories_seen
+        if missing_categories:
+            failures.append(finding(CONFIG_PATH, "placeholders.catalogue does not exercise categories: " + ", ".join(sorted(missing_categories))))
+    expected_markers = {
+        "template_only": "template:remove",
+        "profile": "template:profile:{profile}",
+        "optional": "template:optional:{token}",
+        "repeatable": "template:repeatable:{token}",
+    }
+    if placeholders.get("block_markers") != expected_markers:
+        failures.append(finding(CONFIG_PATH, "placeholders.block_markers must use the canonical marker grammar."))
+    _string_list(placeholders.get("template_only_paths"), "placeholders.template_only_paths", failures, paths=True)
+    _string_list(placeholders.get("exclude_paths"), "placeholders.exclude_paths", failures, paths=True)
+
+
+def _validate_identity(
+    document: dict[str, Any], mode: object, repository: object, failures: list[dict[str, Any]]
+) -> None:
+    identity = document.get("identity")
+    keys = {"forbidden_tokens", "template_tokens", "exclude_paths"}
+    if not _same_keys(identity, keys):
+        failures.append(finding(CONFIG_PATH, "identity must contain exactly forbidden_tokens, template_tokens, and exclude_paths."))
+        return
+    assert isinstance(identity, dict)
+    forbidden = _string_list(identity.get("forbidden_tokens"), "identity.forbidden_tokens", failures)
+    template = _string_list(identity.get("template_tokens"), "identity.template_tokens", failures)
+    _string_list(identity.get("exclude_paths"), "identity.exclude_paths", failures, paths=True)
+    if not template:
+        failures.append(finding(CONFIG_PATH, "identity.template_tokens must not be empty."))
+    if not isinstance(repository, str):
+        return
+    folded = repository.casefold()
+    for token in forbidden:
+        if token.casefold() in folded:
+            failures.append(finding(CONFIG_PATH, f"repository contains a forbidden donor token: {token}"))
+    contains_template = any(token.casefold() in folded for token in template)
+    if mode == "template" and template and not contains_template:
+        failures.append(finding(CONFIG_PATH, "Template mode repository must contain a declared template identity token."))
+    elif mode == "generated" and contains_template:
+        failures.append(finding(CONFIG_PATH, "Generated mode repository still contains a template identity token."))
+
+
+def _validate_vba_configuration(document: dict[str, Any], failures: list[dict[str, Any]]) -> None:
+    vba = document.get("vba")
+    keys = {"source_roots", "test_roots", "components", "public_api_manifest"}
+    if not _same_keys(vba, keys):
+        failures.append(finding(CONFIG_PATH, "vba must contain exactly source_roots, test_roots, components, and public_api_manifest."))
+        return
+    assert isinstance(vba, dict)
+    source_roots = _string_list(vba.get("source_roots"), "vba.source_roots", failures, paths=True)
+    test_roots = _string_list(vba.get("test_roots"), "vba.test_roots", failures, paths=True)
+    if set(source_roots).intersection(test_roots):
+        failures.append(finding(CONFIG_PATH, "VBA source and test roots must not overlap."))
+    components = vba.get("components")
+    if not isinstance(components, dict):
+        failures.append(finding(CONFIG_PATH, "vba.components must be an object."))
+    else:
+        component_keys = list(components)
+        if component_keys != sorted(component_keys, key=lambda item: (item.casefold(), item)):
+            failures.append(finding(CONFIG_PATH, "vba.components keys must be sorted case-insensitively."))
+        for path, role in components.items():
+            if not isinstance(path, str) or not _valid_relative_path(path):
+                failures.append(finding(CONFIG_PATH, f"Invalid VBA component path: {path!r}."))
+            if role not in VBA_ROLES:
+                failures.append(finding(CONFIG_PATH, f"VBA component {path!r} has unsupported role {role!r}."))
+    api_manifest = vba.get("public_api_manifest")
+    if api_manifest is not None and (not isinstance(api_manifest, str) or not _valid_relative_path(api_manifest)):
+        failures.append(finding(CONFIG_PATH, "vba.public_api_manifest must be null or a valid relative path."))
+
+
+def _validate_configuration_root(
+    document: dict[str, Any], failures: list[dict[str, Any]]
+) -> tuple[object, object]:
     if document.get("schema_version") != SCHEMA_VERSION:
-        failures.append(
-            finding(CONFIG_PATH, f"schema_version must be {SCHEMA_VERSION}.")
-        )
-
+        failures.append(finding(CONFIG_PATH, f"schema_version must be {SCHEMA_VERSION}."))
     mode = document.get("mode")
     profile = document.get("profile")
     if mode not in {"template", "generated"}:
@@ -367,455 +535,40 @@ def load_configuration(
     elif mode == "template" and profile is not None:
         failures.append(finding(CONFIG_PATH, "Template mode requires profile to be null."))
     elif mode == "generated" and profile not in SUPPORTED_PROFILES:
-        failures.append(
-            finding(
-                CONFIG_PATH,
-                "Generated mode requires profile to be application, library, or ui-component.",
-            )
-        )
-
+        failures.append(finding(CONFIG_PATH, "Generated mode requires profile to be application, library, or ui-component."))
     repository = document.get("repository")
-    if not isinstance(repository, str) or not re.fullmatch(
-        r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository
-    ):
-        failures.append(
-            finding(CONFIG_PATH, "repository must use the owner/name form.")
-        )
-
-    label_domains = _string_list(
-        document.get("label_domains"),
-        "label_domains",
-        failures,
-    )
+    if not isinstance(repository, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+        failures.append(finding(CONFIG_PATH, "repository must use the owner/name form."))
+    label_domains = _string_list(document.get("label_domains"), "label_domains", failures)
     for domain in label_domains:
         if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", domain):
-            failures.append(
-                finding(
-                    CONFIG_PATH,
-                    f"label_domains contains a non-kebab-case name: {domain!r}.",
-                )
-            )
+            failures.append(finding(CONFIG_PATH, f"label_domains contains a non-kebab-case name: {domain!r}."))
     if mode == "template" and label_domains:
-        failures.append(
-            finding(CONFIG_PATH, "Template mode requires label_domains to be empty.")
-        )
+        failures.append(finding(CONFIG_PATH, "Template mode requires label_domains to be empty."))
+    _string_list(document.get("required_paths"), "required_paths", failures, paths=True)
+    _string_list(document.get("required_directories"), "required_directories", failures, paths=True)
+    _string_list(document.get("allowed_office_binary_globs"), "allowed_office_binary_globs", failures)
+    return mode, repository
 
-    _string_list(
-        document.get("required_paths"),
-        "required_paths",
-        failures,
-        paths=True,
-    )
-    _string_list(
-        document.get("required_directories"),
-        "required_directories",
-        failures,
-        paths=True,
-    )
-    _string_list(
-        document.get("allowed_office_binary_globs"),
-        "allowed_office_binary_globs",
-        failures,
-    )
 
-    profiles = document.get("profiles")
-    if not isinstance(profiles, dict) or set(profiles) != set(SUPPORTED_PROFILES):
-        failures.append(
-            finding(
-                CONFIG_PATH,
-                "profiles must contain exactly application, library, and ui-component.",
-            )
-        )
-    else:
-        for name in SUPPORTED_PROFILES:
-            entry = profiles[name]
-            if not _same_keys(
-                entry,
-                {"required_paths", "required_directories", "vba_contract"},
-            ):
-                failures.append(
-                    finding(
-                        CONFIG_PATH,
-                        f"profiles.{name} must contain exactly required_paths, "
-                        "required_directories, and vba_contract.",
-                    )
-                )
-                continue
-            _string_list(
-                entry.get("required_paths"),
-                f"profiles.{name}.required_paths",
-                failures,
-                paths=True,
-            )
-            _string_list(
-                entry.get("required_directories"),
-                f"profiles.{name}.required_directories",
-                failures,
-                paths=True,
-            )
-            contract = entry.get("vba_contract")
-            contract_field = f"profiles.{name}.vba_contract"
-            if not _same_keys(contract, {"minimum_roles", "required_components"}):
-                failures.append(
-                    finding(
-                        CONFIG_PATH,
-                        f"{contract_field} must contain exactly minimum_roles and required_components.",
-                    )
-                )
-                continue
-            minimum_roles = contract.get("minimum_roles")
-            if not isinstance(minimum_roles, dict) or not minimum_roles:
-                failures.append(
-                    finding(
-                        CONFIG_PATH,
-                        f"{contract_field}.minimum_roles must be a non-empty object.",
-                    )
-                )
-                minimum_roles = {}
-            else:
-                role_names = list(minimum_roles)
-                if role_names != sorted(
-                    role_names, key=lambda item: (item.casefold(), item)
-                ):
-                    failures.append(
-                        finding(
-                            CONFIG_PATH,
-                            f"{contract_field}.minimum_roles keys must be sorted case-insensitively.",
-                        )
-                    )
-                for role, minimum in minimum_roles.items():
-                    if role not in VBA_ROLES:
-                        failures.append(
-                            finding(
-                                CONFIG_PATH,
-                                f"{contract_field}.minimum_roles has invalid role {role!r}.",
-                            )
-                        )
-                    if (
-                        isinstance(minimum, bool)
-                        or not isinstance(minimum, int)
-                        or minimum < 1
-                    ):
-                        failures.append(
-                            finding(
-                                CONFIG_PATH,
-                                f"{contract_field}.minimum_roles.{role} must be a positive integer.",
-                            )
-                        )
-            required_components = contract.get("required_components")
-            if not isinstance(required_components, dict) or not required_components:
-                failures.append(
-                    finding(
-                        CONFIG_PATH,
-                        f"{contract_field}.required_components must be a non-empty object.",
-                    )
-                )
-                required_components = {}
-            else:
-                component_paths = list(required_components)
-                if component_paths != sorted(
-                    component_paths, key=lambda item: (item.casefold(), item)
-                ):
-                    failures.append(
-                        finding(
-                            CONFIG_PATH,
-                            f"{contract_field}.required_components keys must be sorted case-insensitively.",
-                        )
-                    )
-                for path, role in required_components.items():
-                    if not isinstance(path, str) or not _valid_relative_path(path):
-                        failures.append(
-                            finding(
-                                CONFIG_PATH,
-                                f"{contract_field}.required_components contains an invalid path: {path!r}.",
-                            )
-                        )
-                    if role not in VBA_ROLES:
-                        failures.append(
-                            finding(
-                                CONFIG_PATH,
-                                f"{contract_field}.required_components.{path} has invalid role {role!r}.",
-                            )
-                        )
-            component_roles = {
-                role for role in required_components.values() if isinstance(role, str)
-            }
-            for role in VBA_BASELINE_ROLES:
-                if minimum_roles.get(role, 0) < 1:
-                    failures.append(
-                        finding(
-                            CONFIG_PATH,
-                            f"{contract_field}.minimum_roles must require the baseline role {role!r}.",
-                        )
-                    )
-                if role not in component_roles:
-                    failures.append(
-                        finding(
-                            CONFIG_PATH,
-                            f"{contract_field}.required_components must name a component with role {role!r}.",
-                        )
-                    )
-
-    placeholders = document.get("placeholders")
-    placeholder_keys = {
-        "pattern",
-        "catalogue",
-        "block_markers",
-        "template_only_paths",
-        "exclude_paths",
-    }
-    if not _same_keys(placeholders, placeholder_keys):
-        failures.append(
-            finding(
-                CONFIG_PATH,
-                "placeholders must contain exactly pattern, catalogue, block_markers, template_only_paths, and exclude_paths.",
-            )
-        )
-    else:
-        pattern = placeholders.get("pattern")
-        if not isinstance(pattern, str):
-            failures.append(finding(CONFIG_PATH, "placeholders.pattern must be a string."))
-        else:
-            try:
-                compiled_placeholder_pattern = re.compile(pattern)
-            except re.error as error:
-                failures.append(
-                    finding(CONFIG_PATH, f"placeholders.pattern is invalid: {error}.")
-                )
-            else:
-                if compiled_placeholder_pattern.groups != 1:
-                    failures.append(
-                        finding(
-                            CONFIG_PATH,
-                            "placeholders.pattern must contain exactly one capture group for the token name.",
-                        )
-                    )
-        catalogue = placeholders.get("catalogue")
-        categories_seen: set[str] = set()
-        if not isinstance(catalogue, dict) or not catalogue:
-            failures.append(
-                finding(
-                    CONFIG_PATH,
-                    "placeholders.catalogue must be a non-empty object.",
-                )
-            )
-        else:
-            names = list(catalogue)
-            if names != sorted(names, key=lambda item: (item.casefold(), item)):
-                failures.append(
-                    finding(
-                        CONFIG_PATH,
-                        "placeholders.catalogue keys must be sorted case-insensitively.",
-                    )
-                )
-            for name, specification in catalogue.items():
-                field = f"placeholders.catalogue.{name}"
-                if not isinstance(name, str) or not PLACEHOLDER_NAME_PATTERN.fullmatch(name):
-                    failures.append(
-                        finding(CONFIG_PATH, f"{field} is not a canonical placeholder name.")
-                    )
-                    continue
-                if not isinstance(specification, dict):
-                    failures.append(finding(CONFIG_PATH, f"{field} must be an object."))
-                    continue
-                category = specification.get("category")
-                description = specification.get("description")
-                if category not in PLACEHOLDER_CATEGORIES:
-                    failures.append(
-                        finding(
-                            CONFIG_PATH,
-                            f"{field}.category must be optional, profile-specific, repeatable, or required.",
-                        )
-                    )
-                    continue
-                categories_seen.add(category)
-                if not isinstance(description, str) or not description.strip():
-                    failures.append(
-                        finding(CONFIG_PATH, f"{field}.description must be non-empty.")
-                    )
-                expected_keys = {"category", "description"}
-                if category == "profile-specific":
-                    expected_keys.add("values")
-                    values = specification.get("values")
-                    if not isinstance(values, dict) or set(values) != set(SUPPORTED_PROFILES):
-                        failures.append(
-                            finding(
-                                CONFIG_PATH,
-                                f"{field}.values must cover exactly all supported profiles.",
-                            )
-                        )
-                    elif any(
-                        not isinstance(value, str) or not value.strip()
-                        for value in values.values()
-                    ):
-                        failures.append(
-                            finding(CONFIG_PATH, f"{field}.values must all be non-empty strings.")
-                        )
-                elif category == "repeatable":
-                    expected_keys.add("item_format")
-                    item_format = specification.get("item_format")
-                    if not isinstance(item_format, str) or item_format.count("{value}") != 1:
-                        failures.append(
-                            finding(
-                                CONFIG_PATH,
-                                f"{field}.item_format must contain one {{value}} field.",
-                            )
-                        )
-                if set(specification) != expected_keys:
-                    failures.append(
-                        finding(
-                            CONFIG_PATH,
-                            f"{field} has fields inconsistent with its category.",
-                        )
-                    )
-            missing_categories = set(PLACEHOLDER_CATEGORIES) - categories_seen
-            if missing_categories:
-                failures.append(
-                    finding(
-                        CONFIG_PATH,
-                        "placeholders.catalogue does not exercise categories: "
-                        + ", ".join(sorted(missing_categories)),
-                    )
-                )
-        block_markers = placeholders.get("block_markers")
-        expected_markers = {
-            "template_only": "template:remove",
-            "profile": "template:profile:{profile}",
-            "optional": "template:optional:{token}",
-            "repeatable": "template:repeatable:{token}",
-        }
-        if block_markers != expected_markers:
-            failures.append(
-                finding(CONFIG_PATH, "placeholders.block_markers must use the canonical marker grammar.")
-            )
-        _string_list(
-            placeholders.get("template_only_paths"),
-            "placeholders.template_only_paths",
-            failures,
-            paths=True,
-        )
-        _string_list(
-            placeholders.get("exclude_paths"),
-            "placeholders.exclude_paths",
-            failures,
-            paths=True,
-        )
-
-    identity = document.get("identity")
-    identity_keys = {"forbidden_tokens", "template_tokens", "exclude_paths"}
-    if not _same_keys(identity, identity_keys):
-        failures.append(
-            finding(
-                CONFIG_PATH,
-                "identity must contain exactly forbidden_tokens, template_tokens, and exclude_paths.",
-            )
-        )
-    else:
-        forbidden_tokens = _string_list(
-            identity.get("forbidden_tokens"),
-            "identity.forbidden_tokens",
-            failures,
-        )
-        template_tokens = _string_list(
-            identity.get("template_tokens"),
-            "identity.template_tokens",
-            failures,
-        )
-        _string_list(
-            identity.get("exclude_paths"),
-            "identity.exclude_paths",
-            failures,
-            paths=True,
-        )
-        if not template_tokens:
-            failures.append(
-                finding(CONFIG_PATH, "identity.template_tokens must not be empty.")
-            )
-        if isinstance(repository, str):
-            folded_repository = repository.casefold()
-            for token in forbidden_tokens:
-                if token.casefold() in folded_repository:
-                    failures.append(
-                        finding(
-                            CONFIG_PATH,
-                            f"repository contains a forbidden donor token: {token}",
-                        )
-                    )
-            contains_template_identity = any(
-                token.casefold() in folded_repository for token in template_tokens
-            )
-            if mode == "template" and template_tokens and not contains_template_identity:
-                failures.append(
-                    finding(
-                        CONFIG_PATH,
-                        "Template mode repository must contain a declared template identity token.",
-                    )
-                )
-            elif mode == "generated" and contains_template_identity:
-                failures.append(
-                    finding(
-                        CONFIG_PATH,
-                        "Generated mode repository still contains a template identity token.",
-                    )
-                )
-
-    vba = document.get("vba")
-    vba_keys = {"source_roots", "test_roots", "components", "public_api_manifest"}
-    if not _same_keys(vba, vba_keys):
-        failures.append(
-            finding(
-                CONFIG_PATH,
-                "vba must contain exactly source_roots, test_roots, components, and public_api_manifest.",
-            )
-        )
-    else:
-        source_roots = _string_list(
-            vba.get("source_roots"), "vba.source_roots", failures, paths=True
-        )
-        test_roots = _string_list(
-            vba.get("test_roots"), "vba.test_roots", failures, paths=True
-        )
-        if set(source_roots).intersection(test_roots):
-            failures.append(
-                finding(CONFIG_PATH, "VBA source and test roots must not overlap.")
-            )
-        components = vba.get("components")
-        roles = set(VBA_ROLES)
-        if not isinstance(components, dict):
-            failures.append(finding(CONFIG_PATH, "vba.components must be an object."))
-        else:
-            keys = list(components)
-            if keys != sorted(keys, key=lambda item: (item.casefold(), item)):
-                failures.append(
-                    finding(
-                        CONFIG_PATH,
-                        "vba.components keys must be sorted case-insensitively.",
-                    )
-                )
-            for path, role in components.items():
-                if not isinstance(path, str) or not _valid_relative_path(path):
-                    failures.append(
-                        finding(CONFIG_PATH, f"Invalid VBA component path: {path!r}.")
-                    )
-                if role not in roles:
-                    failures.append(
-                        finding(
-                            CONFIG_PATH,
-                            f"VBA component {path!r} has unsupported role {role!r}.",
-                        )
-                    )
-        api_manifest = vba.get("public_api_manifest")
-        if api_manifest is not None and (
-            not isinstance(api_manifest, str)
-            or not _valid_relative_path(api_manifest)
-        ):
-            failures.append(
-                finding(
-                    CONFIG_PATH,
-                    "vba.public_api_manifest must be null or a valid relative path.",
-                )
-            )
-
+def load_configuration(
+    repo: Repository,
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    failures: list[dict[str, Any]] = []
+    try:
+        document = json.loads(repo.text(CONFIG_PATH))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        failures.append(finding(CONFIG_PATH, f"Cannot load repository profile: {error}", getattr(error, "lineno", None)))
+        return None, rule_result("configuration", "Repository profile configuration", failures, "")
+    if not _same_keys(document, CONFIG_KEYS):
+        failures.append(finding(CONFIG_PATH, "Root object must contain exactly the canonical configuration keys."))
+    if not isinstance(document, dict):
+        document = {}
+    mode, repository = _validate_configuration_root(document, failures)
+    _validate_profiles(document, failures)
+    _validate_placeholders(document, failures)
+    _validate_identity(document, mode, repository, failures)
+    _validate_vba_configuration(document, failures)
     return (
         document if not failures else None,
         rule_result(
@@ -828,7 +581,7 @@ def load_configuration(
 
 
 def _effective_requirements(
-    config: dict[str, object],
+    config: dict[str, Any],
 ) -> tuple[list[str], list[str]]:
     paths = list(config["required_paths"])
     directories = list(config["required_directories"])
@@ -843,9 +596,9 @@ def _effective_requirements(
 
 
 def check_required_paths(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    failures: list[dict[str, object]] = []
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
     tracked = set(repo.files)
     paths, directories = _effective_requirements(config)
     for path in paths:
@@ -878,14 +631,14 @@ def _markdown_link_label(text: str, end: int) -> bool:
 
 
 def check_placeholders(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     settings = config["placeholders"]
     pattern = re.compile(settings["pattern"])
     excluded = set(settings["exclude_paths"])
     allowed = {"{{" + name + "}}" for name in settings["catalogue"]}
     seen: set[str] = set()
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     checked = 0
     for path in repo.files:
         if path in excluded or not is_text_file(path):
@@ -948,14 +701,14 @@ def check_placeholders(
 
 
 def check_identity(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     settings = config["identity"]
     tokens = list(settings["forbidden_tokens"])
     if config["mode"] == "generated":
         tokens.extend(settings["template_tokens"])
     excluded = set(settings["exclude_paths"])
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     checked = 0
     for path in repo.files:
         if path in excluded or not is_text_file(path):
@@ -1017,10 +770,10 @@ def _is_ignored(repo: Repository, probe: str) -> bool:
 
 
 def check_dotfile_policy(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     try:
         sections = _editorconfig_sections(repo.text(".editorconfig"))
     except (OSError, UnicodeError) as error:
@@ -1190,11 +943,32 @@ def validate_yaml_subset(text: str) -> list[tuple[int, str]]:
     return errors
 
 
+def _validate_xml_text(path: str, text: str) -> dict[str, Any] | None:
+    size = len(text.encode("utf-8"))
+    if size > MAX_XML_BYTES:
+        return finding(
+            path,
+            f"XML input exceeds the {MAX_XML_BYTES}-byte structural-validation limit.",
+        )
+    match = UNSAFE_XML_DECLARATION.search(text)
+    if match is not None:
+        return finding(
+            path,
+            "XML DTD and entity declarations are prohibited by the portable checker.",
+            line_number(text, match.start()),
+        )
+    try:
+        ET.fromstring(text)  # noqa: S314 -- bounded input with DTD/entity declarations rejected above.
+    except ET.ParseError as error:
+        return finding(path, f"Invalid XML: {error}", error.position[0])
+    return None
+
+
 def check_structured_data(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     counts = {"json": 0, "yaml": 0, "xml": 0}
     for path in repo.files:
         suffix = PurePosixPath(path).suffix.casefold()
@@ -1220,10 +994,13 @@ def check_structured_data(
         elif suffix == ".xml":
             counts["xml"] += 1
             try:
-                ET.fromstring(repo.text(path))
-            except (OSError, UnicodeError, ET.ParseError) as error:
-                line = error.position[0] if isinstance(error, ET.ParseError) else None
-                failures.append(finding(path, f"Invalid XML: {error}", line))
+                text = repo.text(path)
+            except (OSError, UnicodeError) as error:
+                failures.append(finding(path, f"Cannot decode XML as UTF-8: {error}"))
+                continue
+            xml_failure = _validate_xml_text(path, text)
+            if xml_failure is not None:
+                failures.append(xml_failure)
     summary = (
         f"Parsed {counts['json']} JSON, {counts['yaml']} YAML, "
         f"and {counts['xml']} XML files"
@@ -1256,9 +1033,9 @@ def _markdown_destinations(text: str) -> Iterable[tuple[int, str]]:
             continue
         for match in inline.finditer(line):
             yield number, match.group(1).strip()
-        match = reference.match(line)
-        if match:
-            yield number, match.group(1).strip()
+        reference_match = reference.match(line)
+        if reference_match:
+            yield number, reference_match.group(1).strip()
 
 
 def _split_destination(raw: str) -> tuple[str, str]:
@@ -1309,10 +1086,10 @@ def _github_slugs(text: str) -> set[str]:
 
 
 def check_markdown_links(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     checked = 0
     slug_cache: dict[Path, set[str]] = {}
     for path in repo.files:
@@ -1384,10 +1161,10 @@ def check_markdown_links(
 
 
 def check_text_integrity(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     conflict = re.compile(r"^(?:<{7}|={7}|>{7})(?:\s|$)", re.MULTILINE)
     private_key_marker = "-----BEGIN " + "PRIVATE KEY-----"
     github_token_prefix = "gh" + "p_"
@@ -1433,13 +1210,13 @@ def check_text_integrity(
                         line_number(text, offset),
                     )
                 )
-        match = aws_key.search(text)
-        if match:
+        aws_match = aws_key.search(text)
+        if aws_match:
             failures.append(
                 finding(
                     path,
                     "Possible AWS access key is tracked.",
-                    line_number(text, match.start()),
+                    line_number(text, aws_match.start()),
                 )
             )
     return rule_result(
@@ -1451,9 +1228,9 @@ def check_text_integrity(
 
 
 def check_forbidden_artifacts(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    failures: list[dict[str, object]] = []
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
     allowed = config["allowed_office_binary_globs"]
     for path in repo.files:
         pure = PurePosixPath(path)
@@ -1504,10 +1281,10 @@ def _has_bare_cr(data: bytes) -> bool:
 
 
 def check_line_endings(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     checked = 0
     for path in repo.files:
         if not is_text_file(path):
@@ -1561,7 +1338,7 @@ def _validate_label_array(
     labels: object,
     location: str,
     seen: dict[str, str],
-    failures: list[dict[str, object]],
+    failures: list[dict[str, Any]],
 ) -> None:
     if not isinstance(labels, list):
         failures.append(finding(LABEL_MANIFEST_PATH, f"{location} must be an array."))
@@ -1638,9 +1415,9 @@ def _validate_label_array(
 
 
 def check_label_manifest(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    failures: list[dict[str, object]] = []
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
     try:
         document = json.loads(repo.text(LABEL_MANIFEST_PATH))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
@@ -1683,6 +1460,7 @@ def check_label_manifest(
             )
         )
     else:
+        assert isinstance(overlays, dict)
         profiles = overlays.get("profile")
         if not isinstance(profiles, dict) or set(profiles) != set(SUPPORTED_PROFILES):
             failures.append(
@@ -1756,7 +1534,7 @@ def check_label_manifest(
     return result
 
 
-ISSUE_FORM_SPECS: dict[str, dict[str, object]] = {
+ISSUE_FORM_SPECS: dict[str, dict[str, Any]] = {
     "bug.yml": {
         "label": "bug",
         "title": "[Bug]: ",
@@ -1818,100 +1596,96 @@ def _issue_form_blocks(text: str) -> list[tuple[str, str | None]]:
     return blocks
 
 
-def check_issue_forms(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    failures: list[dict[str, object]] = []
+def _issue_label_names(repo: Repository) -> set[object]:
     try:
         manifest = json.loads(repo.text(LABEL_MANIFEST_PATH))
     except (OSError, UnicodeError, json.JSONDecodeError):
         manifest = {}
-    label_names = {
+    return {
         label.get("name")
         for label in manifest.get("core", [])
         if isinstance(label, dict) and isinstance(label.get("name"), str)
     }
 
-    for filename, specification in ISSUE_FORM_SPECS.items():
-        path = f"{ISSUE_TEMPLATE_DIRECTORY}/{filename}"
-        try:
-            text = repo.text(path)
-        except (OSError, UnicodeError) as error:
-            failures.append(finding(path, f"Cannot read canonical issue form: {error}"))
-            continue
 
-        for key in ("name", "description"):
-            value = _yaml_header_scalar(text, key)
-            if value is None or not value.strip():
-                failures.append(finding(path, f"Top-level {key} must be non-empty."))
-        if _yaml_header_scalar(text, "title") != specification["title"]:
-            failures.append(
-                finding(path, f"Top-level title must be {specification['title']!r}.")
-            )
-
-        labels = _yaml_flow_array(text, "labels")
-        expected_label = specification["label"]
-        if labels != [expected_label]:
-            failures.append(
-                finding(path, f"Top-level labels must be the JSON flow array [{expected_label!r}].")
-            )
-        elif expected_label not in label_names:
-            failures.append(
-                finding(path, f"Issue form label is absent from {LABEL_MANIFEST_PATH}: {expected_label}")
-            )
-        if _yaml_flow_array(text, "assignees") != []:
-            failures.append(
-                finding(path, "Top-level assignees must be an empty JSON flow array.")
-            )
-
-        blocks = _issue_form_blocks(text)
-        if not blocks or len(blocks) > 10:
-            failures.append(finding(path, "Issue form body must contain between 1 and 10 elements."))
-        invalid_types = sorted(
-            {kind for kind, _ in blocks} - {"checkboxes", "dropdown", "input", "markdown", "textarea"}
-        )
-        if invalid_types:
-            failures.append(
-                finding(path, "Unsupported issue-form element types: " + ", ".join(invalid_types))
-            )
-        identifiers = [identifier for _, identifier in blocks if identifier is not None]
-        if len(identifiers) != len(set(identifiers)):
-            failures.append(finding(path, "Issue-form element IDs must be unique."))
-        missing = sorted(set(specification["required_ids"]) - set(identifiers))
-        if missing:
-            failures.append(
-                finding(path, "Required issue-form element IDs are missing: " + ", ".join(missing))
-            )
-        if "SECURITY.md" not in text or "private" not in text.casefold():
-            failures.append(
-                finding(path, "The opening guidance must route vulnerability details to SECURITY.md privately.")
-            )
-        for identifier in set(specification["required_ids"]):
-            if identifier == "acknowledgements":
-                continue
-            pattern = rf"(?ms)^    id:\s*{re.escape(identifier)}\s*$.*?(?=^  - type:|\Z)"
-            match = re.search(pattern, text)
-            if match and not re.search(r"(?m)^      required:\s*true\s*$", match.group(0)):
-                failures.append(finding(path, f"Required evidence field {identifier!r} must be mandatory."))
-
-    config_path = f"{ISSUE_TEMPLATE_DIRECTORY}/config.yml"
+def _validate_issue_form(
+    repo: Repository,
+    filename: str,
+    specification: dict[str, Any],
+    label_names: set[object],
+    failures: list[dict[str, Any]],
+) -> None:
+    path = f"{ISSUE_TEMPLATE_DIRECTORY}/{filename}"
     try:
-        intake_config = repo.text(config_path)
+        text = repo.text(path)
     except (OSError, UnicodeError) as error:
-        failures.append(finding(config_path, f"Cannot read issue-template configuration: {error}"))
-    else:
-        if not re.search(r"(?m)^blank_issues_enabled:\s*false\s*$", intake_config):
-            failures.append(finding(config_path, "Blank issues must be disabled."))
-        expected_url = f"https://github.com/{config['repository']}/security/policy"
-        url_match = re.search(r'(?m)^\s+url:\s*["\']?([^"\'\s]+)["\']?\s*$', intake_config)
-        actual_url = url_match.group(1) if url_match else None
-        if actual_url != expected_url:
-            failures.append(
-                finding(config_path, f"Private-security contact URL must be {expected_url!r}.")
-            )
-        if "private" not in intake_config.casefold():
-            failures.append(finding(config_path, "Security contact guidance must require private reporting."))
+        failures.append(finding(path, f"Cannot read canonical issue form: {error}"))
+        return
+    for key in ("name", "description"):
+        value = _yaml_header_scalar(text, key)
+        if value is None or not value.strip():
+            failures.append(finding(path, f"Top-level {key} must be non-empty."))
+    if _yaml_header_scalar(text, "title") != specification["title"]:
+        failures.append(finding(path, f"Top-level title must be {specification['title']!r}."))
+    labels = _yaml_flow_array(text, "labels")
+    expected_label = specification["label"]
+    if labels != [expected_label]:
+        failures.append(finding(path, f"Top-level labels must be the JSON flow array [{expected_label!r}]."))
+    elif expected_label not in label_names:
+        failures.append(finding(path, f"Issue form label is absent from {LABEL_MANIFEST_PATH}: {expected_label}"))
+    if _yaml_flow_array(text, "assignees") != []:
+        failures.append(finding(path, "Top-level assignees must be an empty JSON flow array."))
+    blocks = _issue_form_blocks(text)
+    if not blocks or len(blocks) > 10:
+        failures.append(finding(path, "Issue form body must contain between 1 and 10 elements."))
+    invalid_types = sorted({kind for kind, _ in blocks} - {"checkboxes", "dropdown", "input", "markdown", "textarea"})
+    if invalid_types:
+        failures.append(finding(path, "Unsupported issue-form element types: " + ", ".join(invalid_types)))
+    identifiers = [identifier for _, identifier in blocks if identifier is not None]
+    if len(identifiers) != len(set(identifiers)):
+        failures.append(finding(path, "Issue-form element IDs must be unique."))
+    missing = sorted(set(specification["required_ids"]) - set(identifiers))
+    if missing:
+        failures.append(finding(path, "Required issue-form element IDs are missing: " + ", ".join(missing)))
+    if "SECURITY.md" not in text or "private" not in text.casefold():
+        failures.append(finding(path, "The opening guidance must route vulnerability details to SECURITY.md privately."))
+    for identifier in set(specification["required_ids"]):
+        if identifier == "acknowledgements":
+            continue
+        pattern = rf"(?ms)^    id:\s*{re.escape(identifier)}\s*$.*?(?=^  - type:|\Z)"
+        match = re.search(pattern, text)
+        if match and not re.search(r"(?m)^      required:\s*true\s*$", match.group(0)):
+            failures.append(finding(path, f"Required evidence field {identifier!r} must be mandatory."))
 
+
+def _validate_issue_intake_config(
+    repo: Repository, repository: str, failures: list[dict[str, Any]]
+) -> None:
+    path = f"{ISSUE_TEMPLATE_DIRECTORY}/config.yml"
+    try:
+        text = repo.text(path)
+    except (OSError, UnicodeError) as error:
+        failures.append(finding(path, f"Cannot read issue-template configuration: {error}"))
+        return
+    if not re.search(r"(?m)^blank_issues_enabled:\s*false\s*$", text):
+        failures.append(finding(path, "Blank issues must be disabled."))
+    expected_url = f"https://github.com/{repository}/security/policy"
+    url_match = re.search(r'(?m)^\s+url:\s*["\']?([^"\'\s]+)["\']?\s*$', text)
+    actual_url = url_match.group(1) if url_match else None
+    if actual_url != expected_url:
+        failures.append(finding(path, f"Private-security contact URL must be {expected_url!r}."))
+    if "private" not in text.casefold():
+        failures.append(finding(path, "Security contact guidance must require private reporting."))
+
+
+def check_issue_forms(
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
+    label_names = _issue_label_names(repo)
+    for filename, specification in ISSUE_FORM_SPECS.items():
+        _validate_issue_form(repo, filename, specification, label_names, failures)
+    _validate_issue_intake_config(repo, config["repository"], failures)
     return rule_result(
         "issue-forms",
         "Structured issue forms and private security routing",
@@ -1921,10 +1695,10 @@ def check_issue_forms(
 
 
 def check_workflow_actions(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     checked = 0
     uses_line = re.compile(
         r"^\s*(?:-\s*)?uses:\s*([^\s#]+)(?:\s+#\s*(.+?))?\s*$"
@@ -1986,9 +1760,9 @@ def check_workflow_actions(
 
 
 def check_version_changelog(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    failures: list[dict[str, object]] = []
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
     try:
         version = repo.text("VERSION").strip()
     except (OSError, UnicodeError) as error:
@@ -2040,11 +1814,11 @@ def check_version_changelog(
 
 
 def check_git_diff(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
     completed = repo._git("diff", "--check", "HEAD", "--", check=False)
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     if completed.returncode != 0:
         detail = (completed.stdout + completed.stderr).strip()
         failures.append(finding(".", detail or "git diff --check failed"))
@@ -2065,10 +1839,10 @@ def _vba_paths(repo: Repository) -> list[str]:
 
 
 def check_vba_option_explicit(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     declaration = re.compile(
         r"^\s*Option\s+Explicit\b", re.IGNORECASE | re.MULTILINE
     )
@@ -2089,10 +1863,10 @@ def check_vba_option_explicit(
 
 
 def check_vba_export_header(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     del config
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     declaration = re.compile(r'^Attribute VB_Name = "([^"]*)"$')
     identifier = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
     declared: dict[str, str] = {}
@@ -2199,126 +1973,122 @@ def _strip_vba_line(line: str) -> str:
     return "".join(result)
 
 
-def check_vba_structure(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
-    del config
-    failures: list[dict[str, object]] = []
+def _handle_vba_directive(
+    path: str,
+    number: int,
+    upper: str,
+    directives: list[dict[str, bool]],
+    failures: list[dict[str, Any]],
+) -> bool:
+    if upper.startswith("#IF "):
+        condition = upper[4:]
+        requires = "VBA7" in condition and "NOT VBA7" not in condition
+        directives.append({"vba7": requires, "active": requires})
+        return True
+    if upper.startswith("#ELSEIF "):
+        if not directives:
+            failures.append(finding(path, "#ElseIf without #If.", number))
+        else:
+            condition = upper[8:]
+            directives[-1]["active"] = "VBA7" in condition and "NOT VBA7" not in condition
+        return True
+    if upper.startswith("#ELSE"):
+        if not directives:
+            failures.append(finding(path, "#Else without #If.", number))
+        else:
+            directives[-1]["active"] = not directives[-1]["vba7"]
+        return True
+    if upper.startswith("#END IF"):
+        if not directives:
+            failures.append(finding(path, "#End If without #If.", number))
+        else:
+            directives.pop()
+        return True
+    return False
+
+
+def _scan_vba_structure_component(
+    path: str,
+    lines: list[str],
+    failures: list[dict[str, Any]],
+) -> tuple[list[dict[str, bool]], list[tuple[str, str, int]], set[str], list[tuple[int, str]]]:
     opener = re.compile(
         r"^\s*(?:Public|Private|Friend)?\s*(?:Static\s+)?"
         r"(Sub|Function|Property\s+(?:Get|Let|Set))\s+([A-Za-z_]\w*)\b",
         re.IGNORECASE,
     )
-    closer = re.compile(
-        r"^\s*End\s+(Sub|Function|Property)\b", re.IGNORECASE
-    )
+    closer = re.compile(r"^\s*End\s+(Sub|Function|Property)\b", re.IGNORECASE)
     label_re = re.compile(r"^\s*([A-Za-z_]\w*|\d+):\s*$")
-    jump_re = re.compile(
-        r"\b(?:GoTo|Resume)\s+([A-Za-z_]\w*|\d+|-1)\b", re.IGNORECASE
-    )
-    declare_re = re.compile(
-        r"^\s*(?:Public|Private)?\s*Declare\s+(?:Function|Sub)\b",
-        re.IGNORECASE,
-    )
+    declare_re = re.compile(r"^\s*(?:Public|Private)?\s*Declare\s+(?:Function|Sub)\b", re.IGNORECASE)
+    directives: list[dict[str, bool]] = []
+    procedures: list[tuple[str, str, int]] = []
+    labels: set[str] = set()
+    executable: list[tuple[int, str]] = []
+    for number, raw in enumerate(lines, start=1):
+        upper = raw.strip().upper()
+        if _handle_vba_directive(path, number, upper, directives, failures):
+            continue
+        code = _strip_vba_line(raw)
+        if not code.strip():
+            continue
+        executable.append((number, code))
+        match = label_re.match(code)
+        if match:
+            labels.add(match.group(1).casefold())
+        if declare_re.match(code) and any(item["active"] for item in directives) and not re.search(r"\bPtrSafe\b", code, re.IGNORECASE):
+            failures.append(finding(path, "Declare in an active VBA7 branch must include PtrSafe.", number))
+        match = opener.match(code)
+        if match and " declare " not in f" {code.casefold()} ":
+            if procedures:
+                kind, name, start = procedures[-1]
+                failures.append(finding(path, f"{kind} {name} opened at line {start} has no closing statement.", number))
+                procedures.clear()
+            procedures.append((match.group(1), match.group(2), number))
+            continue
+        match = closer.match(code)
+        if match:
+            if not procedures:
+                failures.append(finding(path, f"{match.group(0).strip()} has no opener.", number))
+            else:
+                procedures.pop()
+    return directives, procedures, labels, executable
+
+
+def _validate_vba_structure_tail(
+    path: str,
+    directives: list[dict[str, bool]],
+    procedures: list[tuple[str, str, int]],
+    labels: set[str],
+    executable: list[tuple[int, str]],
+    failures: list[dict[str, Any]],
+) -> None:
+    if directives:
+        failures.append(finding(path, f"{len(directives)} conditional-compilation block(s) are unclosed."))
+    for kind, name, start in procedures:
+        failures.append(finding(path, f"{kind} {name} opened at line {start} is unclosed."))
+    jump_re = re.compile(r"\b(?:GoTo|Resume)\s+([A-Za-z_]\w*|\d+|-1)\b", re.IGNORECASE)
+    for number, code in executable:
+        for match in jump_re.finditer(code):
+            target = match.group(1)
+            if target.casefold() in {"next", "0", "-1"}:
+                continue
+            if target.casefold() not in labels:
+                failures.append(finding(path, f"Jump target is not defined: {target}", number))
+
+
+def check_vba_structure(
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
+    del config
+    failures: list[dict[str, Any]] = []
     paths = _vba_paths(repo)
     for path in paths:
         try:
             lines = repo.text(path).splitlines()
         except (OSError, UnicodeError):
             continue
-
-        directives: list[dict[str, bool]] = []
-        procedures: list[tuple[str, str, int]] = []
-        labels: set[str] = set()
-        executable: list[tuple[int, str]] = []
-
-        for number, raw in enumerate(lines, start=1):
-            stripped = raw.strip()
-            upper = stripped.upper()
-            if upper.startswith("#IF "):
-                condition = upper[4:]
-                requires = "VBA7" in condition and "NOT VBA7" not in condition
-                directives.append({"vba7": requires, "active": requires})
-                continue
-            if upper.startswith("#ELSEIF "):
-                if not directives:
-                    failures.append(finding(path, "#ElseIf without #If.", number))
-                else:
-                    condition = upper[8:]
-                    directives[-1]["active"] = (
-                        "VBA7" in condition and "NOT VBA7" not in condition
-                    )
-                continue
-            if upper.startswith("#ELSE"):
-                if not directives:
-                    failures.append(finding(path, "#Else without #If.", number))
-                else:
-                    directives[-1]["active"] = not directives[-1]["vba7"]
-                continue
-            if upper.startswith("#END IF"):
-                if not directives:
-                    failures.append(finding(path, "#End If without #If.", number))
-                else:
-                    directives.pop()
-                continue
-
-            code = _strip_vba_line(raw)
-            if not code.strip():
-                continue
-            executable.append((number, code))
-            match = label_re.match(code)
-            if match:
-                labels.add(match.group(1).casefold())
-            if declare_re.match(code) and any(item["active"] for item in directives):
-                if not re.search(r"\bPtrSafe\b", code, re.IGNORECASE):
-                    failures.append(
-                        finding(
-                            path,
-                            "Declare in an active VBA7 branch must include PtrSafe.",
-                            number,
-                        )
-                    )
-            match = opener.match(code)
-            if match and " declare " not in f" {code.casefold()} ":
-                if procedures:
-                    kind, name, start = procedures[-1]
-                    failures.append(
-                        finding(
-                            path,
-                            f"{kind} {name} opened at line {start} has no closing statement.",
-                            number,
-                        )
-                    )
-                    procedures.clear()
-                procedures.append((match.group(1), match.group(2), number))
-                continue
-            match = closer.match(code)
-            if match:
-                if not procedures:
-                    failures.append(
-                        finding(path, f"{match.group(0).strip()} has no opener.", number)
-                    )
-                else:
-                    procedures.pop()
-
-        if directives:
-            failures.append(
-                finding(path, f"{len(directives)} conditional-compilation block(s) are unclosed.")
-            )
-        for kind, name, start in procedures:
-            failures.append(
-                finding(path, f"{kind} {name} opened at line {start} is unclosed.")
-            )
-        for number, code in executable:
-            for match in jump_re.finditer(code):
-                target = match.group(1)
-                if target.casefold() in {"next", "0", "-1"}:
-                    continue
-                if target.casefold() not in labels:
-                    failures.append(
-                        finding(path, f"Jump target is not defined: {target}", number)
-                    )
-
+        state = _scan_vba_structure_component(path, lines, failures)
+        _validate_vba_structure_tail(path, *state, failures)
     return rule_result(
         "vba-structure",
         "VBA structural safety",
@@ -2328,13 +2098,13 @@ def check_vba_structure(
 
 
 def check_vba_visibility(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     settings = config["vba"]
     components = settings["components"]
     source_roots = settings["source_roots"]
     test_roots = settings["test_roots"]
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     tracked_vba = set(_vba_paths(repo))
     governed = {
         path
@@ -2389,8 +2159,8 @@ def check_vba_visibility(
 
 
 def check_generated_vba_contract(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     """Require substantive facade, core, and test assets for each profile."""
 
     profiles = config["profiles"]
@@ -2401,8 +2171,8 @@ def check_generated_vba_contract(
         if config["mode"] == "template"
         else (config["profile"],)
     )
-    failures: list[dict[str, object]] = []
-    profile_evidence: dict[str, object] = {}
+    failures: list[dict[str, Any]] = []
+    profile_evidence: dict[str, Any] = {}
 
     for profile in selected_profiles:
         contract = profiles[profile]["vba_contract"]
@@ -2476,7 +2246,7 @@ def check_generated_vba_contract(
 
 def _public_surface(
     repo: Repository, components: dict[str, str]
-) -> tuple[list[str], list[dict[str, object]]]:
+) -> tuple[list[str], list[dict[str, Any]]]:
     declaration = re.compile(
         r"^\s*Public\s+(?:Static\s+)?"
         r"(Sub|Function|Property\s+(?:Get|Let|Set)|Enum|Type|Const)"
@@ -2484,7 +2254,7 @@ def _public_surface(
         re.IGNORECASE,
     )
     surface: list[str] = []
-    failures: list[dict[str, object]] = []
+    failures: list[dict[str, Any]] = []
     global_names: dict[str, str] = {}
     for path, role in components.items():
         if role != "public" or not repo.path(path).is_file():
@@ -2515,8 +2285,8 @@ def _public_surface(
 
 
 def check_vba_public_api(
-    repo: Repository, config: dict[str, object]
-) -> dict[str, object]:
+    repo: Repository, config: dict[str, Any]
+) -> dict[str, Any]:
     settings = config["vba"]
     manifest = settings["public_api_manifest"]
     actual, failures = _public_surface(repo, settings["components"])
@@ -2559,7 +2329,7 @@ def check_vba_public_api(
     )
 
 
-Check = Callable[[Repository, dict[str, object]], dict[str, object]]
+Check = Callable[[Repository, dict[str, Any]], dict[str, Any]]
 CHECKS: tuple[Check, ...] = (
     check_required_paths,
     check_placeholders,
@@ -2584,7 +2354,7 @@ CHECKS: tuple[Check, ...] = (
 )
 
 
-def build_report(root: Path) -> dict[str, object]:
+def build_report(root: Path) -> dict[str, Any]:
     """Run the complete canonical rule set and return a deterministic report."""
 
     repo = Repository(root)
@@ -2636,7 +2406,7 @@ def _markdown_escape(value: object) -> str:
     return str(value).replace("|", r"\|").replace("\n", " ")
 
 
-def markdown_report(report: dict[str, object]) -> str:
+def markdown_report(report: dict[str, Any]) -> str:
     status = str(report["status"]).upper()
     counts = report["counts"]
     lines = [
@@ -2687,7 +2457,7 @@ def markdown_report(report: dict[str, object]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def console_report(report: dict[str, object]) -> str:
+def console_report(report: dict[str, Any]) -> str:
     lines = []
     for result in report["rules"]:
         marker = "PASS" if result["status"] == "pass" else "FAIL"
@@ -2723,7 +2493,7 @@ def _write_fixture(path: Path, content: str | bytes, *, crlf: bool = False) -> N
         path.write_text(normalized, encoding="utf-8", newline="\n")
 
 
-def _fixture_configuration() -> dict[str, object]:
+def _fixture_configuration() -> dict[str, Any]:
     forbidden_identity = "DONOR" + "-PROJECT"
     template_identity = "TEMPLATE" + "-IDENTITY"
     return {
@@ -2835,7 +2605,7 @@ def _fixture_configuration() -> dict[str, object]:
     }
 
 
-def _fixture_labels() -> dict[str, object]:
+def _fixture_labels() -> dict[str, Any]:
     return {
         "schema_version": 1,
         "prune": False,
@@ -3121,6 +2891,28 @@ def _degrade_structured_xml(root: Path) -> None:
     _run_git(root, "add", path.relative_to(root).as_posix())
 
 
+def _degrade_structured_xml_encoding(root: Path) -> None:
+    path = root / "docs/invalid-encoding.xml"
+    _write_fixture(path, b"<repository>\xff</repository>\n")
+    _run_git(root, "add", path.relative_to(root).as_posix())
+
+
+def _degrade_structured_xml_doctype(root: Path) -> None:
+    path = root / "docs/doctype.xml"
+    _write_fixture(
+        path,
+        '<!DOCTYPE repository [<!ENTITY sample "value">]><repository>&sample;</repository>\n',
+    )
+    _run_git(root, "add", path.relative_to(root).as_posix())
+
+
+def _degrade_structured_xml_oversize(root: Path) -> None:
+    path = root / "docs/oversize.xml"
+    padding = "x" * MAX_XML_BYTES
+    _write_fixture(path, f"<repository>{padding}</repository>\n")
+    _run_git(root, "add", path.relative_to(root).as_posix())
+
+
 def _degrade_markdown_links(root: Path) -> None:
     _write_fixture(root / "README.md", "# Fixture\n\n[Missing](docs/MISSING.md)\n")
 
@@ -3246,6 +3038,9 @@ BRANCH_SELF_TEST_CASES: tuple[
 ] = (
     ("structured-yaml", "structured-data", _degrade_structured_yaml),
     ("structured-xml", "structured-data", _degrade_structured_xml),
+    ("structured-xml-encoding", "structured-data", _degrade_structured_xml_encoding),
+    ("structured-xml-doctype", "structured-data", _degrade_structured_xml_doctype),
+    ("structured-xml-oversize", "structured-data", _degrade_structured_xml_oversize),
 )
 
 

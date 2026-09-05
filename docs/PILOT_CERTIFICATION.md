@@ -6,9 +6,8 @@
 [![Governance: protected](https://img.shields.io/badge/governance-protected-6f42c1)](#-verified-final-state)
 
 This record preserves the post-creation read-back evidence for the three clean
-repositories generated from this template. It supplements the implementation
-plan with full identifiers and durable links; it is template-only evidence and
-is removed from generated repositories.
+repositories generated from this template. It is durable template-only evidence
+with exact identifiers and links and is removed from generated repositories.
 
 ## 🧾 Collection Record
 
@@ -65,9 +64,7 @@ The authenticated read-back confirmed the following for every pilot:
 This record certifies repository generation and live governance only. It does
 not replace exact-candidate Excel compilation, regression, or release evidence.
 Those separate controls were subsequently completed for the canonical
-[`v1.0.0` release](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0)
-and are recorded in the
-[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md#p1-certification-gate).
+[`v1.0.0` release](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0); the release record remains the durable publication reference.
 
 ---
 

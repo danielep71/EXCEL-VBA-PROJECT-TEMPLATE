@@ -9,8 +9,9 @@ Option Private Module
 '   Implement the neutral arithmetic example behind the supported facade.
 '
 ' PUBLIC SURFACE
-'   None outside this VBA project. DivideChecked is Public only so the facade
-'   can call it; Option Private Module keeps it off the external surface.
+'   None outside this VBA project. DivideChecked and ERR_ZERO_DENOMINATOR are
+'   Public only for in-project use; Option Private Module keeps them off the
+'   supported external surface.
 '
 ' DEPENDENCIES
 '   VBA runtime only. This core never depends on the facade, tests, examples,
@@ -20,8 +21,9 @@ Option Private Module
 '   Stateless. Results depend only on explicit scalar arguments.
 '
 ' ERROR POLICY
-'   Reject a zero denominator with the fixed project error number and a stable
-'   description. Let the facade normalize the public error source.
+'   Own the single internal zero-denominator error number and raise it with a
+'   stable description. The facade exposes the same value and normalizes the
+'   public error source.
 '
 ' WORKSHEET SAFETY
 '   Performs no Excel object-model access and changes no caller-owned state.
@@ -31,7 +33,7 @@ Option Private Module
 '   available inside the project for focused future tests without widening API.
 '===============================================================================
 
-Private Const ERR_ZERO_DENOMINATOR As Long = vbObjectError + 2048
+Public Const ERR_ZERO_DENOMINATOR As Long = vbObjectError + 2048
 
 Public Function DivideChecked( _
     ByVal numerator As Double, _

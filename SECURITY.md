@@ -3,8 +3,8 @@
 TEMPLATE INSTRUCTIONS
 - Initialize every registered token before publishing.
 - Review the supported-version policy before the first public release.
-- Keep the private reporting, disclosure, safe-harbor, and secret-handling sections.
-- Remove these instructions and all remaining placeholders before release.
+- Keep private reporting, disclosure, safe-harbor, and secret-handling sections.
+- Replace project-specific risk surfaces with verified facts.
 -->
 <!-- template:remove:end -->
 <div align="center">
@@ -26,169 +26,114 @@ TEMPLATE INSTRUCTIONS
 
 ---
 
-**{{PROJECT_NAME}}** is an open-source Excel/VBA project. This canonical policy provides a reusable security baseline that must be completed with the generated project's real trust boundaries and risk surfaces.
-
-This policy explains which versions receive security attention, how to report a
-suspected vulnerability privately, what the project considers security-relevant,
-and which trust boundaries remain the responsibility of users and host
-organizations.
+This document is authoritative for **vulnerability scope, private reporting,
+security triage, coordinated disclosure and safe harbor**. Contribution workflow
+is owned by [`CONTRIBUTING.md`](CONTRIBUTING.md); release sequence and provenance
+are owned by [`RELEASING.md`](RELEASING.md) and
+[`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
 
 > [!IMPORTANT]
-> A security policy does not make macros, workbooks, add-ins, source archives, or
-> release artifacts inherently trustworthy. Establish provenance and apply your
-> organization's security controls before enabling executable content.
-
----
-
-<a id="security-model"></a>
+> A security policy does not make macros, workbooks, add-ins or release artifacts
+> inherently trustworthy. Establish provenance and apply organizational security
+> controls before enabling executable content.
 
 ## 🧭 Security model
 
-The project assumes that:
-
-- Microsoft Excel, the operating system, and the VBA runtime are trusted;
-- the current user is authorized to open and run the workbook or add-in;
-- macros are enabled only through an approved trust mechanism;
-- project source or artifacts were obtained from an official channel; and
-- the host workbook and other code already trusted in the Excel process are not
-  malicious.
+The project assumes Microsoft Excel, the operating system and VBA runtime are
+trusted; the user is authorized to run the project; macros are enabled through
+an approved trust mechanism; and source/artifacts come from an official channel.
 
 These are trust boundaries, not guarantees. VBA projects running in the same
 Excel process are not isolated security sandboxes.
 
-Before release, replace the project-specific model and risk entries below. Do not claim that a generated project lacks network, file, native-code, credential, or external dependency risks unless the implementation has been verified.
-
----
+A generated project must replace any generic risk statement with verified facts
+about its own file, network, native-code, credential, UI, automation and external
+dependency surfaces.
 
 <a id="supported-versions"></a>
 
 ## 📦 Supported versions
 
 | Source state | Security support |
-|---|---|
-| **Latest tagged functional release** | ✅ Supported |
-| **Release candidate before publication** | ⚠️ Testing and best-effort remediation |
-| **main** | ⚠️ Development code; best effort |
-| **Older tagged releases** | ❌ Normally unsupported; upgrade first |
-| **Modified copies, unofficial forks, or mirrors** | ❌ Unsupported unless the issue reproduces in official supported source |
+| --- | --- |
+| Latest tagged functional release | ✅ Supported |
+| Release candidate | ⚠️ Testing / best-effort remediation |
+| `main` | ⚠️ Development code / best effort |
+| Older tagged releases | ❌ Normally unsupported; upgrade first |
+| Modified copies / unofficial mirrors | ❌ Unsupported unless reproduced in official supported source |
 
-If the project has not yet published a functional release, development code is
-pre-release and no production version is security-supported.
-
-Security fixes normally land on **main** and are included in a new tagged
-release. Older releases are not normally patched in place unless the maintainer
-states otherwise.
-
-Reports must identify an exact release tag or full commit SHA. Descriptions such
-as “latest” or “yesterday's main” are insufficient because branches change.
-
----
+If no functional release exists yet, the project is pre-release and has no
+production-supported security version. Reports must identify an exact release
+tag or full commit SHA; relative descriptions such as “latest” are insufficient.
 
 <a id="reporting-a-vulnerability"></a>
 
 ## 📣 Reporting a vulnerability
 
 Do **not** disclose a suspected vulnerability in a public issue, discussion,
-pull request, commit message, Wiki page, sample workbook, screenshot, or release
+pull request, commit message, Wiki page, sample workbook, screenshot or release
 thread.
 
-Use either private channel:
+Use a private channel:
 
 1. On the repository **Security** page, select **Report a vulnerability** when
-   GitHub private vulnerability reporting is available.
-2. Otherwise use **{{SUPPORT_CONTACT}}** and identify the report as:
+   GitHub private vulnerability reporting is enabled.
+2. Otherwise use **{{SUPPORT_CONTACT}}** with subject
    **Private security report — {{PROJECT_NAME}}**.
 
-Include the smallest amount of information needed to reproduce and assess the
-issue:
+Include only the information needed to assess the issue:
 
 | Evidence | Requested detail |
-|---|---|
-| 🧾 **Identity** | Repository, exact tag or full commit SHA, file, module, procedure, and artifact |
-| 🖥️ **Environment** | Excel version/build, Office bitness, Windows version, locale, and deployment model |
-| 🎯 **Impact** | Confidentiality, integrity, availability, code-execution, or supply-chain consequence |
-| 🔬 **Reproduction** | Minimal steps and proof using synthetic data |
-| 🧨 **Exploitability** | Preconditions, required trust, user interaction, affected scope, and persistence |
-| 🛡️ **Mitigation** | Workaround or containment already tested, if any |
-| 📎 **Evidence** | Sanitized logs, diagnostics, screenshots, hashes, or proof of concept |
-| 📋 **Project context** | Project-specific inputs, interfaces, trust boundaries, and affected state |
-| 🧭 **Security state** | Diagnostics, permissions, configuration, or lifecycle state needed for triage |
+| --- | --- |
+| Identity | Repository, exact tag/SHA, component/procedure and affected artifact |
+| Environment | Excel/Office build, bitness, Windows version and deployment model |
+| Impact | Confidentiality, integrity, availability, execution or supply-chain consequence |
+| Reproduction | Minimal steps using synthetic data |
+| Exploitability | Preconditions, privileges, user interaction and persistence |
+| Mitigation | Tested workaround/containment if known |
+| Evidence | Sanitized diagnostics, hashes or proof of concept |
 
-Do not send real client, employer, counterparty, student, production, or personal
-workbooks. Remove credentials, tokens, personal data, internal paths,
-connections, external links, document metadata, hidden names, cached values,
-queries, and other unrelated content.
+Never send client, employer, counterparty, student, production or personal
+workbooks. Remove credentials, personal data, internal paths, links,
+connections, document metadata, cached values and unrelated content.
 
-If a secret has been exposed, revoke or rotate it immediately before spending
-time perfecting the report.
-
----
-
-<a id="response-process"></a>
+If a secret has been exposed, revoke/rotate it immediately before improving the
+report.
 
 ## ⏱️ Response process
 
-This project may be maintained by one person. Response times are best-effort rather than a contractual SLA.
-
-The maintainer aims to:
+This project may be maintained by one person; targets are best-effort, not a
+contractual SLA.
 
 | Stage | Target |
-|---|---|
-| **Acknowledgement** | Within 5 business days |
-| **Initial scope and severity assessment** | Within 10 business days after sufficient evidence is available |
-| **Progress update for an active investigation** | At least every 14 days |
-| **Remediation and disclosure** | Proportionate to severity, exploitability, affected users, and validation needs |
+| --- | --- |
+| Acknowledge | Within 5 business days |
+| Initial scope/severity assessment | Within 10 business days after sufficient evidence |
+| Active-investigation update | At least every 14 days |
+| Remediation/disclosure | Proportionate to severity, exploitability and validation needs |
 
-The process normally includes reproducing the issue, determining affected
-versions and artifacts, containing active risk, developing a fix, adding
-regression or fault-injection evidence, validating in the relevant Excel and
-Windows environment, and preparing a corrected release or advisory.
-
-Targets may change when reproduction requires unavailable Office versions,
-hardware, long-running behavior, third-party coordination, or sanitized evidence
-from the reporter. Material delays will be communicated when practical.
-
-Reporter credit can be included in an advisory or release notes when requested.
-Anonymous credit is also acceptable.
-
----
-
-<a id="security-triage"></a>
+The normal path is reproduce → scope affected versions/artifacts → contain risk →
+fix → add regression/fault evidence → validate in the relevant host → publish a
+corrected release/advisory when appropriate.
 
 ## 🎯 Security issue or ordinary defect?
 
-When uncertain, report privately. The maintainer can reclassify a report safely.
+When uncertain, report privately. Security-relevant reports include credible
+risk of:
 
-Security reports include credible risks of:
-
-- unintended code execution or crossing a documented trust boundary;
-- unauthorized reading, modification, deletion, or disclosure of data;
-- persistent or exploitable loss of availability;
-- credential, token, signing-key, runner, or automation compromise;
-- malicious, substituted, or misleading official release artifacts;
-- validation or provenance bypasses that can represent an unsafe artifact as
-  trusted; or
-- a correctness defect deliberately exploitable to defeat a security,
-  authorization, integrity, or control boundary.
+- unintended code execution or trust-boundary crossing;
+- unauthorized reading, modification, deletion or disclosure of data;
+- persistent/exploitable loss of availability;
+- credential, token, signing-key, runner or automation compromise;
+- malicious/substituted official release artifacts;
+- provenance or validation bypass that can misrepresent unsafe output as trusted;
+  or
+- a correctness defect deliberately exploitable to defeat a security/integrity
+  boundary.
 
 An incorrect result, compatibility problem, bounded performance regression,
-documentation error, or recoverable UI defect is normally an ordinary bug unless
-it creates a concrete security impact.
-
-### Severity guide
-
-| Severity | Typical impact |
-|---|---|
-| **Critical** | Unintended code execution, exposed release credentials, compromised official artifacts, or broad unauthorized data access |
-| **High** | Significant integrity/confidentiality loss, persistent host compromise, or practical supply-chain exploitation |
-| **Moderate** | Bounded availability or integrity impact requiring meaningful preconditions |
-| **Low** | Hardening weakness or limited impact without demonstrated exploitation |
-
-Severity considers impact, exploitability, required privileges, user
-interaction, affected versions, recoverability, and whether trusted malicious
-VBA is already required.
-
----
+documentation error or recoverable UI defect is normally an ordinary bug unless
+it creates concrete security impact.
 
 <a id="security-scope"></a>
 
@@ -196,188 +141,127 @@ VBA is already required.
 
 ### In scope
 
-- official source and committed executable or macro-enabled artifacts;
-- official GitHub Release assets, archives, checksums, manifests, and provenance
-  claims;
-- repository-owned build, test, validation, packaging, and release tooling;
-- GitHub Actions workflows, permissions, dependencies, and project-managed
+- official source and committed executable/macro-enabled artifacts;
+- official releases, archives, checksums, manifests and provenance claims;
+- repository-owned build, test, validation, packaging and release tooling;
+- GitHub Actions workflows, permissions, dependencies and project-managed
   credentials;
-- documented runtime integrations and trust boundaries; and
-- security or integrity behavior introduced by this project's code.
+- documented runtime integrations/trust boundaries; and
+- security/integrity behavior introduced by project code.
 
 ### Project-specific risk surfaces
 
-- **[Runtime surface]** — [Describe workbook, application, platform, native API, file, network, UI, or numerical risks.]
-- **[Artifact surface]** — [Describe executable workbooks, add-ins, installers, packages, or other distributed artifacts.]
-- **[Automation surface]** — [Describe runners, credentials, release jobs, external services, and third-party dependencies.]
+Before release, replace or extend this list with verified project facts:
+
+- **Runtime surface** — workbook/application/native/file/network/UI risks.
+- **Artifact surface** — executable workbooks, add-ins or other distributed assets.
+- **Automation surface** — runners, credentials, release jobs and third-party dependencies.
 
 ### Out of scope
 
-- vulnerabilities in Microsoft Excel, Office, Windows, GitHub, Python, or the
-  VBA runtime themselves;
-- organization-controlled macro security, endpoint controls, access rights, or
-  deployment policy;
-- malicious VBA already trusted and running in the same Excel process;
-- unrelated workbooks, add-ins, dependencies, or infrastructure;
-- modified copies that do not reproduce the issue in official supported source;
-- unofficial mirrors, repackaged binaries, or unsupported historical snapshots;
-- lost or stolen user credentials not exposed by this project;
-- social engineering unrelated to official project content; and
-- ordinary defects without a concrete security impact.
+- vulnerabilities in Microsoft Excel, Office, Windows, GitHub, Python or VBA
+  themselves;
+- organization-controlled endpoint, macro, access or deployment policy;
+- malicious VBA already trusted in the same Excel process;
+- unrelated workbooks, add-ins, dependencies or infrastructure;
+- unsupported modified copies/mirrors/historical snapshots;
+- compromised user credentials not exposed by this project; and
+- ordinary defects without concrete security impact.
 
-Upstream vulnerabilities should be reported to the responsible vendor or
-platform.
-
----
+Upstream vulnerabilities belong with the responsible vendor/platform.
 
 <a id="data-and-secrets"></a>
 
 ## 🔐 Data and secret handling
 
-Never commit, upload, log, or attach:
+Never commit, upload, log or attach:
 
-- passwords, personal access tokens, API keys, signing keys, certificates, or
+- passwords, API keys, personal access tokens, signing keys, certificates or
   connection strings;
-- client, employer, counterparty, student, employee, or personal data;
-- proprietary source, models, workbooks, market data, production extracts, or
-  licensed vendor content;
-- internal URLs, machine-specific paths, environment dumps, or unredacted
+- client/employer/counterparty/student/employee/personal data;
+- proprietary source, models, workbooks, production extracts or licensed data;
+- internal URLs, machine-specific paths, environment dumps or unredacted
   screenshots; or
-- proof-of-concept material beyond what is necessary to establish the issue.
+- exploit material beyond what is necessary to establish the issue.
 
-Use synthetic data and a minimal reproduction. Excel files can carry sensitive
-material outside visible cells, including document properties, defined names,
-hidden sheets, VBA, cached values, Power Query data, external links, and
-connections.
+Use synthetic data and a minimal reproduction. Excel files can contain sensitive
+material outside visible cells, including document properties, names, hidden
+sheets, VBA, cached values, queries, links and connections.
 
-Repository secrets must be scoped to the smallest necessary workflow, protected
-from untrusted pull-request code, excluded from logs and artifacts, and rotated
-after suspected exposure.
+Repository secrets must use least privilege, remain unavailable to untrusted
+pull-request code and be rotated after suspected exposure.
 
----
+## 📦 Supply-chain boundary
 
-<a id="supply-chain"></a>
+Trusted distribution is limited to the official repository and its published
+releases. Release actions, evidence schemas, checksums and tag-binding rules are
+**not duplicated here**; maintainers must follow [`RELEASING.md`](RELEASING.md)
+and [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
 
-## 📦 Supply-chain and release integrity
-
-Trusted distribution is limited to the official repository and its GitHub
-Releases page.
-
-Maintainers should:
-
-- review executable and macro-enabled artifacts before publication;
-- pin third-party workflow actions to immutable commit SHAs;
-- grant workflows the minimum required permissions;
-- keep build, validation, signing, and publication responsibilities separated
-  where practical;
-- publish checksums, manifests, attestations, or signatures when the release
-  process supports them; and
-- document exactly what each piece of release evidence proves.
-
-A checksum proves file identity. It does not prove that the file is safe, that
-it was built from the stated source, or that it executed successfully in Excel.
-
-Source hashes, artifact hashes, source-to-artifact provenance, Excel execution
-evidence, and signing identity are distinct claims and must not be conflated.
-
----
-
-<a id="automation"></a>
-
-## 🤖 Repository automation and runners
-
-Workflow code and configuration are security-sensitive.
-
-- Do not expose secrets to pull requests from forks or other untrusted code.
-- Do not run untrusted contributions on a persistent self-hosted Excel/Windows
-  runner with repository, user, network, or signing credentials.
-- Use ephemeral or isolated runners where practical.
-- Clean workbooks, temporary files, Excel processes, credentials, and workspace
-  state between jobs.
-- Treat logs, screenshots, workbooks, test artifacts, and environment metadata
-  as potentially sensitive.
-- Review changes to workflow permissions, action pins, release jobs, dependency
-  acquisition, and artifact upload/download paths as security changes.
-
-Automation that writes repository content or publishes releases must have
-explicit, least-privilege authorization.
-
----
-
-<a id="safe-use"></a>
+Security-sensitive workflow changes require least-privilege permissions,
+immutable dependency pins and explicit review. Do not run untrusted code on a
+persistent credentialed Excel/Windows runner. Treat logs, screenshots,
+workbooks, test artifacts and environment metadata as potentially sensitive.
 
 ## ✅ Safe-use guidance
 
 Users should:
 
-- replace this list with concrete, verified safe-use instructions;
-- preserve organization-approved macro security and deployment controls;
-- obtain code and artifacts only from official channels and establish provenance;
-- test with synthetic data in a controlled environment before production use; and
-- verify that no registered template token remains before the first public release.
-
-No numerical, statistical, pricing, timing, or UI result from this project is by
-itself an authentication, authorization, access-control, cryptographic,
-financial-advice, or safety-critical mechanism.
-
----
+- preserve organization-approved macro security/deployment controls;
+- obtain source/artifacts only from official channels and establish provenance;
+- test with synthetic data in a controlled environment before production use;
+- apply the project's documented supported-version and installation contract;
+  and
+- understand that numerical, pricing, timing or UI output is not itself an
+  authentication, authorization, cryptographic or safety control.
 
 <a id="coordinated-disclosure"></a>
 
 ## 📣 Coordinated disclosure
 
 Avoid public disclosure while exploitability is being assessed, a fix is being
-prepared, affected users have not had reasonable time to update, an exposed
-secret remains valid, or a malicious artifact or runner remains reachable.
+prepared, users have not had reasonable time to update, an exposed secret remains
+valid, or a malicious artifact/runner remains reachable.
 
-The maintainer and reporter should agree a disclosure plan based on severity,
-active exploitation, remediation complexity, availability of a workaround, and
-the time needed to validate a corrected release.
-
-The maintainer may ask for a sanitized reproduction, additional environment
-detail, confirmation against a candidate fix, or a reasonable embargo. The
-reporter does not surrender ownership of their research.
+The maintainer and reporter should agree a plan based on severity, active
+exploitation, remediation complexity, workarounds and validation time. The
+maintainer may request a sanitized reproduction, more environment detail,
+confirmation against a candidate fix or a reasonable embargo.
 
 When remediation is available, the project may publish a GitHub Security
-Advisory, corrected release, release-note entry, mitigation guidance, and credit
-agreed with the reporter.
-
----
+Advisory, corrected release, mitigation guidance and agreed reporter credit.
 
 <a id="safe-harbor"></a>
 
 ## 🛡️ Good-faith research and safe harbor
 
-Good-faith security research is welcome when it:
+Good-faith research is welcome when it:
 
-- stays within this project's source, artifacts, and documented integrations;
-- avoids privacy violations, data destruction, service disruption, persistence,
-  social engineering, and access to data beyond what is necessary;
-- stops after establishing the minimum evidence required;
-- reports the issue privately and promptly; and
-- allows reasonable time for investigation and remediation.
+- stays within project-owned source, artifacts and documented integrations;
+- avoids privacy violations, destructive actions, persistence, social
+  engineering and unnecessary access;
+- stops after establishing the minimum required evidence;
+- reports privately and promptly; and
+- allows reasonable investigation/remediation time.
 
 The project will not initiate or recommend legal action solely for research
-conducted in good faith and consistently with this policy. This statement does
-not authorize testing of third-party systems or bind Microsoft, GitHub, an
-employer, a client, or any other third party.
+conducted in good faith and consistently with this policy. This does not
+authorize testing third-party systems or bind Microsoft, GitHub, an employer,
+client or other third party.
 
-No paid bug bounty is offered unless the maintainer states otherwise in writing.
+No paid bug bounty is offered unless stated otherwise in writing.
 
----
+## 📚 Related authorities
 
-<a id="related-policies"></a>
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution/review workflow
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — participant behavior
+- [`INSTALLATION.md`](INSTALLATION.md) — safe installation/upgrade/removal
+- [`RELEASING.md`](RELEASING.md) — release sequence
+- [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) — provenance/evidence schema
+- [`docs/README.md`](docs/README.md) — complete documentation authority map
 
-## 📚 Related policies
-
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Contributing Guidelines](CONTRIBUTING.md)
-- The repository README, license, release notes, and project documentation where
-  present
-- GitHub's platform security and acceptable-use policies
-
-Conduct complaints and vulnerability reports are different. Use the Code of
-Conduct for participant behavior and this policy for software risk.
+Conduct complaints and vulnerability reports are different: use the Code of
+Conduct for participant behavior and this policy for software/security risk.
 
 ---
 

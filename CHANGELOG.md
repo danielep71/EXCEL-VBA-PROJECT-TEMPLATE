@@ -61,12 +61,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for change and evidence requirements and
 | Version | `MAJOR.MINOR.PATCH`, without the leading `v` in headings |
 | Release heading | `## [X.Y.Z] - YYYY-MM-DD` |
 | Date | Gregorian calendar date in ISO `YYYY-MM-DD` format |
-| Ordering | Unreleased first; released versions newest to oldest |
-| Comparison | Unreleased → latest tag; each release → preceding tag |
+| Ordering | Unreleased first; released versions newest to oldest by SemVer precedence |
+| Comparison | Unreleased → latest tag; each later release → preceding tag; initial release → release tag |
 | Patch | Backward-compatible correction or hardening |
 | Minor | Backward-compatible capability |
 | Major | Incompatible public-contract change |
-| Pre-release | State maturity and compatibility boundaries explicitly |
+| Pre-release | Strict SemVer identifiers; numeric identifiers have no leading zeros |
 
 A repository may remain below `1.0.0` while its supported surface is still
 forming. Pre-release status does not excuse undocumented breaking changes.
@@ -99,13 +99,76 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
-<!--
-Keep only categories that contain entries. Write observable outcomes, not commit
-messages. Generated projects replace every registered template token before
-publishing; releases of this canonical template retain the registered grammar.
--->
+No unreleased changes recorded.
 
-No unreleased changes.
+## [1.1.0] - 2026-09-05
+
+### Added
+
+- Added committed-candidate whitespace validation with explicit commit-range,
+  root-commit, staged, unstaged, and committed-versus-working-tree fixtures.
+- Added procedure-scoped VBA jump validation and nested conditional-compilation
+  validation across the supported VBA6/VBA7 and Win32/Win64 environments.
+- Added complete public-API extraction with normalized signature records,
+  paired-property handling, collision detection, and strict explicit visibility.
+- Added repository-local GitHub Action containment, tracked-state, metadata, and
+  entrypoint validation alongside the pinned authoritative workflow parser.
+- Added strict release-semantics validation for SemVer precedence, prerelease
+  identifiers, changelog ordering, Gregorian dates, VERSION agreement, and
+  comparison-link policy.
+- Added deterministic semantic policy-branch assurance proving every canonical
+  blocking finding site is exercised; the v1.1.0 branch baseline covers 175/175
+  production finding sites.
+- Added an independent checker-development contract that preserves
+  `tools/check_repo.py` as a single-file, standard-library-only distributable
+  while testing parser/reporting boundaries, CLI behavior, canonical check order,
+  and artifact identity.
+- Added read-only live issue-label drift detection with deterministic
+  create/update/delete evidence, canonical-plan cross-checking, scheduled/manual
+  monitoring, and retained JSON/Markdown evidence without a mutation path.
+- Added an explicit Python 3.10 tooling baseline with pinned Ruff and mypy checks
+  in the hosted repository-integrity workflow, including retained lint/type
+  evidence and fail-closed terminal enforcement.
+
+### Changed
+
+- Extended the hosted repository-integrity gate so focused hardening checks have
+  deterministic self-tests, exact-candidate evidence, artifact retention, and
+  fail-closed terminal enforcement.
+- Consolidated documentation around one authoritative owner per evolving
+  contract. The root README is now a shorter first-use/navigation surface while
+  installation, contribution, security, conduct, release, initialization,
+  repository structure, checker development, and release evidence remain in
+  their specialized maintained documents.
+- Required generated repositories to retain the read-only label-drift control in
+  addition to the existing trusted label-reconciliation workflow.
+- Removed the completed temporary implementation plan and redirected durable
+  governance references to maintained contracts and historical evidence.
+
+### Fixed
+
+- Disarmed the regression runner's procedure-level error handler before cleanup
+  and summary reporting so a cleanup/reporting fault cannot re-enter `CleanExit`
+  indefinitely through `RunFailed`.
+- Made regression cleanup evidence substantive by comparing the relevant Excel
+  application state with the pre-run snapshot rather than merely re-reading an
+  immediately cleared re-entry flag.
+- Consolidated duplicated focused-gate Git, report-output, tracked-file, and
+  common CLI mechanics into the private standard-library-only `tools/_gatelib.py`,
+  while keeping `tools/check_repo.py` explicitly self-contained.
+- Removed residual unused imports exposed by the enforced Ruff baseline.
+- Reduced Python checker complexity under a permanently enforced McCabe ceiling
+  of 20 and normalized the VBA public-API checker so no style exception remains.
+- Hardened stdlib XML validation with a bounded input size and fail-closed
+  rejection of DTD/entity declarations before parsing.
+- Split template-maintainer checker-development and semantic policy-coverage
+  tooling from the operational tool payload retained by generated repositories.
+
+### Compatibility
+
+- The neutral starter VBA public API and profile architecture are unchanged from
+  v1.0.0. The release hardens repository governance, validation, documentation,
+  and automation without intentionally changing the starter consumer contract.
 
 ## [1.0.0] - 2026-09-04
 
@@ -152,6 +215,8 @@ No unreleased changes.
 - Made profile and domain label selection a versioned repository policy that
   both the checker and trusted reconciliation workflow validate and consume.
 
+[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0
 
 ---
@@ -160,8 +225,8 @@ No unreleased changes.
 Release procedure:
 1. Move applicable Unreleased entries under: ## [X.Y.Z] - YYYY-MM-DD
 2. Remove empty categories.
-3. Add comparison links after the first release:
-   [Unreleased]: https://github.com/OWNER/REPOSITORY/compare/vX.Y.Z...HEAD
-   [X.Y.Z]: https://github.com/OWNER/REPOSITORY/releases/tag/vX.Y.Z
-4. Recreate an empty Unreleased section at the top.
+3. Set [Unreleased] to compare the new latest tag to HEAD.
+4. For the initial release, link directly to its release tag. For every later
+   release, compare the preceding tag to the new release tag.
+5. Recreate an empty Unreleased section at the top.
 -->
