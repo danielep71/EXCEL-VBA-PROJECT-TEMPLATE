@@ -19,8 +19,9 @@ Option Private Module
 '   references, workbook fixture, worksheet, donor project, or test framework.
 '
 ' STATE OWNERSHIP
-'   Owns only private counters, failure text, and a re-entry flag. The cleanup
-'   path resets all owned state and verifies the flag. No Excel state is changed.
+'   Owns private counters, failure text, suite-completeness state, and a re-entry
+'   flag. Cleanup clears the re-entry flag; report state is retained until the
+'   next run/reset so the final summary remains inspectable.
 '
 ' ERROR POLICY
 '   Expected facade errors are captured and asserted. Unexpected runner errors
@@ -28,8 +29,10 @@ Option Private Module
 '   re-raised. Assertion failures raise one test-suite error after reporting.
 '
 ' WORKSHEET SAFETY
-'   Reads Application properties only to report the environment. It never
-'   creates, selects, activates, edits, calculates, saves, or closes Excel state.
+'   Reads selected Application properties to report the environment and prove
+'   calculation, display-alert, event, and screen-updating state did not change.
+'   It never creates, selects, activates, edits, calculates, saves, or closes
+'   workbook or worksheet state.
 '
 ' TEST SEAM
 '   Tests the supported ProjectFacade surface. The fixed core boundary can be
@@ -51,9 +54,14 @@ Private mSuiteCompleted As Boolean
 Public Sub RunProjectTests()
     Dim cleanupDetail As String
     Dim cleanupPassed As Boolean
+    Dim initialCalculation As XlCalculation
+    Dim initialDisplayAlerts As Boolean
+    Dim initialEnableEvents As Boolean
+    Dim initialScreenUpdating As Boolean
     Dim savedDescription As String
     Dim savedNumber As Long
     Dim savedSource As String
+    Dim stateSnapshotValid As Boolean
 
     If mRunActive Then
         Debug.Print "RESULT=FAIL_DIRTY_START; cleanup=NOT_RUN"
@@ -66,6 +74,12 @@ Public Sub RunProjectTests()
     ResetRun
     mRunActive = True
     On Error GoTo RunFailed
+
+    initialCalculation = Application.Calculation
+    initialDisplayAlerts = Application.DisplayAlerts
+    initialEnableEvents = Application.EnableEvents
+    initialScreenUpdating = Application.ScreenUpdating
+    stateSnapshotValid = True
 
     PrintEnvironment
     TestExactEquality
@@ -86,7 +100,13 @@ Public Sub RunProjectTests()
 
 CleanExit:
     On Error GoTo 0
-    cleanupPassed = CleanupRun(cleanupDetail)
+    cleanupPassed = CleanupRun( _
+        cleanupDetail, _
+        stateSnapshotValid, _
+        initialCalculation, _
+        initialDisplayAlerts, _
+        initialEnableEvents, _
+        initialScreenUpdating)
     PrintSummary cleanupPassed, cleanupDetail
 
     If savedNumber <> 0 Then
@@ -312,15 +332,38 @@ Private Sub RecordFailure( _
     mFailureDetails = mFailureDetails & assertionName & ": " & detail
 End Sub
 
-Private Function CleanupRun(ByRef cleanupDetail As String) As Boolean
+Private Function CleanupRun( _
+    ByRef cleanupDetail As String, _
+    ByVal stateSnapshotValid As Boolean, _
+    ByVal initialCalculation As XlCalculation, _
+    ByVal initialDisplayAlerts As Boolean, _
+    ByVal initialEnableEvents As Boolean, _
+    ByVal initialScreenUpdating As Boolean) As Boolean
+
+    Dim excelStateUnchanged As Boolean
+
     On Error GoTo CleanupFailed
 
     mRunActive = False
-    CleanupRun = Not mRunActive
-    If CleanupRun Then
-        cleanupDetail = "owned module state restored; Excel state changed=no"
+    If Not stateSnapshotValid Then
+        cleanupDetail = "run flag cleared; Excel state snapshot unavailable"
+        CleanupRun = False
+        Exit Function
+    End If
+
+    excelStateUnchanged = _
+        (Application.Calculation = initialCalculation) And _
+        (Application.DisplayAlerts = initialDisplayAlerts) And _
+        (Application.EnableEvents = initialEnableEvents) And _
+        (Application.ScreenUpdating = initialScreenUpdating)
+
+    CleanupRun = excelStateUnchanged
+    If excelStateUnchanged Then
+        cleanupDetail = _
+            "run flag cleared; verified Excel state unchanged " & _
+            "(calculation/display alerts/events/screen updating)"
     Else
-        cleanupDetail = "owned re-entry flag remained set"
+        cleanupDetail = "run flag cleared; Excel application state changed during test run"
     End If
     Exit Function
 
