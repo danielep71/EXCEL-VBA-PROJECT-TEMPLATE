@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 from typing import Any
+
 from _gatelib import git_bytes as git, parse_report_args as parse_args, write_text
 
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
@@ -157,8 +158,6 @@ class Frame:
     else_seen: bool = False
 
 
-
-
 def tracked_vba(root: Path) -> list[str]:
     completed = git(root, "ls-files", "-z")
     if completed.returncode != 0:
@@ -232,160 +231,188 @@ def parse_condition(kind: str, remainder: str) -> str:
     return match.group(1).strip()
 
 
+def _condition_values(
+    path: str,
+    line: int,
+    label: str,
+    remainder: str,
+    findings: list[dict[str, Any]],
+) -> dict[str, bool]:
+    try:
+        expression = parse_condition(label, remainder)
+        return {
+            name: evaluate(expression, symbols)
+            for name, symbols in ENVIRONMENTS.items()
+        }
+    except ExpressionError as error:
+        findings.append(
+            {
+                "path": path,
+                "line": line,
+                "message": f"Indeterminate #{label} directive: {error}.",
+            }
+        )
+        return {name: False for name in ENVIRONMENTS}
+
+
+def _handle_if(
+    path: str,
+    line: int,
+    remainder: str,
+    stacks: dict[str, list[Frame]],
+    findings: list[dict[str, Any]],
+) -> None:
+    values = _condition_values(path, line, "If", remainder, findings)
+    for name, stack in stacks.items():
+        parent = active(stack)
+        selected = parent and values[name]
+        stack.append(Frame(parent, selected, selected))
+
+
+def _handle_elseif(
+    path: str,
+    line: int,
+    remainder: str,
+    stacks: dict[str, list[Frame]],
+    findings: list[dict[str, Any]],
+) -> None:
+    if any(not stack for stack in stacks.values()):
+        findings.append({"path": path, "line": line, "message": "#ElseIf without #If."})
+        return
+    if any(stack[-1].else_seen for stack in stacks.values()):
+        findings.append({"path": path, "line": line, "message": "#ElseIf after #Else."})
+        return
+    values = _condition_values(path, line, "ElseIf", remainder, findings)
+    for name, stack in stacks.items():
+        frame = stack[-1]
+        selected = frame.parent_active and not frame.branch_taken and values[name]
+        frame.current_active = selected
+        frame.branch_taken = frame.branch_taken or selected
+
+
+def _handle_else(
+    path: str,
+    line: int,
+    remainder: str,
+    stacks: dict[str, list[Frame]],
+    findings: list[dict[str, Any]],
+) -> None:
+    if remainder.strip():
+        findings.append(
+            {"path": path, "line": line, "message": "#Else must not contain trailing text."}
+        )
+        return
+    if any(not stack for stack in stacks.values()):
+        findings.append({"path": path, "line": line, "message": "#Else without #If."})
+        return
+    if any(stack[-1].else_seen for stack in stacks.values()):
+        findings.append({"path": path, "line": line, "message": "Duplicate #Else."})
+        return
+    for stack in stacks.values():
+        frame = stack[-1]
+        selected = frame.parent_active and not frame.branch_taken
+        frame.current_active = selected
+        frame.branch_taken = True
+        frame.else_seen = True
+
+
+def _handle_end_if(
+    path: str,
+    line: int,
+    remainder: str,
+    stacks: dict[str, list[Frame]],
+    findings: list[dict[str, Any]],
+) -> None:
+    if remainder.strip():
+        findings.append(
+            {"path": path, "line": line, "message": "#End If must not contain trailing text."}
+        )
+        return
+    if any(not stack for stack in stacks.values()):
+        findings.append({"path": path, "line": line, "message": "#End If without #If."})
+        return
+    for stack in stacks.values():
+        stack.pop()
+
+
+def _handle_directive(
+    path: str,
+    line: int,
+    code: str,
+    stacks: dict[str, list[Frame]],
+    findings: list[dict[str, Any]],
+) -> None:
+    if CONST_RE.match(code):
+        findings.append(
+            {
+                "path": path,
+                "line": line,
+                "message": (
+                    "Project-defined #Const symbols are outside the supported model; "
+                    "conditional-compilation evaluation fails closed."
+                ),
+            }
+        )
+        return
+    directive = DIRECTIVE_RE.match(code)
+    if directive is None:
+        findings.append(
+            {
+                "path": path,
+                "line": line,
+                "message": f"Unsupported conditional-compilation directive: {code}",
+            }
+        )
+        return
+    kind = " ".join(directive.group(1).split()).casefold()
+    remainder = directive.group(2)
+    handlers = {
+        "if": _handle_if,
+        "elseif": _handle_elseif,
+        "else": _handle_else,
+        "end if": _handle_end_if,
+    }
+    handlers[kind](path, line, remainder, stacks, findings)
+
+
+def _validate_declare(
+    path: str,
+    start_line: int,
+    end_line: int,
+    code: str,
+    stacks: dict[str, list[Frame]],
+    findings: list[dict[str, Any]],
+) -> None:
+    if not DECLARE_RE.match(code):
+        return
+    reachable_vba7 = [name for name in VBA7_ENVIRONMENTS if active(stacks[name])]
+    if not reachable_vba7 or PTRSAFE_RE.search(code):
+        return
+    findings.append(
+        {
+            "path": path,
+            "line": start_line,
+            "end_line": end_line,
+            "environments": reachable_vba7,
+            "message": (
+                "Declare is reachable under VBA7 without PtrSafe in: "
+                + ", ".join(reachable_vba7)
+                + "."
+            ),
+        }
+    )
+
+
 def analyze_component(path: str, text: str) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     stacks: dict[str, list[Frame]] = {name: [] for name in ENVIRONMENTS}
-    depth = 0
-
     for start_line, end_line, unit_kind, code in logical_units(text.splitlines()):
         if unit_kind == "directive":
-            if CONST_RE.match(code):
-                findings.append(
-                    {
-                        "path": path,
-                        "line": start_line,
-                        "message": (
-                            "Project-defined #Const symbols are outside the supported model; "
-                            "conditional-compilation evaluation fails closed."
-                        ),
-                    }
-                )
-                continue
-
-            directive = DIRECTIVE_RE.match(code)
-            if directive is None:
-                findings.append(
-                    {
-                        "path": path,
-                        "line": start_line,
-                        "message": f"Unsupported conditional-compilation directive: {code}",
-                    }
-                )
-                continue
-
-            kind = " ".join(directive.group(1).split()).casefold()
-            remainder = directive.group(2)
-
-            if kind == "if":
-                try:
-                    expression = parse_condition("If", remainder)
-                    values = {
-                        name: evaluate(expression, symbols)
-                        for name, symbols in ENVIRONMENTS.items()
-                    }
-                except ExpressionError as error:
-                    findings.append(
-                        {
-                            "path": path,
-                            "line": start_line,
-                            "message": f"Indeterminate #If directive: {error}.",
-                        }
-                    )
-                    values = {name: False for name in ENVIRONMENTS}
-                for name, stack in stacks.items():
-                    parent = active(stack)
-                    selected = parent and values[name]
-                    stack.append(Frame(parent, selected, selected))
-                depth += 1
-                continue
-
-            if kind == "elseif":
-                if depth == 0 or any(not stack for stack in stacks.values()):
-                    findings.append(
-                        {"path": path, "line": start_line, "message": "#ElseIf without #If."}
-                    )
-                    continue
-                if any(stack[-1].else_seen for stack in stacks.values()):
-                    findings.append(
-                        {"path": path, "line": start_line, "message": "#ElseIf after #Else."}
-                    )
-                    continue
-                try:
-                    expression = parse_condition("ElseIf", remainder)
-                    values = {
-                        name: evaluate(expression, symbols)
-                        for name, symbols in ENVIRONMENTS.items()
-                    }
-                except ExpressionError as error:
-                    findings.append(
-                        {
-                            "path": path,
-                            "line": start_line,
-                            "message": f"Indeterminate #ElseIf directive: {error}.",
-                        }
-                    )
-                    values = {name: False for name in ENVIRONMENTS}
-                for name, stack in stacks.items():
-                    frame = stack[-1]
-                    selected = (
-                        frame.parent_active
-                        and not frame.branch_taken
-                        and values[name]
-                    )
-                    frame.current_active = selected
-                    frame.branch_taken = frame.branch_taken or selected
-                continue
-
-            if kind == "else":
-                if remainder.strip():
-                    findings.append(
-                        {"path": path, "line": start_line, "message": "#Else must not contain trailing text."}
-                    )
-                    continue
-                if depth == 0 or any(not stack for stack in stacks.values()):
-                    findings.append(
-                        {"path": path, "line": start_line, "message": "#Else without #If."}
-                    )
-                    continue
-                if any(stack[-1].else_seen for stack in stacks.values()):
-                    findings.append(
-                        {"path": path, "line": start_line, "message": "Duplicate #Else."}
-                    )
-                    continue
-                for stack in stacks.values():
-                    frame = stack[-1]
-                    selected = frame.parent_active and not frame.branch_taken
-                    frame.current_active = selected
-                    frame.branch_taken = True
-                    frame.else_seen = True
-                continue
-
-            if kind == "end if":
-                if remainder.strip():
-                    findings.append(
-                        {"path": path, "line": start_line, "message": "#End If must not contain trailing text."}
-                    )
-                    continue
-                if depth == 0 or any(not stack for stack in stacks.values()):
-                    findings.append(
-                        {"path": path, "line": start_line, "message": "#End If without #If."}
-                    )
-                    continue
-                for stack in stacks.values():
-                    stack.pop()
-                depth -= 1
-                continue
-
-        if DECLARE_RE.match(code):
-            reachable_vba7 = [
-                name for name in VBA7_ENVIRONMENTS if active(stacks[name])
-            ]
-            if reachable_vba7 and not PTRSAFE_RE.search(code):
-                findings.append(
-                    {
-                        "path": path,
-                        "line": start_line,
-                        "end_line": end_line,
-                        "environments": reachable_vba7,
-                        "message": (
-                            "Declare is reachable under VBA7 without PtrSafe in: "
-                            + ", ".join(reachable_vba7)
-                            + "."
-                        ),
-                    }
-                )
-
-    if depth or any(stacks.values()):
+            _handle_directive(path, start_line, code, stacks, findings)
+        else:
+            _validate_declare(path, start_line, end_line, code, stacks, findings)
+    depth = max((len(stack) for stack in stacks.values()), default=0)
+    if any(stacks.values()):
         findings.append(
             {
                 "path": path,
@@ -449,8 +476,6 @@ def markdown_report(report: dict[str, Any]) -> str:
                 )
             )
     return "\n".join(lines) + "\n"
-
-
 
 
 def fixture_result(source: str) -> dict[str, Any]:
@@ -600,18 +625,12 @@ Option Explicit
             )
 
     reachable = reports["reachable-vba7-nonptrsafe"]["findings"]
-    if not any(
-        "vba7-win64" in item.get("environments", []) for item in reachable
-    ):
+    if not any("vba7-win64" in item.get("environments", []) for item in reachable):
         failures.append("reachable-vba7-nonptrsafe: diagnostic omitted vba7-win64")
 
     ordering = reports["win32-before-win64"]["findings"]
-    if not any(
-        "vba7-win64" in item.get("environments", []) for item in ordering
-    ):
-        failures.append(
-            "win32-before-win64: Win32=True on Win64 was not modeled"
-        )
+    if not any("vba7-win64" in item.get("environments", []) for item in ordering):
+        failures.append("win32-before-win64: Win32=True on Win64 was not modeled")
 
     indeterminate = reports["indeterminate-symbol"]["findings"]
     if not any(
@@ -634,8 +653,6 @@ Option Explicit
         "unbalanced directives passed."
     )
     return 0
-
-
 
 
 def main(argv: list[str] | None = None) -> int:
