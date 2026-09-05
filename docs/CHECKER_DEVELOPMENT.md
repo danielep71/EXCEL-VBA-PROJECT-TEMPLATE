@@ -42,7 +42,7 @@ Maintainers can exercise parser and reporter behavior without running the full s
 python3 tools/checker_development.py --root . --self-test
 ```
 
-The contract directly tests representative YAML, GitHub-style Markdown anchors, EditorConfig parsing, VBA lexical stripping, Markdown/console serialization, CLI flags and operational exit-code mapping. The full `check_repo.py --self-test` and semantic policy-coverage matrix remain separate higher-level gates.
+The contract directly tests representative YAML, GitHub-style Markdown anchors, EditorConfig parsing, VBA lexical stripping, Markdown/console serialization, CLI flags and operational exit-code mapping. The full `check_repo.py --self-test` and semantic policy-coverage matrix remain separate higher-level gates. Hosted CI keeps both template-maintainer contracts together in `checker-development.yml`; the operational `static-checks.yml` deliberately remains free of template-only policy-coverage tooling so the generated workflow is self-contained.
 
 ## 📦 Portability and artifact identity
 
@@ -56,7 +56,7 @@ Every development-contract report records the SHA-256 of `tools/check_repo.py`. 
 2. Run `python3 tools/checker_development.py --root . --self-test`.
 3. Run `python3 tools/check_repo.py --root . --self-test`.
 4. Run `python3 tools/check_policy_coverage.py --root . --self-test` so every canonical blocking finding remains exercised.
-5. Run the normal repository gate and require the hosted `Repository integrity` terminal verdict.
+5. Run the normal repository gate and require successful hosted terminal verdicts from both `Checker development` and `Repository integrity`.
 6. If a deliberate internal boundary, CLI contract or canonical check order changes, update this document and `checker_development.py` in the same reviewed change.
 
 ## 🚫 Non-goals
