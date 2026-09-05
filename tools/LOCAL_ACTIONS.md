@@ -4,7 +4,7 @@
 
 ## Authority split
 
-- **`check_local_actions.py`** owns local `uses: ./...` containment, tracked metadata, metadata-file uniqueness, supported local runtime shapes, and tracked entrypoints.
+- **`check_local_actions.py`** owns local `uses: ./...` containment, tracked reusable-workflow files, tracked action metadata, metadata-file uniqueness, supported local runtime shapes, and tracked entrypoints.
 - **actionlint 1.7.12** remains authoritative for GitHub Actions YAML/schema semantics.
 - **`check_repo.py`** continues to require immutable full-SHA pins and audited version comments for external actions.
 
@@ -12,7 +12,7 @@ No one gate substitutes for another; the hosted terminal verdict requires all of
 
 ## Local action contract
 
-A local action reference must:
+A step-level local action reference must:
 
 1. start with `./` and resolve inside the repository without `.` or `..` traversal segments;
 2. point to an existing directory;
@@ -25,6 +25,12 @@ A local action reference must:
 6. keep all required entrypoints inside the action directory and under Git control.
 
 The checker fails closed on missing directories, path traversal, untracked metadata, dual `action.yml`/`action.yaml`, malformed required metadata, unsupported runtimes, missing entrypoints, untracked entrypoints, or entrypoint traversal.
+
+## Local reusable workflow contract
+
+A job-level `uses: ./.github/workflows/reusable.yml` calls a reusable workflow. It must name an existing tracked `.yml` or `.yaml` file directly inside `.github/workflows`, without traversal segments. A workflow file used as a step action, or an action directory used as a job workflow, fails the corresponding contract.
+
+The gate classifies block-style YAML references by their job/step context, supports indentless step sequences, and ignores reference-like text inside block scalars. The authoritative workflow validator owns YAML/schema semantics, including reusable-workflow calling rules.
 
 ## Commands
 

@@ -105,6 +105,8 @@ The gate:
 - resolves named and numbered labels only inside the owning procedure;
 - accepts equivalent label names in different procedures without collision;
 - rejects duplicate labels within one procedure;
+- ignores jump-like text inside strings, including escaped quotes and continuations,
+  while still checking executable jumps following a string on the same line;
 - treats `On Error GoTo 0`, `On Error GoTo -1`, bare `Resume`, and
   `Resume Next` as control forms rather than label references; and
 - reports component, procedure, source line, operation, and unresolved target
@@ -193,6 +195,13 @@ parameter modifiers and order, return types, Declare metadata, constant
 definitions, and Enum/Type bodies. The dedicated gate detects missing, stale,
 duplicate, or changed signatures and case-insensitive public-name collisions in
 standard modules.
+
+Conditional declarations are collected separately for the three supported
+compilation environments described above. Mutually exclusive variants share one
+three-column manifest row and require one `# SIG` record for each distinct
+reachable signature. Duplicate records, missing or stale variants, and declarations
+that collide in any shared environment fail. Unknown conditions fail closed;
+these static models do not certify execution in Excel.
 
 Run the focused fixtures and repository check with:
 

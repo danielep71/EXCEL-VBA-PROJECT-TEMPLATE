@@ -301,7 +301,8 @@ function isRateLimited(response) {
 }
 
 function retryDelayMs(response, attempt) {
-  const retryAfter = Number(response.headers.get("retry-after"));
+  const header = response.headers.get("retry-after");
+  const retryAfter = header !== null && header.trim() !== "" ? Number(header) : NaN;
   if (Number.isFinite(retryAfter) && retryAfter >= 0) {
     return Math.min(retryAfter * 1000, MAX_RETRY_DELAY_MS);
   }
@@ -444,6 +445,16 @@ function expectFailure(operation, pattern) {
 }
 
 async function runSelfTest(manifestPath, policyPath) {
+  for (const [header, attempt, expected] of [
+    [null, 0, 1000], [null, 2, 4000], ["", 1, 2000],
+    ["invalid", 1, 2000], ["-1", 1, 2000], ["0", 2, 0],
+    ["2", 0, 2000], ["999999", 0, MAX_RETRY_DELAY_MS],
+    [null, 20, MAX_RETRY_DELAY_MS]
+  ]) {
+    const headers = new Headers(header === null ? {} : { "retry-after": header });
+    assert.equal(retryDelayMs({ headers }, attempt), expected, `Retry-After: ${header}`);
+  }
+
   const baseline = await loadJson(manifestPath);
   const manifest = validateManifest(baseline);
   const policy = await loadJson(policyPath);
@@ -581,7 +592,7 @@ async function runSelfTest(manifestPath, policyPath) {
   assert.match(summary, new RegExp(`Complete resolved set \\(${selectedLabels.length}\\):`));
   for (const label of selectedLabels) assert.match(summary, new RegExp(`"${label.name}"`));
 
-  process.stdout.write("SELF-TEST PASS: validation, policy, overlay, and reconciliation fixtures\n");
+  process.stdout.write("SELF-TEST PASS: retry delays, validation, policy, overlay, and reconciliation fixtures\n");
 }
 
 async function main() {

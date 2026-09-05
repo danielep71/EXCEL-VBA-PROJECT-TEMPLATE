@@ -423,6 +423,25 @@ def analyze_component(path: str, text: str) -> list[dict[str, Any]]:
     return findings
 
 
+def reachable_sources(path: str, text: str) -> tuple[dict[str, str], list[dict[str, Any]]]:
+    """Return each modeled source with inactive lines blanked, preserving line numbers."""
+    lines = text.splitlines()
+    sources = {name: [""] * len(lines) for name in ENVIRONMENTS}
+    stacks: dict[str, list[Frame]] = {name: [] for name in ENVIRONMENTS}
+    findings: list[dict[str, Any]] = []
+    for start, end, kind, code in logical_units(lines):
+        if kind == "directive":
+            _handle_directive(path, start, code, stacks, findings)
+        else:
+            for name, stack in stacks.items():
+                if active(stack):
+                    sources[name][start - 1:end] = lines[start - 1:end]
+    if any(stacks.values()):
+        findings.append({"path": path, "line": None,
+                         "message": "Conditional-compilation block(s) are unclosed."})
+    return {name: "\n".join(source) for name, source in sources.items()}, findings
+
+
 def run_check(root: Path) -> dict[str, Any]:
     paths = tracked_vba(root)
     findings: list[dict[str, Any]] = []

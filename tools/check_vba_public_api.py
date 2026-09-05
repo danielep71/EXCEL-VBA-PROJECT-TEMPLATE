@@ -13,6 +13,8 @@ from typing import Any
 
 from _gatelib import git_bytes as git, parse_report_args as parse_args, write_text
 
+from check_vba_conditionals import reachable_sources
+
 CONFIG_PATH = ".github/repository-profile.json"
 TOOL_NAME = "VBA public API"
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
@@ -158,7 +160,7 @@ def record(
         )
 
 
-def parse_component(
+def _parse_active_component(
     path: str, text: str, supported: bool
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     component = Path(path).stem
@@ -352,16 +354,34 @@ def parse_component(
     return declarations, findings
 
 
+def parse_component(
+    path: str, text: str, supported: bool
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    sources, findings = reachable_sources(path, text)
+    declarations: dict[tuple[int, str, str, str], dict[str, Any]] = {}
+    for environment, source in sources.items():
+        parsed, errors = _parse_active_component(path, source, supported)
+        for error in errors:
+            if error not in findings:
+                findings.append(error)
+        for item in parsed:
+            identity = (item["line"], item["kind"], item["name"], item["signature"])
+            if identity not in declarations:
+                declarations[identity] = {**item, "environments": []}
+            declarations[identity]["environments"].append(environment)
+    return list(declarations.values()), findings
+
+
 def read_manifest(
     root: Path, relative: str
-) -> tuple[set[str], dict[str, str], list[dict[str, Any]]]:
+) -> tuple[set[str], dict[str, set[str]], list[dict[str, Any]]]:
     path = root / relative
     if not path.is_file():
         return set(), {}, [
             {"path": relative, "message": "Configured public API manifest is missing."}
         ]
     rows: set[str] = set()
-    signatures: dict[str, str] = {}
+    signatures: dict[str, set[str]] = {}
     findings: list[dict[str, Any]] = []
     for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not raw.strip():
@@ -374,18 +394,13 @@ def read_manifest(
                 )
                 continue
             declaration_key = key(fields[0], fields[1], fields[2])
-            if any(
-                existing.casefold() == declaration_key.casefold()
-                for existing in signatures
-            ):
-                findings.append(
-                    {
-                        "path": relative,
-                        "line": number,
-                        "message": f"Duplicate signature record: {declaration_key}",
-                    }
-                )
-            signatures[declaration_key] = fields[3]
+            canonical = next((existing for existing in signatures
+                              if existing.casefold() == declaration_key.casefold()), declaration_key)
+            variants = signatures.setdefault(canonical, set())
+            if fields[3] in variants:
+                findings.append({"path": relative, "line": number,
+                                 "message": f"Duplicate signature record: {declaration_key}"})
+            variants.add(fields[3])
             continue
         if raw.lstrip().startswith("#"):
             continue
@@ -467,7 +482,7 @@ def run_check(root: Path) -> dict[str, Any]:
         declarations.extend(parsed)
         findings.extend(errors)
 
-    keys: dict[str, dict[str, Any]] = {}
+    keys: dict[str, list[dict[str, Any]]] = {}
     names: dict[str, list[dict[str, Any]]] = {}
     for declaration in declarations:
         declaration_key = key(
@@ -475,26 +490,22 @@ def run_check(root: Path) -> dict[str, Any]:
             str(declaration["kind"]),
             str(declaration["name"]),
         )
-        if any(
-            existing.casefold() == declaration_key.casefold() for existing in keys
-        ):
-            findings.append(
-                {
-                    "path": declaration["path"],
-                    "line": declaration["line"],
-                    "message": (
-                        "Public declaration appears more than once: "
-                        f"{declaration_key}"
-                    ),
-                }
-            )
-        else:
-            keys[declaration_key] = declaration
+        canonical = next((existing for existing in keys
+                          if existing.casefold() == declaration_key.casefold()), declaration_key)
+        variants = keys.setdefault(canonical, [])
+        if any(set(previous["environments"]) & set(declaration["environments"])
+               for previous in variants):
+            findings.append({
+                "path": declaration["path"], "line": declaration["line"],
+                "message": "Public declaration appears more than once: " + declaration_key,
+            })
+        variants.append(declaration)
         if Path(str(declaration["path"])).suffix.casefold() == ".bas":
             name_key = str(declaration["name"]).casefold()
             prior = names.setdefault(name_key, [])
             for previous in prior:
-                if not property_pair(previous, declaration):
+                if (set(previous["environments"]) & set(declaration["environments"])
+                        and not property_pair(previous, declaration)):
                     findings.append(
                         {
                             "path": declaration["path"],
@@ -533,14 +544,14 @@ def run_check(root: Path) -> dict[str, Any]:
                     ),
                 }
             )
-        elif signatures[signature_key] != str(keys[declaration_key]["signature"]):
+        elif signatures[signature_key] != {item["signature"] for item in keys[declaration_key]}:
             findings.append(
                 {
                     "path": manifest,
                     "message": (
                         f"Signature mismatch for {declaration_key}: expected "
-                        f"{keys[declaration_key]['signature']!r}, recorded "
-                        f"{signatures[signature_key]!r}"
+                        f"{sorted({item['signature'] for item in keys[declaration_key]})!r}, recorded "
+                        f"{sorted(signatures[signature_key])!r}"
                     ),
                 }
             )
@@ -824,6 +835,27 @@ End Function
             "collides",
         )
     )
+    modern = 'Public Declare PtrSafe Function Tick Lib "kernel32" () As Long'
+    legacy = modern.replace("PtrSafe ", "")
+    conditional = facade.replace(modern, f"#If VBA7 Then\n{modern}\n#Else\n{legacy}\n#End If")
+    variant_manifest = manifest + ["# SIG\tFacade\tDeclare Function\tTick\t" + legacy]
+    tests.append(("conditional-declare", fixture(conditional, variant_manifest), "pass", None))
+    tests.append(("conditional-missing-signature", fixture(conditional, manifest), "fail", "Signature mismatch"))
+    tests.append(("conditional-stale-signature", fixture(facade, variant_manifest), "fail", "Signature mismatch"))
+    tests.append(("duplicate-signature", fixture(facade, manifest + [manifest[6]]), "fail", "Duplicate signature"))
+    overlap = conditional + "\n" + modern + "\n"
+    tests.append(("reachable-collision", fixture(overlap, variant_manifest), "fail", "collides"))
+    nested = facade.replace(modern, f"#If VBA7 Then\n#If Win64 Then\n{modern}\n#Else\n{modern}\n#End If\n#ElseIf VBA6 Then\n{legacy}\n#End If")
+    tests.append(("nested-elseif", fixture(nested, variant_manifest), "pass", None))
+    dead = facade + "\n#If False Then\n" + modern + "\n#End If\n"
+    tests.append(("unreachable-declaration", fixture(dead, manifest), "pass", None))
+    tests.append(("unknown-condition", fixture(conditional.replace("#If VBA7 Then", "#If Unknown Then"), variant_manifest), "fail", "Indeterminate"))
+    tests.append(("unclosed-condition", fixture(conditional.replace("#End If", ""), variant_manifest), "fail", "unclosed"))
+    alternate = 'Attribute VB_Name = "Other"\n#If VBA6 Then\n' + legacy + '\n#End If\n'
+    complementary = facade.replace(modern, f"#If VBA7 Then\n{modern}\n#End If")
+    cross_manifest = manifest + ["Other\tDeclare Function\tTick", "# SIG\tOther\tDeclare Function\tTick\t" + legacy]
+    tests.append(("exclusive-cross-component", fixture(complementary, cross_manifest, alternate), "pass", None))
+    tests.append(("overlapping-cross-component", fixture(facade, cross_manifest, alternate), "fail", "collides"))
     for name, report, expected, needle in tests:
         if report["status"] != expected:
             failures.append(f"{name}: expected {expected}, got {report['status']}")
@@ -839,7 +871,7 @@ End Function
     print(
         "SELF-TEST PASS: procedures, paired properties, constants, events, declares, "
         "variables, WithEvents, enums, types, continuations, implicit-public rejection, "
-        "signature drift, collisions, and one-identifier Const/variable policy passed."
+        "signature drift, conditional variants, reachable collisions, unknown conditions, and one-identifier Const/variable policy passed."
     )
     return 0
 

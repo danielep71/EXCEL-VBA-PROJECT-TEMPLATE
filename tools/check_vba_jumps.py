@@ -53,16 +53,16 @@ def strip_vba(raw: str) -> str:
         char = raw[index]
         if char == '"':
             if in_string and index + 1 < len(raw) and raw[index + 1] == '"':
-                result.extend(('""'))
+                result.extend('  ')
                 index += 2
                 continue
             in_string = not in_string
-            result.append(char)
+            result.append(' ')
             index += 1
             continue
         if char == "'" and not in_string:
             break
-        result.append(char)
+        result.append(' ' if in_string else char)
         index += 1
     text = "".join(result)
     if re.match(r"^\s*Rem(?:\s|$)", text, re.IGNORECASE):
@@ -384,6 +384,21 @@ End Sub
 ''',
         ),
     }
+    fixtures["quoted-jumps"] = ("pass", '''Public Sub First()
+    Debug.Print "GoSub Missing", "GoTo Lost", "Resume Nowhere"
+    Debug.Print "He said ""GoSub Missing""; it's text"
+    Debug.Print "GoSub Missing" & _
+        "Resume Lost"
+    Debug.Print "GoSub Missing": GoSub Worker
+    Exit Sub
+Worker:
+    Return
+End Sub
+''')
+    fixtures["real-jump-after-string"] = ("fail", '''Public Sub First()
+    Debug.Print "it's ""quoted""": GoSub Missing
+End Sub
+''')
     failures: list[str] = []
     for name, (expected, source) in fixtures.items():
         report = fixture_result(source)
@@ -415,7 +430,7 @@ End Sub
     print(
         "SELF-TEST PASS: local handlers, GoSub/Resume, cross-procedure rejection, "
         "same-name separate procedures, duplicate labels, numbered labels, "
-        "continuations, and special error controls passed."
+        "continuations, quoted jump text, real jumps after strings, and special error controls passed."
     )
     return 0
 

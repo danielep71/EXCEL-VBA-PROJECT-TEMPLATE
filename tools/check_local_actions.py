@@ -301,6 +301,61 @@ def validate_action(
     return findings
 
 
+def workflow_references(text: str) -> list[tuple[int, str, bool]]:
+    """Classify block-style job calls separately from step-level actions.
+
+    Authoritative YAML syntax validation remains owned by actionlint.
+    """
+    parents: list[tuple[int, str]] = []
+    references: list[tuple[int, str, bool]] = []
+    scalar_indent: int | None = None
+    for number, raw in enumerate(text.splitlines(), 1):
+        if not raw.strip() or raw.lstrip().startswith('#'):
+            continue
+        indent = len(raw) - len(raw.lstrip(' '))
+        if scalar_indent is not None:
+            if indent > scalar_indent:
+                continue
+            scalar_indent = None
+        while parents and parents[-1][0] >= indent:
+            if (parents[-1] == (indent, 'steps')
+                    and raw.lstrip().startswith('-')):
+                break  # YAML also permits an indentless steps sequence.
+            parents.pop()
+        reference = uses_reference(raw)
+        if reference is not None:
+            job_call = len(parents) == 2 and parents[0][1] == 'jobs'
+            references.append((number, reference, job_call))
+        match = re.match(r"^\s*(?:-\s*)?([^:#]+):\s*(.*?)\s*$", raw)
+        if match:
+            key, value = match.groups()
+            if re.match(r'^[|>](?:[+-][1-9]?|[1-9][+-]?)?(?:\s+#.*)?$', value):
+                scalar_indent = indent
+            if not value or value.startswith('#'):
+                parents.append((indent, unquote_scalar(key)))
+    return references
+
+
+def validate_workflow(
+    root: Path, files: set[str], workflow: str, line: int, reference: str,
+) -> list[dict[str, Any]]:
+    relative = safe_relative(reference)
+    if (
+        relative is None
+        or PurePosixPath(relative).parent.as_posix() != '.github/workflows'
+        or PurePosixPath(relative).suffix not in WORKFLOW_SUFFIXES
+        or relative not in files
+        or not (root / relative).is_file()
+    ):
+        return [finding(
+            workflow,
+            'Local reusable workflow must name a tracked .yml or .yaml file '
+            'directly inside .github/workflows.',
+            line=line, reference=reference,
+        )]
+    return []
+
+
 def run_check(root: Path) -> dict[str, Any]:
     files = tracked_files(root)
     findings: list[dict[str, Any]] = []
@@ -308,9 +363,8 @@ def run_check(root: Path) -> dict[str, Any]:
     workflows = workflow_paths(files)
     for workflow in workflows:
         text = (root / workflow).read_text(encoding="utf-8")
-        for number, raw in enumerate(text.splitlines(), start=1):
-            reference = uses_reference(raw)
-            if reference is None or not reference.startswith("./"):
+        for number, reference, job_call in workflow_references(text):
+            if not reference.startswith("./"):
                 continue
             references.append(
                 {
@@ -320,7 +374,7 @@ def run_check(root: Path) -> dict[str, Any]:
                 }
             )
             findings.extend(
-                validate_action(
+                (validate_workflow if job_call else validate_action)(
                     root, files, workflow, number, reference
                 )
             )
@@ -359,12 +413,14 @@ def fixture_report(
     workflow_reference: str,
     action_files: dict[str, str] | None,
     tracked: tuple[str, ...],
+    workflow_text: str | None = None,
 ) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="local-action-") as temporary:
         root = Path(temporary)
         workflow = root / ".github/workflows/test.yml"
         workflow.parent.mkdir(parents=True)
         workflow.write_text(
+            workflow_text if workflow_text is not None else
             "name: Test\non: push\njobs:\n  test:\n"
             "    runs-on: ubuntu-latest\n    steps:\n"
             f"      - uses: {workflow_reference}\n",
@@ -571,6 +627,41 @@ def run_self_test() -> int:
                 f"{name}: expected {expected}, got "
                 f"{report['status']} ({report['findings']})"
             )
+    reusable = ".github/workflows/reusable.yml"
+    call = "name: Caller\non: push\njobs:\n  test:\n    uses: './.github/workflows/reusable.yml'\n"
+    reusable_files = {reusable: "name: Reusable\non: workflow_call\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ok\n"}
+    for name, source, files, tracked, expected in (
+        ("job-workflow", call, reusable_files, (workflow_path, reusable), "pass"),
+        ("missing-workflow", call, {}, (workflow_path,), "fail"),
+        ("untracked-workflow", call, reusable_files, (workflow_path,), "fail"),
+        ("traversal-workflow", call.replace("/reusable.yml", "/../workflows/reusable.yml"),
+         reusable_files, (workflow_path, reusable), "fail"),
+        ("nested-workflow", call.replace("/reusable.yml", "/nested/reusable.yml"),
+         {".github/workflows/nested/reusable.yml": "on: workflow_call\n"},
+         (workflow_path, ".github/workflows/nested/reusable.yml"), "fail"),
+        ("job-action-directory", call.replace("./.github/workflows/reusable.yml", "./.github/actions/example"),
+         composite, tracked_composite, "fail"),
+        ("step-workflow-file", None, reusable_files, (workflow_path, reusable), "fail"),
+        ("indentless-action-steps", "name: Caller\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n    - name: Local\n      uses: ./.github/actions/example\n",
+         composite, tracked_composite, "pass"),
+        ("script-text", "name: Script\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: |\n          uses: ./missing\n",
+         {}, (workflow_path,), "pass"),
+    ):
+        report = fixture_report('./' + reusable, files, tracked, source)
+        if report["status"] != expected:
+            failures.append(f"{name}: expected {expected}, got {report}")
+    for header in ('|2-', '>2+', '|-2', '>+2', '|2', '>-', '|2- # script'):
+        source = (
+            'name: Script\non: push\njobs:\n  test:\n'
+            '    runs-on: ubuntu-latest\n    steps:\n'
+            f'      - run: {header}\n          uses: ./missing\n'
+        )
+        report = fixture_report('', {}, (workflow_path,), source)
+        if report['status'] != 'pass' or report['local_references']:
+            failures.append(f'block-header {header}: script text was scanned: {report}')
+        report = fixture_report('', {}, (workflow_path,), source + '      - uses: ./missing\n')
+        if report['status'] != 'fail' or len(report['local_references']) != 1:
+            failures.append(f'block-header {header}: following action was not checked: {report}')
     if failures:
         for failure in failures:
             print(f"[FAIL] {failure}")
@@ -581,7 +672,7 @@ def run_self_test() -> int:
         "SELF-TEST PASS: quoted/unquoted local references, valid "
         "composite/node actions, missing paths, traversal, tracked "
         "metadata, dual metadata, empty metadata scalars, missing/untracked "
-        "entrypoints, and entrypoint traversal passed."
+        "entrypoints, entrypoint traversal, reusable workflow job calls, indentless steps, and script text passed."
     )
     return 0
 

@@ -106,7 +106,8 @@ function isRateLimited(response) {
 }
 
 function retryDelayMs(response, attempt) {
-  const retryAfter = Number(response.headers.get("retry-after"));
+  const header = response.headers.get("retry-after");
+  const retryAfter = header !== null && header.trim() !== "" ? Number(header) : NaN;
   if (Number.isFinite(retryAfter) && retryAfter >= 0) {
     return Math.min(retryAfter * 1000, MAX_RETRY_DELAY_MS);
   }
@@ -389,6 +390,16 @@ async function checkedReport(parameters) {
 }
 
 async function runSelfTest(manifestPath, policyPath) {
+  for (const [header, attempt, expected] of [
+    [null, 0, 1000], [null, 2, 4000], ["", 1, 2000],
+    ["invalid", 1, 2000], ["-1", 1, 2000], ["0", 2, 0],
+    ["2", 0, 2000], ["999999", 0, MAX_RETRY_DELAY_MS],
+    [null, 20, MAX_RETRY_DELAY_MS]
+  ]) {
+    const headers = new Headers(header === null ? {} : { "retry-after": header });
+    assert.equal(retryDelayMs({ headers }, attempt), expected, `Retry-After: ${header}`);
+  }
+
   const { manifest, selection, desiredLabels } = await prepareContract(manifestPath, policyPath);
 
   const baseline = structuredClone(desiredLabels);
@@ -451,7 +462,7 @@ async function runSelfTest(manifestPath, policyPath) {
   assert.match(markdownReport(driftFirst), new RegExp(missing.name));
 
   process.stdout.write(
-    "SELF-TEST PASS: deterministic no-drift and create/update/delete drift fixtures are read-only and match the canonical reconciler.\n"
+    "SELF-TEST PASS: retry delays and deterministic no-drift and create/update/delete drift fixtures are read-only and match the canonical reconciler.\n"
   );
 }
 

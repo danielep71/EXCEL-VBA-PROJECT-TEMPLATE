@@ -99,7 +99,12 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
-No unreleased changes recorded.
+### Fixed
+
+- Distinguish local reusable-workflow job calls from local action steps, and require tracked workflow files.
+- Ignore quoted VBA text when checking jump targets, while retaining checks for executable jumps on the same line.
+- Validate public API declarations across the supported conditional-compilation environments; accept mutually exclusive variants and require every distinct signature in the manifest.
+- Restore bounded exponential retry delays in label synchronization and drift checks when `Retry-After` is absent or empty.
 
 ## [1.1.0] - 2026-09-05
 
