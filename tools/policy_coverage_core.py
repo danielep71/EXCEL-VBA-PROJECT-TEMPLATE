@@ -3,22 +3,18 @@
 
 The coverage contract is semantic: every production ``finding(...)`` site in the
 canonical repository checker must be exercised by at least one deterministic
-fixture, or the coverage gate fails. Focused P2 gates and authoritative workflow
-validation are delegated to their own self-tests and must also pass.
+fixture, or the coverage gate fails. Focused hardening gates and authoritative
+workflow validation are delegated to their own self-tests and must also pass.
 """
 
 from __future__ import annotations
 
-import argparse
 import ast
 import importlib.util
-import inspect
 import json
 from pathlib import Path
 import re
-import subprocess
 import sys
-import tempfile
 from types import ModuleType
 from typing import Any, Callable
 
