@@ -38,6 +38,7 @@ jobs:
           python3 tools/_apply_final_hardening.py
           python3 tools/_patch_initializer_payload.py
           python3 tools/_patch_template_links.py
+          python3 tools/_patch_xml_coverage.py
           git checkout HEAD -- .github/workflows/checker-development.yml
           git add --all
           python3 -m pip install --disable-pip-version-check 'ruff==0.16.6' 'mypy==2.3.1'
