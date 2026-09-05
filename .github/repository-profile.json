@@ -218,7 +218,6 @@
     "template_only_paths": [
       "assets/social-preview.png",
       "assets/social-preview.svg",
-      "docs/IMPLEMENTATION_PLAN.md",
       "docs/PILOT_CERTIFICATION.md",
       "docs/PORTFOLIO_AUDIT.md"
     ],
@@ -245,7 +244,6 @@
     ],
     "exclude_paths": [
       ".github/repository-profile.json",
-      "docs/IMPLEMENTATION_PLAN.md",
       "docs/PORTFOLIO_AUDIT.md"
     ]
   },
