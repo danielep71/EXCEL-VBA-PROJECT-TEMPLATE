@@ -101,7 +101,7 @@ Use only the categories needed by a release.
 
 No unreleased changes recorded.
 
-## [1.1.0] - 2026-09-04
+## [1.1.0] - 2026-09-05
 
 ### Added
 
@@ -132,6 +132,9 @@ No unreleased changes recorded.
 - Extended the hosted repository-integrity gate so focused hardening checks have
   deterministic self-tests, exact-candidate evidence, artifact retention, and
   fail-closed terminal enforcement.
+- Made the independent checker-development workflow retain deterministic evidence
+  and fail closed when its self-test, report, summary, or artifact upload does
+  not complete successfully.
 - Consolidated documentation around one authoritative owner per evolving
   contract. The root README is now a shorter first-use/navigation surface while
   installation, contribution, security, conduct, release, initialization,
@@ -139,14 +142,28 @@ No unreleased changes recorded.
   their specialized maintained documents.
 - Required generated repositories to retain the read-only label-drift control in
   addition to the existing trusted label-reconciliation workflow.
+- Bounded live-label pagination and rate-limit retries while avoiding automatic
+  replay of label-mutating requests.
+
+### Removed
+
+- Removed the completed temporary implementation plan from the release candidate;
+  durable contracts and closed issues now preserve the relevant decisions and
+  evidence.
 
 ### Fixed
 
 - Disarmed the regression runner's procedure-level error handler before cleanup
   and summary reporting so a cleanup/reporting fault cannot re-enter `CleanExit`
   indefinitely through `RunFailed`.
-
-- Consolidated duplicated focused-gate Git, report-output, tracked-file, and common CLI mechanics into the private standard-library-only `tools/_gatelib.py`, while keeping `tools/check_repo.py` explicitly self-contained.
+- Consolidated duplicated focused-gate Git, report-output, tracked-file, and
+  common CLI mechanics into the private standard-library-only `tools/_gatelib.py`,
+  while keeping `tools/check_repo.py` explicitly self-contained.
+- Removed stale milestone-era documentation and policy references after the
+  v1.1.0 implementation work completed.
+- Centralized the neutral starter's zero-denominator error number in the private
+  core module while preserving the facade's public constant name and numeric
+  contract.
 
 ### Compatibility
 
