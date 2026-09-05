@@ -1,8 +1,8 @@
 name: Static repository checks
 run-name: Static checks — ${{ github.ref_name }} @ ${{ github.sha }}
 
-# Canonical portable source-integrity gate plus a content-pinned authoritative
-# workflow validator. These complement, but never replace, Excel compilation,
+# Canonical portable source-integrity gate plus content-pinned authoritative
+# validators. These complement, but never replace, Excel compilation,
 # regression, numerical-accuracy, UI-state, packaging, or release certification.
 
 on:
@@ -37,6 +37,9 @@ jobs:
     env:
       PYTHONUTF8: "1"
       PYTHONDONTWRITEBYTECODE: "1"
+      PYTHON_VERSION: "3.10"
+      RUFF_VERSION: "0.16.6"
+      MYPY_VERSION: "2.3.1"
       ACTIONLINT_VERSION: "1.7.12"
       ACTIONLINT_LINUX_AMD64_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
 
@@ -46,6 +49,42 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+
+      - name: Set up pinned Python runtime
+        id: python-runtime
+        continue-on-error: true
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install pinned Python quality tools
+        id: python-quality-install
+        continue-on-error: true
+        run: |
+          mkdir -p test-results
+          python -m pip install \
+            --disable-pip-version-check \
+            "ruff==${RUFF_VERSION}" \
+            "mypy==${MYPY_VERSION}"
+          {
+            python --version
+            ruff --version
+            mypy --version
+          } | tee test-results/python-quality-versions.txt
+
+      - name: Enforce Python lint baseline
+        id: ruff
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ruff check tools 2>&1 | tee test-results/ruff.txt
+
+      - name: Enforce Python type baseline
+        id: mypy
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mypy 2>&1 | tee test-results/mypy.txt
 
       - name: Install the pinned authoritative workflow validator
         id: validator-install
@@ -226,6 +265,9 @@ jobs:
         run: |
           {
             for report in \
+              test-results/python-quality-versions.txt \
+              test-results/ruff.txt \
+              test-results/mypy.txt \
               test-results/static-checks.md \
               test-results/committed-whitespace.md \
               test-results/vba-jumps.md \
@@ -255,6 +297,9 @@ jobs:
         with:
           name: static-checks-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            test-results/python-quality-versions.txt
+            test-results/ruff.txt
+            test-results/mypy.txt
             test-results/static-checks.json
             test-results/static-checks.md
             test-results/committed-whitespace.json
@@ -281,6 +326,10 @@ jobs:
       - name: Enforce self-test and repository results
         if: always()
         env:
+          PYTHON_RUNTIME_OUTCOME: ${{ steps.python-runtime.outcome }}
+          PYTHON_QUALITY_INSTALL_OUTCOME: ${{ steps.python-quality-install.outcome }}
+          RUFF_OUTCOME: ${{ steps.ruff.outcome }}
+          MYPY_OUTCOME: ${{ steps.mypy.outcome }}
           INITIALIZER_SELF_TEST_OUTCOME: ${{ steps.initializer-self-test.outcome }}
           VALIDATOR_INSTALL_OUTCOME: ${{ steps.validator-install.outcome }}
           AUTHORITATIVE_WORKFLOWS_OUTCOME: ${{ steps.authoritative-workflows.outcome }}
@@ -306,6 +355,10 @@ jobs:
         run: |
           failed=0
           for item in \
+            "Pinned Python runtime:$PYTHON_RUNTIME_OUTCOME" \
+            "Python quality-tool installation:$PYTHON_QUALITY_INSTALL_OUTCOME" \
+            "Ruff lint:$RUFF_OUTCOME" \
+            "mypy type check:$MYPY_OUTCOME" \
             "Authoritative-validator installation:$VALIDATOR_INSTALL_OUTCOME" \
             "Authoritative workflow-validation:$AUTHORITATIVE_WORKFLOWS_OUTCOME" \
             "Release-integrity self-test:$RELEASE_SELF_TEST_OUTCOME" \
