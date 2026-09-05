@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: checker-development-${{ github.ref }}
+  group: checker-development-final-${{ github.ref }}
   cancel-in-progress: true
 
 defaults:
