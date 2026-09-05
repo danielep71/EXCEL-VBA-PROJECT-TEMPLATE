@@ -45,8 +45,6 @@ projects:
   live-governance certification evidence.
 - [`PORTFOLIO_AUDIT.md`](PORTFOLIO_AUDIT.md) — frozen portfolio evidence used to
   design the template baseline.
-- [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) — temporary active delivery
-  plan for the template repository.
 <!-- template:remove:end -->
 
 ## 🧭 First-use path
