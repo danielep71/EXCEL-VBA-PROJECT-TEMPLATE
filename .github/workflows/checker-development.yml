@@ -50,7 +50,7 @@ jobs:
           path.write_text(text, encoding='utf-8', newline='\n')
           PY
           python3 tools/_apply_complexity_refactor.py
-          git show HEAD^^:.github/workflows/checker-development.yml > .github/workflows/checker-development.yml
+          git checkout HEAD -- .github/workflows/checker-development.yml
           git add --all
           python3 -m pip install --disable-pip-version-check 'ruff==0.16.6' 'mypy==2.3.1'
           ruff check tools
