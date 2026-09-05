@@ -123,7 +123,8 @@ An applied initialization:
 - substitutes every required and derived profile value;
 - retains only the selected profile block;
 - retains supplied optional and repeatable blocks and removes unused ones;
-- deletes the temporary portfolio audit and implementation plan;
+- deletes every path declared under `placeholders.template_only_paths`, subject
+  only to the documented social-preview retention exception;
 - resets the changelog's `Unreleased` section so template-construction history
   is not attributed to the generated project;
 - creates explanatory files in currently empty profile-required directories;
