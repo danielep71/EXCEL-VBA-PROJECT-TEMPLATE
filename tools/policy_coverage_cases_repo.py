@@ -6,9 +6,19 @@ from typing import Callable
 
 from policy_coverage_core import add_force, mutate_config
 
+Case = tuple[str, str, str | None, Callable[[Path], None]]
 
-def repository_cases(module: ModuleType) -> list[tuple[str, str, str | None, Callable[[Path], None]]]:
-    cases: list[tuple[str, str, str | None, Callable[[Path], None]]] = []
+
+def _register(cases: list[Case], name: str, rule: str, pattern: str | None = None):
+    def decorator(function: Callable[[Path], None]) -> Callable[[Path], None]:
+        cases.append((name, rule, pattern, function))
+        return function
+
+    return decorator
+
+
+def _required_and_placeholder_cases(module: ModuleType) -> list[Case]:
+    cases: list[Case] = []
 
     def template_mode(document: dict) -> None:
         document.update(
@@ -17,29 +27,35 @@ def repository_cases(module: ModuleType) -> list[tuple[str, str, str | None, Cal
             repository="example/TEMPLATE-IDENTITY",
         )
 
-    def case(name: str, rule: str, pattern: str | None = None):
-        def register(function: Callable[[Path], None]) -> Callable[[Path], None]:
-            cases.append((name, rule, pattern, function))
-            return function
-        return register
+    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
 
     @case("required-file-not-tracked", "required-paths", "Required file is not tracked")
     def _(root: Path) -> None:
-        def mutation(d: dict) -> None:
-            d["required_paths"] = sorted([*d["required_paths"], "missing.txt"], key=str.casefold)
+        def mutation(document: dict) -> None:
+            document["required_paths"] = sorted(
+                [*document["required_paths"], "missing.txt"], key=str.casefold
+            )
+
         mutate_config(module, root, mutation)
 
     @case("required-directory-absent", "required-paths", "Required directory is absent")
     def _(root: Path) -> None:
-        def mutation(d: dict) -> None:
-            d["required_directories"] = sorted([*d["required_directories"], "missing-dir"], key=str.casefold)
+        def mutation(document: dict) -> None:
+            document["required_directories"] = sorted(
+                [*document["required_directories"], "missing-dir"], key=str.casefold
+            )
+
         mutate_config(module, root, mutation)
 
     @case("required-directory-empty", "required-paths", "has no tracked")
     def _(root: Path) -> None:
         (root / "empty-dir").mkdir()
-        def mutation(d: dict) -> None:
-            d["required_directories"] = sorted([*d["required_directories"], "empty-dir"], key=str.casefold)
+
+        def mutation(document: dict) -> None:
+            document["required_directories"] = sorted(
+                [*document["required_directories"], "empty-dir"], key=str.casefold
+            )
+
         mutate_config(module, root, mutation)
 
     @case("placeholder-executable", "placeholders", "prohibited in executable")
@@ -57,35 +73,56 @@ def repository_cases(module: ModuleType) -> list[tuple[str, str, str | None, Cal
     def _(root: Path) -> None:
         mutate_config(module, root, template_mode)
 
+    return cases
+
+
+def _dotfile_and_structured_cases(module: ModuleType) -> list[Case]:
+    cases: list[Case] = []
+    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
+
     @case("dotfile-editor-unreadable", "dotfile-policy", "Cannot read policy")
     def _(root: Path) -> None:
         (root / ".editorconfig").unlink()
 
     @case("dotfile-vba-eol", "dotfile-policy", "VBA component section")
     def _(root: Path) -> None:
-        text = (root / ".editorconfig").read_text(encoding="utf-8").replace("end_of_line = crlf", "end_of_line = lf")
+        text = (root / ".editorconfig").read_text(encoding="utf-8").replace(
+            "end_of_line = crlf", "end_of_line = lf"
+        )
         module._write_fixture(root / ".editorconfig", text)
 
     @case("dotfile-vba-final-newline", "dotfile-policy", "final newline")
     def _(root: Path) -> None:
         text = (root / ".editorconfig").read_text(encoding="utf-8")
-        original = "[*.{bas,cls,frm}]\ncharset = latin1\nend_of_line = crlf\ninsert_final_newline = true"
-        replacement = "[*.{bas,cls,frm}]\ncharset = latin1\nend_of_line = crlf\ninsert_final_newline = false"
+        original = (
+            "[*.{bas,cls,frm}]\ncharset = latin1\nend_of_line = crlf\n"
+            "insert_final_newline = true"
+        )
+        replacement = (
+            "[*.{bas,cls,frm}]\ncharset = latin1\nend_of_line = crlf\n"
+            "insert_final_newline = false"
+        )
         module._write_fixture(root / ".editorconfig", text.replace(original, replacement))
 
     @case("dotfile-gitattributes-vba", "dotfile-policy", "eol=crlf")
     def _(root: Path) -> None:
-        text = (root / ".gitattributes").read_text(encoding="utf-8").replace("*.bas text eol=crlf", "*.bas text eol=lf")
+        text = (root / ".gitattributes").read_text(encoding="utf-8").replace(
+            "*.bas text eol=crlf", "*.bas text eol=lf"
+        )
         module._write_fixture(root / ".gitattributes", text)
 
     @case("dotfile-gitattributes-lf", "dotfile-policy", "eol=lf")
     def _(root: Path) -> None:
-        text = (root / ".gitattributes").read_text(encoding="utf-8").replace("*.json text eol=lf", "*.json text eol=crlf")
+        text = (root / ".gitattributes").read_text(encoding="utf-8").replace(
+            "*.json text eol=lf", "*.json text eol=crlf"
+        )
         module._write_fixture(root / ".gitattributes", text)
 
     @case("dotfile-office-binary", "dotfile-policy", "text=unset")
     def _(root: Path) -> None:
-        text = (root / ".gitattributes").read_text(encoding="utf-8").replace("*.xlsm binary", "*.xlsm text")
+        text = (root / ".gitattributes").read_text(encoding="utf-8").replace(
+            "*.xlsm binary", "*.xlsm text"
+        )
         module._write_fixture(root / ".gitattributes", text)
 
     @case("dotfile-ignore-probe", "dotfile-policy", "not ignored")
@@ -95,13 +132,23 @@ def repository_cases(module: ModuleType) -> list[tuple[str, str, str | None, Cal
 
     @case("dotfile-env-example", "dotfile-policy", "env.example")
     def _(root: Path) -> None:
-        module._write_fixture(root / ".gitignore", ".env*\n__pycache__/\n*.pem\n*.xlsm\ntest-results/\n~$*\n")
+        module._write_fixture(
+            root / ".gitignore",
+            ".env*\n__pycache__/\n*.pem\n*.xlsm\ntest-results/\n~$*\n",
+        )
 
     @case("structured-yaml-invalid-encoding", "structured-data", "Cannot decode YAML")
     def _(root: Path) -> None:
         path = root / ".github/workflows/bad-encoding.yml"
         path.write_bytes(b"\xff\n")
         add_force(module, root, ".github/workflows/bad-encoding.yml")
+
+    return cases
+
+
+def _markdown_and_text_cases(module: ModuleType) -> list[Case]:
+    cases: list[Case] = []
+    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
 
     @case("markdown-escape", "markdown-links", "escapes the repository")
     def _(root: Path) -> None:
@@ -119,7 +166,9 @@ def repository_cases(module: ModuleType) -> list[tuple[str, str, str | None, Cal
 
     @case("markdown-missing-anchor", "markdown-links", "heading does not exist")
     def _(root: Path) -> None:
-        module._write_fixture(root / "README.md", "# Fixture\n\n[Bad anchor](docs/DETAILS.md#missing)\n")
+        module._write_fixture(
+            root / "README.md", "# Fixture\n\n[Bad anchor](docs/DETAILS.md#missing)\n"
+        )
 
     @case("text-nul", "text-integrity", "NUL byte")
     def _(root: Path) -> None:
@@ -143,6 +192,13 @@ def repository_cases(module: ModuleType) -> list[tuple[str, str, str | None, Cal
     def _(root: Path) -> None:
         marker = "AK" + "IA" + "ABCDEFGHIJKLMNOP"
         module._write_fixture(root / "README.md", f"# Fixture\n\n{marker}\n")
+
+    return cases
+
+
+def _artifact_and_line_cases(module: ModuleType) -> list[Case]:
+    cases: list[Case] = []
+    case = lambda name, rule, pattern=None: _register(cases, name, rule, pattern)
 
     @case("artifact-office-lock", "forbidden-artifacts", "Office lock file")
     def _(root: Path) -> None:
@@ -188,3 +244,12 @@ def repository_cases(module: ModuleType) -> list[tuple[str, str, str | None, Cal
         path.write_bytes(text.encode("cp1252"))
 
     return cases
+
+
+def repository_cases(module: ModuleType) -> list[Case]:
+    return [
+        *_required_and_placeholder_cases(module),
+        *_dotfile_and_structured_cases(module),
+        *_markdown_and_text_cases(module),
+        *_artifact_and_line_cases(module),
+    ]
