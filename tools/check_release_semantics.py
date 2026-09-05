@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import sys
 from typing import Any
+
 from _gatelib import parse_report_args as parse_args, write_text
 
 CONFIG_PATH = ".github/repository-profile.json"
@@ -45,7 +46,12 @@ def parse_semver(value: str) -> SemVer:
                 f"numeric pre-release identifier must not contain leading zeros: {identifier!r}"
             )
     return SemVer(
-        value, int(match.group(1)), int(match.group(2)), int(match.group(3)), prerelease, build
+        value,
+        int(match.group(1)),
+        int(match.group(2)),
+        int(match.group(3)),
+        prerelease,
+        build,
     )
 
 
@@ -60,16 +66,16 @@ def compare(left: SemVer, right: SemVer) -> int:
         return 1
     if not right.prerelease:
         return -1
-    for l_item, r_item in zip(left.prerelease, right.prerelease):
-        if l_item == r_item:
+    for left_item, right_item in zip(left.prerelease, right.prerelease):
+        if left_item == right_item:
             continue
-        l_numeric = l_item.isdigit()
-        r_numeric = r_item.isdigit()
-        if l_numeric and r_numeric:
-            return 1 if int(l_item) > int(r_item) else -1
-        if l_numeric != r_numeric:
-            return -1 if l_numeric else 1
-        return 1 if l_item > r_item else -1
+        left_numeric = left_item.isdigit()
+        right_numeric = right_item.isdigit()
+        if left_numeric and right_numeric:
+            return 1 if int(left_item) > int(right_item) else -1
+        if left_numeric != right_numeric:
+            return -1 if left_numeric else 1
+        return 1 if left_item > right_item else -1
     if len(left.prerelease) == len(right.prerelease):
         return 0
     return 1 if len(left.prerelease) > len(right.prerelease) else -1
@@ -83,24 +89,9 @@ def valid_date(value: str) -> bool:
     return True
 
 
-def analyze(version: str, changelog: str, repository: str) -> dict[str, Any]:
-    findings: list[dict[str, Any]] = []
-    try:
-        version_semver = parse_semver(version)
-    except ValueError as error:
-        version_semver = None
-        findings.append({"path": "VERSION", "message": str(error)})
-
-    unreleased_lines = [
-        number for number, raw in enumerate(changelog.splitlines(), start=1)
-        if raw.strip() == "## [Unreleased]"
-    ]
-    if len(unreleased_lines) != 1:
-        findings.append({
-            "path": "CHANGELOG.md",
-            "message": f"Changelog requires exactly one [Unreleased] heading; observed {len(unreleased_lines)}.",
-        })
-
+def _parse_releases(
+    changelog: str, findings: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     releases: list[dict[str, Any]] = []
     seen: dict[str, int] = {}
     for number, raw in enumerate(changelog.splitlines(), start=1):
@@ -111,43 +102,75 @@ def analyze(version: str, changelog: str, repository: str) -> dict[str, Any]:
         try:
             parsed = parse_semver(value)
         except ValueError as error:
-            findings.append({"path": "CHANGELOG.md", "line": number, "message": str(error)})
+            findings.append(
+                {"path": "CHANGELOG.md", "line": number, "message": str(error)}
+            )
             continue
         if not valid_date(date_text):
-            findings.append({
-                "path": "CHANGELOG.md", "line": number,
-                "message": f"release date is not a real Gregorian date: {date_text}",
-            })
+            findings.append(
+                {
+                    "path": "CHANGELOG.md",
+                    "line": number,
+                    "message": f"release date is not a real Gregorian date: {date_text}",
+                }
+            )
         if value in seen:
-            findings.append({
-                "path": "CHANGELOG.md", "line": number,
-                "message": f"duplicate release version {value!r}; first declared at line {seen[value]}",
-            })
+            findings.append(
+                {
+                    "path": "CHANGELOG.md",
+                    "line": number,
+                    "message": (
+                        f"duplicate release version {value!r}; first declared at line {seen[value]}"
+                    ),
+                }
+            )
         else:
             seen[value] = number
-        releases.append({"version": value, "semver": parsed, "date": date_text, "line": number})
+        releases.append(
+            {"version": value, "semver": parsed, "date": date_text, "line": number}
+        )
+    return releases
 
+
+def _validate_release_order(
+    releases: list[dict[str, Any]],
+    version: str,
+    version_semver: SemVer | None,
+    findings: list[dict[str, Any]],
+) -> None:
     for current, older in zip(releases, releases[1:]):
-        precedence = compare(current["semver"], older["semver"])
-        if precedence <= 0:
-            findings.append({
-                "path": "CHANGELOG.md", "line": current["line"],
+        if compare(current["semver"], older["semver"]) > 0:
+            continue
+        findings.append(
+            {
+                "path": "CHANGELOG.md",
+                "line": current["line"],
                 "message": (
                     "released versions must be strictly descending by SemVer precedence; "
                     f"{current['version']} is not newer than {older['version']}"
                 ),
-            })
-
-    if releases and version_semver is not None and version != "0.0.0":
-        if releases[0]["version"] != version:
-            findings.append({
+            }
+        )
+    if (
+        releases
+        and version_semver is not None
+        and version != "0.0.0"
+        and releases[0]["version"] != version
+    ):
+        findings.append(
+            {
                 "path": "VERSION",
                 "message": (
                     f"VERSION {version!r} must match the newest dated changelog release "
                     f"{releases[0]['version']!r}."
                 ),
-            })
+            }
+        )
 
+
+def _parse_links(
+    changelog: str, findings: list[dict[str, Any]]
+) -> dict[str, tuple[str, int]]:
     links: dict[str, tuple[str, int]] = {}
     for number, raw in enumerate(changelog.splitlines(), start=1):
         match = LINK_RE.match(raw)
@@ -155,49 +178,97 @@ def analyze(version: str, changelog: str, repository: str) -> dict[str, Any]:
             continue
         name, url = match.groups()
         if name in links:
-            findings.append({
-                "path": "CHANGELOG.md", "line": number,
-                "message": f"duplicate comparison-link definition for [{name}]",
-            })
+            findings.append(
+                {
+                    "path": "CHANGELOG.md",
+                    "line": number,
+                    "message": f"duplicate comparison-link definition for [{name}]",
+                }
+            )
         else:
             links[name] = (url, number)
+    return links
 
-    if releases:
-        latest = releases[0]["version"]
-        expected_unreleased = f"https://github.com/{repository}/compare/v{latest}...HEAD"
-        actual_unreleased = links.get("Unreleased")
-        if actual_unreleased is None:
-            findings.append({
+
+def _validate_expected_link(
+    links: dict[str, tuple[str, int]],
+    name: str,
+    expected: str,
+    missing_message: str,
+    findings: list[dict[str, Any]],
+) -> None:
+    actual = links.get(name)
+    if actual is None:
+        findings.append({"path": "CHANGELOG.md", "message": missing_message})
+    elif actual[0] != expected:
+        findings.append(
+            {
                 "path": "CHANGELOG.md",
-                "message": f"missing [Unreleased] comparison link; expected {expected_unreleased}",
-            })
-        elif actual_unreleased[0] != expected_unreleased:
-            findings.append({
-                "path": "CHANGELOG.md", "line": actual_unreleased[1],
-                "message": (
-                    f"[Unreleased] comparison link must be {expected_unreleased}; "
-                    f"observed {actual_unreleased[0]}"
-                ),
-            })
+                "line": actual[1],
+                "message": f"[{name}] link must be {expected}; observed {actual[0]}",
+            }
+        )
 
-        for index, release in enumerate(releases):
-            value = release["version"]
-            if index + 1 < len(releases):
-                older = releases[index + 1]["version"]
-                expected = f"https://github.com/{repository}/compare/v{older}...v{value}"
-            else:
-                expected = f"https://github.com/{repository}/releases/tag/v{value}"
-            actual = links.get(value)
-            if actual is None:
-                findings.append({
-                    "path": "CHANGELOG.md",
-                    "message": f"missing [{value}] release comparison link; expected {expected}",
-                })
-            elif actual[0] != expected:
-                findings.append({
-                    "path": "CHANGELOG.md", "line": actual[1],
-                    "message": f"[{value}] link must be {expected}; observed {actual[0]}",
-                })
+
+def _validate_links(
+    releases: list[dict[str, Any]],
+    links: dict[str, tuple[str, int]],
+    repository: str,
+    findings: list[dict[str, Any]],
+) -> None:
+    if not releases:
+        return
+    latest = releases[0]["version"]
+    expected_unreleased = f"https://github.com/{repository}/compare/v{latest}...HEAD"
+    _validate_expected_link(
+        links,
+        "Unreleased",
+        expected_unreleased,
+        f"missing [Unreleased] comparison link; expected {expected_unreleased}",
+        findings,
+    )
+    for index, release in enumerate(releases):
+        value = release["version"]
+        if index + 1 < len(releases):
+            older = releases[index + 1]["version"]
+            expected = f"https://github.com/{repository}/compare/v{older}...v{value}"
+        else:
+            expected = f"https://github.com/{repository}/releases/tag/v{value}"
+        _validate_expected_link(
+            links,
+            value,
+            expected,
+            f"missing [{value}] release comparison link; expected {expected}",
+            findings,
+        )
+
+
+def analyze(version: str, changelog: str, repository: str) -> dict[str, Any]:
+    findings: list[dict[str, Any]] = []
+    try:
+        version_semver = parse_semver(version)
+    except ValueError as error:
+        version_semver = None
+        findings.append({"path": "VERSION", "message": str(error)})
+
+    unreleased_count = sum(
+        raw.strip() == "## [Unreleased]" for raw in changelog.splitlines()
+    )
+    if unreleased_count != 1:
+        findings.append(
+            {
+                "path": "CHANGELOG.md",
+                "message": (
+                    "Changelog requires exactly one [Unreleased] heading; "
+                    f"observed {unreleased_count}."
+                ),
+            }
+        )
+
+    releases = _parse_releases(changelog, findings)
+    _validate_release_order(releases, version, version_semver, findings)
+    links = _parse_links(changelog, findings)
+    _validate_links(releases, links, repository, findings)
 
     release_evidence = [
         {"version": item["version"], "date": item["date"], "line": item["line"]}
@@ -249,7 +320,9 @@ def markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def fixture(version: str, headings: list[tuple[str, str]], links: dict[str, str]) -> dict[str, Any]:
+def fixture(
+    version: str, headings: list[tuple[str, str]], links: dict[str, str]
+) -> dict[str, Any]:
     repository = "example/repo"
     lines = ["# Changelog", "", "## [Unreleased]", "", "No unreleased changes.", ""]
     for value, date_text in headings:
@@ -261,10 +334,14 @@ def fixture(version: str, headings: list[tuple[str, str]], links: dict[str, str]
 
 def canonical_links(versions: list[str]) -> dict[str, str]:
     repository = "example/repo"
-    result = {"Unreleased": f"https://github.com/{repository}/compare/v{versions[0]}...HEAD"}
+    result = {
+        "Unreleased": f"https://github.com/{repository}/compare/v{versions[0]}...HEAD"
+    }
     for index, value in enumerate(versions):
         if index + 1 < len(versions):
-            result[value] = f"https://github.com/{repository}/compare/v{versions[index + 1]}...v{value}"
+            result[value] = (
+                f"https://github.com/{repository}/compare/v{versions[index + 1]}...v{value}"
+            )
         else:
             result[value] = f"https://github.com/{repository}/releases/tag/v{value}"
     return result
@@ -273,25 +350,117 @@ def canonical_links(versions: list[str]) -> dict[str, str]:
 def run_self_test() -> int:
     cases: list[tuple[str, str, dict[str, Any]]] = []
     stable_versions = ["1.1.0", "1.0.0"]
-    cases.append(("valid-stable", "pass", fixture("1.1.0", [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-04")], canonical_links(stable_versions))))
+    cases.append(
+        (
+            "valid-stable",
+            "pass",
+            fixture(
+                "1.1.0",
+                [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-04")],
+                canonical_links(stable_versions),
+            ),
+        )
+    )
     pre_versions = ["1.1.0-rc.1", "1.0.0"]
-    cases.append(("valid-prerelease", "pass", fixture("1.1.0-rc.1", [("1.1.0-rc.1", "2026-09-05"), ("1.0.0", "2026-09-04")], canonical_links(pre_versions))))
-    cases.append(("leading-zero-prerelease", "fail", fixture("1.1.0-01", [("1.1.0-01", "2026-09-05"), ("1.0.0", "2026-09-04")], canonical_links(["1.1.0-01", "1.0.0"]))))
-    cases.append(("out-of-order", "fail", fixture("1.0.0", [("1.0.0", "2026-09-05"), ("1.1.0", "2026-09-04")], canonical_links(["1.0.0", "1.1.0"]))))
-    cases.append(("duplicate-version", "fail", fixture("1.1.0", [("1.1.0", "2026-09-05"), ("1.1.0", "2026-09-04")], canonical_links(["1.1.0", "1.1.0"]))))
-    cases.append(("impossible-date", "fail", fixture("1.1.0", [("1.1.0", "2026-02-30"), ("1.0.0", "2026-09-04")], canonical_links(stable_versions))))
+    cases.append(
+        (
+            "valid-prerelease",
+            "pass",
+            fixture(
+                "1.1.0-rc.1",
+                [("1.1.0-rc.1", "2026-09-05"), ("1.0.0", "2026-09-04")],
+                canonical_links(pre_versions),
+            ),
+        )
+    )
+    cases.append(
+        (
+            "leading-zero-prerelease",
+            "fail",
+            fixture(
+                "1.1.0-01",
+                [("1.1.0-01", "2026-09-05"), ("1.0.0", "2026-09-04")],
+                canonical_links(["1.1.0-01", "1.0.0"]),
+            ),
+        )
+    )
+    cases.append(
+        (
+            "out-of-order",
+            "fail",
+            fixture(
+                "1.0.0",
+                [("1.0.0", "2026-09-05"), ("1.1.0", "2026-09-04")],
+                canonical_links(["1.0.0", "1.1.0"]),
+            ),
+        )
+    )
+    cases.append(
+        (
+            "duplicate-version",
+            "fail",
+            fixture(
+                "1.1.0",
+                [("1.1.0", "2026-09-05"), ("1.1.0", "2026-09-04")],
+                canonical_links(["1.1.0", "1.1.0"]),
+            ),
+        )
+    )
+    cases.append(
+        (
+            "impossible-date",
+            "fail",
+            fixture(
+                "1.1.0",
+                [("1.1.0", "2026-02-30"), ("1.0.0", "2026-09-04")],
+                canonical_links(stable_versions),
+            ),
+        )
+    )
     bad_links = canonical_links(stable_versions)
     bad_links["Unreleased"] = "https://github.com/example/repo/compare/v0.9.0...HEAD"
-    cases.append(("wrong-unreleased-link", "fail", fixture("1.1.0", [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-04")], bad_links)))
+    cases.append(
+        (
+            "wrong-unreleased-link",
+            "fail",
+            fixture(
+                "1.1.0",
+                [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-04")],
+                bad_links,
+            ),
+        )
+    )
     missing_link = canonical_links(stable_versions)
     del missing_link["1.1.0"]
-    cases.append(("missing-release-link", "fail", fixture("1.1.0", [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-04")], missing_link)))
-    cases.append(("version-heading-mismatch", "fail", fixture("1.2.0", [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-04")], canonical_links(stable_versions))))
+    cases.append(
+        (
+            "missing-release-link",
+            "fail",
+            fixture(
+                "1.1.0",
+                [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-04")],
+                missing_link,
+            ),
+        )
+    )
+    cases.append(
+        (
+            "version-heading-mismatch",
+            "fail",
+            fixture(
+                "1.2.0",
+                [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-04")],
+                canonical_links(stable_versions),
+            ),
+        )
+    )
 
     failures: list[str] = []
     for name, expected, report in cases:
         if report["status"] != expected:
-            failures.append(f"{name}: expected {expected}, got {report['status']} ({report['findings']})")
+            failures.append(
+                f"{name}: expected {expected}, got {report['status']} ({report['findings']})"
+            )
     if compare(parse_semver("1.0.0-alpha.2"), parse_semver("1.0.0-alpha.10")) >= 0:
         failures.append("SemVer numeric prerelease precedence is incorrect")
     if compare(parse_semver("1.0.0"), parse_semver("1.0.0-rc.1")) <= 0:
@@ -303,14 +472,11 @@ def run_self_test() -> int:
         print(f"SELF-TEST FAIL: {len(failures)} failure(s).")
         return 1
     print(
-        "SELF-TEST PASS: stable/prerelease SemVer, numeric identifier rules, precedence, duplicates, "
-        "ordering, Gregorian dates, VERSION agreement, and comparison-link policy passed."
+        "SELF-TEST PASS: stable/prerelease SemVer, numeric identifier rules, precedence, "
+        "duplicates, ordering, Gregorian dates, VERSION agreement, and comparison-link "
+        "policy passed."
     )
     return 0
-
-
-
-
 
 
 def main(argv: list[str] | None = None) -> int:
