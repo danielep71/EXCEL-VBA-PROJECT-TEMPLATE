@@ -10,7 +10,9 @@ Option Private Module
 '   facade/core starter and report complete evidence to the Immediate window.
 '
 ' PUBLIC SURFACE
-'   RunProjectTests is the single documented test entry point.
+'   RunProjectTests is the documented test entry point. ResetProjectTests is a
+'   project-private recovery command for an interrupted run; Option Private
+'   Module keeps both procedures out of the external workbook automation API.
 '
 ' DEPENDENCIES
 '   ProjectFacade and the built-in VBA/Excel object models only. No external
@@ -58,7 +60,7 @@ Public Sub RunProjectTests()
         Err.Raise _
             TEST_ERROR_DIRTY_START, _
             "ProjectTests.RunProjectTests", _
-            "A ProjectTests run is already active."
+            "A ProjectTests run is already active. Run ResetProjectTests after an interrupted execution."
     End If
 
     ResetRun
@@ -111,6 +113,11 @@ RunFailed:
     Resume CleanExit
 End Sub
 
+Public Sub ResetProjectTests()
+    ResetRun
+    Debug.Print "PROJECT TESTS RESET; run_active=no; counters=0"
+End Sub
+
 Private Sub TestExactEquality()
     On Error GoTo CaseFailed
 
@@ -133,7 +140,7 @@ Private Sub TestTolerance()
         "ProjectRatio(1, 3)", _
         0.333333333333333, _
         ProjectFacade.ProjectRatio(1#, 3#), _
-        0.000000000000001
+        0.000000000001
     Exit Sub
 
 CaseFailed:
@@ -160,6 +167,7 @@ ExpectedError:
     actualSource = Err.Source
     actualDescription = Err.Description
     On Error GoTo 0
+    On Error GoTo CaseFailed
 
     AssertExpectedError _
         "ratio.zero-denominator", _
@@ -169,6 +177,10 @@ ExpectedError:
         actualNumber, _
         actualSource, _
         actualDescription
+    Exit Sub
+
+CaseFailed:
+    RecordUnexpectedCaseError "ratio.zero-denominator"
 End Sub
 
 Private Sub TestRepeatability()
@@ -385,5 +397,6 @@ Private Sub ResetRun()
     mAssertionCount = 0
     mFailureCount = 0
     mFailureDetails = vbNullString
+    mRunActive = False
     mSuiteCompleted = False
 End Sub
