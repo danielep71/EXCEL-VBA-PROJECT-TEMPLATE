@@ -19,6 +19,11 @@ replace_once(
     '''<!-- template:remove:start -->\nFor checker maintenance, the independent\n[`CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md) contract protects the\nsingle-file, standard-library runtime and parser/reporter development boundaries.\n<!-- template:remove:end -->\n''',
 )
 replace_once(
+    "README.md",
+    '| Maintain the portable checker | [`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md) |\n',
+    '<!-- template:remove:start -->\n| Maintain the portable checker | [`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md) |\n<!-- template:remove:end -->\n',
+)
+replace_once(
     "CONTRIBUTING.md",
     '''For checker changes, additionally follow\n[`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md). For release-evidence\nschemas and exact-SHA binding, use\n''',
     '''<!-- template:remove:start -->\nFor checker changes, additionally follow\n[`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md).\n<!-- template:remove:end -->\nFor release-evidence schemas and exact-SHA binding, use\n''',
