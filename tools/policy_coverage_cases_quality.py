@@ -5,7 +5,7 @@ import re
 from types import ModuleType
 from typing import Callable
 
-from policy_coverage_core import add_force, mutate_config, mutate_labels, rewrite_vba
+from policy_coverage_core import mutate_config, mutate_labels, rewrite_vba
 
 
 def quality_cases(module: ModuleType) -> list[tuple[str, str, str | None, Callable[[Path], None]]]:
