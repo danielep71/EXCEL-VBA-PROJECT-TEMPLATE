@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 2 — scope decisions resolved; #24 in progress
+**Plan revision:** 3 — #24 complete; contract root delivered
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -58,8 +58,9 @@ Thirteen issues, all assigned to the `v1.2.0` milestone.
 | [#47](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/47) | P3-13 — Consolidate focused-gate CLI orchestration | Tooling |
 
 Completed on this branch: [#48](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/48)
-(baseline integration of the #43 fixes) and
-[#47](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/47).
+(baseline integration of the #43 fixes),
+[#47](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/47) and
+[#24](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/24).
 
 ---
 
@@ -111,9 +112,9 @@ those themes produces work that has to be revisited.
 
 | Tier | Issues | Condition |
 | ---: | --- | --- |
-| 0 | #48, #47 | Complete on `release/1.2.0` |
-| 1 | **#24 — in progress**, #26, #27, #45 | Actionable now; no P3 prerequisite |
-| 2 | #21, #23, #25, #28 | Requires #24 |
+| 0 | #48, #47, **#24** | Complete on `release/1.2.0` |
+| 1 | #26, #27, #45 | Actionable now; no P3 prerequisite |
+| 2 | #21, #23, #25, #28 | **Unblocked** — #24 delivered `template_contract` |
 | 3 | #22, #29 | Requires #23 / requires #24 + #25 |
 | 4 | #46, then #44 | Requires the interfaces above to be stable |
 
@@ -127,13 +128,18 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Begin [#24](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/24)
-— P3-01, template contract versioning.**
+**Begin [#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23)
+— P3-04, versioned reusable workflows.**
 
-First implementation step: define the SemVer policy for the template contract
-and add the machine-readable contract-version field to
-`.github/repository-profile.json`, keeping it independent from the generated
-project's `VERSION`. Every later tier-2 and tier-3 issue consumes that field.
+#24 delivered `template_contract`, so tier 2 is unblocked. #23 sits on the
+longest remaining path to the final documentation audit
+(#23 → #46 → #44), and it also blocks #22. Starting it first keeps the
+critical path moving; #26, #27 and #45 remain independently actionable in
+parallel and contend with nothing.
+
+`CONTRACT_RULE_SETS` in `tools/check_template_contract.py` is the registry a
+contract-affecting change extends, and `docs/TEMPLATE_CONTRACT.md` is where its
+migration note belongs.
 
 ---
 
