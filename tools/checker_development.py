@@ -57,6 +57,7 @@ GATE_RUNNER_CONSUMERS = frozenset(
         "check_committed_whitespace.py",
         "check_local_actions.py",
         "check_release_semantics.py",
+        "check_template_contract.py",
         "check_vba_conditionals.py",
         "check_vba_jumps.py",
         "check_vba_public_api.py",
@@ -511,6 +512,7 @@ def ownership_scan(root: Path) -> tuple[dict[str, Any], list[str]]:
     parser_consumers = {
         "check_local_actions.py",
         "check_release_semantics.py",
+        "check_template_contract.py",
         "check_vba_conditionals.py",
         "check_vba_jumps.py",
         "check_vba_public_api.py",

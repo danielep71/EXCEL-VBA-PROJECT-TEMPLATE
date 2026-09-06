@@ -3,6 +3,10 @@
   "mode": "template",
   "profile": null,
   "repository": "danielep71/EXCEL-VBA-PROJECT-TEMPLATE",
+  "template_contract": {
+    "version": "1.2.0",
+    "source": "danielep71/EXCEL-VBA-PROJECT-TEMPLATE"
+  },
   "label_domains": [],
   "required_paths": [
     ".editorconfig",
@@ -31,6 +35,7 @@
     "docs/README.md",
     "docs/RELEASE_EVIDENCE.md",
     "docs/REPOSITORY_STRUCTURE.md",
+    "docs/TEMPLATE_CONTRACT.md",
     "examples/README.md",
     "INSTALLATION.md",
     "LICENSE",
@@ -42,6 +47,7 @@
     "tools/_gatelib.py",
     "tools/check_release.py",
     "tools/check_repo.py",
+    "tools/check_template_contract.py",
     "tools/initialize_repository.py",
     "tools/README.md",
     "tools/test_workflow_validation.py",
@@ -253,6 +259,7 @@
       "EXCEL-VBA-PROJECT-TEMPLATE"
     ],
     "exclude_paths": [
+      ".github/initialization.json",
       ".github/repository-profile.json",
       "docs/PORTFOLIO_AUDIT.md"
     ]

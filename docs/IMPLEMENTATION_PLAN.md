@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 1 — milestone sequencing established
+**Plan revision:** 2 — scope decisions resolved; #24 in progress
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -112,7 +112,7 @@ those themes produces work that has to be revisited.
 | Tier | Issues | Condition |
 | ---: | --- | --- |
 | 0 | #48, #47 | Complete on `release/1.2.0` |
-| 1 | **#24**, #26, #27, #45 | Actionable now; no P3 prerequisite |
+| 1 | **#24 — in progress**, #26, #27, #45 | Actionable now; no P3 prerequisite |
 | 2 | #21, #23, #25, #28 | Requires #24 |
 | 3 | #22, #29 | Requires #23 / requires #24 + #25 |
 | 4 | #46, then #44 | Requires the interfaces above to be stable |
@@ -155,10 +155,12 @@ v1.2.0 is ready to release only when all of the following hold:
 
 These affect more than one issue and are recorded here until resolved.
 
-| ID | Decision | Status |
+| ID | Decision | Resolution |
 | --- | --- | --- |
-| D-01 | Whether to ship a `1.1.1` patch for the four fixes merged by [#43](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/pull/43). They sit on `main` under `Unreleased` and are absent from the immutable `v1.1.0` tag, so published consumers do not have them — including the `Retry-After` fallback defect. Deferring them to v1.2.0 leaves that gap open for the whole milestone. | Open |
-| D-02 | Whether v1.2.0 should carry all thirteen issues. The milestone mixes template hardening (#24, #45, #47) with portfolio automation across seven repositories (#25, #28, #29) and a complete wiki (#46). Splitting portfolio and wiki work into v1.3.0 would shorten the release and keep the contract change reviewable. | Open |
+| D-01 | Whether to ship a `1.1.1` patch for the four fixes merged by [#43](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/pull/43). | **Resolved — no `1.1.1`.** The fixes ship with v1.2.0. Consumers of the published v1.1.0 release do not receive them until then; this is accepted. |
+| D-02 | Whether v1.2.0 should carry all thirteen issues. | **Resolved — one release.** All thirteen issues remain in v1.2.0; the milestone is not split. |
+
+Both decisions were taken by the maintainer on 2026-09-06. No decision is open.
 
 ---
 

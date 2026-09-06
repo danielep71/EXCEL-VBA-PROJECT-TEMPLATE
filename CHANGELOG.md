@@ -99,6 +99,11 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+### Added
+
+- Versioned the template contract independently from the generated project's product version. `.github/repository-profile.json` now records `template_contract` with the adopted contract version and the template repository that published it; `VERSION` continues to describe only the project, and changing it never rewrites the adopted baseline. `docs/TEMPLATE_CONTRACT.md` is the authority for the contract's SemVer policy and carries migration notes for every supported version, classified as breaking, required, optional or not applicable.
+- Added `tools/check_template_contract.py`, the focused gate owning the contract's semantics. It resolves the rule set registered for the *recorded* version, so a repository is evaluated against the contract it adopted rather than the newest one; rejects unsupported or non-canonical versions with a message naming the supported set; requires migration notes for every supported version; and enforces the source invariants — a template publishes its own contract, a generated repository names the template it adopted and never itself. Initialization now records the adopted contract and the initializer self-test proves it survives generation unchanged for all three profiles.
+
 ### Changed
 
 - Consolidated the focused-gate CLI orchestration that was provably identical across gates into the typed `run_gate` runner in `tools/_gatelib.py`: `--self-test` dispatch, canonical JSON serialization, Markdown summary writing, console output and the pass/findings/could-not-complete exit mapping. Eight gates now consume it; `check_release.py`, `test_workflow_validation.py` and `initialize_repository.py` keep their own entry points, and `check_repo.py` remains a self-contained single file that never imports the helper. Each gate keeps its own semantic rules, fixtures, report schema, Markdown renderer and operational-exception tuple, so no gate's exception handling was widened and programming errors still raise instead of being reported as an operational exit.
