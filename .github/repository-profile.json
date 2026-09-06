@@ -220,6 +220,7 @@
       "assets/social-preview.png",
       "assets/social-preview.svg",
       "docs/CHECKER_DEVELOPMENT.md",
+      "docs/IMPLEMENTATION_PLAN.md",
       "docs/PILOT_CERTIFICATION.md",
       "docs/PORTFOLIO_AUDIT.md",
       "tools/check_policy_coverage.py",

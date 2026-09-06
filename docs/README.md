@@ -43,6 +43,10 @@ may summarize it, but must link here rather than restating a competing rule.
 These records belong to the canonical template and are removed from generated
 projects:
 
+- [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) — temporary execution
+  document for the active milestone: dependency order, current next action and
+  exit gate only. It never owns a normative contract, and it is deleted once the
+  milestone is released.
 - [`PILOT_CERTIFICATION.md`](PILOT_CERTIFICATION.md) — exact v1.0.0 pilot and
   live-governance certification evidence.
 - [`PORTFOLIO_AUDIT.md`](PORTFOLIO_AUDIT.md) — frozen portfolio evidence used to
