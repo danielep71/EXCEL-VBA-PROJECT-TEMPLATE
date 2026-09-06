@@ -326,12 +326,18 @@ def _directory_readme(project_name: str, profile: str, directory: str) -> bytes:
     return content.encode("utf-8")
 
 
-def _record(profile: str, scalars: dict[str, str], repeatable: dict[str, list[str]]) -> bytes:
+def _record(
+    profile: str,
+    scalars: dict[str, str],
+    repeatable: dict[str, list[str]],
+    contract: dict[str, Any],
+) -> bytes:
     values: dict[str, Any] = dict(sorted(scalars.items()))
     values.update({name: items for name, items in sorted(repeatable.items())})
     document = {
         "schema_version": 1,
         "profile": profile,
+        "template_contract": contract,
         "values": values,
     }
     return (json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
@@ -352,7 +358,7 @@ def _already_initialized(
         raise InitializationError(f"Generated repository is missing {RECORD_PATH}.") from error
     if config.get("profile") != profile or config.get("repository") != scalars["REPOSITORY_PATH"]:
         raise InitializationError("Repository is already initialized with different profile or repository inputs.")
-    if existing != _record(profile, scalars, repeatable):
+    if existing != _record(profile, scalars, repeatable, config.get("template_contract", {})):
         raise InitializationError("Repository is already initialized with different substitution inputs.")
     return True
 
@@ -498,7 +504,9 @@ def _build_changes(
     changes[CONFIG_PATH] = (
         json.dumps(generated_config, indent=2, ensure_ascii=False) + "\n"
     ).encode("utf-8")
-    changes[RECORD_PATH] = _record(profile, scalars, repeatable)
+    changes[RECORD_PATH] = _record(
+        profile, scalars, repeatable, generated_config.get("template_contract", {})
+    )
 
     profile_settings = generated_config["profiles"][profile]
     for directory in profile_settings["required_directories"]:
@@ -856,6 +864,7 @@ def _record_arguments(root: Path) -> tuple[str, list[str], list[str]]:
         record.get("schema_version") != 1
         or record.get("profile") not in SUPPORTED_PROFILES
         or not isinstance(record.get("values"), dict)
+        or not isinstance(record.get("template_contract"), dict)
     ):
         raise AssertionError(f"Generated repository has an invalid {RECORD_PATH} contract.")
 
@@ -870,6 +879,39 @@ def _record_arguments(root: Path) -> tuple[str, list[str], list[str]]:
             raise AssertionError(f"{RECORD_PATH} contains an invalid value for {name}.")
     return record["profile"], scalars, repeatable
 
+
+def _assert_adopted_contract(source: Path, config: dict[str, Any]) -> None:
+    """The adopted template contract survives initialization unchanged.
+
+    ``repository`` becomes the generated project, but ``template_contract`` names
+    the baseline it adopted and the template that published it. Substituting
+    either would make the recorded baseline unusable for conformance.
+    """
+    contract = config.get("template_contract")
+    if not isinstance(contract, dict) or set(contract) != {"version", "source"}:
+        raise AssertionError(
+            "Generated repository policy does not record a well-formed template_contract."
+        )
+    record = json.loads((source / RECORD_PATH).read_text(encoding="utf-8"))
+    if record.get("template_contract") != contract:
+        raise AssertionError(
+            "Generated policy and initialization record disagree on the adopted contract."
+        )
+    if contract["source"] == config.get("repository"):
+        raise AssertionError(
+            "Generated repository claims to be its own template contract source."
+        )
+    completed = subprocess.run(
+        [sys.executable, str(source / "tools" / "check_template_contract.py"), "--root", str(source)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise AssertionError(
+            f"Generated repository failed the template-contract gate:\n"
+            f"{completed.stdout}{completed.stderr}"
+        )
 
 def _generated_self_test(source: Path) -> None:
     config = _load_config(source)
@@ -895,6 +937,7 @@ def _generated_self_test(source: Path) -> None:
         )
     if config.get("profile") != profile or config.get("repository") != repository:
         raise AssertionError("Generated repository policy and initialization record disagree.")
+    _assert_adopted_contract(source, config)
     _assert_generated_cleanup(source, profile, repository)
 
     completed, report = _quality_report(source)

@@ -230,6 +230,20 @@ jobs:
           --output test-results/local-actions.json
           --summary test-results/local-actions.md
 
+      - name: Exercise template-contract fixtures
+        id: template-contract-self-test
+        continue-on-error: true
+        run: python3 tools/check_template_contract.py --root . --self-test
+
+      - name: Validate the adopted template contract
+        id: template-contract
+        continue-on-error: true
+        run: >-
+          python3 tools/check_template_contract.py
+          --root .
+          --output test-results/template-contract.json
+          --summary test-results/template-contract.md
+
       - name: Exercise positive and degraded checker paths
         id: self-test
         continue-on-error: true
@@ -297,6 +311,8 @@ jobs:
             test-results/vba-public-api.md
             test-results/local-actions.json
             test-results/local-actions.md
+            test-results/template-contract.json
+            test-results/template-contract.md
             test-results/actionlint-version.txt
             test-results/workflow-validation.md
             test-results/release-self-test.md
@@ -329,6 +345,8 @@ jobs:
           VBA_API_OUTCOME: ${{ steps.vba-api.outcome }}
           LOCAL_ACTION_SELF_TEST_OUTCOME: ${{ steps.local-action-self-test.outcome }}
           LOCAL_ACTIONS_OUTCOME: ${{ steps.local-actions.outcome }}
+          TEMPLATE_CONTRACT_SELF_TEST_OUTCOME: ${{ steps.template-contract-self-test.outcome }}
+          TEMPLATE_CONTRACT_OUTCOME: ${{ steps.template-contract.outcome }}
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
@@ -356,6 +374,8 @@ jobs:
             "VBA public API:$VBA_API_OUTCOME" \
             "Repository-local Action self-test:$LOCAL_ACTION_SELF_TEST_OUTCOME" \
             "Repository-local Actions:$LOCAL_ACTIONS_OUTCOME" \
+            "Template-contract self-test:$TEMPLATE_CONTRACT_SELF_TEST_OUTCOME" \
+            "Template contract:$TEMPLATE_CONTRACT_OUTCOME" \
             "Checker self-test:$SELF_TEST_OUTCOME" \
             "Repository gate:$GATE_OUTCOME" \
             "Job-summary:$SUMMARY_OUTCOME" \

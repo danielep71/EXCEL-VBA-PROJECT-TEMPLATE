@@ -28,6 +28,7 @@ may summarize it, but must link here rather than restating a competing rule.
 | Release sequence and maintainer decision points | [`../RELEASING.md`](../RELEASING.md) | Release navigation only |
 | SemVer/changelog ordering and comparison-link semantics | [`RELEASE_SEMANTICS.md`](RELEASE_SEMANTICS.md) | Reference to the semantic gate |
 | External release-evidence JSON, profile evidence and asset manifests | [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) | Reference to evidence requirements |
+| Adopted template contract version, its SemVer policy and migration notes | [`TEMPLATE_CONTRACT.md`](TEMPLATE_CONTRACT.md) | The recorded version; never a competing policy |
 | Public VBA surface | [`PUBLIC_API.txt`](PUBLIC_API.txt) | Human-readable API summary only |
 | Live repository provisioning and verification after generation | [`POST_CREATION_CHECKLIST.md`](POST_CREATION_CHECKLIST.md) | One reminder that settings are not inherited |
 <!-- template:remove:start -->
@@ -43,6 +44,10 @@ may summarize it, but must link here rather than restating a competing rule.
 These records belong to the canonical template and are removed from generated
 projects:
 
+- [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) — temporary execution
+  document for the active milestone: dependency order, current next action and
+  exit gate only. It never owns a normative contract, and it is deleted once the
+  milestone is released.
 - [`PILOT_CERTIFICATION.md`](PILOT_CERTIFICATION.md) — exact v1.0.0 pilot and
   live-governance certification evidence.
 - [`PORTFOLIO_AUDIT.md`](PORTFOLIO_AUDIT.md) — frozen portfolio evidence used to

@@ -176,6 +176,7 @@ CONFIG_KEYS = {
     "mode",
     "profile",
     "repository",
+    "template_contract",
     "label_domains",
     "required_paths",
     "required_directories",
@@ -2501,6 +2502,7 @@ def _fixture_configuration() -> dict[str, Any]:
         "mode": "generated",
         "profile": "library",
         "repository": "example/fixture",
+        "template_contract": {"version": "1.2.0", "source": "example/template"},
         "label_domains": [],
         "required_paths": [
             ".editorconfig",
