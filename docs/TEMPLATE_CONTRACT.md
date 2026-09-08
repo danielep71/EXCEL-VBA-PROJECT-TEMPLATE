@@ -90,6 +90,15 @@ Each entry classifies its changes as **breaking**, **required**, **optional** or
 | `docs/TEMPLATE_CONTRACT.md` is a required path | Required | Adopt this document so the recorded baseline is explainable |
 | `tools/check_template_contract.py` validates the recorded contract | Required | Run it locally and in CI alongside the canonical checker |
 | Focused-gate CLI orchestration consolidated into `tools/_gatelib.py` | Not applicable | Internal to the template's tooling; no public CLI changed |
+| Static repository checks expose reusable interface v1 | Optional | Follow [REUSABLE_WORKFLOWS.md](REUSABLE_WORKFLOWS.md) to adopt an exact workflow commit; copied workflows remain supported |
+| Generated workflow identity checks recognize immutable references to the recorded template source | Optional | Update the canonical checker before adopting a reusable workflow; no broad identity-path exclusion is needed |
+
+Reusable interface v1 adds no required control and does not change the resolved
+rule sets above. Its compatibility policy is owned by
+[REUSABLE_WORKFLOWS.md](REUSABLE_WORKFLOWS.md). A future breaking interface change
+must introduce a new interface major and a new template-contract version with a
+corresponding `CONTRACT_RULE_SETS` entry and migration note; do not redefine a
+published contract or move a published pin.
 
 ### 1.1.0
 

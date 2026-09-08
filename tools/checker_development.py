@@ -66,6 +66,7 @@ GATE_RUNNER_CONSUMERS = frozenset(
     }
 )
 GATE_RUNNER_EXCLUSIONS = {
+    "create_reusable_workflow_fixture.py": "disposable consumer provisioning, not a report gate",
     "check_release.py": (
         "atomic evidence writes and a console rendering distinct from its Markdown summary"
     ),
@@ -222,6 +223,40 @@ def parser_tests(module: ModuleType) -> list[dict[str, Any]]:
         f"observed: {stripped!r}",
     )
 
+    return results
+
+
+def reusable_identity_tests(module: ModuleType) -> list[dict[str, Any]]:
+    source = "example/TEMPLATE"
+    reference = source + "/.github/workflows/static-checks.yml@" + "a" * 40
+    path = ".github/workflows/consumer.yml"
+    config: dict[str, Any] = {
+        "mode": "generated",
+        "identity": {"template_tokens": ["TEMPLATE"], "forbidden_tokens": []},
+        "template_contract": {"source": source},
+    }
+    cases = [
+        ("exact-pin", path, reference, False),
+        ("quoted-pin", path, 'uses: "' + reference + '"', False),
+        ("floating-ref", path, reference[:-40] + "main", True),
+        ("short-sha", path, reference[:-1], True),
+        ("long-sha", path, reference + "a", True),
+        ("other-source", path, reference.replace("example/", "other/"), True),
+        ("prefix-spoof", path, "other/" + reference, True),
+        ("readme-branding", "README.md", reference, True),
+        ("stray-branding", path, reference + "\n# TEMPLATE", True),
+        ("path-traversal", path, reference.replace("static-checks", "../static-checks"), True),
+    ]
+    results = []
+    for name, file, text, forbidden in cases:
+        actual = module._identity_scan_text(file, text, config, "TEMPLATE")
+        ok = ("TEMPLATE" in actual) == forbidden and len(actual) == len(text)
+        results.append({"id": "reusable-identity-" + name,
+                        "status": "pass" if ok else "fail", "detail": ""})
+    config["identity"]["forbidden_tokens"] = ["TEMPLATE"]
+    actual = module._identity_scan_text(path, reference, config, "TEMPLATE")
+    results.append({"id": "reusable-identity-donor-still-forbidden",
+                    "status": "pass" if actual == reference else "fail", "detail": ""})
     return results
 
 
@@ -640,7 +675,7 @@ def build_report(root: Path) -> dict[str, Any]:
     shared_library, shared_failures = shared_library_report(root)
     failures.extend(shared_failures)
 
-    parser_results = parser_tests(module)
+    parser_results = parser_tests(module) + reusable_identity_tests(module)
     reporter_results = reporter_tests(module)
     cli_results = cli_tests(module, checker)
     gate_results = gate_runner_tests()

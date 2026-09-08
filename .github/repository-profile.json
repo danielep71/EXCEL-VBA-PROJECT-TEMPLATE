@@ -231,6 +231,7 @@
       "docs/PORTFOLIO_AUDIT.md",
       "tools/check_policy_coverage.py",
       "tools/checker_development.py",
+      "tools/create_reusable_workflow_fixture.py",
       "tools/policy_coverage_cases_config.py",
       "tools/policy_coverage_cases_quality.py",
       "tools/policy_coverage_cases_repo.py",

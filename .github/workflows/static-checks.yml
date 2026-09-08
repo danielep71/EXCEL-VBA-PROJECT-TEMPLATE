@@ -17,6 +17,17 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      expected-profile:
+        description: "Optional generated profile assertion: application, library, or ui-component"
+        type: string
+        required: false
+        default: ""
+    outputs:
+      candidate-sha:
+        description: Exact caller commit checked; valid only when the job succeeds
+        value: ${{ jobs.repository-integrity.outputs.candidate-sha }}
 
 permissions:
   contents: read
@@ -34,6 +45,8 @@ jobs:
     name: Repository integrity
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    outputs:
+      candidate-sha: ${{ steps.candidate.outputs.sha }}
     env:
       PYTHONUTF8: "1"
       PYTHONDONTWRITEBYTECODE: "1"
@@ -49,6 +62,28 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+
+      - name: Verify caller identity and optional profile assertion
+        id: candidate
+        env:
+          EXPECTED_PROFILE: ${{ inputs.expected-profile || '' }}
+          CANDIDATE_SHA: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          expected = os.environ["EXPECTED_PROFILE"]
+          if expected:
+              if expected not in {"application", "library", "ui-component"}:
+                  raise SystemExit("Unsupported expected-profile")
+              config = json.loads(Path(".github/repository-profile.json").read_text())
+              if config.get("mode") != "generated" or config.get("profile") != expected:
+                  raise SystemExit("Caller is not the expected generated profile")
+          PY
+          printf 'sha=%s\n' "$CANDIDATE_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Set up pinned Python runtime
         id: python-runtime
@@ -325,6 +360,7 @@ jobs:
       - name: Enforce self-test and repository results
         if: always()
         env:
+          CANDIDATE_OUTCOME: ${{ steps.candidate.outcome }}
           PYTHON_RUNTIME_OUTCOME: ${{ steps.python-runtime.outcome }}
           PYTHON_QUALITY_INSTALL_OUTCOME: ${{ steps.python-quality-install.outcome }}
           RUFF_OUTCOME: ${{ steps.ruff.outcome }}
@@ -354,6 +390,7 @@ jobs:
         run: |
           failed=0
           for item in \
+            "Caller identity and profile:$CANDIDATE_OUTCOME" \
             "Pinned Python runtime:$PYTHON_RUNTIME_OUTCOME" \
             "Python quality-tool installation:$PYTHON_QUALITY_INSTALL_OUTCOME" \
             "Ruff lint:$RUFF_OUTCOME" \

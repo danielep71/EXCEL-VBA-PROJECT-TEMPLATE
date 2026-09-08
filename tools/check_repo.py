@@ -701,6 +701,24 @@ def check_placeholders(
     )
 
 
+def _identity_scan_text(path: str, text: str, config: dict[str, Any], token: str) -> str:
+    """Mask only immutable upstream workflow references, not donor branding."""
+    contract = config.get("template_contract")
+    if (
+        config["mode"] != "generated"
+        or token not in config["identity"]["template_tokens"]
+        or token in config["identity"]["forbidden_tokens"]
+        or not path.startswith(".github/workflows/")
+        or Path(path).suffix not in {".yml", ".yaml"}
+        or not isinstance(contract, dict)
+        or not isinstance(contract.get("source"), str)
+    ):
+        return text
+    source = re.escape(contract["source"])
+    pattern = rf"(?<![\w/.-]){source}/\.github/workflows/[\w-]+\.ya?ml@[0-9a-f]{{40}}(?=$|[\s\"'])"
+    return re.sub(pattern, lambda match: " " * len(match.group()), text)
+
+
 def check_identity(
     repo: Repository, config: dict[str, Any]
 ) -> dict[str, Any]:
@@ -719,8 +737,8 @@ def check_identity(
         except (OSError, UnicodeError):
             continue
         checked += 1
-        folded = text.casefold()
         for token in tokens:
+            folded = _identity_scan_text(path, text, config, token).casefold()
             offset = folded.find(token.casefold())
             if offset >= 0:
                 failures.append(

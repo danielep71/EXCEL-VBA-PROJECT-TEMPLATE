@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 3 — #24 complete; contract root delivered
+**Plan revision:** 4 — #23 in progress; reusable interface and consumer verification
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -128,7 +128,7 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Begin [#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23)
+**Complete [#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23)
 — P3-04, versioned reusable workflows.**
 
 #24 delivered `template_contract`, so tier 2 is unblocked. #23 sits on the
