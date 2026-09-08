@@ -30,8 +30,8 @@ permissions:
   contents: read
 jobs:
   generic:
-    # Interface development snapshot, not a published product release.
-    uses: danielep71/EXCEL-VBA-PROJECT-TEMPLATE/.github/workflows/static-checks.yml@{workflow_sha} # v1.0.0-dev
+    # Workflow interface version, independent of the product release.
+    uses: danielep71/EXCEL-VBA-PROJECT-TEMPLATE/.github/workflows/static-checks.yml@{workflow_sha} # v1.0.0
     with:
       expected-profile: {profile}
   specialist:

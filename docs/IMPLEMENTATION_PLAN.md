@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 4 — #23 in progress; reusable interface and consumer verification
+**Plan revision:** 5 — #23 complete; reusable interface published by immutable SHA
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -59,8 +59,9 @@ Thirteen issues, all assigned to the `v1.2.0` milestone.
 
 Completed on this branch: [#48](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/48)
 (baseline integration of the #43 fixes),
-[#47](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/47) and
-[#24](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/24).
+[#47](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/47),
+[#24](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/24) and
+[#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23).
 
 ---
 
@@ -112,10 +113,10 @@ those themes produces work that has to be revisited.
 
 | Tier | Issues | Condition |
 | ---: | --- | --- |
-| 0 | #48, #47, **#24** | Complete on `release/1.2.0` |
+| 0 | #48, #47, #24, **#23** | Complete on `release/1.2.0` |
 | 1 | #26, #27, #45 | Actionable now; no P3 prerequisite |
-| 2 | #21, #23, #25, #28 | **Unblocked** — #24 delivered `template_contract` |
-| 3 | #22, #29 | Requires #23 / requires #24 + #25 |
+| 2 | #21, #25, #28 | **Unblocked** — #24 delivered `template_contract` |
+| 3 | #22, #29 | **#22 unblocked** by #23; #29 still requires #25 |
 | 4 | #46, then #44 | Requires the interfaces above to be stable |
 
 Tier 1 can run in parallel: #26, #27 and #45 touch assurance, link policy and
@@ -128,14 +129,14 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Complete [#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23)
-— P3-04, versioned reusable workflows.**
+**Begin [#22](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/22)
+— P3-05, controlled dependency-update policy.**
 
-#24 delivered `template_contract`, so tier 2 is unblocked. #23 sits on the
-longest remaining path to the final documentation audit
-(#23 → #46 → #44), and it also blocks #22. Starting it first keeps the
-critical path moving; #26, #27 and #45 remain independently actionable in
-parallel and contend with nothing.
+#23 delivered reusable interface v1 and a verified immutable provider pin.
+#22 can now define reviewed updates for that pin alongside existing third-party
+action and tool pins, completing the distribution/supply-chain sequence.
+#21, #25, #28 and the tier-1 issues remain independently actionable; this next
+action does not create a new dependency between them.
 
 `CONTRACT_RULE_SETS` in `tools/check_template_contract.py` is the registry a
 contract-affecting change extends, and `docs/TEMPLATE_CONTRACT.md` is where its

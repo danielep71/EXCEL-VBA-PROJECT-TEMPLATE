@@ -24,11 +24,22 @@ generic result never claims to certify any of those activities.
 
 ## 📋 Interface v1
 
-The initial interface revision is `1.0.0-dev`, independent of the product release
-and template contract. Annotate its immutable caller pin with
-`# v1.0.0-dev` until v1.2.0 publication, then use
-the audited release annotation. A version comment describes the pin; it never
-substitutes for the full SHA or proves a release was published.
+The initial interface revision is `1.0.0`, independent of the product release
+and template contract. Annotate its immutable caller pin with `# v1.0.0`.
+A version comment describes the pin; it never substitutes for the full SHA.
+
+### Published immutable pin
+
+| Interface | Provider commit | Publication |
+| --- | --- | --- |
+| `1.0.0` | `466c48d9f4a5f984ae58561d1441089ef09975d1` | Published by commit SHA on 2026-09-08 after all three hosted consumer fixtures passed |
+
+This is commit-based publication of the workflow interface, **not** publication
+of the v1.2.0 product release, and no product tag was created or moved. The
+verified development snapshot was promoted unchanged; its historical fixture
+comments say `v1.0.0-dev`. Use the exact SHA above, not the current branch head.
+Completion evidence is maintained in upstream issue #23. Fixture test refs are
+disposable and are never consumer pins or merge candidates.
 
 | Surface | Contract |
 | --- | --- |
@@ -65,10 +76,9 @@ restrictions in [Reuse workflows](https://docs.github.com/en/actions/how-tos/reu
 ## 🚀 Adoption, step by step
 
 1. Initialize a supported profile and pass the existing local gates first.
-2. Select an immutable provider commit with green hosted evidence in issue #23
-   of the repository recorded by `template_contract.source`.
-   The implementation is staged for v1.2.0; do not mistake a development SHA for
-   the published v1.1.0 release. Never use `main`, a release branch or a moving
+2. Select the published immutable provider commit above, with green hosted
+   evidence in issue #23 of the repository recorded by `template_contract.source`.
+   Never use `main`, a release branch or a moving
    major tag. Even with a named release, resolve and pin its full commit SHA.
 3. Replace the generic job in the caller's `static-checks.yml` with a job-level
    call to `SOURCE/.github/workflows/static-checks.yml@SHA`, where `SOURCE` is
