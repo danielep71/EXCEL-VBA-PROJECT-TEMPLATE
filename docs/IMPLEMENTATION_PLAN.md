@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 5 — #23 complete; reusable interface published by immutable SHA
+**Plan revision:** 6 — #22 complete; controlled dependency-update policy delivered
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -61,7 +61,8 @@ Completed on this branch: [#48](https://github.com/danielep71/EXCEL-VBA-PROJECT-
 (baseline integration of the #43 fixes),
 [#47](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/47),
 [#24](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/24) and
-[#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23).
+[#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23) and
+[#22](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/22).
 
 ---
 
@@ -113,10 +114,10 @@ those themes produces work that has to be revisited.
 
 | Tier | Issues | Condition |
 | ---: | --- | --- |
-| 0 | #48, #47, #24, **#23** | Complete on `release/1.2.0` |
+| 0 | #48, #47, #24, #23, **#22** | Complete on `release/1.2.0` |
 | 1 | #26, #27, #45 | Actionable now; no P3 prerequisite |
 | 2 | #21, #25, #28 | **Unblocked** — #24 delivered `template_contract` |
-| 3 | #22, #29 | **#22 unblocked** by #23; #29 still requires #25 |
+| 3 | #29 | Still requires #25 |
 | 4 | #46, then #44 | Requires the interfaces above to be stable |
 
 Tier 1 can run in parallel: #26, #27 and #45 touch assurance, link policy and
@@ -129,14 +130,13 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Begin [#22](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/22)
-— P3-05, controlled dependency-update policy.**
+**Begin [#25](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/25)
+— P3-02, semantic portfolio drift detection.**
 
-#23 delivered reusable interface v1 and a verified immutable provider pin.
-#22 can now define reviewed updates for that pin alongside existing third-party
-action and tool pins, completing the distribution/supply-chain sequence.
-#21, #25, #28 and the tier-1 issues remain independently actionable; this next
-action does not create a new dependency between them.
+#23 and #22 complete the reusable-workflow and dependency-policy sequence.
+#25 consumes the versioned contract from #24 and unlocks portfolio reporting
+under #29. #21, #28 and the tier-1 issues remain independently actionable;
+this next action does not create a new dependency between them.
 
 `CONTRACT_RULE_SETS` in `tools/check_template_contract.py` is the registry a
 contract-affecting change extends, and `docs/TEMPLATE_CONTRACT.md` is where its

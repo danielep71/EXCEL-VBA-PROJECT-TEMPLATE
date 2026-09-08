@@ -29,6 +29,7 @@
     "CHANGELOG.md",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
+    "docs/DEPENDENCY_UPDATES.md",
     "docs/INITIALIZATION.md",
     "docs/POST_CREATION_CHECKLIST.md",
     "docs/PUBLIC_API.txt",

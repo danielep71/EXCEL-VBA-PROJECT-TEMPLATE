@@ -87,6 +87,7 @@ Each entry classifies its changes as **breaking**, **required**, **optional** or
 | Change | Class | Adopter action |
 | --- | --- | --- |
 | `template_contract` is recorded in `.github/repository-profile.json` | Required | Add the object with the adopted version and the template source |
+| Controlled dependency updates and `docs/DEPENDENCY_UPDATES.md` | Required | Adopt the policy and PR evidence block; record provenance and rollback, run applicable fixtures, and keep approval/merge manual. This is a minor-level addition to the pending 1.2.0 contract; earlier rule sets are unchanged. |
 | `docs/TEMPLATE_CONTRACT.md` is a required path | Required | Adopt this document so the recorded baseline is explainable |
 | `tools/check_template_contract.py` validates the recorded contract | Required | Run it locally and in CI alongside the canonical checker |
 | Focused-gate CLI orchestration consolidated into `tools/_gatelib.py` | Not applicable | Internal to the template's tooling; no public CLI changed |

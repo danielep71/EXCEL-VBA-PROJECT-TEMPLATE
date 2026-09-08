@@ -68,6 +68,11 @@ test claims in commit messages.
 
 ## 📦 Source-change discipline
 
+Dependency, validation-tool, runtime and reusable-workflow updates follow
+[`docs/DEPENDENCY_UPDATES.md`](docs/DEPENDENCY_UPDATES.md). Complete the PR's
+dependency evidence block and retain a tested rollback target. Merge manually
+only after provenance, trust-boundary and candidate-evidence review.
+
 The exact source/storage contract is maintained in
 [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md). For contribution
 work, the practical rules are:

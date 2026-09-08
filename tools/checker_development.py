@@ -260,6 +260,51 @@ def reusable_identity_tests(module: ModuleType) -> list[dict[str, Any]]:
     return results
 
 
+def dependency_rollback_tests() -> list[dict[str, Any]]:
+    """Prove a grouped pin/config revert restores bytes without rewriting history.
+
+    SHA-shaped values are synthetic; no upstream dependency is executed or
+    authenticated by this test. Provenance review remains a human merge gate.
+    """
+    with tempfile.TemporaryDirectory(prefix="dependency-rollback-") as temporary:
+        root = Path(temporary)
+
+        def command(*arguments: str) -> str:
+            return subprocess.run(
+                ["git", "-C", str(root), "-c", "user.name=Rollback Fixture",
+                 "-c", "user.email=fixture@example.invalid", *arguments],
+                check=True, capture_output=True, text=True,
+            ).stdout.strip()
+
+        command("init", "-b", "main")
+        pin = root / "dependency.txt"
+        coupled = root / "validator.txt"
+        pin.write_text("1" * 40 + "\n", encoding="utf-8")
+        coupled.write_text("1.0.0\n", encoding="utf-8")
+        command("add", "--all")
+        command("commit", "-m", "Record passing synthetic baseline")
+        baseline = command("rev-parse", "HEAD")
+        tree = command("rev-parse", "HEAD^{tree}")
+        pin.write_text("2" * 40 + "\n", encoding="utf-8")
+        coupled.write_text("2.0.0\n", encoding="utf-8")
+        command("add", "--all")
+        command("commit", "-m", "Propose synthetic coupled update")
+        update = command("rev-parse", "HEAD")
+        changed = command("rev-parse", "HEAD^{tree}") != tree
+        command("revert", "--no-edit", update)
+        restored = command("rev-parse", "HEAD^{tree}") == tree
+        forward = command("rev-parse", "HEAD^") == update
+        forward = forward and command("rev-parse", "HEAD") != baseline
+    return [
+        {"id": name, "status": "pass" if ok else "fail", "detail": ""}
+        for name, ok in (
+            ("dependency-rollback-update-changes-tree", changed),
+            ("dependency-rollback-restores-complete-tree", restored),
+            ("dependency-rollback-preserves-forward-history", forward),
+        )
+    ]
+
+
 def reporter_tests(module: ModuleType) -> list[dict[str, Any]]:
     finding = module.finding("README.md", "Pipe | must be escaped", 7)
     failed = module.rule_result("sample", "Sample", [finding], "")
@@ -675,7 +720,8 @@ def build_report(root: Path) -> dict[str, Any]:
     shared_library, shared_failures = shared_library_report(root)
     failures.extend(shared_failures)
 
-    parser_results = parser_tests(module) + reusable_identity_tests(module)
+    parser_results = (parser_tests(module) + reusable_identity_tests(module)
+                      + dependency_rollback_tests())
     reporter_results = reporter_tests(module)
     cli_results = cli_tests(module, checker)
     gate_results = gate_runner_tests()

@@ -127,6 +127,10 @@ of a mismatched/invalid profile and a failing local specialist requirement.
 
 ## 🔄 Compatibility, deprecation and rollback
 
+Discovery, provenance evidence and manual approval for pin updates follow
+[DEPENDENCY_UPDATES.md](DEPENDENCY_UPDATES.md). The interface-specific rules below
+remain authoritative for compatibility and coupled caller-tool migrations.
+
 - Workflow revisions keep the interface-v1 inputs/output meanings and the
   caller-local tool boundary. New optional inputs may be additive; existing
   calls must continue to work at their original pins.

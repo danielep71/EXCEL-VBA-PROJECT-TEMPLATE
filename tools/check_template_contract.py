@@ -71,6 +71,7 @@ CONTRACT_RULE_SETS: dict[str, frozenset[str]] = {
             "canonical-repository-gate",
             "committed-whitespace",
             "complete-public-api",
+            "controlled-dependency-updates",
             "deterministic-initializer",
             "label-drift-detection",
             "label-policy",

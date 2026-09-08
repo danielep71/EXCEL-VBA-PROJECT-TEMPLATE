@@ -92,8 +92,8 @@ channels and disclosure process.
 The canonical single-maintainer baseline is:
 
 - [ ] merge commits, squash merging, and rebasing are enabled;
-- [ ] automatic merging is disabled until required checks and review policy are
-  intentionally configured;
+- [ ] automatic merging is disabled; dependency updates require the manual
+  approval and merge process in [DEPENDENCY_UPDATES.md](DEPENDENCY_UPDATES.md);
 - [ ] head branches are deleted after merge;
 - [ ] contributors may update pull-request branches; and
 - [ ] commit-message/title defaults are reviewed for the repository's release
