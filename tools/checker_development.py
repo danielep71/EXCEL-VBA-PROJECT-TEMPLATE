@@ -84,6 +84,13 @@ GATE_RUNNER_EXCLUSIONS = {
 # These CLIs deliberately keep their fixtures separate from operational arguments.
 # Reasons identify the alternate test command, or explicitly disclose no offline suite.
 SELF_TEST_EXCLUSIONS = {
+    "test_documentation.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_excel_evidence.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_portfolio_drift.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_portfolio_quality.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_provision_repository.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_release_provenance.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_wiki.py": "Unittest CLI; normal invocation runs its fixture suite",
     "check_documentation.py": "Offline fixtures: python tools/test_documentation.py -v",
     "check_wiki.py": "Offline fixtures: python tools/test_wiki.py -v",
     "check_external_links.py": "Simulated HTTP fixtures: python tools/test_documentation.py -v",
@@ -709,6 +716,31 @@ def self_test_declaration_failures(
     return failures
 
 
+def has_cli_entry_point(tree: ast.Module) -> bool:
+    """Include executable main guards regardless of the called function's name."""
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "main":
+            return True
+        if isinstance(node, ast.ImportFrom) and any(
+            (alias.asname or alias.name) == "main" for alias in node.names
+        ):
+            return True
+        if not isinstance(node, ast.If):
+            continue
+        for condition in ast.walk(node.test):
+            if not isinstance(condition, ast.Compare):
+                continue
+            operands = [condition.left, *condition.comparators]
+            for left, operator, right in zip(operands, condition.ops, operands[1:]):
+                if not isinstance(operator, ast.Eq):
+                    continue
+                for name, value in ((left, right), (right, left)):
+                    if (isinstance(name, ast.Name) and name.id == "__name__"
+                            and isinstance(value, ast.Constant) and value.value == "__main__"):
+                        return True
+    return False
+
+
 def self_test_interface_report(root: Path) -> tuple[list[dict[str, Any]], list[str]]:
     """Inspect live CLI help, including wrappers; never execute operational modes."""
     rows = []
@@ -716,14 +748,7 @@ def self_test_interface_report(root: Path) -> tuple[list[dict[str, Any]], list[s
     advertised = {}
     for path in sorted((root / "tools").glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        # Include imported-main wrappers, but leave unittest scripts to their suites.
-        has_main = any(
-            isinstance(node, ast.FunctionDef) and node.name == "main"
-            or isinstance(node, ast.ImportFrom)
-            and any((alias.asname or alias.name) == "main" for alias in node.names)
-            for node in tree.body
-        )
-        if not has_main:
+        if not has_cli_entry_point(tree):
             continue
         completed = subprocess.run(
             [sys.executable, str(path.resolve()), "--help"],
@@ -737,6 +762,37 @@ def self_test_interface_report(root: Path) -> tuple[list[dict[str, Any]], list[s
                      "exclusion": SELF_TEST_EXCLUSIONS.get(path.name)})
     failures.extend(self_test_declaration_failures(advertised, SELF_TEST_EXCLUSIONS))
     return rows, failures
+
+
+def cli_discovery_tests() -> list[dict[str, Any]]:
+    """Exercise discovery through the actual help audit and its rejection path."""
+    bodies = {
+        "named-cli": "def cli():\n    parser.parse_args()\nif __name__ == '__main__':\n    cli()\n",
+        "qualified-main": (
+            "import types\nrunner = types.SimpleNamespace(main=parser.parse_args)\n"
+            "if __name__ == '__main__':\n    runner.main()\n"
+        ),
+        "reversed-guard": "if '__main__' == __name__:\n    parser.parse_args()\n",
+        "direct-guard": "if __name__ == '__main__':\n    parser.parse_args()\n",
+    }
+    results = []
+    with tempfile.TemporaryDirectory(prefix="cli-discovery-") as temporary:
+        root = Path(temporary)
+        (root / "tools").mkdir()
+        path = root / "tools/new_gate.py"
+        for name, body in bodies.items():
+            path.write_text("import argparse\nparser = argparse.ArgumentParser()\n" + body,
+                            encoding="utf-8")
+            rows, failures = self_test_interface_report(root)
+            rejected = any(row["tool"] == path.name for row in rows) and (
+                "new_gate.py lacks --self-test and a documented exclusion" in failures
+            )
+            results.append({"id": "cli-discovery-" + name,
+                            "status": "pass" if rejected else "fail", "detail": ""})
+    helper = ast.parse("def helper():\n    return 1\n")
+    results.append({"id": "cli-discovery-helper-excluded",
+                    "status": "pass" if not has_cli_entry_point(helper) else "fail", "detail": ""})
+    return results
 
 
 def self_test_registry_tests() -> list[dict[str, Any]]:
@@ -815,7 +871,7 @@ def build_report(root: Path) -> dict[str, Any]:
                       + dependency_rollback_tests())
     reporter_results = reporter_tests(module)
     cli_results = cli_tests(module, checker)
-    gate_results = gate_runner_tests() + self_test_registry_tests()
+    gate_results = gate_runner_tests() + self_test_registry_tests() + cli_discovery_tests()
     all_unit_results = [*parser_results, *reporter_results, *cli_results, *gate_results]
     failed_units = [item for item in all_unit_results if item["status"] != "pass"]
     if failed_units:
