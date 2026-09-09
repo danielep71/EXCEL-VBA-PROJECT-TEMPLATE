@@ -101,6 +101,8 @@ Use only the categories needed by a release.
 
 ### Added
 
+- Added a discovered CLI self-test interface audit with explicit alternative-suite exclusions and negative controls for missing or stale declarations. Documentation and wiki gates retain their dedicated offline suites; runner ownership remains independently enforced.
+
 - Added reviewed wiki source for the complete new-repository journey, a checked file/directory inventory with actual initializer lifecycle, and deterministic navigation/export/read-back tooling. Offline source checks remain separate from weekly/manual published-wiki observations; publication and pilot evidence are tracked independently from source preparation.
 - Added deterministic documentation command/reference drift checks and a separate weekly/manual external-link workflow with bounded retries, redirects, timeouts and concurrency. Versioned domain approvals and expiring exceptions distinguish missing pages, transient failures and restricted access; reports omit raw URLs and query tokens.
 
