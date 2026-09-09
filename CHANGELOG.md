@@ -102,18 +102,12 @@ Use only the categories needed by a release.
 ### Added
 
 - Added a discovered CLI self-test interface audit with explicit alternative-suite exclusions and negative controls for missing or stale declarations. Documentation and wiki gates retain their dedicated offline suites; runner ownership remains independently enforced.
-
 - Added reviewed wiki source for the complete new-repository journey, a checked file/directory inventory with actual initializer lifecycle, and deterministic navigation/export/read-back tooling. Offline source checks remain separate from weekly/manual published-wiki observations; publication and pilot evidence are tracked independently from source preparation.
 - Added deterministic documentation command/reference drift checks and a separate weekly/manual external-link workflow with bounded retries, redirects, timeouts and concurrency. Versioned domain approvals and expiring exceptions distinguish missing pages, transient failures and restricted access; reports omit raw URLs and query tokens.
-
 - Added an optional Windows/Excel job interface and shared manual evidence schema, with exact-source/log bindings, environment and trust records, explicit expected-error results, and distinct import, compile, test, cleanup and unavailable outcomes. The validator does not execute Office.
-
 - Added contract 1.2.0 release provenance: complete staged-payload checks, source/workflow/build-environment records, and optional SSH signature verification using committed trust policy. Source-only releases remain valid without binary artifacts.
-
 - Added optional versioned provisioning policy and a template-maintenance provisioner that defaults to a read-only exact-state plan. Explicit apply requires the approved plan digest, initialized target SHA, trusted credentials and a durable journal; source changes, stale plans and partial writes cannot be reported as verified. Extra topics/labels and stronger rules are preserved, with simulated coverage for all three profiles and no live portfolio mutations.
-
 - Added timestamped portfolio quality/conformance reports with explicit freshness, exact-SHA required workflow observations, branch/tag protection, published-release evidence and attributed specialist scores. Missing adoption and inaccessible evidence remain visible; popularity never contributes to quality, and publication never implies certification. Existing portfolio repositories remain read-only.
-
 - Added a GET-only portfolio snapshot collector and deterministic structural drift evaluator. Adopted contract versions select required controls; missing adoption remains `ADOPT`, inaccessible evidence remains `UNVERIFIED`, and `DEFER` or profile exceptions cannot erase universal findings. Documented local specialist controls remain separate from generic compliance. Synthetic hosted fixtures exercise all three profiles without modifying portfolio repositories.
 - Defined controlled dependency updates for Actions, reusable workflows, validation tools and execution runtimes. The policy requires manual monitoring and approval, verified source/release evidence, explicit trust-boundary review, exact candidate tests and a recorded rollback target; the PR template carries the evidence block. Existing dependency versions are unchanged, and no automatic updater or merge workflow is installed.
 - Exposed the existing static checks as reusable workflow interface v1, with an optional generated-profile assertion and exact checked-commit output. Consumers pin workflow orchestration by full commit SHA while retaining their reviewed local gate scripts and specialist jobs. Added reproducible consumer fixtures and compatibility, deprecation and rollback guidance in `docs/REUSABLE_WORKFLOWS.md`.
@@ -131,10 +125,8 @@ Use only the categories needed by a release.
 
 - Initialized projects may customize or remove README badges without failing
   initializer self-tests; default badge URLs are checked only in fresh template fixtures.
-
 - The public template README now uses working repository badge URLs; initialization
   retargets the status, release and issue badges and links to the generated repository.
-
 - Distinguish local reusable-workflow job calls from local action steps, and require tracked workflow files.
 - Ignore quoted VBA text when checking jump targets, while retaining checks for executable jumps on the same line.
 - Validate public API declarations across the supported conditional-compilation environments; accept mutually exclusive variants and require every distinct signature in the manifest.
