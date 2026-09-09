@@ -2,6 +2,12 @@
 
 `tools/` contains deterministic maintainer tooling used to validate, package, or produce evidence for the repository.
 
+`check_documentation.py` checks literal documented Python commands and registered
+file/workflow/policy references without executing them. `check_external_links.py`
+produces separate bounded anonymous HTTP observations. Both use `run_gate`;
+`test_documentation.py` supplies offline failure fixtures. See
+[documentation checks](../docs/DOCUMENTATION_CHECKS.md) for policy and scope.
+
 `release_provenance.py` extends `check_release.py` with contract 1.2.0 build
 records, complete payload inventory and optional SSH verification. It has no
 separate CLI. See [the provenance contract](../docs/RELEASE_PROVENANCE.md);

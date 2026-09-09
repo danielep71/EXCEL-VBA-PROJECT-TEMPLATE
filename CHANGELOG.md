@@ -101,6 +101,8 @@ Use only the categories needed by a release.
 
 ### Added
 
+- Added deterministic documentation command/reference drift checks and a separate weekly/manual external-link workflow with bounded retries, redirects, timeouts and concurrency. Versioned domain approvals and expiring exceptions distinguish missing pages, transient failures and restricted access; reports omit raw URLs and query tokens.
+
 - Added an optional Windows/Excel job interface and shared manual evidence schema, with exact-source/log bindings, environment and trust records, explicit expected-error results, and distinct import, compile, test, cleanup and unavailable outcomes. The validator does not execute Office.
 
 - Added contract 1.2.0 release provenance: complete staged-payload checks, source/workflow/build-environment records, and optional SSH signature verification using committed trust policy. Source-only releases remain valid without binary artifacts.

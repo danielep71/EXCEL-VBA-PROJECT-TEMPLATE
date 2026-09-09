@@ -73,6 +73,7 @@ CONTRACT_RULE_SETS: dict[str, frozenset[str]] = {
             "committed-whitespace",
             "complete-public-api",
             "controlled-dependency-updates",
+            "documentation-drift",
             "deterministic-initializer",
             "label-drift-detection",
             "label-policy",

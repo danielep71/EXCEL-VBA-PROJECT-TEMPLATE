@@ -165,6 +165,11 @@ jobs:
           python3 tools/test_release_provenance.py -v
           python3 tools/test_excel_evidence.py -v
 
+      - name: Check maintained documentation contracts
+        run: |
+          python3 tools/test_documentation.py -v
+          python3 tools/check_documentation.py --root .
+
       - name: Exercise strict release-semantics fixtures
         id: release-semantics-self-test
         continue-on-error: true

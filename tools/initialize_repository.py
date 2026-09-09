@@ -940,6 +940,15 @@ def _generated_self_test(source: Path) -> None:
     _assert_adopted_contract(source, config)
     _assert_generated_cleanup(source, profile, repository)
 
+    documented = subprocess.run(
+        [sys.executable, str(source / "tools" / "check_documentation.py"), "--root", str(source)],
+        capture_output=True, text=True, check=False,
+    )
+    if documented.returncode != 0:
+        raise AssertionError(
+            f"Generated repository failed documentation contracts:\n{documented.stdout}{documented.stderr}"
+        )
+
     completed, report = _quality_report(source)
     if completed.returncode != 0 or report.get("status") != "pass":
         raise AssertionError(

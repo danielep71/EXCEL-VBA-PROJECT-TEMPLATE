@@ -96,6 +96,7 @@ restrictions in [Reuse workflows](https://docs.github.com/en/actions/how-tos/reu
    the old required check; never leave a protection gap. Do not merge on output
    SHA presence alone.
 
+<!-- template:remove:start -->
 The template's `tools/create_reusable_workflow_fixture.py` produces
 complete concrete callers from the current template. It is template-maintainer
 tooling and is removed from initialized projects; use its versioned source in
@@ -124,6 +125,7 @@ commit, provider pin, hosted run and both job results in #23. Do not merge
 generated fixture snapshots into the template release branch. Acceptance needs
 real hosted calls, not just YAML parsing. Negative controls must show rejection
 of a mismatched/invalid profile and a failing local specialist requirement.
+<!-- template:remove:end -->
 
 ## 🔄 Compatibility, deprecation and rollback
 
