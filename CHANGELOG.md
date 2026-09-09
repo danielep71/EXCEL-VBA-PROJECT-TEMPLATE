@@ -99,12 +99,40 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+### Added
+
+- Added reviewed wiki source for the complete new-repository journey, a checked file/directory inventory with actual initializer lifecycle, and deterministic navigation/export/read-back tooling. Offline source checks remain separate from weekly/manual published-wiki observations; publication and pilot evidence are tracked independently from source preparation.
+- Added deterministic documentation command/reference drift checks and a separate weekly/manual external-link workflow with bounded retries, redirects, timeouts and concurrency. Versioned domain approvals and expiring exceptions distinguish missing pages, transient failures and restricted access; reports omit raw URLs and query tokens.
+
+- Added an optional Windows/Excel job interface and shared manual evidence schema, with exact-source/log bindings, environment and trust records, explicit expected-error results, and distinct import, compile, test, cleanup and unavailable outcomes. The validator does not execute Office.
+
+- Added contract 1.2.0 release provenance: complete staged-payload checks, source/workflow/build-environment records, and optional SSH signature verification using committed trust policy. Source-only releases remain valid without binary artifacts.
+
+- Added optional versioned provisioning policy and a template-maintenance provisioner that defaults to a read-only exact-state plan. Explicit apply requires the approved plan digest, initialized target SHA, trusted credentials and a durable journal; source changes, stale plans and partial writes cannot be reported as verified. Extra topics/labels and stronger rules are preserved, with simulated coverage for all three profiles and no live portfolio mutations.
+
+- Added timestamped portfolio quality/conformance reports with explicit freshness, exact-SHA required workflow observations, branch/tag protection, published-release evidence and attributed specialist scores. Missing adoption and inaccessible evidence remain visible; popularity never contributes to quality, and publication never implies certification. Existing portfolio repositories remain read-only.
+
+- Added a GET-only portfolio snapshot collector and deterministic structural drift evaluator. Adopted contract versions select required controls; missing adoption remains `ADOPT`, inaccessible evidence remains `UNVERIFIED`, and `DEFER` or profile exceptions cannot erase universal findings. Documented local specialist controls remain separate from generic compliance. Synthetic hosted fixtures exercise all three profiles without modifying portfolio repositories.
+- Defined controlled dependency updates for Actions, reusable workflows, validation tools and execution runtimes. The policy requires manual monitoring and approval, verified source/release evidence, explicit trust-boundary review, exact candidate tests and a recorded rollback target; the PR template carries the evidence block. Existing dependency versions are unchanged, and no automatic updater or merge workflow is installed.
+- Exposed the existing static checks as reusable workflow interface v1, with an optional generated-profile assertion and exact checked-commit output. Consumers pin workflow orchestration by full commit SHA while retaining their reviewed local gate scripts and specialist jobs. Added reproducible consumer fixtures and compatibility, deprecation and rollback guidance in `docs/REUSABLE_WORKFLOWS.md`.
+- Versioned the template contract independently from the generated project's product version. `.github/repository-profile.json` now records `template_contract` with the adopted contract version and the template repository that published it; `VERSION` continues to describe only the project, and changing it never rewrites the adopted baseline. `docs/TEMPLATE_CONTRACT.md` is the authority for the contract's SemVer policy and carries migration notes for every supported version, classified as breaking, required, optional or not applicable.
+- Added `tools/check_template_contract.py`, the focused gate owning the contract's semantics. It resolves the rule set registered for the *recorded* version, so a repository is evaluated against the contract it adopted rather than the newest one; rejects unsupported or non-canonical versions with a message naming the supported set; requires migration notes for every supported version; and enforces the source invariants — a template publishes its own contract, a generated repository names the template it adopted and never itself. Initialization now records the adopted contract and the initializer self-test proves it survives generation unchanged for all three profiles.
+
+### Changed
+
+- Reconciled the documentation and source comments against the v1.2.0 candidate: clarified initialization commit/no-op order, advisory Python line length, runner ownership, historical pilot scope, token permissions, parser behavior and complete Wiki publication. Improved directory-guide presentation and removed a personal portfolio-size assumption.
+- Applied the maintainer's VBA house style to all four starter modules: ordered module banners, procedure contracts, aligned declarations with inline annotations, and explanatory comments beneath execution-phase banners and before key steps. Added `docs/VBA_HOUSE_STYLE.md` as the reusable presentation reference. Executable statements, public API, error contracts and regression output are preserved.
+- Consolidated the focused-gate CLI orchestration that was provably identical across gates into the typed `run_gate` runner in `tools/_gatelib.py`: `--self-test` dispatch, canonical JSON serialization, Markdown summary writing, console output and the pass/findings/could-not-complete exit mapping. The initial eight consumers were extended by the later v1.2.0 gates; `checker_development.py` records the complete consumer/exclusion registry. `check_repo.py` remains a self-contained single file that never imports the helper. Each gate keeps its own semantic rules, fixtures, report schema, Markdown renderer and operational-exception tuple, so no gate's exception handling was widened and programming errors still raise instead of being reported as an operational exit.
+- Extended the checker-development contract to own the shared-runner boundary: every tool defining a top-level `main` must be a declared `run_gate` consumer or a documented exclusion, no tool may redefine the shared helpers locally, and sixteen independent unit tests exercise the runner's CLI flags, defaults and `--help`, self-test dispatch, both self-test diagnostic prefixes, pass/fail/operational exits, deterministic evidence, report-write failures and exception propagation.
+
 ### Fixed
 
 - Distinguish local reusable-workflow job calls from local action steps, and require tracked workflow files.
 - Ignore quoted VBA text when checking jump targets, while retaining checks for executable jumps on the same line.
 - Validate public API declarations across the supported conditional-compilation environments; accept mutually exclusive variants and require every distinct signature in the manifest.
 - Restore bounded exponential retry delays in label synchronization and drift checks when `Retry-After` is absent or empty.
+- Run the checker-development contract and the label-drift and label-validation fixtures on `release/**` pull requests, and run the checker-development contract on `release/**` pushes, so milestone work developed on a release branch is gated by the same hosted checks as `main`.
+- Keep automatic live label reconciliation on trusted path-filtered pushes to `main`; manual dispatch remains an explicit live path. Label-drift detection uses scheduled/manual live reads and offline-only pull-request fixtures. Release-branch pushes alone do not mutate labels.
 
 ## [1.1.0] - 2026-09-05
 

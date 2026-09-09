@@ -81,6 +81,12 @@ The record reports evidence; it does not manufacture it. Copy counts and
 environment details from the exact Excel run, and retain its raw output beside
 the checked JSON.
 
+The optional [Windows/Excel interface](EXCEL_EVIDENCE.md) adds a structured host
+record and retained-log validation. When adopted, declare an
+`excel-host-evidence` check and supply `--excel-evidence`: neither can be omitted
+while retaining the other. An unavailable host record cannot satisfy release
+compile or regression evidence; the documented manual fallback remains valid.
+
 ## 📦 Source-Only and Binary Distributions
 
 A library or template release is source-only by default. Set `distribution` to
@@ -142,6 +148,10 @@ python3 tools/check_release.py \
 ```
 
 Add `--asset-manifest ../release-assets.sha256` for a binary distribution.
+Contract 1.2.0 also requires `--provenance ../release-provenance.json` for
+binary distributions. Follow [RELEASE_PROVENANCE.md](RELEASE_PROVENANCE.md)
+for build records and optional SSH signatures. Keep only deliverable payloads
+in `dist/`: the gate rejects undeclared files there, including non-binary files.
 After creating the annotated tag locally, repeat the command with
 `--require-tag-ref`. That final mode requires the tag object to be annotated and
 to resolve to the same candidate SHA. Any non-zero result blocks publication.

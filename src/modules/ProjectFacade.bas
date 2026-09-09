@@ -1,10 +1,8 @@
 Attribute VB_Name = "ProjectFacade"
-Option Explicit
-
-'===============================================================================
+'==============================================================================
 ' MODULE: ProjectFacade
-'-------------------------------------------------------------------------------
-' RESPONSIBILITY
+'------------------------------------------------------------------------------
+' PURPOSE
 '   Provide the neutral supported entry point and translate core failures into
 '   a stable caller-facing error contract.
 '
@@ -33,34 +31,102 @@ Option Explicit
 ' TEST SEAM
 '   ProjectTests exercises this public surface. ProjectCore remains separately
 '   addressable inside the VBA project without becoming supported public API.
-'===============================================================================
+'
+' COMPATIBILITY
+'   Excel VBA; scalar VBA arithmetic requires no optional references.
+'
+' UPDATED
+'   2026-09-09
+'
+' AUTHOR
+'   Daniele Penza
+'==============================================================================
 
-Public Const PROJECT_ERROR_ZERO_DENOMINATOR As Long = ProjectCore.ERR_ZERO_DENOMINATOR
+'------------------------------------------------------------------------------
+' MODULE SETTINGS
+'------------------------------------------------------------------------------
+    'Require explicit declarations; preserve the configured component visibility.
+    Option Explicit
+
+'------------------------------------------------------------------------------
+' MODULE CONSTANTS
+'------------------------------------------------------------------------------
+    'Expose the core-owned error value without defining a second numeric code.
+        Public Const PROJECT_ERROR_ZERO_DENOMINATOR   As Long = ProjectCore.ERR_ZERO_DENOMINATOR    'Public alias of the core error
+
+
+'
+'------------------------------------------------------------------------------
+'
+'                             SUPPORTED PUBLIC API
+'
+'------------------------------------------------------------------------------
+'
 
 Public Function ProjectRatio( _
     ByVal numerator As Double, _
-    ByVal denominator As Double) As Double
+    ByVal denominator As Double) _
+    As Double
+'
+'==============================================================================
+'                                 ProjectRatio
+'------------------------------------------------------------------------------
+' PURPOSE
+'   Expose checked division through the supported facade.
+'
+' INPUTS
+'   numerator, denominator: explicit scalar Double values.
+'
+' RETURNS
+'   Double quotient when the core call succeeds.
+'
+' ERROR POLICY
+'   Normalize the error source to ProjectFacade.ProjectRatio; preserve the
+'   number, description, help file, and help context supplied by the core.
+'
+' DEPENDENCIES
+'   ProjectCore.DivideChecked. No host-state access.
+'
+' UPDATED
+'   2026-09-09
+'==============================================================================
+'
 
-    Dim savedNumber As Long
-    Dim savedDescription As String
-    Dim savedHelpContext As Long
-    Dim savedHelpFile As String
+'------------------------------------------------------------------------------
+' DECLARE
+'------------------------------------------------------------------------------
+    'Keep every error field needed to preserve the core failure contract.
+    Dim savedNumber        As Long      'Original error number for later re-raise
+    Dim savedDescription   As String    'Original core diagnostic for re-raise
+    Dim savedHelpContext   As Long      'Original help topic passed through the facade
+    Dim savedHelpFile      As String    'Original help file passed through the facade
 
-    On Error GoTo HandleError
+'------------------------------------------------------------------------------
+' CALL CORE
+'------------------------------------------------------------------------------
+    'Delegate the arithmetic to the core; this boundary owns only the
+    'caller-facing error source.
+        On Error GoTo HandleError
 
-    ProjectRatio = ProjectCore.DivideChecked(numerator, denominator)
-    Exit Function
+        ProjectRatio = ProjectCore.DivideChecked(numerator, denominator)
+        Exit Function
 
+'------------------------------------------------------------------------------
+' HANDLE ERROR
+'------------------------------------------------------------------------------
 HandleError:
-    savedNumber = Err.Number
-    savedDescription = Err.Description
-    savedHelpFile = Err.HelpFile
-    savedHelpContext = Err.HelpContext
+    'Capture all fields before Err.Raise replaces the active error record.
+        savedNumber = Err.Number
+        savedDescription = Err.Description
+        savedHelpFile = Err.HelpFile
+        savedHelpContext = Err.HelpContext
 
-    Err.Raise _
-        savedNumber, _
-        "ProjectFacade.ProjectRatio", _
-        savedDescription, _
-        savedHelpFile, _
-        savedHelpContext
+    'Re-raise with the public source while retaining all other core fields.
+        Err.Raise _
+            savedNumber, _
+            "ProjectFacade.ProjectRatio", _
+            savedDescription, _
+            savedHelpFile, _
+            savedHelpContext
+
 End Function

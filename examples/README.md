@@ -1,4 +1,4 @@
-# Examples
+# 💡 Examples
 
 `examples/` contains reproducible, non-production examples that teach the supported API and can be rebuilt from committed source.
 

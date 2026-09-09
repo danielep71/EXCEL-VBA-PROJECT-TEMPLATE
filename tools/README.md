@@ -1,6 +1,55 @@
-# Tools
+# 🛠️ Tools and Validation Guide
 
-`tools/` contains deterministic maintainer tooling used to validate, package, or produce evidence for the repository.
+[![Runtime: Python 3.10](https://img.shields.io/badge/runtime-Python%203.10-1D76DB)](#python-presentation-and-lint-policy)
+[![Evidence: bounded](https://img.shields.io/badge/evidence-explicit%20scope-217346)](#canonical-repository-quality-gate)
+
+`tools/` contains repository validators, evidence collectors and setup tooling.
+
+Local source checks are deterministic. Network collectors and live setup tools
+have separately documented observation, credential and mutation boundaries.
+
+<a id="python-presentation-and-lint-policy"></a>
+
+## 📐 Python presentation and lint policy
+
+[`pyproject.toml`](../pyproject.toml) sets Python 3.10 as the compatibility target
+and 100 columns as a formatting target. CI runs `ruff check tools` with the
+selected E4, E7, E9, F, C90 and S314 rules and a McCabe ceiling of 20, plus mypy.
+E501 is not selected and CI does not run `ruff format --check`; line length and
+formatter output are therefore not blocking rules. Prefer readable wrapping
+without changing literals or churning unrelated code. Editor indentation and
+line endings are defined in [`.editorconfig`](../.editorconfig).
+
+Comments and docstrings explain purpose, inputs, ownership, error handling and
+limits when these are not clear from the code. Check them whenever behavior
+changes. Distinguish synthetic fixtures, structural predicates, live observations
+and executed host evidence; a token variable does not constrain granted scopes.
+
+<!-- template:remove:start -->
+`check_wiki.py` checks the complete tracked-path catalogue and ordered page set,
+refreshes the generated reference/sidebar on request, exports an exact-source
+publication bundle, and compares a fetched Wiki checkout without network writes.
+`test_wiki.py` exercises publication failure boundaries. See
+[Wiki Publication](../docs/WIKI_PUBLICATION.md) and the
+[maintainer journey](../docs/wiki/Home.md). These are template-only tools.
+<!-- template:remove:end -->
+
+`check_documentation.py` checks literal documented Python commands and registered
+file/workflow/policy references without executing them. `check_external_links.py`
+produces separate bounded anonymous HTTP observations. Both use `run_gate`;
+`test_documentation.py` supplies offline failure fixtures. See
+[documentation checks](../docs/DOCUMENTATION_CHECKS.md) for policy and scope.
+
+`release_provenance.py` extends `check_release.py` with contract 1.2.0 build
+records, complete payload inventory and optional SSH verification. It has no
+separate CLI. See [the provenance contract](../docs/RELEASE_PROVENANCE.md);
+`test_release_provenance.py` exercises both the integrated gate and real
+ephemeral signatures without Office or publishing credentials.
+
+`check_excel_evidence.py` validates the optional
+[Windows/Excel host interface](../docs/EXCEL_EVIDENCE.md), using the shared
+`run_gate` runner. Its `test_excel_evidence.py` fixtures exercise synthetic
+manual/automated records and non-green outcomes; neither tool runs Office.
 
 Appropriate contents include:
 
@@ -13,6 +62,20 @@ Appropriate contents include:
 ### Shared focused-gate infrastructure
 
 `_gatelib.py` is the private, standard-library-only owner of Git, report-output, tracked-file, and common focused-gate CLI primitives. `check_repo.py` deliberately does not import it: the canonical checker remains a self-contained distributable artifact. The canonical template also carries checker-development and semantic policy-coverage harnesses; initialization strips those maintainer-only files while retaining the operational gates needed by generated projects.
+
+`_gatelib.run_gate` additionally owns the orchestration shared by focused gates: `--self-test` dispatch, canonical JSON serialization, Markdown summary writing, console output, and the `0` (pass) / `1` (findings) / `2` (could not complete) exit mapping. Each gate keeps its own semantic checks, fixtures, report schema, Markdown renderer and operational-exception tuple; the runner never widens exception handling, so a programming error still raises rather than being reported as exit `2`.
+
+Focused report gates use the shared runner. Distinct CLI contracts retain their
+own entry points: release validation has atomic evidence writes and separate
+console rendering; workflow validation emits text-only evidence; initialization
+and disposable fixture creation provision source; snapshot collection captures
+observations. The canonical checker remains self-contained.
+
+<!-- template:remove:start -->
+The complete consumer/exclusion registry is maintained and enforced in
+`checker_development.py`. Register any new entry point there as a shared-runner
+consumer or a documented exclusion; do not maintain a second count in prose.
+<!-- template:remove:end -->
 
 ## Canonical repository-quality gate
 
@@ -219,6 +282,35 @@ single-public-variable rule. This dedicated gate is authoritative for complete
 public-surface extraction and signature binding; the broader `vba-public-api`
 rule remains a compatibility check. Both are required in hosted CI, so the
 compatibility view cannot hide an unsupported or unrecorded public declaration.
+
+## Adopted template contract
+
+`check_template_contract.py` owns the semantics of the template contract: the
+versioned identity of the control set a repository adopts, recorded as
+`template_contract` in `.github/repository-profile.json`.
+
+The canonical checker only requires the key to exist among the configuration
+keys; every rule about its content lives in this gate, so the portable checker's
+policy-branch inventory is unchanged.
+
+The gate requires exactly `version` and `source`, rejects a non-canonical or
+unsupported version with a message naming the supported set, resolves the rule
+set registered for the *recorded* version so an older adopter is never judged
+against newer controls, requires migration notes for every supported version in
+`docs/TEMPLATE_CONTRACT.md`, and checks the template/generated source
+invariants: a template publishes its own contract, a generated repository names
+the template it adopted and never itself.
+
+The contract version is independent of the project `VERSION`; the self-test
+proves that changing `VERSION` does not alter the adopted contract.
+
+```bash
+python3 tools/check_template_contract.py --root .
+python3 tools/check_template_contract.py --root . --self-test
+```
+
+`docs/TEMPLATE_CONTRACT.md` is the authority for the SemVer policy and the
+migration notes.
 
 ## Authoritative workflow validation
 

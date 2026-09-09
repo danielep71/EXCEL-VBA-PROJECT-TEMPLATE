@@ -4,13 +4,12 @@
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 from typing import Any
-from _gatelib import git_text as git, write_text
+from _gatelib import git_text as git, run_gate
 
 EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 TOOL_NAME = "Committed whitespace"
@@ -238,27 +237,19 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     options = parse_args(sys.argv[1:] if argv is None else argv)
-    if options.self_test:
-        try:
-            return run_self_test()
-        except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
-            print(f"SELF-TEST ERROR: {error}", file=sys.stderr)
-            return 2
-    try:
-        report = run_check(
+    return run_gate(
+        options,
+        build=lambda: run_check(
             options.root,
             options.mode,
             head_revision=options.head,
             base_revision=options.base,
-        )
-        write_text(options.output, json.dumps(report, indent=2, sort_keys=True) + "\n")
-        write_text(options.summary, markdown_report(report))
-        print(markdown_report(report).rstrip())
-        return 0 if report["status"] == "pass" else 1
-    except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
-        print(f"ERROR: {error}", file=sys.stderr)
-        return 2
-
+        ),
+        markdown=markdown_report,
+        errors=(OSError, subprocess.SubprocessError, RuntimeError, ValueError),
+        self_test=run_self_test,
+        self_test_error_prefix="SELF-TEST ERROR",
+    )
 
 if __name__ == "__main__":
     raise SystemExit(main())

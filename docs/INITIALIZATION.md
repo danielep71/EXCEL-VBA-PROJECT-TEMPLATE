@@ -2,7 +2,7 @@
 
 [![Mode: dry-run first](https://img.shields.io/badge/mode-dry--run%20first-217346)](#-safety-model)
 [![Profiles: 3](https://img.shields.io/badge/profiles-3-6f42c1)](#-initialize-one-profile)
-[![Writes: atomic](https://img.shields.io/badge/writes-atomic-success)](#-deterministic-transformations)
+[![Writes: staged](https://img.shields.io/badge/writes-staged-217346)](#-deterministic-transformations)
 [![Verification: self-tested](https://img.shields.io/badge/verification-self--tested-1D76DB)](#-verification)
 
 This document is the authoritative contract for turning a clean repository
@@ -18,12 +18,18 @@ rulesets, environments, or other live settings.
 2. validates the complete input set before rendering any file;
 3. renders all changes in memory and reports content digests;
 4. changes files only when `--apply` is present;
-5. restores original files if a filesystem write fails; and
+5. attempts to restore original files if a filesystem write fails; and
 6. records the exact non-secret initialization inputs in
    `.github/initialization.json`.
 
 Missing, unknown, duplicated, category-incompatible, and unused substitutions
 are errors. Values may not contain line breaks or reserved template syntax.
+
+Replacements are staged and applied per file; this is not a repository-wide
+filesystem transaction. Rollback itself can fail if the filesystem remains
+unwritable, and newly created directories may remain. After any apply failure,
+inspect the complete working tree against the clean starting commit before
+retrying. Do not infer successful restoration from an interrupted operation.
 
 ## 🧬 Canonical Token Grammar
 
@@ -94,7 +100,9 @@ Use exactly one profile:
 
 Review every planned create, update, and delete operation and its before/after
 SHA-256 digest. Repeat the identical command with `--apply` only when that plan
-is correct. A second run with the same arguments returns `no-op`; different
+is correct. Review and stage the applied changes, run the repository gate, and
+commit the initialized tree before repeating the command. A second run with
+the same arguments from that clean committed tree returns `no-op`; different
 inputs fail rather than silently rewriting an initialized repository.
 
 ### ➕ Optional and Repeatable Values
@@ -130,6 +138,7 @@ An applied initialization:
   projects;
 - resets the changelog's `Unreleased` section so template-construction history
   is not attributed to the generated project;
+- resets `VERSION` to the `0.0.0` development sentinel;
 - creates explanatory files in currently empty profile-required directories;
 - writes `.github/initialization.json`; and
 - leaves the initializer available for idempotence verification.
@@ -157,7 +166,8 @@ be reproduced manually:
    `assets/social-preview.png` when that exact path was deliberately supplied
    as `SOCIAL_PREVIEW_PATH`. No other template-only path may be retained through
    that placeholder.
-6. Reset `CHANGELOG.md` under `Unreleased` to project-owned content only.
+6. Reset `CHANGELOG.md` under `Unreleased` to project-owned content only and set
+   `VERSION` to the `0.0.0` development sentinel.
 7. Set configuration mode, profile, and repository; create
    `.github/initialization.json` using the same schema as the initializer.
 8. Add an explanatory or substantive tracked file to every directory required

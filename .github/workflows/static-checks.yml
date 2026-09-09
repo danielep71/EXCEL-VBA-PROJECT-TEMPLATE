@@ -17,6 +17,17 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      expected-profile:
+        description: "Optional generated profile assertion: application, library, or ui-component"
+        type: string
+        required: false
+        default: ""
+    outputs:
+      candidate-sha:
+        description: Exact caller commit checked; valid only when the job succeeds
+        value: ${{ jobs.repository-integrity.outputs.candidate-sha }}
 
 permissions:
   contents: read
@@ -34,9 +45,12 @@ jobs:
     name: Repository integrity
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    outputs:
+      candidate-sha: ${{ steps.candidate.outputs.sha }}
     env:
       PYTHONUTF8: "1"
       PYTHONDONTWRITEBYTECODE: "1"
+      # Select a compatible series; setup-python resolves its available patch.
       PYTHON_VERSION: "3.10"
       RUFF_VERSION: "0.16.6"
       MYPY_VERSION: "2.3.1"
@@ -50,7 +64,29 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Set up pinned Python runtime
+      - name: Verify caller identity and optional profile assertion
+        id: candidate
+        env:
+          EXPECTED_PROFILE: ${{ inputs.expected-profile || '' }}
+          CANDIDATE_SHA: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          expected = os.environ["EXPECTED_PROFILE"]
+          if expected:
+              if expected not in {"application", "library", "ui-component"}:
+                  raise SystemExit("Unsupported expected-profile")
+              config = json.loads(Path(".github/repository-profile.json").read_text())
+              if config.get("mode") != "generated" or config.get("profile") != expected:
+                  raise SystemExit("Caller is not the expected generated profile")
+          PY
+          printf 'sha=%s\n' "$CANDIDATE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Set up the declared Python runtime series
         id: python-runtime
         continue-on-error: true
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -125,11 +161,15 @@ jobs:
       - name: Exercise release-integrity candidates and failures
         id: release-self-test
         continue-on-error: true
-        run: >-
-          python3 tools/check_release.py
-          --root .
-          --self-test
-          --summary test-results/release-self-test.md
+        run: |
+          python3 tools/check_release.py --root . --self-test --summary test-results/release-self-test.md
+          python3 tools/test_release_provenance.py -v
+          python3 tools/test_excel_evidence.py -v
+
+      - name: Check maintained documentation contracts
+        run: |
+          python3 tools/test_documentation.py -v
+          python3 tools/check_documentation.py --root .
 
       - name: Exercise strict release-semantics fixtures
         id: release-semantics-self-test
@@ -230,6 +270,20 @@ jobs:
           --output test-results/local-actions.json
           --summary test-results/local-actions.md
 
+      - name: Exercise template-contract fixtures
+        id: template-contract-self-test
+        continue-on-error: true
+        run: python3 tools/check_template_contract.py --root . --self-test
+
+      - name: Validate the adopted template contract
+        id: template-contract
+        continue-on-error: true
+        run: >-
+          python3 tools/check_template_contract.py
+          --root .
+          --output test-results/template-contract.json
+          --summary test-results/template-contract.md
+
       - name: Exercise positive and degraded checker paths
         id: self-test
         continue-on-error: true
@@ -297,6 +351,8 @@ jobs:
             test-results/vba-public-api.md
             test-results/local-actions.json
             test-results/local-actions.md
+            test-results/template-contract.json
+            test-results/template-contract.md
             test-results/actionlint-version.txt
             test-results/workflow-validation.md
             test-results/release-self-test.md
@@ -309,6 +365,7 @@ jobs:
       - name: Enforce self-test and repository results
         if: always()
         env:
+          CANDIDATE_OUTCOME: ${{ steps.candidate.outcome }}
           PYTHON_RUNTIME_OUTCOME: ${{ steps.python-runtime.outcome }}
           PYTHON_QUALITY_INSTALL_OUTCOME: ${{ steps.python-quality-install.outcome }}
           RUFF_OUTCOME: ${{ steps.ruff.outcome }}
@@ -329,6 +386,8 @@ jobs:
           VBA_API_OUTCOME: ${{ steps.vba-api.outcome }}
           LOCAL_ACTION_SELF_TEST_OUTCOME: ${{ steps.local-action-self-test.outcome }}
           LOCAL_ACTIONS_OUTCOME: ${{ steps.local-actions.outcome }}
+          TEMPLATE_CONTRACT_SELF_TEST_OUTCOME: ${{ steps.template-contract-self-test.outcome }}
+          TEMPLATE_CONTRACT_OUTCOME: ${{ steps.template-contract.outcome }}
           SELF_TEST_OUTCOME: ${{ steps.self-test.outcome }}
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
@@ -336,7 +395,8 @@ jobs:
         run: |
           failed=0
           for item in \
-            "Pinned Python runtime:$PYTHON_RUNTIME_OUTCOME" \
+            "Caller identity and profile:$CANDIDATE_OUTCOME" \
+            "Python runtime series:$PYTHON_RUNTIME_OUTCOME" \
             "Python quality-tool installation:$PYTHON_QUALITY_INSTALL_OUTCOME" \
             "Ruff lint:$RUFF_OUTCOME" \
             "mypy type check:$MYPY_OUTCOME" \
@@ -356,6 +416,8 @@ jobs:
             "VBA public API:$VBA_API_OUTCOME" \
             "Repository-local Action self-test:$LOCAL_ACTION_SELF_TEST_OUTCOME" \
             "Repository-local Actions:$LOCAL_ACTIONS_OUTCOME" \
+            "Template-contract self-test:$TEMPLATE_CONTRACT_SELF_TEST_OUTCOME" \
+            "Template contract:$TEMPLATE_CONTRACT_OUTCOME" \
             "Checker self-test:$SELF_TEST_OUTCOME" \
             "Repository gate:$GATE_OUTCOME" \
             "Job-summary:$SUMMARY_OUTCOME" \

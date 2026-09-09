@@ -1,4 +1,4 @@
-# Tests
+# 🧪 Tests and Evidence
 
 `tests/` is the canonical home for all verification source and stable test data.
 
@@ -26,7 +26,12 @@ RESULT=PASS; completeness=COMPLETE; cases=4; assertions=6; failures=0; cleanup=P
 
 Any assertion, unexpected error, dirty start, incomplete execution, or cleanup
 failure is non-passing. The harness changes no Excel state; cleanup verifies its
-owned module state only.
+owned run flag and checks that calculation, display alerts, events and screen
+updating match their pre-run values.
+
+The optional [Windows/Excel evidence interface](../docs/EXCEL_EVIDENCE.md)
+records this harness output, source identity and host environment with explicit
+manual/automated execution. Its validator does not execute Excel.
 
 ## Rules
 

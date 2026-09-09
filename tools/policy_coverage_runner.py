@@ -12,7 +12,7 @@ from policy_coverage_core import (CORE_TOOL, TOOL_NAME, CoverageError, load_modu
 from policy_coverage_cases_config import configuration_cases
 from policy_coverage_cases_repo import repository_cases
 from policy_coverage_cases_quality import quality_cases
-from _gatelib import parse_report_args as parse_args, write_text
+from _gatelib import parse_report_args as parse_args, run_gate
 
 
 def run_core_coverage(root: Path) -> dict[str, Any]:
@@ -253,18 +253,20 @@ def run_self_test(root: Path) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     options = parse_args(sys.argv[1:] if argv is None else argv)
-    try:
-        if options.self_test:
-            return run_self_test(options.root)
-        report = build_report(options.root)
-        write_text(options.output, json.dumps(report, indent=2, sort_keys=True) + "\n")
-        write_text(options.summary, markdown_report(report))
-        print(markdown_report(report).rstrip())
-        return 0 if report["status"] == "pass" else 1
-    except (OSError, UnicodeError, CoverageError, RuntimeError, subprocess.SubprocessError, json.JSONDecodeError) as error:
-        print(f"ERROR: {error}", file=sys.stderr)
-        return 2
-
+    return run_gate(
+        options,
+        build=lambda: build_report(options.root),
+        markdown=markdown_report,
+        errors=(
+            OSError,
+            UnicodeError,
+            CoverageError,
+            RuntimeError,
+            subprocess.SubprocessError,
+            json.JSONDecodeError,
+        ),
+        self_test=lambda: run_self_test(options.root),
+    )
 
 if __name__ == "__main__":
     raise SystemExit(main())

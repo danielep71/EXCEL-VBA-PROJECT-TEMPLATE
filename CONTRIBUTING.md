@@ -68,8 +68,14 @@ test claims in commit messages.
 
 ## 📦 Source-change discipline
 
+Dependency, validation-tool, runtime and reusable-workflow updates follow
+[`docs/DEPENDENCY_UPDATES.md`](docs/DEPENDENCY_UPDATES.md). Complete the PR's
+dependency evidence block and retain a tested rollback target. Merge manually
+only after provenance, trust-boundary and candidate-evidence review.
+
 The exact source/storage contract is maintained in
-[`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md). For contribution
+[`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md). VBA presentation
+follows [`docs/VBA_HOUSE_STYLE.md`](docs/VBA_HOUSE_STYLE.md). For contribution
 work, the practical rules are:
 
 - exported VBA remains the reviewable source of truth;
@@ -83,6 +89,11 @@ work, the practical rules are:
 
 Do not weaken a project-specific numerical, UI, lifecycle, performance or
 packaging gate merely because the generic repository gate passes.
+
+For Python comments, docstrings, wrapping and enforced lint rules, follow
+[the tooling presentation policy](tools/README.md#python-presentation-and-lint-policy).
+Apply the same accuracy review to workflow comments, configuration explanations
+and embedded examples whenever their owning behavior changes.
 
 ## 🔄 Compatibility and state ownership
 

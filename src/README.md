@@ -1,4 +1,4 @@
-# Source
+# 🧩 Production Source
 
 `src/` contains the authoritative production VBA source. A user must be able to reconstruct the supported workbook or add-in from this directory and the instructions in the root documentation.
 

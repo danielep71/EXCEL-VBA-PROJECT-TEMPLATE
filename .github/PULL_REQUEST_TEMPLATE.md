@@ -98,6 +98,34 @@ Assess compatibility against documented behavior, not merely the VBA `Public` ke
 
 ## 🔧 Implementation notes
 
+### Dependency update evidence
+
+For dependency, runtime or workflow-pin changes, follow
+[`docs/DEPENDENCY_UPDATES.md`](../docs/DEPENDENCY_UPDATES.md).
+Repeat this block per dependency; otherwise write `NOT APPLICABLE` with a reason.
+
+```text
+Dependency and every affected file:
+Old full SHA / exact version / archive digest:
+New full SHA / exact version / archive digest:
+Audited semantic release / interface revision:
+Official release and immutable source URLs:
+Tag-to-commit / asset-digest verification, date and reviewer:
+Release-note, source/bundle and advisory review:
+Ownership, maintainer or release-source changes:
+Permissions, secrets, triggers, runner and installation changes:
+Reason for update; grouping and compatibility rationale:
+Candidate SHA and all applicable hosted/profile/specialist evidence:
+Previous passing repository commit and run:
+Rollback dependency SHA / version / digest and coupled changes:
+Rollback verification or limitations:
+Maintainer approval bound to final candidate SHA; manual merge:
+```
+
+Missing provenance, failed checks or unreviewed authority expansion blocks merge.
+Automatic approval and merging are prohibited; the evidence review is a human
+merge gate, not a result the static checker infers from this template.
+
 ```text
 Approach and key invariant:
 Alternatives considered:

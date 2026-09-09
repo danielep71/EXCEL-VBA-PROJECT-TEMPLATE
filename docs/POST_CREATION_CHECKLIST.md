@@ -13,6 +13,11 @@ Record the generated repository, selected profile, exact source SHA, operator,
 and completion date before applying settings. Evidence must come from API or UI
 read-back after each change, not from the setup command or intended values.
 
+The optional `.github/provisioning-policy.json` records the initialized
+description, topics, feature/merge defaults, required checks and reviewed
+exceptions for template-maintenance provisioning tooling. Review and commit it
+before generating a live setup plan. A plan alone changes no GitHub settings.
+
 <a id="confirm-initialized-source"></a>
 
 ## 1. 🔎 Confirm the Initialized Source
@@ -62,8 +67,12 @@ values in deterministic JSON and Markdown evidence retained for 30 days.
 - [ ] Its offline no-drift and simulated create/update/delete fixtures pass.
 - [ ] A live no-drift check reports zero differences.
 - [ ] The workflow permissions are read-only; it has no `issues: write` grant.
-- [ ] Label mutation remains exclusively in the trusted `Sync issue labels`
-  workflow.
+- [ ] Routine label mutation remains in the trusted `Sync issue labels` workflow.
+  Initial provisioning may also use the template-maintenance provisioner with
+  an explicitly approved exact-state plan and trusted credentials. It adds
+  missing labels, requires recorded exceptions for replacements and never
+  deletes extra labels. If extra labels are retained, add them to a selected
+  overlay or review `prune: false` before routine synchronization runs.
 
 <a id="repository-identity"></a>
 
@@ -92,8 +101,8 @@ channels and disclosure process.
 The canonical single-maintainer baseline is:
 
 - [ ] merge commits, squash merging, and rebasing are enabled;
-- [ ] automatic merging is disabled until required checks and review policy are
-  intentionally configured;
+- [ ] automatic merging is disabled; dependency updates require the manual
+  approval and merge process in [DEPENDENCY_UPDATES.md](DEPENDENCY_UPDATES.md);
 - [ ] head branches are deleted after merge;
 - [ ] contributors may update pull-request branches; and
 - [ ] commit-message/title defaults are reviewed for the repository's release
@@ -127,6 +136,8 @@ Before the first stable release, create or verify an active ruleset targeting
 
 - [ ] tag deletion is blocked;
 - [ ] non-fast-forward tag updates are blocked;
+- [ ] all updates of existing version tags are blocked, including fast-forward
+  movement, using an `update` rule with no bypass;
 - [ ] tag creation remains available so the documented pre-tag release gate can
   publish a new version; and
 - [ ] no bypass silently permits a published tag to move.

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "historical_documents": {
+    "CHANGELOG.md": "Released history is not a current command reference.",
+    "docs/PILOT_CERTIFICATION.md": "Frozen release evidence retains historical identities.",
+    "docs/IMPLEMENTATION_PLAN.md": "Temporary milestone tracking is not a user command contract."
+  },
+  "references": [
+    {"document": "docs/DOCUMENTATION_CHECKS.md", "token": "External documentation links", "target": ".github/workflows/external-links.yml", "kind": "workflow-name"},
+    {"document": "docs/INITIALIZATION.md", "token": ".github/repository-profile.json", "target": ".github/repository-profile.json", "kind": "file"},
+    {"document": "docs/RELEASE_EVIDENCE.md", "token": ".github/release-policy.json", "target": ".github/release-policy.json", "kind": "file"},
+    {"document": "docs/POST_CREATION_CHECKLIST.md", "token": "Repository integrity", "target": ".github/workflows/static-checks.yml", "kind": "job-name", "job": "repository-integrity"},
+    {"document": "docs/RELEASE_EVIDENCE.md", "token": "source-only", "target": ".github/release-policy.json", "kind": "json-value", "pointer": "/profiles/library/allowed_asset_globs", "value": []}
+  ],
+  "network": {
+    "attempts": 3,
+    "timeout_seconds": 8,
+    "concurrency": 4,
+    "redirects": 3,
+    "max_links": 200,
+    "domains": {
+      "docs.github.com": "Official GitHub documentation",
+      "github.com": "Repository, release and workflow references",
+      "img.shields.io": "Documentation badges",
+      "keepachangelog.com": "Changelog format authority",
+      "man.openbsd.org": "OpenSSH reference manual",
+      "pypi.org": "Python dependency metadata",
+      "pyyaml.org": "YAML parser project documentation",
+      "semver.org": "Versioning specification",
+      "support.microsoft.com": "Office support documentation",
+      "www.contributor-covenant.org": "Code of conduct authority"
+    },
+    "exceptions": []
+  }
+}

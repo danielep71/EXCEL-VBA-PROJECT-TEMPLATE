@@ -1,4 +1,4 @@
-# Assets
+# 🎨 Assets
 
 `assets/` is the canonical home for versioned, non-code project assets.
 
