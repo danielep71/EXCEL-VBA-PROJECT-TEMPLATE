@@ -22,3 +22,5 @@ jobs:
         run: python -m pip install --disable-pip-version-check PyYAML==6.0.3
       - name: Exercise structural drift and failure boundaries
         run: python3 tools/test_portfolio_drift.py -v
+      - name: Exercise timestamped quality reporting and evidence gaps
+        run: python3 tools/test_portfolio_quality.py -v

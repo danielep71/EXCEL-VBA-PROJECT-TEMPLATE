@@ -232,6 +232,7 @@
       "docs/PILOT_CERTIFICATION.md",
       "docs/PORTFOLIO_AUDIT.md",
       "docs/PORTFOLIO_DRIFT.md",
+      "docs/PORTFOLIO_QUALITY.md",
       "tools/check_policy_coverage.py",
       "tools/check_portfolio_drift.py",
       "tools/checker_development.py",
@@ -242,7 +243,9 @@
       "tools/policy_coverage_cases_repo.py",
       "tools/policy_coverage_core.py",
       "tools/policy_coverage_runner.py",
-      "tools/test_portfolio_drift.py"
+      "tools/report_portfolio_quality.py",
+      "tools/test_portfolio_drift.py",
+      "tools/test_portfolio_quality.py"
     ],
     "exclude_paths": [
       ".editorconfig",

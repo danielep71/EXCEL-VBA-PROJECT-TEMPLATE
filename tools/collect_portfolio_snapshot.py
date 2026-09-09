@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+from datetime import datetime, timezone
 import json
 import os
 import re
@@ -38,10 +39,15 @@ def get(path: str) -> Any:
     return json.loads(data)
 
 
-def pages(path: str) -> list[Any]:
+def pages(path: str, key: str | None = None) -> list[Any]:
     result = []
     for page in range(1, 101):
-        data = get(f"{path}?per_page=100&page={page}")
+        separator = "&" if "?" in path else "?"
+        data = get(f"{path}{separator}per_page=100&page={page}")
+        if key is not None:
+            if data.get("total_count", 0) >= 1000:
+                raise ValueError("Actions search limit; refusing potentially partial evidence")
+            data = data[key]
         if not isinstance(data, list):
             raise ValueError("Expected paginated collection")
         result.extend(data)
@@ -50,9 +56,66 @@ def pages(path: str) -> list[Any]:
     raise ValueError("Pagination limit reached; refusing partial evidence")
 
 
+def tag_commit(repository: str, tag: str) -> str:
+    item = get(f"{repository}/git/ref/tags/{urllib.parse.quote(tag, safe='')}")["object"]
+    for _ in range(10):
+        if item["type"] == "commit":
+            return str(item["sha"])
+        if item["type"] != "tag":
+            raise ValueError("Release tag does not resolve to a commit")
+        item = get(f"{repository}/git/tags/{item['sha']}")["object"]
+    raise ValueError("Release tag indirection limit")
+
+
+def quality_evidence(repo: dict[str, Any]) -> dict[str, Any]:
+    """Capture workflow attempts and latest stable release; never certify artifacts."""
+    repository = repo["repository"]
+    quality: dict[str, Any] = {"observed_at": repo.get("captured_at", datetime.now(timezone.utc).isoformat())}
+    try:
+        runs = pages(f"{repository}/actions/runs?head_sha={repo['commit']}", "workflow_runs")
+        selected: dict[tuple[str, str, str], Any] = {}
+        for run in runs:
+            if run.get("head_sha") != repo["commit"]:
+                continue
+            key = (run["path"], run["event"], run["head_branch"])
+            if key not in selected or run["id"] > selected[key]["id"]:
+                selected[key] = run
+        captured = []
+        for run in sorted(selected.values(), key=lambda item: item["id"]):
+            attempt = run.get("run_attempt", 1)
+            jobs = pages(f"{repository}/actions/runs/{run['id']}/attempts/{attempt}/jobs", "jobs")
+            item = {key: run.get(key) for key in ("id", "path", "head_sha", "head_branch", "event", "status", "conclusion", "run_attempt", "updated_at")}
+            item["jobs"] = [{key: job.get(key) for key in ("id", "name", "status", "conclusion")} for job in jobs]
+            captured.append(item)
+        quality["workflows"] = captured
+    except (urllib.error.HTTPError, ValueError) as error:
+        quality["workflows"] = None
+        repo["unavailable"]["workflows"] = type(error).__name__ + "; complete evidence unavailable"
+    try:
+        releases = pages(f"{repository}/releases")
+        published = [item for item in releases if not item["draft"] and not item["prerelease"]]
+        latest = max(published, key=lambda item: (item["published_at"], item["id"])) if published else None
+        evidence = []
+        if latest is not None:
+            item = {key: latest[key] for key in ("id", "tag_name", "draft", "prerelease", "published_at", "body")}
+            item["assets"] = [{key: asset.get(key) for key in ("name", "size", "digest", "browser_download_url")} for asset in latest["assets"]]
+            try:
+                item["resolved_commit"] = tag_commit(repository, item["tag_name"])
+            except (urllib.error.HTTPError, ValueError):
+                item["resolved_commit"] = None
+                repo["unavailable"]["release_tag"] = "Published release tag could not be resolved"
+            evidence.append(item)
+        quality["releases"] = evidence
+    except (urllib.error.HTTPError, ValueError) as error:
+        quality["releases"] = None
+        repo["unavailable"]["releases"] = type(error).__name__ + "; complete evidence unavailable"
+    return quality
+
+
 def collect(repository: str) -> dict[str, Any]:
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", repository):
         raise ValueError("Repository must be owner/name")
+    captured_at = datetime.now(timezone.utc).isoformat()
     metadata = get(repository)
     branch = urllib.parse.quote(metadata["default_branch"], safe="")
     commit = get(f"{repository}/commits/{branch}")["sha"]
@@ -80,7 +143,7 @@ def collect(repository: str) -> dict[str, Any]:
         except urllib.error.HTTPError as error:
             live[resource] = None
             unavailable[resource] = f"HTTP {error.code}; not evidence of absence"
-    return {"repository": repository, "commit": commit,
+    return {"repository": repository, "commit": commit, "captured_at": captured_at,
             "paths": None if tree.get("truncated") else sorted(blobs), "files": files,
             "metadata": {key: metadata.get(key) for key in
                          ("default_branch", "description", "has_issues", "allow_auto_merge")},
@@ -91,6 +154,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("repositories", nargs="+")
     parser.add_argument("--contract-commit", required=True, help="Exact template evaluator commit")
+    parser.add_argument("--quality", action="store_true", help="Also capture timestamped Actions and release evidence")
     options = parser.parse_args()
     try:
         if len(set(options.repositories)) != len(options.repositories):
@@ -100,6 +164,9 @@ def main() -> int:
         data = {"schema_version": 1, "contract_source": "danielep71/EXCEL-VBA-PROJECT-TEMPLATE",
                 "contract_commit": options.contract_commit,
                 "repositories": [collect(name) for name in sorted(options.repositories)]}
+        if options.quality:
+            for repo in data["repositories"]:
+                repo["quality"] = quality_evidence(repo)
         print(json.dumps(data, indent=2, sort_keys=True))
         return 0
     except (OSError, ValueError, KeyError) as error:

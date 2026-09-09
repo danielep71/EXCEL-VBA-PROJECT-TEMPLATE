@@ -55,6 +55,7 @@ EXPECTED_CHECK_FUNCTIONS = (
 GATE_RUNNER_CONSUMERS = frozenset(
     {
         "check_portfolio_drift.py",
+        "report_portfolio_quality.py",
         "check_committed_whitespace.py",
         "check_local_actions.py",
         "check_release_semantics.py",

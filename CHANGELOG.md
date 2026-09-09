@@ -101,6 +101,8 @@ Use only the categories needed by a release.
 
 ### Added
 
+- Added timestamped portfolio quality/conformance reports with explicit freshness, exact-SHA required workflow observations, branch/tag protection, published-release evidence and attributed specialist scores. Missing adoption and inaccessible evidence remain visible; popularity never contributes to quality, and publication never implies certification. Existing portfolio repositories remain read-only.
+
 - Added a GET-only portfolio snapshot collector and deterministic structural drift evaluator. Adopted contract versions select required controls; missing adoption remains `ADOPT`, inaccessible evidence remains `UNVERIFIED`, and `DEFER` or profile exceptions cannot erase universal findings. Documented local specialist controls remain separate from generic compliance. Synthetic hosted fixtures exercise all three profiles without modifying portfolio repositories.
 - Defined controlled dependency updates for Actions, reusable workflows, validation tools and execution runtimes. The policy requires manual monitoring and approval, verified source/release evidence, explicit trust-boundary review, exact candidate tests and a recorded rollback target; the PR template carries the evidence block. Existing dependency versions are unchanged, and no automatic updater or merge workflow is installed.
 - Exposed the existing static checks as reusable workflow interface v1, with an optional generated-profile assertion and exact checked-commit output. Consumers pin workflow orchestration by full commit SHA while retaining their reviewed local gate scripts and specialist jobs. Added reproducible consumer fixtures and compatibility, deprecation and rollback guidance in `docs/REUSABLE_WORKFLOWS.md`.
