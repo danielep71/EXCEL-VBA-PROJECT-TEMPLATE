@@ -57,8 +57,6 @@ projects:
   milestone is released.
 - [`PILOT_CERTIFICATION.md`](PILOT_CERTIFICATION.md) — exact v1.0.0 pilot and
   live-governance certification evidence.
-- [`PORTFOLIO_AUDIT.md`](PORTFOLIO_AUDIT.md) — frozen portfolio evidence used to
-  design the template baseline.
 <!-- template:remove:end -->
 
 ## 🧭 First-use path

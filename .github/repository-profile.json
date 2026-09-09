@@ -238,7 +238,6 @@
       "docs/CHECKER_DEVELOPMENT.md",
       "docs/IMPLEMENTATION_PLAN.md",
       "docs/PILOT_CERTIFICATION.md",
-      "docs/PORTFOLIO_AUDIT.md",
       "docs/PORTFOLIO_DRIFT.md",
       "docs/PORTFOLIO_QUALITY.md",
       "docs/PROVISIONING.md",
@@ -281,8 +280,7 @@
     ],
     "exclude_paths": [
       ".github/initialization.json",
-      ".github/repository-profile.json",
-      "docs/PORTFOLIO_AUDIT.md"
+      ".github/repository-profile.json"
     ]
   },
   "vba": {
