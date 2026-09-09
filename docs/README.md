@@ -37,6 +37,7 @@ may summarize it, but must link here rather than restating a competing rule.
 | Portable checker development boundaries and independent tests | [`CHECKER_DEVELOPMENT.md`](CHECKER_DEVELOPMENT.md) | Link from tooling/contribution guidance |
 | Read-only portfolio snapshots, drift semantics and decision boundaries | [`PORTFOLIO_DRIFT.md`](PORTFOLIO_DRIFT.md) | Links to exact-snapshot reports |
 | Portfolio evidence dimensions, freshness and reporting | [`PORTFOLIO_QUALITY.md`](PORTFOLIO_QUALITY.md) | Timestamped status reports, not rankings |
+| Guarded repository provisioning plans and apply receipts | [`PROVISIONING.md`](PROVISIONING.md) | Trusted setup tooling and simulated API evidence |
 <!-- template:remove:end -->
 | Current version | [`../VERSION`](../VERSION) | Display/read the value; never redefine it |
 | User-visible release history | [`../CHANGELOG.md`](../CHANGELOG.md) | Link or current Unreleased summary only |

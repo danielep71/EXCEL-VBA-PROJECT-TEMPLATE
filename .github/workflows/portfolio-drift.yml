@@ -24,3 +24,5 @@ jobs:
         run: python3 tools/test_portfolio_drift.py -v
       - name: Exercise timestamped quality reporting and evidence gaps
         run: python3 tools/test_portfolio_quality.py -v
+      - name: Exercise simulated provisioning plans and guarded writes
+        run: python3 tools/test_provision_repository.py -v

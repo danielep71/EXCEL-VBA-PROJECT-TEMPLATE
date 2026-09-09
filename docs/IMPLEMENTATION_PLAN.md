@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 8 — #29 delivered; timestamped portfolio evidence reporting
+**Plan revision:** 9 — #28 delivered; guarded dry-run-first provisioning tooling
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -64,7 +64,8 @@ Completed on this branch: [#48](https://github.com/danielep71/EXCEL-VBA-PROJECT-
 [#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23),
 [#22](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/22) and
 [#25](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/25) and
-[#29](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/29).
+[#29](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/29) and
+[#28](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/28).
 
 ---
 
@@ -116,9 +117,9 @@ those themes produces work that has to be revisited.
 
 | Tier | Issues | Condition |
 | ---: | --- | --- |
-| 0 | #48, #47, #24, #23, #22, #25, **#29** | Complete on `release/1.2.0` |
+| 0 | #48, #47, #24, #23, #22, #25, #29, **#28** | Complete on `release/1.2.0` |
 | 1 | #26, #27, #45 | Actionable now; no P3 prerequisite |
-| 2 | #21, #28 | **Unblocked** — #24 delivered `template_contract` |
+| 2 | #21 | **Unblocked** — #24 delivered `template_contract` |
 | 4 | #46, then #44 | Requires the interfaces above to be stable |
 
 Tier 1 can run in parallel: #26, #27 and #45 touch assurance, link policy and
@@ -131,14 +132,15 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Begin [#28](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/28)
-— P3-03, the dry-run-first repository provisioner.**
+**Begin [#21](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/21)
+— P3-07, profile-aware advanced release provenance.**
 
 #23 and #22 complete the reusable-workflow and dependency-policy sequence.
 #25 and #29 supply read-only structural drift and timestamped portfolio reporting.
-#28 develops the template's new-repository setup tooling and its safe plan/apply
-interface. It does not authorize changing existing portfolio repositories;
-no profile or contract version is assigned to them. #21 and the tier-1 issues remain independently actionable;
+#28 supplies the template's new-repository setup tooling and guarded plan/apply
+interface, validated against a simulated API. No existing portfolio settings
+were applied and no profile or contract version was assigned to them. #21 now
+extends profile-aware release evidence; the tier-1 issues remain independently actionable;
 this next action does not create a new dependency between them.
 
 `CONTRACT_RULE_SETS` in `tools/check_template_contract.py` is the registry a
