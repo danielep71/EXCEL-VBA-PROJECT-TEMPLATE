@@ -44,6 +44,8 @@ non-empty reason in `SELF_TEST_EXCLUSIONS`. Missing declarations, failed help,
 stale exclusions, and exclusions for tools that now advertise the flag fail.
 The report lists every inspected CLI and its alternative test command or limitation.
 Guard discovery preserves `not`, `and` and `or` polarity and literal truth values.
+Chained comparisons are modeled as conjunctions of adjacent comparisons; literal
+equality and inequality are resolved without executing source.
 A guarded branch must be possible in script mode and impossible on import; this
 also recognizes a main-only `else` branch. Unknown operands remain unknown, so
 this is a bounded syntactic model, not general Python control-flow analysis.
