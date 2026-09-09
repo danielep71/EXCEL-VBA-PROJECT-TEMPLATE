@@ -6,6 +6,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -193,6 +194,7 @@ class ProvenanceTests(unittest.TestCase):
             '"schema_version": 1', '"schema_version": 1, "schema_version": 1'))
         self.fails()
 
+    @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
     def test_real_ssh_signature_and_tamper(self):
         self.fixture(signed=True)
         self.passes()
@@ -200,11 +202,13 @@ class ProvenanceTests(unittest.TestCase):
         self.save()
         self.fails()
 
+    @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
     def test_wrong_namespace(self):
         self.fixture(signed=True)
         self.sign("wrong-namespace")
         self.fails()
 
+    @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
     def test_untrusted_key(self):
         self.fixture(signed=True)
         self.key = self.area / "other-key"
@@ -213,6 +217,7 @@ class ProvenanceTests(unittest.TestCase):
         self.sign()
         self.fails()
 
+    @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
     def test_missing_signature_and_cannot_disable_in_worktree(self):
         self.fixture(signed=True)
         self.signature = None
@@ -221,6 +226,7 @@ class ProvenanceTests(unittest.TestCase):
         (self.root / gate.PROFILE_PATH).write_text(json.dumps(self.configuration))
         self.fails()
 
+    @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
     def test_signature_mandatory_even_source_only(self):
         self.fixture("library", binary=False, signed=True)
         self.passes()
@@ -262,6 +268,7 @@ class ProvenanceTests(unittest.TestCase):
         self.assertTrue(provenance.validate(self.root, self.configuration, sha,
                                            self.evidence_path, None, None, None))
 
+    @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
     def test_verifier_unavailable_or_times_out(self):
         self.fixture(signed=True)
         real_run = subprocess.run
