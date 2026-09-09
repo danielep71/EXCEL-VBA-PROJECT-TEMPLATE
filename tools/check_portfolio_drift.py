@@ -85,7 +85,10 @@ def missing_paths(repo: dict[str, Any], paths: list[str]) -> tuple[str, str]:
 
 
 def yaml_document(text: str) -> dict[str, Any]:
-    """Compose scalar nodes only; no constructors, aliases, merges or duplicate keys."""
+    """Walk composed mappings/sequences as data, retaining scalar text without constructors.
+
+    Reject aliases, merge keys, duplicate keys and custom tags; bound size and depth.
+    """
     yaml = importlib.import_module("yaml")
     require(yaml.__version__ == "6.0.3", "Install PyYAML==6.0.3")
     require(len(text) <= 1_000_000, "Workflow exceeds parser limit")

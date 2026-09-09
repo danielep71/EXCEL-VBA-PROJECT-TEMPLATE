@@ -50,6 +50,7 @@ jobs:
     env:
       PYTHONUTF8: "1"
       PYTHONDONTWRITEBYTECODE: "1"
+      # Select a compatible series; setup-python resolves its available patch.
       PYTHON_VERSION: "3.10"
       RUFF_VERSION: "0.16.6"
       MYPY_VERSION: "2.3.1"
@@ -85,7 +86,7 @@ jobs:
           PY
           printf 'sha=%s\n' "$CANDIDATE_SHA" >> "$GITHUB_OUTPUT"
 
-      - name: Set up pinned Python runtime
+      - name: Set up the declared Python runtime series
         id: python-runtime
         continue-on-error: true
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -395,7 +396,7 @@ jobs:
           failed=0
           for item in \
             "Caller identity and profile:$CANDIDATE_OUTCOME" \
-            "Pinned Python runtime:$PYTHON_RUNTIME_OUTCOME" \
+            "Python runtime series:$PYTHON_RUNTIME_OUTCOME" \
             "Python quality-tool installation:$PYTHON_QUALITY_INSTALL_OUTCOME" \
             "Ruff lint:$RUFF_OUTCOME" \
             "mypy type check:$MYPY_OUTCOME" \

@@ -1,4 +1,6 @@
-# Repository-local GitHub Action validation
+# 🧩 Repository-local GitHub Action Validation
+
+[![Scope: tracked local actions](https://img.shields.io/badge/scope-tracked%20local%20actions-217346)](#local-action-contract)
 
 `check_local_actions.py` complements the pinned authoritative workflow validator by enforcing repository-boundary and tracked-state rules that schema validation alone cannot prove.
 

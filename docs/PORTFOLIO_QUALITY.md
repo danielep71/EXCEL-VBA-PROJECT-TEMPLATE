@@ -63,7 +63,7 @@ python3 tools/report_portfolio_quality.py --snapshot snapshot.json --as-of 2026-
 python3 tools/test_portfolio_quality.py -v
 ```
 
-Supply all seven portfolio names when producing the complete portfolio brief.
+Supply every repository in the explicitly agreed scope of the portfolio brief.
 The tool accepts arbitrary explicit repository lists; it neither guesses a
 portfolio from account popularity nor drops repositories with missing adoption.
 The public CI workflow exercises synthetic fixtures only, without portfolio

@@ -16,22 +16,19 @@
 
 Gates that historically evaluated `--self-test` outside their operational handler reported failures as `SELF-TEST ERROR`; gates that evaluated it inside reported `ERROR`. `run_gate` preserves both wordings through `self_test_error_prefix`.
 
-| Gate | Uses `run_gate` | Reason when excluded |
-| --- | :---: | --- |
-| `check_committed_whitespace.py` | yes | — |
-| `check_local_actions.py` | yes | — |
-| `check_release_semantics.py` | yes | — |
-| `check_vba_conditionals.py` | yes | — |
-| `check_vba_jumps.py` | yes | — |
-| `check_vba_public_api.py` | yes | — |
-| `checker_development.py` | yes | — |
-| `policy_coverage_runner.py` | yes | — |
-| `check_release.py` | no | atomic evidence writes and a console rendering distinct from its Markdown summary |
-| `test_workflow_validation.py` | no | text-only report with no JSON evidence output |
-| `initialize_repository.py` | no | repository provisioning CLI, not a focused report gate |
-| `check_repo.py` | no | self-contained distributable that must not import `_gatelib.py` |
+The complete registry is `GATE_RUNNER_CONSUMERS` and `GATE_RUNNER_EXCLUSIONS` in
+[`checker_development.py`](../tools/checker_development.py). Its report lists
+every consumer and each exclusion's reason. Keep that executable registry as
+the maintained list rather than duplicating a table that misses later gates.
 
-`checker_development.py` enforces this table. Every tool defining a top-level `main` must be either a declared `run_gate` consumer or a documented exclusion; adding a gate without updating the declaration fails the contract, as does an excluded tool quietly adopting the runner. Sixteen independent unit tests exercise the runner's CLI flags, defaults and `--help`, self-test dispatch, both self-test diagnostic prefixes, pass/fail/operational exits, deterministic JSON and Markdown evidence, report-write failures, and the propagation of non-operational exceptions.
+`ownership_scan` checks focused tools other than `_gatelib.py` and the canonical
+checker. Every top-level `main` in that scope must be a declared consumer or
+exclusion; adding a gate without updating the declaration fails the contract,
+as does an excluded tool quietly adopting the runner. The canonical checker is
+excluded separately by its self-contained import contract. Sixteen independent
+runner tests cover CLI flags, defaults/help, self-test dispatch, diagnostic
+prefixes, exit mapping, deterministic evidence, write failures and propagation
+of non-operational exceptions.
 
 `tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused operational gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary in the canonical template. The checker-development workflow, this document, and the `policy_coverage_*` semantic-coverage harness are template-maintainer assets and are removed by initialization rather than shipped into generated projects.
 

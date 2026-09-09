@@ -88,7 +88,7 @@ assurance, and release certification.
 ## ⚡ Quick start
 
 <!-- template:remove:start -->
-### 1. Initialize one generated profile
+### Before first use: initialize one generated profile
 
 Clone the new repository, review this deterministic dry-run, then repeat the
 same command with `--apply`:

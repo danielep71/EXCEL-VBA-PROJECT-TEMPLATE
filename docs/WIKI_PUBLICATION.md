@@ -62,6 +62,8 @@ diff and commit with the source change. It does not write to GitHub.
    material or reconcile it explicitly; the verifier rejects extra files.
 5. Copy the reviewed bundle into the wiki checkout, inspect the staged diff,
    commit and push without force to its existing default branch.
+   Include `Wiki-Source.json` as well as every Markdown file. File-manager
+   selections filtered to `*.md` omit the manifest and fail publication checks.
 6. Fetch a fresh clone and compare its actual bytes using `--published-dir`.
    Record source SHA, wiki SHA, hosted runs, comparison result and web-page
    read-back. A successful push alone is not publication verification.

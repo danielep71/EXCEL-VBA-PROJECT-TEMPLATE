@@ -162,7 +162,7 @@
     ".github/PULL_REQUEST_TEMPLATE.md": {
       "purpose": "PR review/evidence checklist, including dependency-update information.",
       "kind": "document",
-      "authority": "docs/REPOSITORY_STRUCTURE.md"
+      "authority": "CONTRIBUTING.md"
     },
     ".github/documentation-policy.json": {
       "purpose": "Registered documentation references, HTTP bounds, allowed domains and expiring exceptions.",
@@ -277,7 +277,7 @@
     "LICENSE": {
       "purpose": "MIT reuse terms and copyright attribution.",
       "kind": "document",
-      "authority": "docs/REPOSITORY_STRUCTURE.md"
+      "authority": "LICENSE"
     },
     "README.md": {
       "purpose": "Project identity, profile overview, quick start and main navigation.",
@@ -355,7 +355,7 @@
       "authority": "docs/PORTFOLIO_DRIFT.md"
     },
     "docs/PORTFOLIO_QUALITY.md": {
-      "purpose": "Timestamped quality scoring, freshness and missing-evidence interpretation.",
+      "purpose": "Timestamped quality observations, freshness and missing-evidence interpretation; no overall score.",
       "kind": "document",
       "authority": "docs/PORTFOLIO_QUALITY.md"
     },
@@ -372,7 +372,7 @@
     "docs/PUBLIC_API.txt": {
       "purpose": "Complete public declaration inventory with normalized signature records.",
       "kind": "document",
-      "authority": "docs/REPOSITORY_STRUCTURE.md"
+      "authority": "docs/PUBLIC_API.txt"
     },
     "docs/README.md": {
       "purpose": "Documentation hub and single-authority mapping.",
@@ -510,9 +510,9 @@
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
     "pyproject.toml": {
-      "purpose": "Pinned Python target, lint selection, complexity ceiling and typing scope.",
+      "purpose": "Python compatibility target, advisory line length, enforced lint selection, complexity ceiling and typing scope.",
       "kind": "policy",
-      "authority": "docs/REPOSITORY_STRUCTURE.md"
+      "authority": "tools/README.md"
     },
     "src/README.md": {
       "purpose": "Production export organization and public/internal boundaries.",
@@ -542,7 +542,7 @@
     "tools/LOCAL_ACTIONS.md": {
       "purpose": "Repository-local composite/Node/Docker action validation boundaries.",
       "kind": "document",
-      "authority": "tools/README.md"
+      "authority": "tools/LOCAL_ACTIONS.md"
     },
     "tools/README.md": {
       "purpose": "Operational tool commands, reports and focused-gate responsibilities.",
@@ -577,7 +577,7 @@
     "tools/check_local_actions.py": {
       "purpose": "Resolve local action metadata, implementation files and supported invocation forms.",
       "kind": "script",
-      "authority": "tools/README.md"
+      "authority": "tools/LOCAL_ACTIONS.md"
     },
     "tools/check_policy_coverage.py": {
       "purpose": "Independent policy-branch coverage entry point for the canonical checker.",

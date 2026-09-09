@@ -1,4 +1,4 @@
-# 🧪 Generated-Profile Pilot Certification
+# 🧪 Historical v1.0.0 Generated-Profile Pilot Certification
 
 [![Status: certified](https://img.shields.io/badge/status-certified-success)](#-verified-final-state)
 [![Profiles: 3/3](https://img.shields.io/badge/profiles-3%2F3-217346)](#-exact-pilot-identities)
@@ -8,6 +8,10 @@
 This record preserves the post-creation read-back evidence for the three clean
 repositories generated from this template. It is durable template-only evidence
 with exact identifiers and links and is removed from generated repositories.
+
+**Historical scope:** these observations belong to the v1.0.0 pilot collected
+on 2026-09-04. The badges describe that recorded state, not today's live settings
+or certification of the v1.2.0 candidate. Preserve the original identities below.
 
 ## 🧾 Collection Record
 

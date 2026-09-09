@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 16 — #46 wiki source and local pilot delivered; publication and final audit tracked
+**Plan revision:** 17 — #44 audit corrections; complete remaining #46 acceptance next
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -122,7 +122,7 @@ those themes produces work that has to be revisited.
 | Tier | Issues | Condition |
 | ---: | --- | --- |
 | 0 | #48, #47, #24, #23, #22, #25, #29, #28, #21, #26, #27, **#45** | Complete on `release/1.2.0` |
-| 4 | #46, then #44 | Wiki source prepared; publication read-back and final audit remain acceptance steps |
+| 4 | #44; remaining #46 acceptance | Wiki publication verified; audit, full adoption pilot and final-tree refresh remain |
 
 The starter source presentation is accepted under #45, so #46 can now describe
 the final starter files and the repository creation workflow.
@@ -134,9 +134,19 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Complete publication/read-back for
-[#46](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/46), then
-perform #44's final Markdown reconciliation.**
+**Validate the audited candidate under
+[#44](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/44), then
+complete the remaining #46 acceptance.** The audit covers all 49 Markdown files
+and comments/docstrings across the tracked source and configuration formats.
+Each file's disposition and exact-source local/hosted evidence belong in #44
+and the milestone PR. A green documentation audit does not close the separate
+full adoption pilot or certify the product release.
+
+The #46 development edition has passed remote publication read-back, including
+its source manifest. After this audit, refresh the complete Wiki export from the
+audited commit and verify that publication again. Keep #46's remaining full
+adoption pilot and browser-navigation checks explicit; source checks do not
+complete them. Its issue owns both the verified publication identity and gaps.
 
 The reviewed guide in [`wiki/Home.md`](wiki/Home.md) contains fourteen journey
 and reference pages plus a generated sidebar. Its checked catalogue covers the
@@ -175,7 +185,7 @@ build records and optional verified signatures to profile-aware release evidence
 evidence validator, tested with synthetic records rather than an actual Excel
 runner. #27 adds blocking offline documentation contracts and separate scheduled
 or manual anonymous external-link observations, with simulated HTTP failure
-coverage. #45 is accepted; proceed with the #46 wiki and final #44 Markdown audit.
+coverage. #45 is accepted; complete #44, then reconcile the remaining #46 acceptance.
 
 `CONTRACT_RULE_SETS` in `tools/check_template_contract.py` is the registry a
 contract-affecting change extends, and `docs/TEMPLATE_CONTRACT.md` is where its
@@ -214,8 +224,9 @@ Both decisions were taken by the maintainer on 2026-09-06. No decision is open.
 
 Carried forward from the v1.1.0 milestone; these remain in force:
 
-- all milestone development lands on `release/1.2.0`; `main` stays the certified
-  v1.1.0 baseline until one final merge;
+- all milestone development lands on `release/1.2.0`; `main` stays at its
+  protected pre-milestone baseline, including the post-release #43 fixes,
+  until one final merge. The immutable v1.1.0 tag remains the release identity;
 - close an issue only when its own acceptance criteria are demonstrably green,
   citing the exact commit SHA and hosted run ID;
 - preserve stronger specialist controls; never weaken a gate to make the

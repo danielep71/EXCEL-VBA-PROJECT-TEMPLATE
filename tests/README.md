@@ -1,4 +1,4 @@
-# Tests
+# 🧪 Tests and Evidence
 
 `tests/` is the canonical home for all verification source and stable test data.
 

@@ -46,6 +46,10 @@ Follow the complete clone/copy/review/commit/push procedure in
 branch and an authorized Git login. Review existing material before replacing
 it; never force-push a documentation history.
 
+Copy `Wiki-Source.json` alongside `Home.md` and the other Markdown files.
+Selecting only Markdown files leaves out the source manifest and fails the
+publication check even when every visible page is correct.
+
 Fetch a fresh Wiki clone, then compare it from the same source checkout:
 
 ```bash

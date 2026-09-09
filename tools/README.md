@@ -1,6 +1,29 @@
-# Tools
+# 🛠️ Tools and Validation Guide
 
-`tools/` contains deterministic maintainer tooling used to validate, package, or produce evidence for the repository.
+[![Runtime: Python 3.10](https://img.shields.io/badge/runtime-Python%203.10-1D76DB)](#python-presentation-and-lint-policy)
+[![Evidence: bounded](https://img.shields.io/badge/evidence-explicit%20scope-217346)](#canonical-repository-quality-gate)
+
+`tools/` contains repository validators, evidence collectors and setup tooling.
+
+Local source checks are deterministic. Network collectors and live setup tools
+have separately documented observation, credential and mutation boundaries.
+
+<a id="python-presentation-and-lint-policy"></a>
+
+## 📐 Python presentation and lint policy
+
+[`pyproject.toml`](../pyproject.toml) sets Python 3.10 as the compatibility target
+and 100 columns as a formatting target. CI runs `ruff check tools` with the
+selected E4, E7, E9, F, C90 and S314 rules and a McCabe ceiling of 20, plus mypy.
+E501 is not selected and CI does not run `ruff format --check`; line length and
+formatter output are therefore not blocking rules. Prefer readable wrapping
+without changing literals or churning unrelated code. Editor indentation and
+line endings are defined in [`.editorconfig`](../.editorconfig).
+
+Comments and docstrings explain purpose, inputs, ownership, error handling and
+limits when these are not clear from the code. Check them whenever behavior
+changes. Distinguish synthetic fixtures, structural predicates, live observations
+and executed host evidence; a token variable does not constrain granted scopes.
 
 <!-- template:remove:start -->
 `check_wiki.py` checks the complete tracked-path catalogue and ordered page set,

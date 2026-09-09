@@ -260,7 +260,8 @@ renv/local/
 #------------------------------------------------------------------------------
 # These are documentation guardrails, not negation rules:
 #   *.bas, *.cls, *.frm, *.frx, *.xml
-#   src/**, demo/**, test/**, tools/**
+#   src/**, examples/**, tests/**, tools/**
+#   demo/**, test/** only for documented legacy/profile alternatives
 #   docs/**, benchmark/**, evidence/**
 #   *.md, *.txt, *.yml, *.yaml, *.json, *.csv
 #   assets/**, images/**, .github/**

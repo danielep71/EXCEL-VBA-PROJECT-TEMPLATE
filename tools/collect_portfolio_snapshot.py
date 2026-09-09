@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Capture GitHub evidence using GET only; emit private snapshot JSON to stdout.
 
-Optional GH_TOKEN grants read access only. No inspected repository is modified.
+Supply optional GH_TOKEN with only the required read permissions. The collector
+issues GET requests only; it cannot restrict the token's own granted scopes.
+No inspected repository is modified.
 """
 from __future__ import annotations
 

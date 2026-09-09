@@ -90,6 +90,11 @@ work, the practical rules are:
 Do not weaken a project-specific numerical, UI, lifecycle, performance or
 packaging gate merely because the generic repository gate passes.
 
+For Python comments, docstrings, wrapping and enforced lint rules, follow
+[the tooling presentation policy](tools/README.md#python-presentation-and-lint-policy).
+Apply the same accuracy review to workflow comments, configuration explanations
+and embedded examples whenever their owning behavior changes.
+
 ## 🔄 Compatibility and state ownership
 
 A change to documented procedures, functions, classes, enums, parameters,

@@ -36,7 +36,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/ISSUE_TEMPLATE/config.yml` / policy | Disable blank issues and route vulnerabilities to the project security policy. | T / T / T | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/ISSUE_TEMPLATE/documentation.yml` / policy | Documentation defect intake identifying the authority and proposed correction. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `.github/ISSUE_TEMPLATE/feature.yml` / policy | Feature/change intake with scope, compatibility and acceptance criteria. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
-| `.github/PULL_REQUEST_TEMPLATE.md` / document | PR review/evidence checklist, including dependency-update information. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `.github/PULL_REQUEST_TEMPLATE.md` / document | PR review/evidence checklist, including dependency-update information. | R / R / R | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
 | `.github/documentation-policy.json` / policy | Registered documentation references, HTTP bounds, allowed domains and expiring exceptions. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `.github/excel-evidence-policy.json` / policy | Starter entry point, case registry, assertion count and expected-error case. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `.github/labels.json` / policy | Canonical core/profile/domain label definitions and reconciliation policy. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
@@ -59,7 +59,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `CODE_OF_CONDUCT.md` / document | Participant expectations and private enforcement route. | T / T / T | [CODE_OF_CONDUCT.md](../../CODE_OF_CONDUCT.md) |
 | `CONTRIBUTING.md` / document | Change scope, review discipline, source ownership and validation evidence. | T / T / T | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
 | `INSTALLATION.md` / document | Import, upgrade, recovery and removal procedure for exported VBA. | T / T / T | [INSTALLATION.md](../../INSTALLATION.md) |
-| `LICENSE` / document | MIT reuse terms and copyright attribution. | T / T / T | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `LICENSE` / document | MIT reuse terms and copyright attribution. | T / T / T | [LICENSE](../../LICENSE) |
 | `README.md` / document | Project identity, profile overview, quick start and main navigation. | T / T / T | [README.md](../../README.md) |
 | `RELEASING.md` / document | Ordered release preparation, certification, tagging and publication procedure. | T / T / T | [RELEASING.md](../../RELEASING.md) |
 | `SECURITY.md` / document | Vulnerability scope, private reporting, disclosure and response. | T / T / T | [SECURITY.md](../../SECURITY.md) |
@@ -68,17 +68,17 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `assets/social-preview.png` / asset | Optional raster social preview removed unless explicitly selected. | X / X / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `assets/social-preview.svg` / asset | Editable template preview source; removed during generation. | X / X / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `docs/CHECKER_DEVELOPMENT.md` / document | Independent checker-development and policy-coverage requirements. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
-| `docs/DEPENDENCY_UPDATES.md` / document | Manual dependency monitoring, provenance review and rollback. | R / R / R | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
+| `docs/DEPENDENCY_UPDATES.md` / document | Manual dependency monitoring, provenance review and rollback. | T / T / T | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `docs/DOCUMENTATION_CHECKS.md` / document | Offline command/reference validation and separate external-link policy. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `docs/EXCEL_EVIDENCE.md` / document | Optional Windows/Excel runner interface and manual retained-log schema. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `docs/IMPLEMENTATION_PLAN.md` / document | Temporary milestone ordering and completion state; delete at milestone exit. | X / X / X | [docs/IMPLEMENTATION_PLAN.md](../../docs/IMPLEMENTATION_PLAN.md) |
 | `docs/INITIALIZATION.md` / document | Authoritative initialization inputs, profile rendering and no-op contract. | R / R / R | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
 | `docs/PILOT_CERTIFICATION.md` / document | Historical template pilot/certification evidence; not a fresh acceptance run. | X / X / X | [docs/PILOT_CERTIFICATION.md](../../docs/PILOT_CERTIFICATION.md) |
 | `docs/PORTFOLIO_DRIFT.md` / document | Read-only snapshot and structural adoption/conformance comparison contract. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |
-| `docs/PORTFOLIO_QUALITY.md` / document | Timestamped quality scoring, freshness and missing-evidence interpretation. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
+| `docs/PORTFOLIO_QUALITY.md` / document | Timestamped quality observations, freshness and missing-evidence interpretation; no overall score. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
 | `docs/POST_CREATION_CHECKLIST.md` / document | Live settings and read-back controls that template creation does not transfer. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `docs/PROVISIONING.md` / document | Guarded setup planner, approved-digest apply and durable journal contract. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
-| `docs/PUBLIC_API.txt` / document | Complete public declaration inventory with normalized signature records. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `docs/PUBLIC_API.txt` / document | Complete public declaration inventory with normalized signature records. | R / R / R | [docs/PUBLIC_API.txt](../../docs/PUBLIC_API.txt) |
 | `docs/README.md` / document | Documentation hub and single-authority mapping. | T / T / T | [docs/README.md](../../docs/README.md) |
 | `docs/RELEASE_EVIDENCE.md` / document | Candidate-bound release JSON and profile/asset evidence schemas. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `docs/RELEASE_PROVENANCE.md` / document | Complete payload inventory, build records and optional SSH trust/signatures. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
@@ -106,20 +106,20 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `docs/wiki/catalogue.json` / wiki | Ordered page registry, per-path purpose/authority and shared inventory editing rules. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `examples/README.md` / document | Ownership and scope of reproducible usage examples. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `examples/modules/ProjectExample.bas` / vba | Optional project-private example that prints one supported facade result. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
-| `pyproject.toml` / policy | Pinned Python target, lint selection, complexity ceiling and typing scope. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `pyproject.toml` / policy | Python compatibility target, advisory line length, enforced lint selection, complexity ceiling and typing scope. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `src/README.md` / document | Production export organization and public/internal boundaries. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `src/core/ProjectCore.bas` / vba | Stateless checked division and the internal zero-denominator error code. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `src/modules/ProjectFacade.bas` / vba | Supported scalar ratio entry point and normalized caller-facing error source. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tests/README.md` / document | Regression entry point, output contract, repeatability and cleanup expectations. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tests/modules/ProjectTests.bas` / vba | Four-case, six-assertion harness with host-state comparison and full reporting. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
-| `tools/LOCAL_ACTIONS.md` / document | Repository-local composite/Node/Docker action validation boundaries. | R / R / R | [tools/README.md](../../tools/README.md) |
+| `tools/LOCAL_ACTIONS.md` / document | Repository-local composite/Node/Docker action validation boundaries. | R / R / R | [tools/LOCAL_ACTIONS.md](../../tools/LOCAL_ACTIONS.md) |
 | `tools/README.md` / document | Operational tool commands, reports and focused-gate responsibilities. | T / T / T | [tools/README.md](../../tools/README.md) |
 | `tools/_gatelib.py` / script | Shared Git, tracked-file, report and focused CLI orchestration primitives; imported helper. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/check_committed_whitespace.py` / script | Validate staged/unstaged feedback or an explicit committed Git range. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/check_documentation.py` / script | Parse literal documented Python commands and registered contract references. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `tools/check_excel_evidence.py` / script | Validate exact-source host records, stage outcomes and retained-log hashes. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `tools/check_external_links.py` / script | Bounded anonymous HTTPS observations with categorized access and transient failures. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
-| `tools/check_local_actions.py` / script | Resolve local action metadata, implementation files and supported invocation forms. | R / R / R | [tools/README.md](../../tools/README.md) |
+| `tools/check_local_actions.py` / script | Resolve local action metadata, implementation files and supported invocation forms. | R / R / R | [tools/LOCAL_ACTIONS.md](../../tools/LOCAL_ACTIONS.md) |
 | `tools/check_policy_coverage.py` / script | Independent policy-branch coverage entry point for the canonical checker. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/check_portfolio_drift.py` / script | Compare captured repository structure with the explicitly adopted control set. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |
 | `tools/check_release.py` / script | Validate an actual release candidate/evidence/assets/tag or synthetic self-tests. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |

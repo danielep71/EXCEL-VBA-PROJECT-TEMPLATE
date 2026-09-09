@@ -3,7 +3,8 @@
 
 Dry-run is the default. Pass --apply only after reviewing the complete plan.
 The implementation validates every input and renders every affected file in
-memory before changing the working tree. Filesystem failures trigger rollback.
+memory before changing the working tree. Replacements are atomic per file;
+filesystem failures trigger a rollback attempt, not a repository-wide transaction.
 """
 
 from __future__ import annotations
@@ -318,10 +319,11 @@ def _reset_changelog(text: str) -> str:
 def _directory_readme(project_name: str, profile: str, directory: str) -> bytes:
     label = PurePosixPath(directory).name.replace("-", " ").title()
     content = (
-        f"# {label}\n\n"
+        f"# 📂 {label}\n\n"
         f"This directory is reserved for {project_name}'s {profile} profile. "
-        "Replace this instruction with authoritative exported source when the "
-        "starter VBA assets are added.\n"
+        "Add authoritative exported source here when the project needs this "
+        "component role. The required facade, core and regression starter "
+        "already exist in their governed locations.\n"
     )
     return content.encode("utf-8")
 

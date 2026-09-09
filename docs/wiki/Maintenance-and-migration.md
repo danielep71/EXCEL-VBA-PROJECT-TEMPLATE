@@ -46,7 +46,7 @@ as a shortcut around release evidence.
 
 Template-maintenance portfolio tools can collect and compare read-only
 observations. Missing adoption is an adoption decision; missing permissions are
-unverified evidence. A conformance score is not proof of numerical correctness
+unverified evidence. A conformance result is not proof of numerical correctness
 or live Excel behavior. This guide does not authorize changes to existing
 portfolio repositories.
 
