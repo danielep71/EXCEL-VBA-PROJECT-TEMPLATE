@@ -74,6 +74,7 @@ are not replaced merely because they differ from the template.
 | <a id="strict-release-semantics"></a>`strict-release-semantics` | Release-semantics checker path present |
 | <a id="template-contract-version"></a>`template-contract-version` | Contract authority and checker paths present |
 | <a id="controlled-dependency-updates"></a>`controlled-dependency-updates` | Dependency policy path present; human review remains outside automated proof |
+| <a id="advanced-release-provenance"></a>`advanced-release-provenance` | Provenance policy, implementation, fixtures and documentation paths present; artifact and signature verification belongs to the release gate |
 | <a id="metadata"></a>`metadata` | Description, enabled issue intake and disabled auto-merge |
 | <a id="workflow-properties"></a>`workflow-properties` | Selected generic workflow has explicit contents-read-only permissions and immutable external references; no job secrets/environment; execution, triggers and transitive actions are not certified |
 | <a id="branch-protection"></a>`branch-protection` | Active rules cover default branch, prohibit deletion/non-fast-forward, require PR and a strict named check, with no bypass |

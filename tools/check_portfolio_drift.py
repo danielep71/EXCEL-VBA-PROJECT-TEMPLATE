@@ -35,6 +35,8 @@ PATHS = {
     "strict-release-semantics": ["tools/check_release_semantics.py"],
     "template-contract-version": ["docs/TEMPLATE_CONTRACT.md", "tools/check_template_contract.py"],
     "controlled-dependency-updates": ["docs/DEPENDENCY_UPDATES.md"],
+    "advanced-release-provenance": [".github/release-provenance.json", "docs/RELEASE_PROVENANCE.md",
+                                    "tools/release_provenance.py", "tools/test_release_provenance.py"],
 }
 UNIVERSAL = {"metadata", "workflow-properties", "branch-protection", "release-tag-protection"}
 

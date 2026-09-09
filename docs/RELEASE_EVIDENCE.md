@@ -142,6 +142,10 @@ python3 tools/check_release.py \
 ```
 
 Add `--asset-manifest ../release-assets.sha256` for a binary distribution.
+Contract 1.2.0 also requires `--provenance ../release-provenance.json` for
+binary distributions. Follow [RELEASE_PROVENANCE.md](RELEASE_PROVENANCE.md)
+for build records and optional SSH signatures. Keep only deliverable payloads
+in `dist/`: the gate rejects undeclared files there, including non-binary files.
 After creating the annotated tag locally, repeat the command with
 `--require-tag-ref`. That final mode requires the tag object to be annotated and
 to resolve to the same candidate SHA. Any non-zero result blocks publication.

@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 9 — #28 delivered; guarded dry-run-first provisioning tooling
+**Plan revision:** 10 — #21 delivered; profile-aware release provenance
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -65,7 +65,8 @@ Completed on this branch: [#48](https://github.com/danielep71/EXCEL-VBA-PROJECT-
 [#22](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/22) and
 [#25](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/25) and
 [#29](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/29) and
-[#28](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/28).
+[#28](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/28) and
+[#21](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/21).
 
 ---
 
@@ -132,15 +133,16 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Begin [#21](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/21)
-— P3-07, profile-aware advanced release provenance.**
+**Begin [#26](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/26)
+— P3-09, optional Windows and Excel evidence pattern.**
 
 #23 and #22 complete the reusable-workflow and dependency-policy sequence.
 #25 and #29 supply read-only structural drift and timestamped portfolio reporting.
 #28 supplies the template's new-repository setup tooling and guarded plan/apply
 interface, validated against a simulated API. No existing portfolio settings
-were applied and no profile or contract version was assigned to them. #21 now
-extends profile-aware release evidence; the tier-1 issues remain independently actionable;
+were applied and no profile or contract version was assigned to them. #21 adds
+build records and optional verified signatures to profile-aware release evidence.
+#26 supplies the optional host-execution pattern; the tier-1 issues remain independently actionable;
 this next action does not create a new dependency between them.
 
 `CONTRACT_RULE_SETS` in `tools/check_template_contract.py` is the registry a

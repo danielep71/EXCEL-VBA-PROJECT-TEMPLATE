@@ -2,6 +2,12 @@
 
 `tools/` contains deterministic maintainer tooling used to validate, package, or produce evidence for the repository.
 
+`release_provenance.py` extends `check_release.py` with contract 1.2.0 build
+records, complete payload inventory and optional SSH verification. It has no
+separate CLI. See [the provenance contract](../docs/RELEASE_PROVENANCE.md);
+`test_release_provenance.py` exercises both the integrated gate and real
+ephemeral signatures without Office or publishing credentials.
+
 Appropriate contents include:
 
 - VBA static checks and exported-source validators;

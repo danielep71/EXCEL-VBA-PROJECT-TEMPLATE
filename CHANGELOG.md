@@ -101,6 +101,8 @@ Use only the categories needed by a release.
 
 ### Added
 
+- Added contract 1.2.0 release provenance: complete staged-payload checks, source/workflow/build-environment records, and optional SSH signature verification using committed trust policy. Source-only releases remain valid without binary artifacts.
+
 - Added optional versioned provisioning policy and a template-maintenance provisioner that defaults to a read-only exact-state plan. Explicit apply requires the approved plan digest, initialized target SHA, trusted credentials and a durable journal; source changes, stale plans and partial writes cannot be reported as verified. Extra topics/labels and stronger rules are preserved, with simulated coverage for all three profiles and no live portfolio mutations.
 
 - Added timestamped portfolio quality/conformance reports with explicit freshness, exact-SHA required workflow observations, branch/tag protection, published-release evidence and attributed specialist scores. Missing adoption and inaccessible evidence remain visible; popularity never contributes to quality, and publication never implies certification. Existing portfolio repositories remain read-only.

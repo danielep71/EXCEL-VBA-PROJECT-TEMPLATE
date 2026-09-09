@@ -201,7 +201,9 @@ git push origin "$release_tag"
 ```
 
 Add `--asset-manifest ../release-assets.sha256` when the release distributes
-binary assets. Do not push the tag if either check fails. Never move or recreate
+binary assets. For contract 1.2.0 add the build record and any required signature
+using [the provenance procedure](docs/RELEASE_PROVENANCE.md).
+Do not push the tag if either check fails. Never move or recreate
 a public tag to hide an error.
 
 ## 10. Publish the GitHub Release

@@ -24,6 +24,8 @@ import sys
 import tempfile
 from typing import Any
 
+from release_provenance import validate as validate_provenance
+
 
 SCHEMA_VERSION = 1
 TOOL_NAME = "Canonical release integrity"
@@ -639,6 +641,8 @@ def build_report(
     evidence_path: Path,
     manifest_path: Path | None,
     require_tag_ref: bool,
+    provenance_path: Path | None = None,
+    signature_path: Path | None = None,
 ) -> dict[str, Any]:
     findings: list[dict[str, str]] = []
     configuration, configuration_findings = _load_configuration(root)
@@ -656,6 +660,10 @@ def build_report(
         findings.extend(source_findings)
         findings.extend(_validate_evidence_and_assets(
             root, evidence_path, manifest_path, policy, profile, version, tag, candidate_sha
+        ))
+        findings.extend(validate_provenance(
+            root, configuration, candidate_sha, evidence_path, manifest_path,
+            provenance_path, signature_path,
         ))
     findings.sort(key=lambda item: (item["code"], item["path"], item["message"]))
     return {
@@ -1067,6 +1075,8 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--candidate-sha", help="full 40-character candidate commit SHA")
     parser.add_argument("--evidence", type=Path, help="external release evidence JSON")
     parser.add_argument("--asset-manifest", type=Path, help="external SHA-256 asset manifest")
+    parser.add_argument("--provenance", type=Path, help="external build provenance JSON")
+    parser.add_argument("--provenance-signature", type=Path, help="detached SSH provenance signature")
     parser.add_argument("--require-tag-ref", action="store_true", help="require an annotated local tag resolving to the candidate")
     parser.add_argument("--output", type=Path, help="write deterministic JSON report")
     parser.add_argument("--summary", type=Path, help="write Markdown report or self-test summary")
@@ -1092,7 +1102,8 @@ def main(arguments: list[str] | None = None) -> int:
         if manifest is not None and not manifest.is_absolute():
             manifest = (Path.cwd() / manifest).resolve()
         report = build_report(
-            root, parsed.tag, parsed.candidate_sha, evidence, manifest, parsed.require_tag_ref
+            root, parsed.tag, parsed.candidate_sha, evidence, manifest, parsed.require_tag_ref,
+            parsed.provenance, parsed.provenance_signature,
         )
         json_text = json.dumps(report, indent=2, sort_keys=True) + "\n"
         print(console_report(report))

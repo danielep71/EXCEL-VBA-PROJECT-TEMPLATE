@@ -68,6 +68,7 @@ CONTRACT_RULE_SETS: dict[str, frozenset[str]] = {
     ),
     "1.2.0": frozenset(
         {
+            "advanced-release-provenance",
             "canonical-repository-gate",
             "committed-whitespace",
             "complete-public-api",
