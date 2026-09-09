@@ -301,6 +301,26 @@ def _replacement_values(
     return values
 
 
+def _render_readme_badges(
+    path: str, text: str, template_repository: str, repository: str
+) -> str:
+    """Retarget the template's live README badge images and links for an adopter."""
+    if path != "README.md":
+        return text
+    for prefix in (
+        "https://github.com/",
+        "https://img.shields.io/github/v/release/",
+        "https://img.shields.io/github/issues/",
+    ):
+        # Match a repository boundary, so similarly named repositories stay untouched.
+        text = re.sub(
+            re.escape(prefix + template_repository) + r"(?=[/?#)]|$)",
+            lambda match: prefix + repository,
+            text,
+        )
+    return text
+
+
 def _reset_changelog(text: str) -> str:
     start = text.find("## [Unreleased]")
     if start < 0:
@@ -464,6 +484,9 @@ def _build_changes(
         for name, value in values.items():
             rendered = rendered.replace("{{" + name + "}}", value)
         rendered = _strip_template_maintenance_workflow(path, rendered)
+        rendered = _render_readme_badges(
+            path, rendered, config["repository"], scalars["REPOSITORY_PATH"]
+        )
         if path == ".github/ISSUE_TEMPLATE/config.yml":
             template_security_url = (
                 f"https://github.com/{config['repository']}/security/policy"
@@ -778,6 +801,17 @@ def _assert_generated_cleanup(
         encoding="utf-8"
     )
     repository = repository or f"example/fixture-{profile}"
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    expected_badge_urls = (
+        f"https://github.com/{repository}/actions/workflows/static-checks.yml/badge.svg",
+        f"https://github.com/{repository}/actions/workflows/static-checks.yml)",
+        f"https://img.shields.io/github/v/release/{repository}?",
+        f"https://github.com/{repository}/releases)",
+        f"https://img.shields.io/github/issues/{repository}?",
+        f"https://github.com/{repository}/issues)",
+    )
+    if any(url not in readme for url in expected_badge_urls):
+        raise AssertionError(f"{profile} did not retarget all README badges and links.")
     expected_security_url = f"https://github.com/{repository}/security/policy"
     if expected_security_url not in issue_config:
         raise AssertionError(f"{profile} did not render its private-security URL.")

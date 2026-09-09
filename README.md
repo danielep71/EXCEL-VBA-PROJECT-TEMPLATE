@@ -15,9 +15,9 @@
 
 <br>
 
-[![Static checks](https://github.com/{{REPOSITORY_PATH}}/actions/workflows/static-checks.yml/badge.svg?branch=main)](https://github.com/{{REPOSITORY_PATH}}/actions/workflows/static-checks.yml)
-[![Release](https://img.shields.io/github/v/release/{{REPOSITORY_PATH}}?style=flat-square&label=release&color=217346)](https://github.com/{{REPOSITORY_PATH}}/releases)
-[![Issues](https://img.shields.io/github/issues/{{REPOSITORY_PATH}}?style=flat-square&color=d73a49)](https://github.com/{{REPOSITORY_PATH}}/issues)
+[![Static checks](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/static-checks.yml/badge.svg?branch=main)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/static-checks.yml)
+[![Release](https://img.shields.io/github/v/release/danielep71/EXCEL-VBA-PROJECT-TEMPLATE?style=flat-square&label=release&color=217346)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases)
+[![Issues](https://img.shields.io/github/issues/danielep71/EXCEL-VBA-PROJECT-TEMPLATE?style=flat-square&color=d73a49)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues)
 
 <br>
 

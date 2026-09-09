@@ -127,6 +127,9 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- The public template README now uses working repository badge URLs; initialization
+  retargets the status, release and issue badges and links to the generated repository.
+
 - Distinguish local reusable-workflow job calls from local action steps, and require tracked workflow files.
 - Ignore quoted VBA text when checking jump targets, while retaining checks for executable jumps on the same line.
 - Validate public API declarations across the supported conditional-compilation environments; accept mutually exclusive variants and require every distinct signature in the manifest.
