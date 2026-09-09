@@ -37,7 +37,8 @@ The public API gate also uses `check_vba_conditionals.py` to evaluate the same t
 ### Self-test interface coverage
 
 Runner ownership and `--self-test` support are separate contracts. The development
-report now discovers CLI definitions and imported-main wrappers, checks each
+report discovers CLI definitions, imported-main wrappers and executable
+`__main__` guards (including reversed equality), then checks each
 script's `--help`, and requires either an advertised `--self-test` flag or a
 non-empty reason in `SELF_TEST_EXCLUSIONS`. Missing declarations, failed help,
 stale exclusions, and exclusions for tools that now advertise the flag fail.
@@ -53,8 +54,9 @@ dedicated offline suite.
 
 This check verifies interface declarations, not exhaustive test coverage. Advertising
 the flag does not prove that its fixtures ran or that every branch is covered.
-Unit-test scripts and non-CLI helper modules are outside this interface inventory;
-their suites and semantic coverage remain separate. No host execution or release
+Executable unittest scripts are included with explicit exclusions identifying their
+normal fixture invocation. Non-CLI helper modules remain outside this interface
+inventory; suite execution and semantic coverage remain separate. No host execution or release
 certification is inferred from synthetic fixtures.
 
 ### Supported invocation mode
