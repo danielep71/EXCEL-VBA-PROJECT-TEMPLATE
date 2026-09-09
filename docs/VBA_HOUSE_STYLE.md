@@ -54,6 +54,20 @@ to explain its contract:
 Document every starter procedure, including assertion, reporting, reset and
 cleanup helpers. Keep short helpers' contracts concise; omit empty sections.
 Comments should explain intent and invariants rather than narrate assignments.
+Each local variable, module-state variable and constant has an inline comment
+explaining its role, meaning or lifetime. Align the trailing comment column
+within each declaration group. A descriptive name does not replace this short
+annotation: distinguish captured errors, host snapshots and retained report
+state explicitly.
+
+Under every executable section banner, add an indented explanatory comment
+before the code. Explain the purpose of that phase and any ordering constraint
+or failure consequence. Add further comments before distinct steps within a
+larger phase, particularly error capture, cleanup, validation and propagation.
+Section titles alone do not supply this explanation. Put a handler's entry
+label before its explanatory comment so the comment accompanies the statements
+executed at that label.
+
 Keep module dates at least as recent as the procedures changed in that module;
 do not refresh untouched procedure dates merely to make all dates identical.
 Preserve accurate authorship when adapting the starter.
@@ -92,6 +106,25 @@ Public Function ProjectRatio( _
 
 Its procedure banner follows that signature; it does not precede it. The full
 `src/modules/ProjectFacade.bas` export is the working example.
+
+Inside that procedure, annotations accompany the declarations and body:
+
+```vb
+'------------------------------------------------------------------------------
+' DECLARE
+'------------------------------------------------------------------------------
+    'Keep every error field needed to preserve the core failure contract.
+    Dim savedNumber        As Long      'Original error number for later re-raise
+
+'------------------------------------------------------------------------------
+' CALL CORE
+'------------------------------------------------------------------------------
+    'Delegate the arithmetic to the core; this boundary owns only the
+    'caller-facing error source.
+        On Error GoTo HandleError
+```
+
+This is an excerpt: the full export retains all declarations and the handler.
 
 ## 💾 Export compatibility
 

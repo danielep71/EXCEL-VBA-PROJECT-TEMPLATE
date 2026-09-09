@@ -42,13 +42,15 @@ Attribute VB_Name = "ProjectCore"
 '------------------------------------------------------------------------------
 ' MODULE SETTINGS
 '------------------------------------------------------------------------------
+    'Require explicit declarations; preserve the configured component visibility.
     Option Explicit
     Option Private Module
 
 '------------------------------------------------------------------------------
 ' MODULE CONSTANTS
 '------------------------------------------------------------------------------
-        Public Const ERR_ZERO_DENOMINATOR   As Long = vbObjectError + 2048
+    'Own the internal error code used by the facade boundary.
+        Public Const ERR_ZERO_DENOMINATOR   As Long = vbObjectError + 2048    'Core-owned zero-denominator code
 
 
 '
@@ -88,6 +90,8 @@ Public Function DivideChecked( _
 '------------------------------------------------------------------------------
 ' VALIDATE DENOMINATOR
 '------------------------------------------------------------------------------
+    'Reject zero explicitly so callers receive the stable project error
+    'instead of depending on the runtime division-by-zero diagnostic.
         If denominator = 0# Then
             Err.Raise _
                 ERR_ZERO_DENOMINATOR, _
@@ -98,6 +102,7 @@ Public Function DivideChecked( _
 '------------------------------------------------------------------------------
 ' ASSIGN RESULT
 '------------------------------------------------------------------------------
+    'Return the quotient without reading or changing ambient host state.
         DivideChecked = numerator / denominator
 
 End Function

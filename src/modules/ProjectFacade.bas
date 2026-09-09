@@ -45,12 +45,14 @@ Attribute VB_Name = "ProjectFacade"
 '------------------------------------------------------------------------------
 ' MODULE SETTINGS
 '------------------------------------------------------------------------------
+    'Require explicit declarations; preserve the configured component visibility.
     Option Explicit
 
 '------------------------------------------------------------------------------
 ' MODULE CONSTANTS
 '------------------------------------------------------------------------------
-        Public Const PROJECT_ERROR_ZERO_DENOMINATOR   As Long = ProjectCore.ERR_ZERO_DENOMINATOR
+    'Expose the core-owned error value without defining a second numeric code.
+        Public Const PROJECT_ERROR_ZERO_DENOMINATOR   As Long = ProjectCore.ERR_ZERO_DENOMINATOR    'Public alias of the core error
 
 
 '
@@ -93,14 +95,17 @@ Public Function ProjectRatio( _
 '------------------------------------------------------------------------------
 ' DECLARE
 '------------------------------------------------------------------------------
-    Dim savedNumber        As Long
-    Dim savedDescription   As String
-    Dim savedHelpContext   As Long
-    Dim savedHelpFile      As String
+    'Keep every error field needed to preserve the core failure contract.
+    Dim savedNumber        As Long      'Original error number for later re-raise
+    Dim savedDescription   As String    'Original core diagnostic for re-raise
+    Dim savedHelpContext   As Long      'Original help topic passed through the facade
+    Dim savedHelpFile      As String    'Original help file passed through the facade
 
 '------------------------------------------------------------------------------
 ' CALL CORE
 '------------------------------------------------------------------------------
+    'Delegate the arithmetic to the core; this boundary owns only the
+    'caller-facing error source.
         On Error GoTo HandleError
 
         ProjectRatio = ProjectCore.DivideChecked(numerator, denominator)
@@ -109,13 +114,14 @@ Public Function ProjectRatio( _
 '------------------------------------------------------------------------------
 ' HANDLE ERROR
 '------------------------------------------------------------------------------
-    'Capture every field before raising through the supported facade.
 HandleError:
+    'Capture all fields before Err.Raise replaces the active error record.
         savedNumber = Err.Number
         savedDescription = Err.Description
         savedHelpFile = Err.HelpFile
         savedHelpContext = Err.HelpContext
 
+    'Re-raise with the public source while retaining all other core fields.
         Err.Raise _
             savedNumber, _
             "ProjectFacade.ProjectRatio", _

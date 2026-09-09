@@ -41,6 +41,7 @@ Attribute VB_Name = "ProjectExample"
 '------------------------------------------------------------------------------
 ' MODULE SETTINGS
 '------------------------------------------------------------------------------
+    'Require explicit declarations; preserve the configured component visibility.
     Option Explicit
     Option Private Module
 
@@ -78,12 +79,15 @@ Public Sub RunProjectExample()
 '------------------------------------------------------------------------------
 ' DECLARE
 '------------------------------------------------------------------------------
-    Const NUMERATOR     As Double = 12#
-    Const DENOMINATOR   As Double = 4#
+    'Keep the demonstration reproducible with explicit scalar inputs.
+    Const NUMERATOR     As Double = 12#    'Explicit sample dividend
+    Const DENOMINATOR   As Double = 4#     'Nonzero sample divisor
 
 '------------------------------------------------------------------------------
 ' REPORT EXAMPLE
 '------------------------------------------------------------------------------
+    'Call the supported facade and print its result without creating a
+    'worksheet fixture or depending on the active selection.
         Debug.Print "ProjectRatio(12, 4) = " & _
             CStr(ProjectFacade.ProjectRatio(NUMERATOR, DENOMINATOR))
 

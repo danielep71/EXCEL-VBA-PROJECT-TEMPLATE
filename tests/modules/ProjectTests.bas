@@ -53,27 +53,31 @@ Attribute VB_Name = "ProjectTests"
 '------------------------------------------------------------------------------
 ' MODULE SETTINGS
 '------------------------------------------------------------------------------
+    'Require explicit declarations; preserve the configured component visibility.
     Option Explicit
     Option Private Module
 
 '------------------------------------------------------------------------------
 ' MODULE CONSTANTS
 '------------------------------------------------------------------------------
-        Private Const TEST_ERROR_DIRTY_START   As Long = vbObjectError + 2060
-        Private Const TEST_ERROR_FAILURES      As Long = vbObjectError + 2061
-        Private Const EXPECTED_ASSERTIONS      As Long = 6
-        Private Const EXPECTED_CASES           As Long = 4
+    'Keep harness error codes separate from the production failure contract;
+    'the expected counts define when the suite is complete.
+        Private Const TEST_ERROR_DIRTY_START   As Long = vbObjectError + 2060    'Refused re-entry or interrupted run
+        Private Const TEST_ERROR_FAILURES      As Long = vbObjectError + 2061    'Failed or incomplete suite outcome
+        Private Const EXPECTED_ASSERTIONS      As Long = 6                       'Required assertions for a complete run
+        Private Const EXPECTED_CASES           As Long = 4                       'Required cases for a complete run
 
 '------------------------------------------------------------------------------
 ' MODULE STATE
 '------------------------------------------------------------------------------
-    'Owned by the harness; report values remain available until the next reset.
-        Private mCaseCount        As Long
-        Private mAssertionCount   As Long
-        Private mFailureCount     As Long
-        Private mFailureDetails   As String
-        Private mRunActive        As Boolean
-        Private mSuiteCompleted   As Boolean
+    'Own counters and diagnostics for one run; cleanup releases the active
+    'flag while report values remain available until the next reset.
+        Private mCaseCount        As Long       'Cases started in the current run
+        Private mAssertionCount   As Long       'Assertions evaluated in the current run
+        Private mFailureCount     As Long       'Failures recorded, including runner errors
+        Private mFailureDetails   As String     'Diagnostics retained until the next reset
+        Private mRunActive        As Boolean    'Re-entry guard; cleared by cleanup or reset
+        Private mSuiteCompleted   As Boolean    'True only when both expected counts match
 
 
 '
@@ -112,20 +116,24 @@ Public Sub RunProjectTests()
 '------------------------------------------------------------------------------
 ' DECLARE
 '------------------------------------------------------------------------------
-    Dim cleanupDetail           As String
-    Dim cleanupPassed           As Boolean
-    Dim initialCalculation      As XlCalculation
-    Dim initialDisplayAlerts    As Boolean
-    Dim initialEnableEvents     As Boolean
-    Dim initialScreenUpdating   As Boolean
-    Dim savedDescription        As String
-    Dim savedNumber             As Long
-    Dim savedSource             As String
-    Dim stateSnapshotValid      As Boolean
+    'Keep the host snapshot separate from the saved runner error so cleanup
+    'can be reported without losing the original failure.
+    Dim cleanupDetail           As String           'Cleanup explanation included in the report
+    Dim cleanupPassed           As Boolean          'True only when cleanup verification succeeds
+    Dim initialCalculation      As XlCalculation    'Calculation mode captured before the suite
+    Dim initialDisplayAlerts    As Boolean          'Display-alert setting captured before the suite
+    Dim initialEnableEvents     As Boolean          'Event setting captured before the suite
+    Dim initialScreenUpdating   As Boolean          'Screen-update setting captured before the suite
+    Dim savedDescription        As String           'Original diagnostic preserved through cleanup
+    Dim savedNumber             As Long             'Original error number for later re-raise
+    Dim savedSource             As String           'Original runner error source for re-raise
+    Dim stateSnapshotValid      As Boolean          'True only after all four properties were read
 
 '------------------------------------------------------------------------------
 ' GUARD ENTRY
 '------------------------------------------------------------------------------
+    'Refuse an active run before clearing its counters or failure details.
+    'An interrupted execution must be reset explicitly by the caller.
         If mRunActive Then
             Debug.Print "RESULT=FAIL_DIRTY_START; cleanup=NOT_RUN"
             Err.Raise _
@@ -137,6 +145,8 @@ Public Sub RunProjectTests()
 '------------------------------------------------------------------------------
 ' INITIALIZE RUN
 '------------------------------------------------------------------------------
+    'Start with empty report state, then claim the run before executing
+    'anything that can fail through the shared runner handler.
         ResetRun
         mRunActive = True
         On Error GoTo RunFailed
@@ -144,7 +154,9 @@ Public Sub RunProjectTests()
 '------------------------------------------------------------------------------
 ' SNAPSHOT HOST STATE
 '------------------------------------------------------------------------------
-    'These values are observed for comparison, never changed by the harness.
+    'Read all four properties before marking the snapshot valid. If a read
+    'fails, cleanup must report an unavailable snapshot rather than compare
+    'uninitialized values or claim that host state was unchanged.
         initialCalculation = Application.Calculation
         initialDisplayAlerts = Application.DisplayAlerts
         initialEnableEvents = Application.EnableEvents
@@ -154,11 +166,15 @@ Public Sub RunProjectTests()
 '------------------------------------------------------------------------------
 ' RUN SUITE
 '------------------------------------------------------------------------------
+    'Run cases in the evidence contract order; each case records unexpected
+    'errors so later cases can still contribute to the report.
         PrintEnvironment
         TestExactEquality
         TestTolerance
         TestExpectedError
         TestRepeatability
+
+    'Require both counts so an early return cannot produce a complete PASS.
         mSuiteCompleted = _
             (mCaseCount = EXPECTED_CASES) And _
             (mAssertionCount = EXPECTED_ASSERTIONS)
@@ -174,8 +190,9 @@ Public Sub RunProjectTests()
 '------------------------------------------------------------------------------
 ' CLEANUP AND REPORT
 '------------------------------------------------------------------------------
-    'Disable the runner handler before reporting or propagating the outcome.
 CleanExit:
+    'Disable the runner handler before cleanup and reporting. A later raise
+    'must escape to the caller instead of re-entering the runner handler.
         On Error GoTo 0
         cleanupPassed = CleanupRun( _
             cleanupDetail, _
@@ -186,10 +203,13 @@ CleanExit:
             initialScreenUpdating)
         PrintSummary cleanupPassed, cleanupDetail
 
+    'Propagate the original runner error only after cleanup and reporting.
         If savedNumber <> 0 Then
             Err.Raise savedNumber, savedSource, savedDescription
         End If
 
+    'Make assertion, cleanup and completeness failures visible to callers
+    'even when no unexpected runner error was saved.
         If mFailureCount <> 0 Or Not cleanupPassed Or Not mSuiteCompleted Then
             Err.Raise _
                 TEST_ERROR_FAILURES, _
@@ -201,8 +221,9 @@ CleanExit:
 '------------------------------------------------------------------------------
 ' HANDLE RUNNER ERROR
 '------------------------------------------------------------------------------
-    'Preserve the original failure and resume the shared cleanup path.
 RunFailed:
+    'Save the escaping error before recording its diagnostic; Resume then
+    'leaves the active handler through the common cleanup path.
         savedNumber = Err.Number
         savedSource = Err.Source
         savedDescription = Err.Description
@@ -239,6 +260,8 @@ Public Sub ResetProjectTests()
 '------------------------------------------------------------------------------
 ' RESET
 '------------------------------------------------------------------------------
+    'Recover only harness-owned state after execution has stopped; the
+    'confirmation distinguishes an explicit reset from a completed test run.
         ResetRun
         Debug.Print "PROJECT TESTS RESET; run_active=no; counters=0"
 
@@ -272,6 +295,8 @@ Private Sub TestExactEquality()
 '------------------------------------------------------------------------------
 ' RUN CASE
 '------------------------------------------------------------------------------
+    'Use a binary-exact quotient so this case checks equality without a
+    'tolerance that could hide an incorrect result.
         On Error GoTo CaseFailed
 
         BeginCase "ratio.exact"
@@ -285,6 +310,7 @@ Private Sub TestExactEquality()
 ' HANDLE CASE ERROR
 '------------------------------------------------------------------------------
 CaseFailed:
+    'Record this case as failed without aborting the remaining cases.
         RecordUnexpectedCaseError "ratio.exact"
 
 End Sub
@@ -309,6 +335,8 @@ Private Sub TestTolerance()
 '------------------------------------------------------------------------------
 ' RUN CASE
 '------------------------------------------------------------------------------
+    'Use a recurring quotient to exercise the absolute-tolerance assertion
+    'with an explicit reference value and bound.
         On Error GoTo CaseFailed
 
         BeginCase "ratio.tolerance"
@@ -323,6 +351,7 @@ Private Sub TestTolerance()
 ' HANDLE CASE ERROR
 '------------------------------------------------------------------------------
 CaseFailed:
+    'Keep the unexpected failure associated with the tolerance case.
         RecordUnexpectedCaseError "ratio.tolerance"
 
 End Sub
@@ -348,14 +377,17 @@ Private Sub TestExpectedError()
 '------------------------------------------------------------------------------
 ' DECLARE
 '------------------------------------------------------------------------------
-    Dim actualDescription   As String
-    Dim actualNumber        As Long
-    Dim actualSource        As String
-    Dim ignored             As Double
+    'Capture the facade error as values before calling assertion helpers.
+    Dim actualDescription   As String    'Error description captured from the facade
+    Dim actualNumber        As Long      'Error number captured from the facade
+    Dim actualSource        As String    'Error source captured from the facade
+    Dim ignored             As Double    'Unexpected return value if the call fails to raise
 
 '------------------------------------------------------------------------------
 ' CALL EXPECTED FAILURE
 '------------------------------------------------------------------------------
+    'A zero denominator must raise. Reaching the next statement is itself
+    'a failure, regardless of the returned numeric value.
         BeginCase "ratio.zero-denominator"
         On Error GoTo ExpectedError
 
@@ -368,14 +400,16 @@ Private Sub TestExpectedError()
 '------------------------------------------------------------------------------
 ' VERIFY EXPECTED ERROR
 '------------------------------------------------------------------------------
-    'Snapshot Err before assertion helpers can replace the diagnostic.
 ExpectedError:
+    'Snapshot the expected error before resetting error-handling mode and
+    'installing a separate handler for assertion-time failures.
         actualNumber = Err.Number
         actualSource = Err.Source
         actualDescription = Err.Description
         On Error GoTo 0
         On Error GoTo CaseFailed
 
+    'Check captured values rather than the mutable live Err object.
         AssertExpectedError _
             "ratio.zero-denominator", _
             ProjectFacade.PROJECT_ERROR_ZERO_DENOMINATOR, _
@@ -390,6 +424,8 @@ ExpectedError:
 ' HANDLE CASE ERROR
 '------------------------------------------------------------------------------
 CaseFailed:
+    'Treat a failure during verification as unexpected, not as evidence
+    'that the original facade call raised the correct error.
         RecordUnexpectedCaseError "ratio.zero-denominator"
 
 End Sub
@@ -414,12 +450,15 @@ Private Sub TestRepeatability()
 '------------------------------------------------------------------------------
 ' DECLARE
 '------------------------------------------------------------------------------
-    Dim firstResult    As Double
-    Dim secondResult   As Double
+    'Retain both results so the comparison observes two separate calls.
+    Dim firstResult    As Double    'Baseline result for the repeatability check
+    Dim secondResult   As Double    'Result of the identical second call
 
 '------------------------------------------------------------------------------
 ' RUN CASE
 '------------------------------------------------------------------------------
+    'Call the facade twice with identical signed inputs to detect a result
+    'that depends on residual state from an earlier invocation.
         On Error GoTo CaseFailed
 
         BeginCase "ratio.repeatability"
@@ -432,6 +471,7 @@ Private Sub TestRepeatability()
 ' HANDLE CASE ERROR
 '------------------------------------------------------------------------------
 CaseFailed:
+    'Report the failed repeatability case and allow suite finalization.
         RecordUnexpectedCaseError "ratio.repeatability"
 
 End Sub
@@ -465,6 +505,8 @@ Private Sub BeginCase( _
 '------------------------------------------------------------------------------
 ' REGISTER CASE
 '------------------------------------------------------------------------------
+    'Count a case when it starts, even if its first assertion later fails;
+    'the matching log record identifies which case was reached.
         mCaseCount = mCaseCount + 1
         Debug.Print "CASE=" & caseName
 
@@ -496,6 +538,8 @@ Private Sub AssertEqualDouble( _
 '------------------------------------------------------------------------------
 ' ASSERT
 '------------------------------------------------------------------------------
+    'Count the assertion before evaluating it, then record any exact-value
+    'mismatch without terminating the suite.
         mAssertionCount = mAssertionCount + 1
         If actual <> expected Then
             RecordFailure _
@@ -533,6 +577,8 @@ Private Sub AssertNear( _
 '------------------------------------------------------------------------------
 ' ASSERT
 '------------------------------------------------------------------------------
+    'Use an absolute error bound. A negative tolerance is a failed test
+    'contract; equality at the permitted bound remains a pass.
         mAssertionCount = mAssertionCount + 1
         If tolerance < 0# Then
             RecordFailure assertionName, "Tolerance must not be negative."
@@ -577,6 +623,8 @@ Private Sub AssertExpectedError( _
 '------------------------------------------------------------------------------
 ' ASSERT ERROR CONTRACT
 '------------------------------------------------------------------------------
+    'Keep number, source and description as three independent assertions
+    'so a partially correct error cannot satisfy the complete contract.
         AssertEqualLong _
             assertionName & ".number", _
             expectedNumber, _
@@ -618,6 +666,8 @@ Private Sub AssertEqualLong( _
 '------------------------------------------------------------------------------
 ' ASSERT
 '------------------------------------------------------------------------------
+    'Compare the integer contract exactly; a mismatched error number must
+    'not be accepted because the source or description happens to match.
         mAssertionCount = mAssertionCount + 1
         If actual <> expected Then
             RecordFailure _
@@ -653,6 +703,8 @@ Private Sub AssertEqualString( _
 '------------------------------------------------------------------------------
 ' ASSERT
 '------------------------------------------------------------------------------
+    'Use binary comparison so case changes in the error source or message
+    'remain observable contract differences, independent of text settings.
         mAssertionCount = mAssertionCount + 1
         If StrComp(actual, expected, vbBinaryCompare) <> 0 Then
             RecordFailure _
@@ -694,13 +746,15 @@ Private Sub RecordUnexpectedCaseError( _
 '------------------------------------------------------------------------------
 ' DECLARE
 '------------------------------------------------------------------------------
-    Dim errorDescription   As String
-    Dim errorNumber        As Long
-    Dim errorSource        As String
+    'Retain Err fields before any error-state reset or reporting call.
+    Dim errorDescription   As String    'Case diagnostic captured before recording
+    Dim errorNumber        As Long      'Case error number captured before recording
+    Dim errorSource        As String    'Case error source captured before recording
 
 '------------------------------------------------------------------------------
 ' CAPTURE ERROR
 '------------------------------------------------------------------------------
+    'Read the original diagnostic before On Error GoTo 0 can clear Err.
         errorNumber = Err.Number
         errorSource = Err.Source
         errorDescription = Err.Description
@@ -709,6 +763,8 @@ Private Sub RecordUnexpectedCaseError( _
 '------------------------------------------------------------------------------
 ' RECORD DIAGNOSTIC
 '------------------------------------------------------------------------------
+    'Add the case-qualified failure without inventing a completed assertion
+    'for an operation that raised before its check could run.
         RecordFailure _
             caseName & ".unexpected", _
             "error=" & CStr(errorNumber) & _
@@ -743,6 +799,8 @@ Private Sub RecordFailure( _
 '------------------------------------------------------------------------------
 ' RECORD FAILURE
 '------------------------------------------------------------------------------
+    'Retain every diagnostic in arrival order. A separator belongs only
+    'between records so the final report has no leading empty entry.
         mFailureCount = mFailureCount + 1
         If Len(mFailureDetails) > 0 Then
             mFailureDetails = mFailureDetails & vbNewLine
@@ -794,11 +852,14 @@ Private Function CleanupRun( _
 '------------------------------------------------------------------------------
 ' DECLARE
 '------------------------------------------------------------------------------
-    Dim excelStateUnchanged   As Boolean
+    'Track the combined comparison without taking ownership of host state.
+    Dim excelStateUnchanged   As Boolean    'All four observed properties match the snapshot
 
 '------------------------------------------------------------------------------
 ' VERIFY CLEANUP
 '------------------------------------------------------------------------------
+    'Release the re-entry flag first, even when no complete host snapshot
+    'is available to verify the remaining cleanup contract.
         On Error GoTo CleanupFailed
 
         mRunActive = False
@@ -808,12 +869,15 @@ Private Function CleanupRun( _
             Exit Function
         End If
 
+    'Compare only properties that were captured successfully. The harness
+    'does not restore them because it never changed or owned them.
         excelStateUnchanged = _
             (Application.Calculation = initialCalculation) And _
             (Application.DisplayAlerts = initialDisplayAlerts) And _
             (Application.EnableEvents = initialEnableEvents) And _
             (Application.ScreenUpdating = initialScreenUpdating)
 
+    'Return the combined result and retain a reason for either outcome.
         CleanupRun = excelStateUnchanged
         If excelStateUnchanged Then
             cleanupDetail = _
@@ -827,8 +891,9 @@ Private Function CleanupRun( _
 '------------------------------------------------------------------------------
 ' HANDLE CLEANUP ERROR
 '------------------------------------------------------------------------------
-    'Return a failed cleanup outcome without hiding the runner diagnostic.
 CleanupFailed:
+    'Describe a failed verification and return False. The runner retains
+    'its own saved diagnostic for any later re-raise.
         cleanupDetail = _
             "cleanup error=" & CStr(Err.Number) & _
             "; description=" & Err.Description
@@ -857,6 +922,8 @@ Private Sub PrintEnvironment()
 '------------------------------------------------------------------------------
 ' REPORT ENVIRONMENT
 '------------------------------------------------------------------------------
+    'Write the preamble before the host fields so retained output can be
+    'recognized and attributed to the environment that produced it.
         Debug.Print "PROJECT TESTS"
         Debug.Print "ENVIRONMENT=" & EnvironmentSummary()
 
@@ -887,12 +954,15 @@ Private Function EnvironmentSummary() _
 '------------------------------------------------------------------------------
 ' DECLARE
 '------------------------------------------------------------------------------
-    Dim bitness         As String
-    Dim vbaGeneration   As String
+    'Keep compile-time properties distinct from values read from Excel.
+    Dim bitness         As String    'Office bitness selected by conditional compilation
+    Dim vbaGeneration   As String    'Compiled VBA generation reported as text
 
 '------------------------------------------------------------------------------
 ' RESOLVE COMPILED ENVIRONMENT
 '------------------------------------------------------------------------------
+    'Describe the running Office/VBA build from compiler constants; do not
+    'infer Office bitness from the Windows operating-system description.
 #If Win64 Then
         bitness = "64-bit"
 #Else
@@ -908,6 +978,8 @@ Private Function EnvironmentSummary() _
 '------------------------------------------------------------------------------
 ' BUILD ENVIRONMENT RECORD
 '------------------------------------------------------------------------------
+    'Combine live host properties with the compiled environment fields,
+    'keeping the evidence parser keys and order stable.
         EnvironmentSummary = _
             "host=" & Application.Name & _
             "; version=" & Application.Version & _
@@ -943,11 +1015,14 @@ Private Sub PrintSummary( _
 '------------------------------------------------------------------------------
 ' DECLARE
 '------------------------------------------------------------------------------
-    Dim verdict   As String
+    'Resolve one verdict before writing the machine-readable report.
+    Dim verdict   As String    'Final status derived from failures and cleanup
 
 '------------------------------------------------------------------------------
 ' RESOLVE VERDICT
 '------------------------------------------------------------------------------
+    'A zero failure count is insufficient: cleanup must succeed and the
+    'suite must have reached both required counts before reporting PASS.
         If mFailureCount = 0 And cleanupPassed And mSuiteCompleted Then
             verdict = "PASS"
         Else
@@ -957,13 +1032,15 @@ Private Sub PrintSummary( _
 '------------------------------------------------------------------------------
 ' REPORT
 '------------------------------------------------------------------------------
-    'Keep field names and order stable for evidence consumers.
+    'Write the retained counts and cleanup first, then any diagnostics and
+    'the final result record consumed by the evidence validator.
         Debug.Print "CASES=" & CStr(mCaseCount)
         Debug.Print "ASSERTIONS=" & CStr(mAssertionCount)
         Debug.Print "FAILURES=" & CStr(mFailureCount)
         Debug.Print "CLEANUP=" & IIf(cleanupPassed, "PASS", "FAIL") & _
             "; detail=" & cleanupDetail
 
+    'Omit the diagnostic record on a clean run; retain all details on failure.
         If Len(mFailureDetails) > 0 Then
             Debug.Print "FAILURE_DETAILS=" & mFailureDetails
         End If
@@ -1007,6 +1084,8 @@ Private Sub ResetRun()
 '------------------------------------------------------------------------------
 ' RESET
 '------------------------------------------------------------------------------
+    'Clear all harness-owned state together so no count, diagnostic, or
+    'completion flag can leak from a previous execution into the next one.
         mCaseCount = 0
         mAssertionCount = 0
         mFailureCount = 0

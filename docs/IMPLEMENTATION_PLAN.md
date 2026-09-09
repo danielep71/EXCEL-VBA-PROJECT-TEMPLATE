@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 13 — #45 source presentation implemented; host acceptance pending
+**Plan revision:** 14 — #45 variable and body comments completed; host acceptance pending
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -139,8 +139,9 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 — P3-11, VBA house style across the starter modules.**
 
 All four exports now follow the maintainer's house style described in
-[`VBA_HOUSE_STYLE.md`](VBA_HOUSE_STYLE.md), with procedure contracts and named body
-sections. The change preserves the executable code and public API. Static and
+[`VBA_HOUSE_STYLE.md`](VBA_HOUSE_STYLE.md), with procedure contracts, inline
+declaration annotations, and explanatory comments beneath body banners and
+before key steps. The change preserves the executable code and public API. Static and
 hosted validation are recorded against the implementation SHA in #45; the issue
 remains open until the formatted candidate has complete Excel regression
 evidence. Earlier successful host output is retained as historical evidence,
