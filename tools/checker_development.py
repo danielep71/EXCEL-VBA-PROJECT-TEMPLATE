@@ -81,6 +81,24 @@ GATE_RUNNER_EXCLUSIONS = {
     "test_workflow_validation.py": "text-only report with no JSON evidence output",
     "initialize_repository.py": "repository provisioning CLI, not a focused report gate",
 }
+# These CLIs deliberately keep their fixtures separate from operational arguments.
+# Reasons identify the alternate test command, or explicitly disclose no offline suite.
+SELF_TEST_EXCLUSIONS = {
+    "check_documentation.py": "Offline fixtures: python tools/test_documentation.py -v",
+    "check_wiki.py": "Offline fixtures: python tools/test_wiki.py -v",
+    "check_external_links.py": "Simulated HTTP fixtures: python tools/test_documentation.py -v",
+    "check_excel_evidence.py": "Record fixtures: python tools/test_excel_evidence.py -v; no Office execution",
+    "check_portfolio_drift.py": "Offline fixtures: python tools/test_portfolio_drift.py -v",
+    "report_portfolio_quality.py": "Offline fixtures: python tools/test_portfolio_quality.py -v",
+    "collect_portfolio_snapshot.py": "Simulated capture fixtures: python tools/test_portfolio_quality.py -v",
+    "provision_repository.py": "Simulated provisioning: python tools/test_provision_repository.py -v",
+    "test_workflow_validation.py": "Normal invocation runs authoritative actionlint fixtures",
+    "create_reusable_workflow_fixture.py": (
+        "Provisioning utility with no dedicated offline suite; live consumer pilot evidence is separate"
+    ),
+}
+
+
 ALLOWED_IMPORT_ROOTS = {
     "argparse",
     "fnmatch",
@@ -676,6 +694,69 @@ def _imports_helper(tree: ast.Module, name: str) -> bool:
     )
 
 
+def self_test_declaration_failures(
+    advertised: dict[str, bool], exclusions: dict[str, str]
+) -> list[str]:
+    """Require every discovered CLI to advertise the flag or explain its absence."""
+    failures = []
+    for name, supported in sorted(advertised.items()):
+        if supported and name in exclusions:
+            failures.append(f"{name} advertises --self-test but remains excluded")
+        elif not supported and not exclusions.get(name, "").strip():
+            failures.append(f"{name} lacks --self-test and a documented exclusion")
+    for name in sorted(set(exclusions) - set(advertised)):
+        failures.append(f"self-test exclusion no longer names a CLI: {name}")
+    return failures
+
+
+def self_test_interface_report(root: Path) -> tuple[list[dict[str, Any]], list[str]]:
+    """Inspect live CLI help, including wrappers; never execute operational modes."""
+    rows = []
+    failures = []
+    advertised = {}
+    for path in sorted((root / "tools").glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        # Include imported-main wrappers, but leave unittest scripts to their suites.
+        has_main = any(
+            isinstance(node, ast.FunctionDef) and node.name == "main"
+            or isinstance(node, ast.ImportFrom)
+            and any((alias.asname or alias.name) == "main" for alias in node.names)
+            for node in tree.body
+        )
+        if not has_main:
+            continue
+        completed = subprocess.run(
+            [sys.executable, str(path.resolve()), "--help"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if completed.returncode != 0:
+            failures.append(f"{path.name} --help failed: exit {completed.returncode}")
+        supported = "--self-test" in completed.stdout.split()
+        advertised[path.name] = supported
+        rows.append({"tool": path.name, "self_test_flag": supported,
+                     "exclusion": SELF_TEST_EXCLUSIONS.get(path.name)})
+    failures.extend(self_test_declaration_failures(advertised, SELF_TEST_EXCLUSIONS))
+    return rows, failures
+
+
+def self_test_registry_tests() -> list[dict[str, Any]]:
+    cases: tuple[tuple[str, dict[str, bool], dict[str, str], bool], ...] = (
+        ("declared-flag", {"gate.py": True}, {}, False),
+        ("documented-alternative", {"gate.py": False}, {"gate.py": "Separate suite"}, False),
+        ("new-uncovered-cli", {"new.py": False}, {}, True),
+        ("removed-flag", {"gate.py": False}, {}, True),
+        ("empty-exclusion", {"gate.py": False}, {"gate.py": " "}, True),
+        ("stale-exclusion", {}, {"old.py": "Separate suite"}, True),
+        ("excluded-flag-added", {"gate.py": True}, {"gate.py": "Separate suite"}, True),
+    )
+    return [
+        {"id": "self-test-registry-" + name,
+         "status": "pass" if bool(self_test_declaration_failures(flags, exclusions)) == rejects else "fail",
+         "detail": ""}
+        for name, flags, exclusions, rejects in cases
+    ]
+
+
 def shared_library_report(root: Path) -> tuple[dict[str, Any], list[str]]:
     failures: list[str] = []
     gatelib = (root / GATELIB_PATH).resolve()
@@ -727,12 +808,14 @@ def build_report(root: Path) -> dict[str, Any]:
     failures.extend(id_failures)
     shared_library, shared_failures = shared_library_report(root)
     failures.extend(shared_failures)
+    interfaces, interface_failures = self_test_interface_report(root)
+    failures.extend(interface_failures)
 
     parser_results = (parser_tests(module) + reusable_identity_tests(module)
                       + dependency_rollback_tests())
     reporter_results = reporter_tests(module)
     cli_results = cli_tests(module, checker)
-    gate_results = gate_runner_tests()
+    gate_results = gate_runner_tests() + self_test_registry_tests()
     all_unit_results = [*parser_results, *reporter_results, *cli_results, *gate_results]
     failed_units = [item for item in all_unit_results if item["status"] != "pass"]
     if failed_units:
@@ -754,6 +837,7 @@ def build_report(root: Path) -> dict[str, Any]:
         "imports": imports,
         "canonical_checks": ids,
         "shared_library": shared_library,
+        "self_test_interfaces": interfaces,
         "unit_tests": all_unit_results,
         "failures": failures,
     }
@@ -786,6 +870,12 @@ def markdown_report(report: dict[str, Any]) -> str:
     lines.extend(["", "### Independent tests", "", "| Test | Result |", "| --- | --- |"])
     for item in report["unit_tests"]:
         lines.append(f"| `{item['id']}` | {str(item['status']).upper()} |")
+    lines.extend(["", "### Self-test interfaces", "",
+                  "CLI help is checked here; fixture execution remains a separate CI responsibility.",
+                  "", "| CLI | --self-test | Alternative / exclusion |", "| --- | --- | --- |"])
+    for item in report["self_test_interfaces"]:
+        lines.append(f"| `{item['tool']}` | {'yes' if item['self_test_flag'] else 'no'} | "
+                     f"{item['exclusion'] or 'Dedicated flag'} |")
     if report["failures"]:
         lines.extend(["", "### Failures", ""])
         lines.extend(f"- {item}" for item in report["failures"])

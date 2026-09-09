@@ -34,6 +34,29 @@ of non-operational exceptions.
 
 The public API gate also uses `check_vba_conditionals.py` to evaluate the same three supported compilation environments. It checks name collisions only where declarations can coexist, and requires one manifest declaration row plus a `# SIG` record for every distinct reachable signature. Unknown conditions fail closed. These are static models, not evidence of Excel runtime certification.
 
+### Self-test interface coverage
+
+Runner ownership and `--self-test` support are separate contracts. The development
+report now discovers CLI definitions and imported-main wrappers, checks each
+script's `--help`, and requires either an advertised `--self-test` flag or a
+non-empty reason in `SELF_TEST_EXCLUSIONS`. Missing declarations, failed help,
+stale exclusions, and exclusions for tools that now advertise the flag fail.
+The report lists every inspected CLI and its alternative test command or limitation.
+
+`check_documentation.py` and `check_wiki.py` intentionally use dedicated offline
+suites: `python tools/test_documentation.py -v` and `python tools/test_wiki.py -v`.
+CI runs them in `static-checks.yml` and `wiki-checks.yml`, respectively. They remain
+runner consumers; their self-test exclusions do not exempt them from ownership checks.
+The registry also names the separate suites for the other operational CLIs without
+the flag and explicitly discloses the provisioning fixture utility's lack of a
+dedicated offline suite.
+
+This check verifies interface declarations, not exhaustive test coverage. Advertising
+the flag does not prove that its fixtures ran or that every branch is covered.
+Unit-test scripts and non-CLI helper modules are outside this interface inventory;
+their suites and semantic coverage remain separate. No host execution or release
+certification is inferred from synthetic fixtures.
+
 ### Supported invocation mode
 
 The supported focused-tool interface is **path execution from the repository checkout**, for example `python3 tools/check_vba_public_api.py --root . --self-test`. Python places the executed script's directory on `sys.path`, which is the declared mechanism by which focused sibling gates resolve the private `_gatelib.py` module.
