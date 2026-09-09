@@ -25,6 +25,7 @@ import tempfile
 from typing import Any
 
 from release_provenance import validate as validate_provenance
+from check_excel_evidence import release_findings as excel_release_findings
 
 
 SCHEMA_VERSION = 1
@@ -643,6 +644,7 @@ def build_report(
     require_tag_ref: bool,
     provenance_path: Path | None = None,
     signature_path: Path | None = None,
+    excel_evidence_path: Path | None = None,
 ) -> dict[str, Any]:
     findings: list[dict[str, str]] = []
     configuration, configuration_findings = _load_configuration(root)
@@ -665,6 +667,7 @@ def build_report(
             root, configuration, candidate_sha, evidence_path, manifest_path,
             provenance_path, signature_path,
         ))
+        findings.extend(excel_release_findings(root, candidate_sha, evidence_path, excel_evidence_path))
     findings.sort(key=lambda item: (item["code"], item["path"], item["message"]))
     return {
         "schema_version": SCHEMA_VERSION,
@@ -1077,6 +1080,7 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--asset-manifest", type=Path, help="external SHA-256 asset manifest")
     parser.add_argument("--provenance", type=Path, help="external build provenance JSON")
     parser.add_argument("--provenance-signature", type=Path, help="detached SSH provenance signature")
+    parser.add_argument("--excel-evidence", type=Path, help="optional retained host evidence JSON")
     parser.add_argument("--require-tag-ref", action="store_true", help="require an annotated local tag resolving to the candidate")
     parser.add_argument("--output", type=Path, help="write deterministic JSON report")
     parser.add_argument("--summary", type=Path, help="write Markdown report or self-test summary")
@@ -1103,7 +1107,7 @@ def main(arguments: list[str] | None = None) -> int:
             manifest = (Path.cwd() / manifest).resolve()
         report = build_report(
             root, parsed.tag, parsed.candidate_sha, evidence, manifest, parsed.require_tag_ref,
-            parsed.provenance, parsed.provenance_signature,
+            parsed.provenance, parsed.provenance_signature, parsed.excel_evidence,
         )
         json_text = json.dumps(report, indent=2, sort_keys=True) + "\n"
         print(console_report(report))

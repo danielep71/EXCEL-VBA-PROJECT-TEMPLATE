@@ -54,6 +54,7 @@ EXPECTED_CHECK_FUNCTIONS = (
 )
 GATE_RUNNER_CONSUMERS = frozenset(
     {
+        "check_excel_evidence.py",
         "check_portfolio_drift.py",
         "report_portfolio_quality.py",
         "provision_repository.py",

@@ -8,6 +8,11 @@ separate CLI. See [the provenance contract](../docs/RELEASE_PROVENANCE.md);
 `test_release_provenance.py` exercises both the integrated gate and real
 ephemeral signatures without Office or publishing credentials.
 
+`check_excel_evidence.py` validates the optional
+[Windows/Excel host interface](../docs/EXCEL_EVIDENCE.md), using the shared
+`run_gate` runner. Its `test_excel_evidence.py` fixtures exercise synthetic
+manual/automated records and non-green outcomes; neither tool runs Office.
+
 Appropriate contents include:
 
 - VBA static checks and exported-source validators;

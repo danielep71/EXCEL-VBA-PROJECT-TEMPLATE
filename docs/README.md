@@ -29,6 +29,7 @@ may summarize it, but must link here rather than restating a competing rule.
 | SemVer/changelog ordering and comparison-link semantics | [`RELEASE_SEMANTICS.md`](RELEASE_SEMANTICS.md) | Reference to the semantic gate |
 | External release-evidence JSON, profile evidence and asset manifests | [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) | Reference to evidence requirements |
 | Release build records, workflow identity and optional signatures | [`RELEASE_PROVENANCE.md`](RELEASE_PROVENANCE.md) | Verification commands and trust boundaries |
+| Optional Windows/Excel execution interface and manual host evidence | [`EXCEL_EVIDENCE.md`](EXCEL_EVIDENCE.md) | Host prerequisites and validator commands |
 | Adopted template contract version, its SemVer policy and migration notes | [`TEMPLATE_CONTRACT.md`](TEMPLATE_CONTRACT.md) | The recorded version; never a competing policy |
 | Reusable workflow interface, immutable adoption, compatibility and rollback | [`REUSABLE_WORKFLOWS.md`](REUSABLE_WORKFLOWS.md) | A pinned caller example |
 | Dependency monitoring, provenance review, update evidence and manual approval | [`DEPENDENCY_UPDATES.md`](DEPENDENCY_UPDATES.md) | A PR evidence block or link only |

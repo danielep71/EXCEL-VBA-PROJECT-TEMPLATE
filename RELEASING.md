@@ -208,6 +208,11 @@ a public tag to hide an error.
 
 ## 10. Publish the GitHub Release
 
+If using the optional [host evidence interface](docs/EXCEL_EVIDENCE.md), include
+its `excel-host-evidence` check and `--excel-evidence` in both pre-tag and
+post-tag validations. A manual run remains explicitly manual; an unavailable
+runner is not compile or regression evidence.
+
 Create the release from the protected annotated tag. Include:
 
 - user-facing summary/highlights;

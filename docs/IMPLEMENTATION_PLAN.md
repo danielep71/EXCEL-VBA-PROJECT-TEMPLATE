@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 10 — #21 delivered; profile-aware release provenance
+**Plan revision:** 11 — #26 delivered; optional Windows/Excel evidence interface
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -66,7 +66,8 @@ Completed on this branch: [#48](https://github.com/danielep71/EXCEL-VBA-PROJECT-
 [#25](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/25) and
 [#29](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/29) and
 [#28](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/28) and
-[#21](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/21).
+[#21](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/21) and
+[#26](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/26).
 
 ---
 
@@ -118,13 +119,12 @@ those themes produces work that has to be revisited.
 
 | Tier | Issues | Condition |
 | ---: | --- | --- |
-| 0 | #48, #47, #24, #23, #22, #25, #29, **#28** | Complete on `release/1.2.0` |
-| 1 | #26, #27, #45 | Actionable now; no P3 prerequisite |
-| 2 | #21 | **Unblocked** — #24 delivered `template_contract` |
+| 0 | #48, #47, #24, #23, #22, #25, #29, #28, #21, **#26** | Complete on `release/1.2.0` |
+| 1 | #27, #45 | Actionable now; no P3 prerequisite |
 | 4 | #46, then #44 | Requires the interfaces above to be stable |
 
-Tier 1 can run in parallel: #26, #27 and #45 touch assurance, link policy and
-VBA source respectively, and none of them contends with #24.
+The remaining tier-1 items #27 and #45 touch link policy and VBA source
+respectively and remain independently actionable.
 
 #44 is last by construction — it is the final factual and cross-link
 reconciliation, and running it before the other issues land guarantees a rerun.
@@ -133,8 +133,8 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Begin [#26](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/26)
-— P3-09, optional Windows and Excel evidence pattern.**
+**Begin [#27](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/27)
+— P3-08, external-link and documentation-drift checking.**
 
 #23 and #22 complete the reusable-workflow and dependency-policy sequence.
 #25 and #29 supply read-only structural drift and timestamped portfolio reporting.
@@ -142,7 +142,9 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 interface, validated against a simulated API. No existing portfolio settings
 were applied and no profile or contract version was assigned to them. #21 adds
 build records and optional verified signatures to profile-aware release evidence.
-#26 supplies the optional host-execution pattern; the tier-1 issues remain independently actionable;
+#26 supplies the documented optional host-execution interface and shared manual
+evidence validator, tested with synthetic records rather than an actual Excel
+runner. #27 and #45 remain independently actionable;
 this next action does not create a new dependency between them.
 
 `CONTRACT_RULE_SETS` in `tools/check_template_contract.py` is the registry a
