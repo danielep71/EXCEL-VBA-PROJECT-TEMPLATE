@@ -35,6 +35,7 @@ may summarize it, but must link here rather than restating a competing rule.
 | Live repository provisioning and verification after generation | [`POST_CREATION_CHECKLIST.md`](POST_CREATION_CHECKLIST.md) | One reminder that settings are not inherited |
 <!-- template:remove:start -->
 | Portable checker development boundaries and independent tests | [`CHECKER_DEVELOPMENT.md`](CHECKER_DEVELOPMENT.md) | Link from tooling/contribution guidance |
+| Read-only portfolio snapshots, drift semantics and decision boundaries | [`PORTFOLIO_DRIFT.md`](PORTFOLIO_DRIFT.md) | Links to exact-snapshot reports |
 <!-- template:remove:end -->
 | Current version | [`../VERSION`](../VERSION) | Display/read the value; never redefine it |
 | User-visible release history | [`../CHANGELOG.md`](../CHANGELOG.md) | Link or current Unreleased summary only |

@@ -54,6 +54,7 @@ EXPECTED_CHECK_FUNCTIONS = (
 )
 GATE_RUNNER_CONSUMERS = frozenset(
     {
+        "check_portfolio_drift.py",
         "check_committed_whitespace.py",
         "check_local_actions.py",
         "check_release_semantics.py",
@@ -66,6 +67,7 @@ GATE_RUNNER_CONSUMERS = frozenset(
     }
 )
 GATE_RUNNER_EXCLUSIONS = {
+    "collect_portfolio_snapshot.py": "GET-only evidence capture, not a report gate",
     "create_reusable_workflow_fixture.py": "disposable consumer provisioning, not a report gate",
     "check_release.py": (
         "atomic evidence writes and a console rendering distinct from its Markdown summary"

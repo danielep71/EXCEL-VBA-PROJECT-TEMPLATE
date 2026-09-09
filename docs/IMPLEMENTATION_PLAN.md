@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 6 — #22 complete; controlled dependency-update policy delivered
+**Plan revision:** 7 — #25 delivered; read-only structural portfolio drift detection
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -60,9 +60,10 @@ Thirteen issues, all assigned to the `v1.2.0` milestone.
 Completed on this branch: [#48](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/48)
 (baseline integration of the #43 fixes),
 [#47](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/47),
-[#24](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/24) and
-[#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23) and
-[#22](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/22).
+[#24](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/24),
+[#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23),
+[#22](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/22) and
+[#25](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/25).
 
 ---
 
@@ -114,10 +115,10 @@ those themes produces work that has to be revisited.
 
 | Tier | Issues | Condition |
 | ---: | --- | --- |
-| 0 | #48, #47, #24, #23, **#22** | Complete on `release/1.2.0` |
+| 0 | #48, #47, #24, #23, #22, **#25** | Complete on `release/1.2.0` |
 | 1 | #26, #27, #45 | Actionable now; no P3 prerequisite |
-| 2 | #21, #25, #28 | **Unblocked** — #24 delivered `template_contract` |
-| 3 | #29 | Still requires #25 |
+| 2 | #21, #28 | **Unblocked** — #24 delivered `template_contract` |
+| 3 | #29 | **Unblocked** — #25 delivered the drift evidence model |
 | 4 | #46, then #44 | Requires the interfaces above to be stable |
 
 Tier 1 can run in parallel: #26, #27 and #45 touch assurance, link policy and
@@ -130,12 +131,13 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Begin [#25](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/25)
-— P3-02, semantic portfolio drift detection.**
+**Begin [#29](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/29)
+— P3-06, portfolio quality and conformance reporting.**
 
 #23 and #22 complete the reusable-workflow and dependency-policy sequence.
-#25 consumes the versioned contract from #24 and unlocks portfolio reporting
-under #29. #21, #28 and the tier-1 issues remain independently actionable;
+#25 supplies read-only structural drift observations and explicit evidence gaps
+for #29. Existing portfolio repositories are inspection-only; no profile or
+contract version is assigned to them. #21, #28 and the tier-1 issues remain independently actionable;
 this next action does not create a new dependency between them.
 
 `CONTRACT_RULE_SETS` in `tools/check_template_contract.py` is the registry a
