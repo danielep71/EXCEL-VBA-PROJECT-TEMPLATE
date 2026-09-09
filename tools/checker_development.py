@@ -730,8 +730,21 @@ def guard_truth_values(node: ast.expr, *, main_mode: bool) -> set[bool]:
             result = {left and right if conjunction else left or right
                       for left in result for right in values}
         return result
+    if isinstance(node, ast.Compare) and len(node.ops) > 1:
+        # Python chains are conjunctions of adjacent comparisons. This only models
+        # truth possibilities; it never evaluates operands or repeats side effects.
+        operands = [node.left, *node.comparators]
+        comparisons: list[ast.expr] = [ast.Compare(left=left, ops=[operator], comparators=[right])
+                       for left, operator, right in zip(operands, node.ops, operands[1:])]
+        return guard_truth_values(ast.BoolOp(op=ast.And(), values=comparisons),
+                                  main_mode=main_mode)
     if isinstance(node, ast.Compare) and len(node.ops) == 1:
         left, right = node.left, node.comparators[0]
+        if isinstance(left, ast.Constant) and isinstance(right, ast.Constant):
+            if isinstance(node.ops[0], ast.Eq):
+                return {left.value == right.value}
+            if isinstance(node.ops[0], ast.NotEq):
+                return {left.value != right.value}
         for name, value in ((left, right), (right, left)):
             if (isinstance(name, ast.Name) and name.id == "__name__"
                     and isinstance(value, ast.Constant) and value.value == "__main__"):
@@ -821,6 +834,16 @@ def guard_polarity_tests() -> list[dict[str, Any]]:
     """Keep import-only helpers out of the actual CLI help audit."""
     cases = (
         ("positive", '__name__ == "__main__"', True),
+        ("chain-positive", '"__main__" == __name__ == "__main__"', True),
+        ("chain-literal-tail", '__name__ == "__main__" == "__main__"', True),
+        ("chain-literal-head", '"__main__" == "__main__" == __name__', True),
+        ("chain-negated", 'not ("__main__" == __name__ == "__main__")', False),
+        ("chain-contradiction", '"__main__" == __name__ != "__main__"', False),
+        ("chain-literal-false", '__name__ == "__main__" == "other"', False),
+        ("chain-literal-false-head", '"other" == "__main__" == __name__', False),
+        ("chain-unknown-tail", '"__main__" == __name__ == enabled', True),
+        ("chain-unknown-head", 'enabled == __name__ == "__main__"', True),
+        ("chain-false-and", 'False and "__main__" == __name__ == "__main__"', False),
         ("negated", 'not (__name__ == "__main__")', False),
         ("not-equal", '__name__ != "__main__"', False),
         ("double-negated", 'not (__name__ != "__main__")', True),
