@@ -127,6 +127,9 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- Initialized projects may customize or remove README badges without failing
+  initializer self-tests; default badge URLs are checked only in fresh template fixtures.
+
 - The public template README now uses working repository badge URLs; initialization
   retargets the status, release and issue badges and links to the generated repository.
 

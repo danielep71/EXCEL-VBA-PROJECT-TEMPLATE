@@ -801,6 +801,14 @@ def _assert_generated_cleanup(
         encoding="utf-8"
     )
     repository = repository or f"example/fixture-{profile}"
+    expected_security_url = f"https://github.com/{repository}/security/policy"
+    if expected_security_url not in issue_config:
+        raise AssertionError(f"{profile} did not render its private-security URL.")
+
+
+def _assert_fresh_generated_content(root: Path, profile: str) -> None:
+    # Badge defaults are an initialization contract, not a maintained README policy.
+    repository = f"example/fixture-{profile}"
     readme = (root / "README.md").read_text(encoding="utf-8")
     expected_badge_urls = (
         f"https://github.com/{repository}/actions/workflows/static-checks.yml/badge.svg",
@@ -812,18 +820,11 @@ def _assert_generated_cleanup(
     )
     if any(url not in readme for url in expected_badge_urls):
         raise AssertionError(f"{profile} did not retarget all README badges and links.")
-    expected_security_url = f"https://github.com/{repository}/security/policy"
-    if expected_security_url not in issue_config:
-        raise AssertionError(f"{profile} did not render its private-security URL.")
-
-
-def _assert_fresh_generated_content(root: Path, profile: str) -> None:
     headings = {
         "application": "### Application commitments",
         "library": "### Library commitments",
         "ui-component": "### UI-component commitments",
     }
-    readme = (root / "README.md").read_text(encoding="utf-8")
     for candidate, heading in headings.items():
         if (heading in readme) != (candidate == profile):
             raise AssertionError(f"{profile} retained an incorrect profile block: {candidate}.")
@@ -879,6 +880,21 @@ def _make_evolved_generated_fixture(source: Path, destination: Path) -> None:
         raise AssertionError(
             "Generated evolution fixture could not remove its preview block."
         )
+    # A maintained project owns its presentation: remove, replace and retarget badges.
+    readme_text, removed = re.subn(
+        r"^\[!\[Release\].*\n", "", readme_text, flags=re.MULTILINE
+    )
+    readme_text, replaced = re.subn(
+        r"^\[!\[Issues\].*\n", "[Project issues](https://example.org/project/issues)\n", readme_text,
+        flags=re.MULTILINE,
+    )
+    readme_text, retargeted = re.subn(
+        r"^\[!\[Static checks\].*\n",
+        "[CI status](https://example.org/project/ci)\n", readme_text,
+        flags=re.MULTILINE,
+    )
+    if (removed, replaced, retargeted) != (1, 1, 1):
+        raise AssertionError("Generated evolution fixture did not customize all three badges.")
     readme.write_text(
         readme_text
         + "\n## Generated-project evolution fixture\n\n"
