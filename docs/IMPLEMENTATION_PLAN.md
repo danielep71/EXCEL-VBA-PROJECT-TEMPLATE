@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 14 — #45 variable and body comments completed; host acceptance pending
+**Plan revision:** 15 — #45 accepted in Excel; #46 wiki is next
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -68,7 +68,8 @@ Completed on this branch: [#48](https://github.com/danielep71/EXCEL-VBA-PROJECT-
 [#28](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/28) and
 [#21](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/21) and
 [#26](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/26) and
-[#27](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/27).
+[#27](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/27) and
+[#45](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/45).
 
 ---
 
@@ -120,12 +121,11 @@ those themes produces work that has to be revisited.
 
 | Tier | Issues | Condition |
 | ---: | --- | --- |
-| 0 | #48, #47, #24, #23, #22, #25, #29, #28, #21, #26, **#27** | Complete on `release/1.2.0` |
-| 1 | #45 | Source presentation implemented; awaits exact-candidate Excel evidence |
-| 4 | #46, then #44 | Requires the interfaces above to be stable |
+| 0 | #48, #47, #24, #23, #22, #25, #29, #28, #21, #26, #27, **#45** | Complete on `release/1.2.0` |
+| 4 | #46, then #44 | Wiki prerequisites complete; final Markdown audit follows the wiki |
 
-The remaining tier-1 item #45 applies the VBA house style before the wiki
-describes the final starter files.
+The starter source presentation is accepted under #45, so #46 can now describe
+the final starter files and the repository creation workflow.
 
 #44 is last by construction — it is the final factual and cross-link
 reconciliation, and running it before the other issues land guarantees a rerun.
@@ -134,18 +134,21 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Complete host acceptance for
-[#45](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/45)
-— P3-11, VBA house style across the starter modules.**
+**Begin [#46](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/46)
+— P3-12, repository creation and file-reference wiki.**
 
 All four exports now follow the maintainer's house style described in
 [`VBA_HOUSE_STYLE.md`](VBA_HOUSE_STYLE.md), with procedure contracts, inline
 declaration annotations, and explanatory comments beneath body banners and
-before key steps. The change preserves the executable code and public API. Static and
-hosted validation are recorded against the implementation SHA in #45; the issue
-remains open until the formatted candidate has complete Excel regression
-evidence. Earlier successful host output is retained as historical evidence,
-not claimed as execution of these changed exports.
+before key steps. The change preserves the executable code and public API.
+On 2026-09-09 the maintainer confirmed importing the new modules and supplied
+a complete Excel PASS for source candidate
+`2a6f7c7cedc74ff960e83fac76fefec334993591`: four cases, six assertions,
+zero failures, and cleanup PASS with the run flag cleared and all four observed
+Excel properties unchanged. The reported host was Excel 16.0, Windows 64-bit
+NT 10.00, Office 64-bit, VBA7+. Successful execution establishes compilation.
+The full maintainer-supplied output and eight passing hosted runs are retained
+in #45. This is the new import/run confirmation, not reused historical output.
 
 #23 and #22 complete the reusable-workflow and dependency-policy sequence.
 #25 and #29 supply read-only structural drift and timestamped portfolio reporting.
@@ -157,7 +160,7 @@ build records and optional verified signatures to profile-aware release evidence
 evidence validator, tested with synthetic records rather than an actual Excel
 runner. #27 adds blocking offline documentation contracts and separate scheduled
 or manual anonymous external-link observations, with simulated HTTP failure
-coverage. After #45 acceptance, proceed with the #46 wiki and final #44 Markdown audit.
+coverage. #45 is accepted; proceed with the #46 wiki and final #44 Markdown audit.
 
 `CONTRACT_RULE_SETS` in `tools/check_template_contract.py` is the registry a
 contract-affecting change extends, and `docs/TEMPLATE_CONTRACT.md` is where its
