@@ -166,7 +166,43 @@ The release review should make these facts easy to verify:
 - compatibility/migration/security notes; and
 - remaining limitations.
 
-If the merge changes source identity, certify the merged commit before tagging.
+### Merge convention
+
+Use **Squash and merge** for release PRs and focused stabilization PRs into
+`main`. Each PR should leave one commit describing the resulting change;
+intermediate planning, progress and fixup commits remain in the PR history.
+This means one commit per PR, not necessarily one commit per version when
+stabilization spans several PRs.
+
+Choose the merge method in the PR before merging. The squash commit title and
+description should explain the delivered behavior and link the relevant issues
+and evidence; do not copy the intermediate commit log as the description.
+Required checks must pass, and the merge must use the reviewed head SHA.
+
+A history-preserving merge is an exception when retaining individual commit
+ancestry serves a concrete integration or provenance need. Record the reason
+and maintainer decision in the PR before merging. Availability of multiple merge
+methods in GitHub settings does not override this convention; this is a review
+policy, not a claim that repository settings enforce squash-only merging.
+
+An implementation PR may merge before release certification for stabilization.
+That does not authorize tagging or publication. Keep incomplete acceptance work
+open, then certify the final `main` commit before tagging. A squash or merge
+creates a new source identity: retain original evidence attribution and obtain
+the required final-candidate evidence rather than silently rebinding old results.
+
+<!-- template:remove:start -->
+**Historical exception:** the v1.1.0 release PR used squash merging. The v1.2.0
+implementation entered `main` through PR #49 at
+`ac78ddca5de9de1fbfbf89d504b8ba93b06220c4` using a history-preserving merge
+during the move to stabilization on `main`. This records the existing outcome;
+it does not establish squash merging as the method used then or claim that
+v1.2.0 was published. Keep that merge and its ancestry intact.
+<!-- template:remove:end -->
+
+Do not force-push shared `main` or rewrite published tags to make historical
+merges conform retroactively. Apply this convention to future merges.
+
 
 ## 9. Create the protected annotated tag
 
