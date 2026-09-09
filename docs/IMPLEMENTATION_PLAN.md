@@ -8,7 +8,7 @@
 **Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 15 — #45 accepted in Excel; #46 wiki is next
+**Plan revision:** 16 — #46 wiki source and local pilot delivered; publication and final audit tracked
 
 > **Temporary execution document.** Delete it once the v1.2.0 definition of done
 > is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
@@ -122,7 +122,7 @@ those themes produces work that has to be revisited.
 | Tier | Issues | Condition |
 | ---: | --- | --- |
 | 0 | #48, #47, #24, #23, #22, #25, #29, #28, #21, #26, #27, **#45** | Complete on `release/1.2.0` |
-| 4 | #46, then #44 | Wiki prerequisites complete; final Markdown audit follows the wiki |
+| 4 | #46, then #44 | Wiki source prepared; publication read-back and final audit remain acceptance steps |
 
 The starter source presentation is accepted under #45, so #46 can now describe
 the final starter files and the repository creation workflow.
@@ -134,8 +134,23 @@ reconciliation, and running it before the other issues land guarantees a rerun.
 
 ## 5. ➡️ Immediate next action
 
-**Begin [#46](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/46)
-— P3-12, repository creation and file-reference wiki.**
+**Complete publication/read-back for
+[#46](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/46), then
+perform #44's final Markdown reconciliation.**
+
+The reviewed guide in [`wiki/Home.md`](wiki/Home.md) contains fourteen journey
+and reference pages plus a generated sidebar. Its checked catalogue covers the
+current tracked tree and computes all three profile lifecycles through the real
+initializer. [`WIKI_PUBLICATION.md`](WIKI_PUBLICATION.md) owns exact-source
+export, publication and separate drift observations. Wiki maintenance content
+is removed from generated projects.
+
+Fresh local repositories followed preview, apply, staged quality gates, commit
+and identical-input no-op for all three profiles. This pilot did not execute
+live GitHub creation/provisioning, Excel or a first release; retain those limits
+in #46 alongside publication evidence. #46 stays open for its final acceptance,
+including #44's audit and a complete adoption pilot. Preparing the wiki source
+is not itself proof of publication or a newly certified product release.
 
 All four exports now follow the maintainer's house style described in
 [`VBA_HOUSE_STYLE.md`](VBA_HOUSE_STYLE.md), with procedure contracts, inline

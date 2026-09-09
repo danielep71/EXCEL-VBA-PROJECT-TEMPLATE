@@ -101,6 +101,7 @@ Use only the categories needed by a release.
 
 ### Added
 
+- Added reviewed wiki source for the complete new-repository journey, a checked file/directory inventory with actual initializer lifecycle, and deterministic navigation/export/read-back tooling. Offline source checks remain separate from weekly/manual published-wiki observations; publication and pilot evidence are tracked independently from source preparation.
 - Added deterministic documentation command/reference drift checks and a separate weekly/manual external-link workflow with bounded retries, redirects, timeouts and concurrency. Versioned domain approvals and expiring exceptions distinguish missing pages, transient failures and restricted access; reports omit raw URLs and query tokens.
 
 - Added an optional Windows/Excel job interface and shared manual evidence schema, with exact-source/log bindings, environment and trust records, explicit expected-error results, and distinct import, compile, test, cleanup and unavailable outcomes. The validator does not execute Office.

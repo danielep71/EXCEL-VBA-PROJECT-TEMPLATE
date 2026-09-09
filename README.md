@@ -37,6 +37,12 @@
 
 </div>
 
+<!-- template:remove:start -->
+**New maintainer?** Follow the [step-by-step creation guide](docs/wiki/Home.md),
+then use its complete file and workflow reference as you customize the project.
+The guide identifies its source edition; confirm that edition before generation.
+<!-- template:remove:end -->
+
 ---
 
 <!-- template:optional:SOCIAL_PREVIEW_PATH:start -->

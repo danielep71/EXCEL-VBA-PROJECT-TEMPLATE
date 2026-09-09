@@ -2,6 +2,15 @@
 
 `tools/` contains deterministic maintainer tooling used to validate, package, or produce evidence for the repository.
 
+<!-- template:remove:start -->
+`check_wiki.py` checks the complete tracked-path catalogue and ordered page set,
+refreshes the generated reference/sidebar on request, exports an exact-source
+publication bundle, and compares a fetched Wiki checkout without network writes.
+`test_wiki.py` exercises publication failure boundaries. See
+[Wiki Publication](../docs/WIKI_PUBLICATION.md) and the
+[maintainer journey](../docs/wiki/Home.md). These are template-only tools.
+<!-- template:remove:end -->
+
 `check_documentation.py` checks literal documented Python commands and registered
 file/workflow/policy references without executing them. `check_external_links.py`
 produces separate bounded anonymous HTTP observations. Both use `run_gate`;
@@ -33,7 +42,17 @@ Appropriate contents include:
 
 `_gatelib.run_gate` additionally owns the orchestration shared by focused gates: `--self-test` dispatch, canonical JSON serialization, Markdown summary writing, console output, and the `0` (pass) / `1` (findings) / `2` (could not complete) exit mapping. Each gate keeps its own semantic checks, fixtures, report schema, Markdown renderer and operational-exception tuple; the runner never widens exception handling, so a programming error still raises rather than being reported as exit `2`.
 
-Nine gates consume it: `check_committed_whitespace.py`, `check_local_actions.py`, `check_release_semantics.py`, `check_template_contract.py`, `check_vba_conditionals.py`, `check_vba_jumps.py`, `check_vba_public_api.py`, `checker_development.py` and `policy_coverage_runner.py`. Three entry points are deliberately excluded and keep their own `main`: `check_release.py` (atomic evidence writes and a console rendering distinct from its Markdown summary), `test_workflow_validation.py` (text-only report with no JSON evidence output) and `initialize_repository.py` (a provisioning CLI, not a report gate). `check_repo.py` is excluded by the self-containment contract. `checker_development.py` enforces that list, so a new gate must declare itself as a consumer or a documented exclusion.
+Focused report gates use the shared runner. Distinct CLI contracts retain their
+own entry points: release validation has atomic evidence writes and separate
+console rendering; workflow validation emits text-only evidence; initialization
+and disposable fixture creation provision source; snapshot collection captures
+observations. The canonical checker remains self-contained.
+
+<!-- template:remove:start -->
+The complete consumer/exclusion registry is maintained and enforced in
+`checker_development.py`. Register any new entry point there as a shared-runner
+consumer or a documented exclusion; do not maintain a second count in prose.
+<!-- template:remove:end -->
 
 ## Canonical repository-quality gate
 

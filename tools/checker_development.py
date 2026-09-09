@@ -55,6 +55,7 @@ EXPECTED_CHECK_FUNCTIONS = (
 GATE_RUNNER_CONSUMERS = frozenset(
     {
         "check_documentation.py",
+        "check_wiki.py",
         "check_external_links.py",
         "check_excel_evidence.py",
         "check_portfolio_drift.py",
