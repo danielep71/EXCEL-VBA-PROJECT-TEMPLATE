@@ -74,7 +74,8 @@ dependency evidence block and retain a tested rollback target. Merge manually
 only after provenance, trust-boundary and candidate-evidence review.
 
 The exact source/storage contract is maintained in
-[`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md). For contribution
+[`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md). VBA presentation
+follows [`docs/VBA_HOUSE_STYLE.md`](docs/VBA_HOUSE_STYLE.md). For contribution
 work, the practical rules are:
 
 - exported VBA remains the reviewable source of truth;

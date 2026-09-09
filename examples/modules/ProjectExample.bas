@@ -1,11 +1,8 @@
 Attribute VB_Name = "ProjectExample"
-Option Explicit
-Option Private Module
-
-'===============================================================================
+'==============================================================================
 ' MODULE: ProjectExample
-'-------------------------------------------------------------------------------
-' RESPONSIBILITY
+'------------------------------------------------------------------------------
+' PURPOSE
 '   Demonstrate one supported facade call from explicit scalar inputs.
 '
 ' PUBLIC SURFACE
@@ -26,12 +23,68 @@ Option Private Module
 '
 ' TEST SEAM
 '   ProjectTests covers the same facade behavior with deterministic assertions.
-'===============================================================================
+'
+' COMPATIBILITY
+'   Excel VBA; scalar VBA arithmetic requires no optional references.
+'
+' USAGE
+'   Import the required production modules first, then run
+'   ProjectExample.RunProjectExample from the VBE Immediate window.
+'
+' UPDATED
+'   2026-09-09
+'
+' AUTHOR
+'   Daniele Penza
+'==============================================================================
+
+'------------------------------------------------------------------------------
+' MODULE SETTINGS
+'------------------------------------------------------------------------------
+    Option Explicit
+    Option Private Module
+
+
+'
+'------------------------------------------------------------------------------
+'
+'                             EXAMPLE ENTRY POINT
+'
+'------------------------------------------------------------------------------
+'
 
 Public Sub RunProjectExample()
-    Const NUMERATOR As Double = 12#
-    Const DENOMINATOR As Double = 4#
+'
+'==============================================================================
+'                              RunProjectExample
+'------------------------------------------------------------------------------
+' PURPOSE
+'   Demonstrate a supported facade call without a workbook fixture.
+'
+' USAGE
+'   Run ProjectExample.RunProjectExample from the VBE Immediate window.
+'
+' SIDE EFFECTS
+'   Print one result to the Immediate window; no host state is changed.
+'
+' ERROR POLICY
+'   Facade errors propagate to the caller.
+'
+' UPDATED
+'   2026-09-09
+'==============================================================================
+'
 
-    Debug.Print "ProjectRatio(12, 4) = " & _
-        CStr(ProjectFacade.ProjectRatio(NUMERATOR, DENOMINATOR))
+'------------------------------------------------------------------------------
+' DECLARE
+'------------------------------------------------------------------------------
+    Const NUMERATOR     As Double = 12#
+    Const DENOMINATOR   As Double = 4#
+
+'------------------------------------------------------------------------------
+' REPORT EXAMPLE
+'------------------------------------------------------------------------------
+        Debug.Print "ProjectRatio(12, 4) = " & _
+            CStr(ProjectFacade.ProjectRatio(NUMERATOR, DENOMINATOR))
+
 End Sub

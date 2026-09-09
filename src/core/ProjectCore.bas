@@ -1,11 +1,8 @@
 Attribute VB_Name = "ProjectCore"
-Option Explicit
-Option Private Module
-
-'===============================================================================
+'==============================================================================
 ' MODULE: ProjectCore
-'-------------------------------------------------------------------------------
-' RESPONSIBILITY
+'------------------------------------------------------------------------------
+' PURPOSE
 '   Implement the neutral arithmetic example behind the supported facade.
 '
 ' PUBLIC SURFACE
@@ -31,20 +28,76 @@ Option Private Module
 ' TEST SEAM
 '   ProjectTests verifies behavior through ProjectFacade. Direct core access is
 '   available inside the project for focused future tests without widening API.
-'===============================================================================
+'
+' COMPATIBILITY
+'   Excel VBA; scalar VBA arithmetic requires no optional references.
+'
+' UPDATED
+'   2026-09-09
+'
+' AUTHOR
+'   Daniele Penza
+'==============================================================================
 
-Public Const ERR_ZERO_DENOMINATOR As Long = vbObjectError + 2048
+'------------------------------------------------------------------------------
+' MODULE SETTINGS
+'------------------------------------------------------------------------------
+    Option Explicit
+    Option Private Module
+
+'------------------------------------------------------------------------------
+' MODULE CONSTANTS
+'------------------------------------------------------------------------------
+        Public Const ERR_ZERO_DENOMINATOR   As Long = vbObjectError + 2048
+
+
+'
+'------------------------------------------------------------------------------
+'
+'                              CHECKED ARITHMETIC
+'
+'------------------------------------------------------------------------------
+'
 
 Public Function DivideChecked( _
     ByVal numerator As Double, _
-    ByVal denominator As Double) As Double
+    ByVal denominator As Double) _
+    As Double
+'
+'==============================================================================
+'                                DivideChecked
+'------------------------------------------------------------------------------
+' PURPOSE
+'   Provide stateless checked division for in-project callers.
+'
+' INPUTS
+'   numerator, denominator: explicit scalar Double values.
+'
+' RETURNS
+'   Double quotient for a nonzero denominator.
+'
+' ERROR POLICY
+'   Raise ERR_ZERO_DENOMINATOR for zero; arithmetic errors propagate.
+'   The facade owns the supported external error source.
+'
+' UPDATED
+'   2026-09-09
+'==============================================================================
+'
 
-    If denominator = 0# Then
-        Err.Raise _
-            ERR_ZERO_DENOMINATOR, _
-            "ProjectCore.DivideChecked", _
-            "Denominator must not be zero."
-    End If
+'------------------------------------------------------------------------------
+' VALIDATE DENOMINATOR
+'------------------------------------------------------------------------------
+        If denominator = 0# Then
+            Err.Raise _
+                ERR_ZERO_DENOMINATOR, _
+                "ProjectCore.DivideChecked", _
+                "Denominator must not be zero."
+        End If
 
-    DivideChecked = numerator / denominator
+'------------------------------------------------------------------------------
+' ASSIGN RESULT
+'------------------------------------------------------------------------------
+        DivideChecked = numerator / denominator
+
 End Function
