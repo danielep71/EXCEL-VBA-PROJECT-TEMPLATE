@@ -716,6 +716,32 @@ def self_test_declaration_failures(
     return failures
 
 
+def guard_truth_values(node: ast.expr, *, main_mode: bool) -> set[bool]:
+    """Model guard polarity without evaluating code; unknown operands stay unknown."""
+    if isinstance(node, ast.Constant):
+        return {bool(node.value)}
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return {not value for value in guard_truth_values(node.operand, main_mode=main_mode)}
+    if isinstance(node, ast.BoolOp):
+        conjunction = isinstance(node.op, ast.And)
+        result = {conjunction}
+        for operand in node.values:
+            values = guard_truth_values(operand, main_mode=main_mode)
+            result = {left and right if conjunction else left or right
+                      for left in result for right in values}
+        return result
+    if isinstance(node, ast.Compare) and len(node.ops) == 1:
+        left, right = node.left, node.comparators[0]
+        for name, value in ((left, right), (right, left)):
+            if (isinstance(name, ast.Name) and name.id == "__name__"
+                    and isinstance(value, ast.Constant) and value.value == "__main__"):
+                if isinstance(node.ops[0], ast.Eq):
+                    return {main_mode}
+                if isinstance(node.ops[0], ast.NotEq):
+                    return {not main_mode}
+    return {False, True}
+
+
 def has_cli_entry_point(tree: ast.Module) -> bool:
     """Include executable main guards regardless of the called function's name."""
     for node in tree.body:
@@ -727,17 +753,13 @@ def has_cli_entry_point(tree: ast.Module) -> bool:
             return True
         if not isinstance(node, ast.If):
             continue
-        for condition in ast.walk(node.test):
-            if not isinstance(condition, ast.Compare):
-                continue
-            operands = [condition.left, *condition.comparators]
-            for left, operator, right in zip(operands, condition.ops, operands[1:]):
-                if not isinstance(operator, ast.Eq):
-                    continue
-                for name, value in ((left, right), (right, left)):
-                    if (isinstance(name, ast.Name) and name.id == "__name__"
-                            and isinstance(value, ast.Constant) and value.value == "__main__"):
-                        return True
+        main_values = guard_truth_values(node.test, main_mode=True)
+        import_values = guard_truth_values(node.test, main_mode=False)
+        # Only branches that can execute as a script and cannot execute on import.
+        if True in main_values and True not in import_values:
+            return True
+        if node.orelse and False in main_values and False not in import_values:
+            return True
     return False
 
 
@@ -792,6 +814,43 @@ def cli_discovery_tests() -> list[dict[str, Any]]:
     helper = ast.parse("def helper():\n    return 1\n")
     results.append({"id": "cli-discovery-helper-excluded",
                     "status": "pass" if not has_cli_entry_point(helper) else "fail", "detail": ""})
+    return results
+
+
+def guard_polarity_tests() -> list[dict[str, Any]]:
+    """Keep import-only helpers out of the actual CLI help audit."""
+    cases = (
+        ("positive", '__name__ == "__main__"', True),
+        ("negated", 'not (__name__ == "__main__")', False),
+        ("not-equal", '__name__ != "__main__"', False),
+        ("double-negated", 'not (__name__ != "__main__")', True),
+        ("false-and", 'False and __name__ == "__main__"', False),
+        ("and-false", '__name__ == "__main__" and False', False),
+        ("false-or", 'False or __name__ == "__main__"', True),
+        ("true-or", 'True or __name__ == "__main__"', False),
+        ("unknown-and", 'enabled and __name__ == "__main__"', True),
+        ("unknown-or", 'enabled or __name__ == "__main__"', False),
+        ("negated-or", 'not (__name__ == "__main__" or enabled)', False),
+        ("contradiction", '__name__ == "__main__" and __name__ != "__main__"', False),
+        ("literal-main-string", '"__main__"', False),
+    )
+    results = []
+    with tempfile.TemporaryDirectory(prefix="guard-polarity-") as temporary:
+        root = Path(temporary)
+        (root / "tools").mkdir()
+        path = root / "tools/guarded.py"
+        for name, condition, expected in cases:
+            path.write_text("import argparse\nenabled = True\nif " + condition +
+                            ":\n    argparse.ArgumentParser().parse_args()\n", encoding="utf-8")
+            rows, failures = self_test_interface_report(root)
+            discovered = any(row["tool"] == path.name for row in rows)
+            rejected = "guarded.py lacks --self-test and a documented exclusion" in failures
+            results.append({"id": "guard-polarity-" + name,
+                            "status": "pass" if discovered == rejected == expected else "fail",
+                            "detail": ""})
+    alternate = ast.parse('if __name__ != "__main__":\n    pass\nelse:\n    cli()\n')
+    results.append({"id": "guard-polarity-main-else",
+                    "status": "pass" if has_cli_entry_point(alternate) else "fail", "detail": ""})
     return results
 
 
@@ -871,7 +930,8 @@ def build_report(root: Path) -> dict[str, Any]:
                       + dependency_rollback_tests())
     reporter_results = reporter_tests(module)
     cli_results = cli_tests(module, checker)
-    gate_results = gate_runner_tests() + self_test_registry_tests() + cli_discovery_tests()
+    gate_results = (gate_runner_tests() + self_test_registry_tests()
+                    + cli_discovery_tests() + guard_polarity_tests())
     all_unit_results = [*parser_results, *reporter_results, *cli_results, *gate_results]
     failed_units = [item for item in all_unit_results if item["status"] != "pass"]
     if failed_units:

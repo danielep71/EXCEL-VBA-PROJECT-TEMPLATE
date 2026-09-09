@@ -123,6 +123,7 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- Preserve Boolean guard polarity in CLI discovery so import-only and impossible branches do not trigger the self-test interface audit.
 - Discover executable CLI guards independently of entry-function names in the self-test interface audit, including module-qualified calls and unittest scripts.
 - Initialized projects may customize or remove README badges without failing
   initializer self-tests; default badge URLs are checked only in fresh template fixtures.
