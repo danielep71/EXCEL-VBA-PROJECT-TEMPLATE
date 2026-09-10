@@ -59,11 +59,12 @@ def reference_check(root: Path, files: set[str], record: Any) -> None:
     document, target, token = record.get("document"), record.get("target"), record.get("token")
     require(relative(document) and relative(target) and nonempty(token), "invalid reference fields")
     require(document in files and target in files, f"missing reference document or target: {document} -> {target}")
-    require(token in (root / document).read_text(), f"document no longer states registered reference: {document}")
+    require(token in (root / document).read_text(encoding="utf-8"),
+            f"document no longer states registered reference: {document}")
     kind = record.get("kind")
     if kind == "file":
         return
-    text = (root / target).read_text()
+    text = (root / target).read_text(encoding="utf-8")
     if kind in ("workflow-name", "job-name"):
         if kind == "job-name":
             job = record.get("job")
@@ -98,7 +99,7 @@ def build_report(root: Path) -> dict[str, Any]:
         for document in sorted(files):
             if not document.endswith(".md") or document in policy["historical_documents"]:
                 continue
-            for path, flags in commands((root / document).read_text()):
+            for path, flags in commands((root / document).read_text(encoding="utf-8")):
                 count += 1
                 if path not in files:
                     findings.append(f"{document}: documented command missing: {path}")
