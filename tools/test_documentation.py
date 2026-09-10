@@ -45,6 +45,39 @@ class DocumentationTests(unittest.TestCase):
             self.assertEqual(docs.build_report(self.root)["status"], "pass")
             self.assertTrue(all(call.args[0][0] == "git" for call in popen.call_args_list))
 
+    def test_utf8_repository_reads_do_not_depend_on_locale(self):
+        workflow = self.root / ".github/workflows/fixture.yml"
+        workflow.write_text(
+            "name: UTF-8 workflow 🔐\njobs:\n  check:\n    name: UTF-8 context\n    runs-on: ubuntu-24.04\n",
+            encoding="utf-8",
+        )
+        (self.root / "README.md").write_text(
+            "# Fixture 🔐\n\nUTF-8 workflow 🔐\n\npython3 tools/fixture.py --root .\n",
+            encoding="utf-8",
+        )
+        self.policy["references"] = [{
+            "document": "README.md",
+            "target": ".github/workflows/fixture.yml",
+            "token": "UTF-8 workflow 🔐",
+            "kind": "workflow-name",
+        }]
+        self.save()
+        original = Path.read_text
+
+        def require_explicit_utf8(path, *args, **kwargs):
+            encoding = kwargs.get("encoding")
+            if encoding is None and args:
+                encoding = args[0]
+            if encoding is None:
+                raise UnicodeDecodeError(
+                    "charmap", b"\x8f", 0, 1, "character maps to <undefined>"
+                )
+            self.assertEqual(encoding, "utf-8")
+            return original(path, *args, **kwargs)
+
+        with patch.object(Path, "read_text", require_explicit_utf8):
+            self.assertEqual(docs.build_report(self.root)["status"], "pass")
+
     def test_renamed_command_detected(self):
         (self.root / "tools/fixture.py").rename(self.root / "tools/renamed.py")
         self.save()
