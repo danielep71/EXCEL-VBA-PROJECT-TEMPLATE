@@ -99,6 +99,8 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-10
+
 ### Added
 
 - Added a discovered CLI self-test interface audit with explicit alternative-suite exclusions and negative controls for missing or stale declarations. Documentation and wiki gates retain their dedicated offline suites; runner ownership remains independently enforced.
@@ -116,6 +118,7 @@ Use only the categories needed by a release.
 
 ### Changed
 
+- Retained the canonical template's live external-link observation, complete clean-room maintainer journey, exact-source Wiki publication/read-back, and browser navigation review as explicit pre-tag release blockers in the maintained release authority.
 - Reconciled the documentation and source comments against the v1.2.0 candidate: clarified initialization commit/no-op order, advisory Python line length, runner ownership, historical pilot scope, token permissions, parser behavior and complete Wiki publication. Improved directory-guide presentation and removed a personal portfolio-size assumption.
 - Applied the maintainer's VBA house style to all four starter modules: ordered module banners, procedure contracts, aligned declarations with inline annotations, and explanatory comments beneath execution-phase banners and before key steps. Added `docs/VBA_HOUSE_STYLE.md` as the reusable presentation reference. Executable statements, public API, error contracts and regression output are preserved.
 - Consolidated the focused-gate CLI orchestration that was provably identical across gates into the typed `run_gate` runner in `tools/_gatelib.py`: `--self-test` dispatch, canonical JSON serialization, Markdown summary writing, console output and the pass/findings/could-not-complete exit mapping. The initial eight consumers were extended by the later v1.2.0 gates; `checker_development.py` records the complete consumer/exclusion registry. `check_repo.py` remains a self-contained single file that never imports the helper. Each gate keeps its own semantic rules, fixtures, report schema, Markdown renderer and operational-exception tuple, so no gate's exception handling was widened and programming errors still raise instead of being reported as an operational exit.
@@ -251,7 +254,8 @@ Use only the categories needed by a release.
 - Made profile and domain label selection a versioned repository policy that
   both the checker and trusted reconciliation workflow validate and consume.
 
-[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0
 
