@@ -71,7 +71,6 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `docs/DEPENDENCY_UPDATES.md` / document | Manual dependency monitoring, provenance review and rollback. | T / T / T | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `docs/DOCUMENTATION_CHECKS.md` / document | Offline command/reference validation and separate external-link policy. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `docs/EXCEL_EVIDENCE.md` / document | Optional Windows/Excel runner interface and manual retained-log schema. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
-| `docs/IMPLEMENTATION_PLAN.md` / document | Temporary milestone ordering and completion state; delete at milestone exit. | X / X / X | [docs/IMPLEMENTATION_PLAN.md](../../docs/IMPLEMENTATION_PLAN.md) |
 | `docs/INITIALIZATION.md` / document | Authoritative initialization inputs, profile rendering and no-op contract. | R / R / R | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
 | `docs/PILOT_CERTIFICATION.md` / document | Historical template pilot/certification evidence; not a fresh acceptance run. | X / X / X | [docs/PILOT_CERTIFICATION.md](../../docs/PILOT_CERTIFICATION.md) |
 | `docs/PORTFOLIO_DRIFT.md` / document | Read-only snapshot and structural adoption/conformance comparison contract. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |

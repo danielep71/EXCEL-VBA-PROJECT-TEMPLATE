@@ -334,11 +334,6 @@
       "kind": "document",
       "authority": "docs/EXCEL_EVIDENCE.md"
     },
-    "docs/IMPLEMENTATION_PLAN.md": {
-      "purpose": "Temporary milestone ordering and completion state; delete at milestone exit.",
-      "kind": "document",
-      "authority": "docs/IMPLEMENTATION_PLAN.md"
-    },
     "docs/INITIALIZATION.md": {
       "purpose": "Authoritative initialization inputs, profile rendering and no-op contract.",
       "kind": "document",
