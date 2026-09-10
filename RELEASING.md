@@ -203,6 +203,32 @@ v1.2.0 was published. Keep that merge and its ancestry intact.
 Do not force-push shared `main` or rewrite published tags to make historical
 merges conform retroactively. Apply this convention to future merges.
 
+<!-- template:remove:start -->
+### Canonical-template release certification
+
+Before creating a release tag for the canonical template, complete and retain
+all of these additional checks against the same exact candidate SHA:
+
+- run the live external-link observation defined by
+  [`docs/DOCUMENTATION_CHECKS.md`](docs/DOCUMENTATION_CHECKS.md); deterministic
+  documentation defects must be zero, while restricted or transient network
+  outcomes remain explicitly reported and are never converted to `PASS`;
+- complete a clean-room maintainer journey from live GitHub template creation
+  through initialization, live repository provisioning, Excel validation and a
+  first release; retain numbered steps, any gaps/corrections, and elapsed-step
+  evidence;
+- export the complete Wiki from the exact candidate SHA, publish it, freshly
+  clone/read back the publication, byte-compare it with zero drift, and record
+  both the source SHA and resulting Wiki commit; and
+- review the published Wiki in a browser, confirming Home, the sidebar and the
+  complete page-navigation set render and navigate as intended.
+
+These are tag blockers, not optional observations. A missing execution, an
+unresolved deterministic defect, publication drift or an incomplete browser
+review prevents tag creation. Network restrictions and transient failures remain
+non-success observations until separately resolved or explicitly reported under
+the documentation policy.
+<!-- template:remove:end -->
 
 ## 9. Create the protected annotated tag
 
