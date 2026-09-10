@@ -397,7 +397,7 @@
     "docs/REUSABLE_WORKFLOWS.md": {
       "purpose": "Immutable workflow interface pin, caller contract and adoption procedure.",
       "kind": "document",
-      "authority": "docs/TEMPLATE_CONTRACT.md"
+      "authority": "docs/REUSABLE_WORKFLOWS.md"
     },
     "docs/TEMPLATE_CONTRACT.md": {
       "purpose": "Independent adopted control versions and migration classification.",
