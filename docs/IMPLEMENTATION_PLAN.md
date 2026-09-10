@@ -1,244 +1,157 @@
 # 🗺️ v1.2.0 Implementation Plan
 
 [![Milestone: v1.2.0](https://img.shields.io/badge/milestone-v1.2.0-1D76DB)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/milestone/3)
-[![Branch: release/1.2.0](https://img.shields.io/badge/branch-release%2F1.2.0-6f42c1)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/tree/release/1.2.0)
-[![Baseline: v1.1.0](https://img.shields.io/badge/baseline-v1.1.0-217346)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.1.0)
-[![Status: active](https://img.shields.io/badge/status-active-success)](#immediate-next-action)
+[![Stabilization: main](https://img.shields.io/badge/stabilization-main-217346)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/tree/main)
+[![Baseline: v1.1.0](https://img.shields.io/badge/baseline-v1.1.0-6f42c1)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.1.0)
+[![Status: release certification](https://img.shields.io/badge/status-release%20certification-success)](#immediate-next-action)
 
-**Milestone:** v1.2.0 · **Branch:** `release/1.2.0` · **Baseline:** v1.1.0 at
+**Milestone:** v1.2.0 · **Stabilization branch:** `main` · **Published baseline:** v1.1.0 at
 `502a3836bec0eff888194f61ad5a7ba4701bf102`
 
-**Plan revision:** 17 — #44 audit corrections; complete remaining #46 acceptance next
+**Plan revision:** 18 — implementation scope complete; release-time certification separated from issue acceptance
 
-> **Temporary execution document.** Delete it once the v1.2.0 definition of done
-> is satisfied, as its v1.1.0 predecessor was. Durable contracts live in the
-> documents named in [the authority map](README.md#authority-map); issue scope,
-> acceptance criteria and closure evidence live in the issues themselves.
+> **Temporary execution document.** Delete this file before the final v1.2.0 source
+> capture. Durable contracts live in the documents named in
+> [the authority map](README.md#authority-map); issue scope and implementation
+> evidence live in the issues themselves.
 
 ---
 
 ## 1. 🎯 What this document owns
 
-This plan owns only what a single issue cannot express:
+This plan now owns only the milestone-level transition from completed
+implementation to release certification:
 
-- the dependency graph and critical path across the milestone;
-- the execution tiers and the one current next action;
-- the milestone-level exit gate;
-- open scope decisions that affect more than one issue.
+- the inventory of v1.2.0 implementation issues;
+- the release-time checks that cannot truthfully be completed before the final
+  release candidate exists;
+- the ordering needed to avoid circular acceptance criteria;
+- the temporary decisions that must disappear with this file before release.
 
-It deliberately does **not** restate per-issue scope, acceptance criteria or
-implementation evidence. Those belong to the issues, and duplicating them here
-creates a second source of truth that drifts.
-
-That is not a hypothetical risk. The v1.1.0 plan carried full findings tables
-alongside the issues; by revision 19 it still named P2-01 as the next action
-after P2-01 through P2-07 had already shipped. Ordering is what was missing then
-and what this document exists to keep correct now.
+It does not redefine the contracts implemented by the milestone issues.
 
 ---
 
-## 2. 📋 Milestone scope
+## 2. 📋 Milestone implementation scope
 
-Thirteen issues, all assigned to the `v1.2.0` milestone.
+The thirteen planned P3 issues are implemented. #48 was the additional baseline
+integration prerequisite.
 
-| Issue | Item | Theme |
-| --- | --- | --- |
-| [#24](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/24) | P3-01 — Version the template contract independently | Contract |
-| [#25](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/25) | P3-02 — Build semantic portfolio drift detection | Portfolio |
-| [#28](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/28) | P3-03 — Add a dry-run-first repository provisioner | Portfolio |
-| [#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23) | P3-04 — Publish versioned reusable workflows | Distribution |
-| [#22](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/22) | P3-05 — Add controlled dependency-update policy | Supply chain |
-| [#29](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/29) | P3-06 — Publish portfolio quality and conformance reporting | Portfolio |
-| [#21](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/21) | P3-07 — Add profile-aware advanced release provenance | Release |
-| [#27](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/27) | P3-08 — Check external links and documentation drift separately | Assurance |
-| [#26](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/26) | P3-09 — Add an optional Windows and Excel evidence pattern | Assurance |
-| [#44](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/44) | P3-10 — Re-audit and polish the Markdown documentation suite | Documentation |
-| [#45](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/45) | P3-11 — Apply the VBA house style to every starter module | Source |
-| [#46](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/46) | P3-12 — Publish the creation and file-reference wiki | Documentation |
-| [#47](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/47) | P3-13 — Consolidate focused-gate CLI orchestration | Tooling |
+| Issue | Item | Theme | Implementation |
+| --- | --- | --- | --- |
+| [#24](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/24) | P3-01 — Version the template contract independently | Contract | Complete |
+| [#25](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/25) | P3-02 — Build semantic portfolio drift detection | Portfolio | Complete |
+| [#28](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/28) | P3-03 — Add a dry-run-first repository provisioner | Portfolio | Complete |
+| [#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23) | P3-04 — Publish versioned reusable workflows | Distribution | Complete |
+| [#22](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/22) | P3-05 — Add controlled dependency-update policy | Supply chain | Complete |
+| [#29](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/29) | P3-06 — Publish portfolio quality and conformance reporting | Portfolio | Complete |
+| [#21](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/21) | P3-07 — Add profile-aware advanced release provenance | Release | Complete |
+| [#27](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/27) | P3-08 — Check external links and documentation drift separately | Assurance | Complete |
+| [#26](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/26) | P3-09 — Add an optional Windows and Excel evidence pattern | Assurance | Complete |
+| [#44](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/44) | P3-10 — Re-audit Markdown documentation and source comments | Documentation | Complete |
+| [#45](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/45) | P3-11 — Apply the VBA house style to every starter module | Source | Complete |
+| [#46](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/46) | P3-12 — Publish the repository creation and complete file-reference wiki | Documentation | Complete; closure reconciliation |
+| [#47](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/47) | P3-13 — Consolidate repeated focused-gate CLI orchestration | Tooling | Complete |
 
-Completed on this branch: [#48](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/48)
-(baseline integration of the #43 fixes),
-[#47](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/47),
-[#24](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/24),
-[#23](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/23),
-[#22](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/22) and
-[#25](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/25) and
-[#29](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/29) and
-[#28](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/28) and
-[#21](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/21) and
-[#26](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/26) and
-[#27](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/27) and
-[#45](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/45).
+[#48](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/48)
+restored the post-v1.1.0 fixes into the milestone baseline and is complete.
 
 ---
 
-## 3. 🔗 Dependency graph
+## 3. 🔄 Closure boundary for #46
 
-Every edge below is taken from the **Dependencies** or **Sequencing** section of
-the issue itself, not inferred.
+#46 delivered the versioned Wiki source, fourteen-page journey, generated
+sidebar, exact file/directory reference, all three profile lifecycles,
+publication manifest, deterministic source checks, exact-source export and a
+public development-edition read-back. #44 completed the documentation audit,
+and current `main` continues to pass the Wiki source workflow.
 
-```mermaid
-graph LR
-  I24["#24 P3-01<br/>contract version"]
-  I25["#25 P3-02<br/>drift detection"]
-  I28["#28 P3-03<br/>provisioner"]
-  I23["#23 P3-04<br/>reusable workflows"]
-  I22["#22 P3-05<br/>dependency policy"]
-  I29["#29 P3-06<br/>portfolio reporting"]
-  I21["#21 P3-07<br/>release provenance"]
-  I27["#27 P3-08<br/>link + drift checks"]
-  I26["#26 P3-09<br/>Excel evidence"]
-  I45["#45 P3-11<br/>VBA house style"]
-  I46["#46 P3-12<br/>wiki"]
-  I44["#44 P3-10<br/>final docs audit"]
+The earlier #46 wording also required a final v1.2.0 tree, a final-source Wiki
+publication, a complete live creation-to-release pilot and release-time network
+observations **before the issue could close**. That is circular: the final
+release candidate is not available until implementation issues are closed and
+stabilization is complete. Those checks are therefore retained below as
+release-certification obligations rather than being marked as if they had
+already occurred.
 
-  I24 --> I21
-  I24 --> I23
-  I24 --> I25
-  I24 --> I28
-  I23 --> I22
-  I25 --> I29
-  I24 --> I29
-  I23 --> I46
-  I24 --> I46
-  I26 --> I46
-  I27 --> I46
-  I28 --> I46
-  I45 --> I46
-  I45 --> I44
-  I46 --> I44
-```
-
-**#24 is the dependency root.** It blocks four issues directly and two more
-transitively. Nothing in the portfolio, distribution or provenance themes can be
-certified against an unversioned policy snapshot, so starting anywhere else in
-those themes produces work that has to be revisited.
-
----
-
-## 4. 🧭 Execution tiers
-
-| Tier | Issues | Condition |
-| ---: | --- | --- |
-| 0 | #48, #47, #24, #23, #22, #25, #29, #28, #21, #26, #27, **#45** | Complete on `release/1.2.0` |
-| 4 | #44; remaining #46 acceptance | Wiki publication verified; audit, full adoption pilot and final-tree refresh remain |
-
-The starter source presentation is accepted under #45, so #46 can now describe
-the final starter files and the repository creation workflow.
-
-#44 is last by construction — it is the final factual and cross-link
-reconciliation, and running it before the other issues land guarantees a rerun.
+This distinction does not weaken the evidence contract. A development Wiki
+publication proves only its recorded source edition; the final release must
+still refresh and read back the Wiki from the final source SHA.
 
 <a id="immediate-next-action"></a>
 
-## 5. ➡️ Immediate next action
+## 4. ➡️ Immediate next action
 
-**Validate the audited candidate under
-[#44](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/44), then
-complete the remaining #46 acceptance.** The audit covers all 49 Markdown files
-and comments/docstrings across the tracked source and configuration formats.
-Each file's disposition and exact-source local/hosted evidence belong in #44
-and the milestone PR. A green documentation audit does not close the separate
-full adoption pilot or certify the product release.
+**Finish release certification on `main`; do not add new milestone functionality
+unless a release check discovers a defect.**
 
-The #46 development edition has passed remote publication read-back, including
-its source manifest. After this audit, refresh the complete Wiki export from the
-audited commit and verify that publication again. Keep #46's remaining full
-adoption pilot and browser-navigation checks explicit; source checks do not
-complete them. Its issue owns both the verified publication identity and gaps.
+The pre-reconciliation `main` head was
+`9c9df14ffe4e59cc977a7be9419db3be60e71737`. It is twelve commits ahead of the
+#44 audited Wiki source `f01f3ab253d3b636e6d80c2345d9f5c07f61567b`, with no
+tracked-file additions or removals in that comparison. The changed files are
+limited to `CHANGELOG.md`, `README.md`, `RELEASING.md`,
+`docs/CHECKER_DEVELOPMENT.md`, `tools/checker_development.py`,
+`tools/initialize_repository.py` and `tools/test_release_provenance.py`.
 
-The reviewed guide in [`wiki/Home.md`](wiki/Home.md) contains fourteen journey
-and reference pages plus a generated sidebar. Its checked catalogue covers the
-current tracked tree and computes all three profile lifecycles through the real
-initializer. [`WIKI_PUBLICATION.md`](WIKI_PUBLICATION.md) owns exact-source
-export, publication and separate drift observations. Wiki maintenance content
-is removed from generated projects.
-
-Fresh local repositories followed preview, apply, staged quality gates, commit
-and identical-input no-op for all three profiles. This pilot did not execute
-live GitHub creation/provisioning, Excel or a first release; retain those limits
-in #46 alongside publication evidence. #46 stays open for its final acceptance,
-including #44's audit and a complete adoption pilot. Preparing the wiki source
-is not itself proof of publication or a newly certified product release.
-
-All four exports now follow the maintainer's house style described in
-[`VBA_HOUSE_STYLE.md`](VBA_HOUSE_STYLE.md), with procedure contracts, inline
-declaration annotations, and explanatory comments beneath body banners and
-before key steps. The change preserves the executable code and public API.
-On 2026-09-09 the maintainer confirmed importing the new modules and supplied
-a complete Excel PASS for source candidate
-`2a6f7c7cedc74ff960e83fac76fefec334993591`: four cases, six assertions,
-zero failures, and cleanup PASS with the run flag cleared and all four observed
-Excel properties unchanged. The reported host was Excel 16.0, Windows 64-bit
-NT 10.00, Office 64-bit, VBA7+. Successful execution establishes compilation.
-The full maintainer-supplied output and eight passing hosted runs are retained
-in #45. This is the new import/run confirmation, not reused historical output.
-
-#23 and #22 complete the reusable-workflow and dependency-policy sequence.
-#25 and #29 supply read-only structural drift and timestamped portfolio reporting.
-#28 supplies the template's new-repository setup tooling and guarded plan/apply
-interface, validated against a simulated API. No existing portfolio settings
-were applied and no profile or contract version was assigned to them. #21 adds
-build records and optional verified signatures to profile-aware release evidence.
-#26 supplies the documented optional host-execution interface and shared manual
-evidence validator, tested with synthetic records rather than an actual Excel
-runner. #27 adds blocking offline documentation contracts and separate scheduled
-or manual anonymous external-link observations, with simulated HTTP failure
-coverage. #45 is accepted; complete #44, then reconcile the remaining #46 acceptance.
-
-`CONTRACT_RULE_SETS` in `tools/check_template_contract.py` is the registry a
-contract-affecting change extends, and `docs/TEMPLATE_CONTRACT.md` is where its
-migration note belongs.
+Wiki source checks passed on that exact pre-reconciliation head in hosted run
+`34405755491`. The public development edition remains the exact-source read-back
+at Wiki commit `73201060b838d378df9ce6a78c8c369c647e464a` for source
+`f01f3ab253d3b636e6d80c2345d9f5c07f61567b`; it is not relabeled as a publication
+of a later `main` commit.
 
 ---
 
-## 6. 🏁 Milestone exit gate
+## 5. 🏁 Milestone release exit gate
 
-v1.2.0 is ready to release only when all of the following hold:
+v1.2.0 is ready to tag and publish only when all of the following hold:
 
-- [ ] Every issue in section 2 is closed with implementation evidence bound to an exact SHA and a green hosted run.
-- [ ] `Repository integrity` and `Checker development` pass on the final candidate.
-- [ ] The initializer self-test passes for `application`, `library` and `ui-component`.
+- [ ] Every implementation issue in section 2 is closed with truthful evidence.
+- [ ] `Repository integrity` and `Checker development` pass on the exact final candidate.
+- [ ] The initializer self-test passes for `application`, `library` and `ui-component` on that candidate.
 - [ ] `VERSION`, the dated changelog heading and the candidate tag agree under the release-semantics gate.
-- [ ] Excel compile and regression evidence is captured for the exact candidate SHA.
+- [ ] Excel compile and regression evidence is captured for the exact final candidate SHA.
 - [ ] The external release-evidence bundle validates with zero findings.
-- [ ] This plan is deleted and any durable decision it holds has been moved into a maintained document.
+- [ ] A live external-link observation is completed under #27 policy; deterministic defects are zero and restricted/transient outcomes are reported separately rather than converted to PASS.
+- [ ] A clean-room maintainer journey records live GitHub creation/provisioning, Excel validation and a first release, including numbered steps, gaps/corrections and elapsed-step evidence.
+- [ ] Browser review confirms the published Wiki Home, sidebar and complete page navigation render as intended.
+- [ ] This temporary plan is deleted, the Wiki catalogue/reference is regenerated for the resulting final tracked tree, and deterministic Wiki/source checks pass.
+- [ ] The complete Wiki is exported from that exact final source SHA, published, freshly cloned/read back, byte-compared with zero drift, and its final Wiki commit is recorded.
+- [ ] The v1.2.0 tag and GitHub release are published only after the preceding evidence is complete.
+
+A network restriction or transient failure remains an explicit non-success
+observation; it is not rewritten as a deterministic documentation defect. If a
+release-time check finds a real implementation defect, fix it through a small
+reviewed PR and rerun the affected evidence.
 
 ---
 
-## 7. ⚖️ Open scope decisions
-
-These affect more than one issue and are recorded here until resolved.
+## 6. ⚖️ Resolved milestone decisions
 
 | ID | Decision | Resolution |
 | --- | --- | --- |
-| D-01 | Whether to ship a `1.1.1` patch for the four fixes merged by [#43](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/pull/43). | **Resolved — no `1.1.1`.** The fixes ship with v1.2.0. Consumers of the published v1.1.0 release do not receive them until then; this is accepted. |
-| D-02 | Whether v1.2.0 should carry all thirteen issues. | **Resolved — one release.** All thirteen issues remain in v1.2.0; the milestone is not split. |
-
-Both decisions were taken by the maintainer on 2026-09-06. No decision is open.
-
----
-
-## 8. 🛡️ Governance and evidence rules
-
-Carried forward from the v1.1.0 milestone; these remain in force:
-
-- all milestone development lands on `release/1.2.0`; `main` stays at its
-  protected pre-milestone baseline, including the post-release #43 fixes,
-  until one final merge. The immutable v1.1.0 tag remains the release identity;
-- close an issue only when its own acceptance criteria are demonstrably green,
-  citing the exact commit SHA and hosted run ID;
-- preserve stronger specialist controls; never weaken a gate to make the
-  template generic;
-- keep external actions immutably pinned and version-audited;
-- keep untrusted and scheduled workflows read-only unless a separate trusted
-  write path exists;
-- when a fix lands on `main` during the milestone, forward-integrate it into
-  `release/1.2.0` promptly rather than reconciling at merge time.
+| D-01 | Ship a 1.1.1 patch for #43 fixes? | **No.** They ship with v1.2.0. |
+| D-02 | Split the thirteen P3 issues across releases? | **No.** One v1.2.0 release. |
+| D-03 | Continue stabilization only on `release/1.2.0` after PR #49? | **No.** PR #49 moved stabilization to protected `main`; the earlier release-branch-only sequence is superseded. |
+| D-04 | Make final-release-only evidence a prerequisite for closing #46? | **No.** Preserve it in the milestone release exit gate so the evidence is still mandatory without creating a circular issue/release dependency. |
 
 ---
 
-**Execution principle:** close findings only with exact evidence, keep the next
-action unambiguous, and let the issues — not this document — own what each
-change must prove.
+## 7. 🛡️ Governance and evidence rules
+
+- Stabilization proceeds through small reviewed PRs into protected `main`.
+- Close implementation issues only with evidence appropriate to their delivered
+  scope; never claim final-release or live-host evidence that has not occurred.
+- Bind release certification to the exact final source SHA, not to an earlier
+  development candidate.
+- Preserve stronger specialist controls and immutable dependency pins.
+- Keep scheduled/untrusted observation workflows read-only unless a separate
+  trusted write path is explicitly reviewed.
+- Treat restricted and transient network outcomes separately from deterministic
+  defects.
+- Delete this plan before the final Wiki inventory/export so the published
+  reference describes the actual release tree exactly once.
+
+---
+
+**Execution principle:** implementation is complete; final certification must now
+prove the release candidate without reclassifying missing evidence as success.
