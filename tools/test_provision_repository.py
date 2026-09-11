@@ -81,7 +81,11 @@ class FakeGitHub:
         if path.startswith("/rulesets?"):
             return self.rulesets
         if path.startswith("/rulesets/"):
-            return next(row for row in self.rulesets if row["id"] == int(path.rsplit("/", 1)[1]))
+            row = copy.deepcopy(next(row for row in self.rulesets if row["id"] == int(path.rsplit("/", 1)[1])))
+            for rule in row.get("rules", []):
+                if rule.get("type") == "update" and rule.get("parameters") == {"update_allows_fetch_and_merge": False}:
+                    rule.pop("parameters")
+            return row
         raise AssertionError(path)
 
 
@@ -149,6 +153,15 @@ class ProvisionTests(unittest.TestCase):
                 self.assertEqual(again["status"], "pass")
                 self.assertEqual(count, len(api.writes))
                 self.assertIn(profile, api.topics)
+
+    def test_update_rule_readback_omission_is_restrictive(self) -> None:
+        desired = provision.baseline_rules(self.api.files[provision.POLICY])[1]
+        actual = copy.deepcopy(desired)
+        update = next(rule for rule in actual["rules"] if rule["type"] == "update")
+        update.pop("parameters")
+        self.assertTrue(provision.covered([{"id": 1, **actual}], desired, "main"))
+        update["parameters"] = {"update_allows_fetch_and_merge": True}
+        self.assertFalse(provision.covered([{"id": 1, **actual}], desired, "main"))
 
     def test_stale_approval_refused_before_write(self) -> None:
         plan = self.plan()
@@ -225,6 +238,44 @@ class ProvisionTests(unittest.TestCase):
             self.assertEqual(result["status"], "fail")
             self.assertEqual(len(self.api.writes), 3)
             self.assertEqual(json.loads(receipt.read_text())["attempts"][-1]["outcome"], "REQUEST_PENDING_OR_UNCERTAIN")
+
+    def test_journal_retries_transient_permission_error(self) -> None:
+        original = provision.os.replace
+        calls = 0
+
+        def transient(source: str, target: str) -> None:
+            nonlocal calls
+            calls += 1
+            if calls < 3:
+                raise PermissionError(13, "Access is denied")
+            original(source, target)
+
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(provision.os, "replace", side_effect=transient), \
+                patch.object(provision.time, "sleep") as sleep:
+            path = Path(directory) / "journal.json"
+            provision.journal(path, {"status": "pass"})
+            self.assertEqual(json.loads(path.read_text()), {"status": "pass"})
+            self.assertEqual(calls, 3)
+            self.assertEqual(sleep.call_count, 2)
+
+    def test_persistent_journal_permission_error_prevents_first_write(self) -> None:
+        plan = self.plan()
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(provision.os, "replace", side_effect=PermissionError(13, "Access is denied")), \
+                patch.object(provision.time, "sleep") as sleep:
+            with self.assertRaises(PermissionError):
+                self.apply(Path(directory) / "journal.json", plan)
+        self.assertFalse(self.api.writes)
+        self.assertEqual(sleep.call_count, 5)
+
+    def test_non_permission_journal_error_is_not_retried(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(provision.os, "replace", side_effect=OSError("Disk full")), \
+                patch.object(provision.time, "sleep") as sleep:
+            with self.assertRaises(OSError):
+                provision.journal(Path(directory) / "journal.json", {"status": "fail"})
+        sleep.assert_not_called()
 
     def test_journal_failure_prevents_first_write(self) -> None:
         with patch.object(provision, "journal", side_effect=OSError("Disk full")), self.assertRaises(OSError):
