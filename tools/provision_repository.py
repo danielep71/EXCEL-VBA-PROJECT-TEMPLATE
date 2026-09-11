@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
+import time
 from typing import Any
 from urllib.parse import quote
 from urllib.request import Request, build_opener
@@ -170,6 +171,9 @@ def rule_covers(actual: dict[str, Any], desired: dict[str, Any]) -> bool:
             {row["context"] for row in expected["required_status_checks"]} <= names
     if desired["type"] == "pull_request":
         return params.get("required_approving_review_count", -1) >= expected["required_approving_review_count"]
+    if desired["type"] == "update" and expected == {"update_allows_fetch_and_merge": False}:
+        # GitHub can omit the false update parameter when reading a ruleset back.
+        return params.get("update_allows_fetch_and_merge", False) is False
     return all(params.get(key) == value for key, value in expected.items())
 
 
@@ -240,7 +244,14 @@ def journal(path: Path, report: dict[str, Any]) -> None:
             json.dump(report, stream, indent=2, sort_keys=True, allow_nan=False)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(name, path)
+        for attempt in range(6):
+            try:
+                os.replace(name, path)
+                break
+            except PermissionError:
+                if attempt == 5:
+                    raise
+                time.sleep(0.02 * (2 ** attempt))
     finally:
         if os.path.exists(name):
             os.unlink(name)
