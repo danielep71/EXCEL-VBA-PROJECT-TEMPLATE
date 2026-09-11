@@ -120,9 +120,10 @@ class ProvenanceTests(unittest.TestCase):
         tools = self.root / "tools"
         tools.mkdir()
         initializer = tools / "initialize_repository.py"
+        marker_prefix = "<!-- " + "template" + ":"
         initializer.write_text(
-            'MARKER_PATTERN = r"<!-- template:(remove):(start|end) -->"\n'
-            'reserved = "<!-- template:"\n',
+            'MARKER_PATTERN = r"' + marker_prefix + '(remove):(start|end) -->"\n'
+            'reserved = "' + marker_prefix + '"\n',
             encoding="utf-8",
         )
         gate._git(self.root, "add", "--all")
@@ -139,7 +140,8 @@ class ProvenanceTests(unittest.TestCase):
             findings,
         )
 
-        (self.root / "README.md").write_text("# {{PROJECT_NAME}}\n", encoding="utf-8")
+        unresolved = "# " + "{" * 2 + "PROJECT_NAME" + "}" * 2 + "\n"
+        (self.root / "README.md").write_text(unresolved, encoding="utf-8")
         findings = gate._validate_generated_source(self.root, configuration, self.policy)
         self.assertIn(
             "unresolved-template-token",
