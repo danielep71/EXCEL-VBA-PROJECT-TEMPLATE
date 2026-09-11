@@ -19,6 +19,13 @@ Use **Use this template → Create a new repository**. Select the intended owner
 choose a descriptive repository name and visibility, and leave **Include all
 branches** unchecked. Do not overwrite or repurpose an existing project.
 
+Before creating it, confirm that the target account/plan and chosen visibility
+expose repository rulesets if you intend to use the maintained provisioner. A
+private repository can return a platform-capability `403` for rulesets even when
+normal Git authentication works. If rulesets are unavailable, choose a supported
+visibility/plan or document a separately reviewed governance path before
+initialization; do not treat missing ruleset access as an empty ruleset state.
+
 GitHub copies files from the template; labels, rulesets, secrets, settings and
 the separate Wiki repository need their own setup. Template branches also have
 unrelated histories: importing all branches is not a release workflow.
@@ -47,6 +54,12 @@ initializer's clean-tree check.
 If authentication is requested, sign in through Git's credential manager or the
 GitHub web interface. If Git or Python is not found, repair PATH and reopen the
 terminal before continuing.
+
+Provisioning API access is a separate prerequisite from clone/push
+authentication. Plan mode is GET-only, but authenticated API reads can still be
+required because anonymous public-repository metadata may omit merge-policy
+fields needed for deterministic planning. Resolve that read access before the
+live provisioning step rather than defaulting missing metadata.
 
 ## 4. Work on a setup branch
 

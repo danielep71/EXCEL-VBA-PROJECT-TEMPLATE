@@ -70,7 +70,20 @@ before the existing sync workflow runs if extra local labels should survive.
 ## 1. 🔎 Generate and review a plan
 
 First complete source initialization, commit the intended provisioning policy,
-and obtain the default-branch commit SHA. From the template-maintenance checkout:
+and obtain the default-branch commit SHA.
+
+Before the first live plan, verify that the target repository/account plan and
+chosen visibility expose repository rulesets and that the operator can read the
+complete repository metadata required for deterministic planning. Git clone or
+push authentication is not proof of those API capabilities. A private
+repository can return a platform-capability `403` for rulesets, while anonymous
+reads of a public repository can omit merge-policy fields such as
+`allow_merge_commit`. Plan mode remains GET-only, but it may still require an
+authenticated API context. If rulesets or required metadata cannot be read,
+resolve the visibility/plan/access limitation first; the provisioner fails
+closed and never defaults missing state.
+
+From the template-maintenance checkout:
 
 ```bash
 python3 tools/provision_repository.py --repository owner/generated-project --profile library --contract-version 1.2.0 --source-sha FULL_INITIALIZED_SHA --output plan.json --summary plan.md
