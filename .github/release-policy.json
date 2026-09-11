@@ -56,7 +56,8 @@
   "source_scan_exclude_paths": [
     ".github/release-policy.json",
     ".github/repository-profile.json",
-    "tools/check_release.py"
+    "tools/check_release.py",
+    "tools/initialize_repository.py"
   ],
   "template_construction_markers": [
     "canonical template",

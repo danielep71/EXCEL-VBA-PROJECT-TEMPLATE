@@ -115,6 +115,40 @@ class ProvenanceTests(unittest.TestCase):
         self.fixture("ui-component")
         self.passes()
 
+    def test_generated_source_scan_allows_retained_initializer_grammar(self):
+        gate._fixture_repository(self.root, "library", self.policy)
+        tools = self.root / "tools"
+        tools.mkdir()
+        initializer = tools / "initialize_repository.py"
+        marker_prefix = "<!-- " + "template" + ":"
+        initializer.write_text(
+            'MARKER_PATTERN = r"' + marker_prefix + '(remove):(start|end) -->"\n'
+            'reserved = "' + marker_prefix + '"\n',
+            encoding="utf-8",
+        )
+        gate._git(self.root, "add", "--all")
+        self.assertEqual(
+            gate._git(self.root, "commit", "-m", "Retain initializer grammar").returncode,
+            0,
+        )
+
+        configuration = gate._fixture_configuration("library")
+        findings = gate._validate_generated_source(self.root, configuration, self.policy)
+        self.assertNotIn(
+            "unresolved-template-token",
+            [item["code"] for item in findings],
+            findings,
+        )
+
+        unresolved = "# " + "{" * 2 + "PROJECT_NAME" + "}" * 2 + "\n"
+        (self.root / "README.md").write_text(unresolved, encoding="utf-8")
+        findings = gate._validate_generated_source(self.root, configuration, self.policy)
+        self.assertIn(
+            "unresolved-template-token",
+            [item["code"] for item in findings],
+            findings,
+        )
+
     def test_source_only_profiles_without_provenance(self):
         for profile in gate.SUPPORTED_PROFILES:
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as directory:
@@ -151,7 +185,12 @@ class ProvenanceTests(unittest.TestCase):
         target = self.area / "payload"
         target.write_bytes(asset.read_bytes())
         asset.unlink()
-        asset.symlink_to(target)
+        try:
+            asset.symlink_to(target)
+        except OSError as error:
+            if getattr(error, "winerror", None) == 1314:
+                self.skipTest("requires Windows symlink creation privilege")
+            raise
         self.fails()
 
     def test_record_bindings_and_environment(self):
