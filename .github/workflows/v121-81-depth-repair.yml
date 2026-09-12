@@ -38,6 +38,11 @@ jobs:
           if start_token not in source or end_token not in source:
               raise SystemExit("depth payload markers are missing")
           addition = source.split(start_token, 1)[1].split(end_token, 1)[0]
+          old = "self.assertEqual(release.main(args[:6]), 2)"
+          new = "with self.assertRaises(SystemExit):\n                release.main(args[:6])"
+          if old not in addition:
+              raise SystemExit("release parser expectation anchor is missing")
+          addition = addition.replace(old, new, 1)
 
           path = Path("tools/test_verification_depth.py")
           text = path.read_text(encoding="utf-8")
