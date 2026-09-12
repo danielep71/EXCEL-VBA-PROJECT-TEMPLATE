@@ -1,0 +1,32 @@
+name: One-shot retrigger #82 integration
+
+on:
+  push:
+    branches:
+      - fix/82-supply-chain-assurance
+    paths:
+      - .github/workflows/v121-82-retrigger.yml
+
+permissions:
+  contents: write
+
+jobs:
+  retrigger:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out #82 branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix/82-supply-chain-assurance
+          fetch-depth: 0
+
+      - name: Retrigger integration helper and self-delete
+        run: |
+          printf '\n# catalogue registered; rerun integration\n' >> .github/workflows/v121-82-policy-patch.yml
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git rm .github/workflows/v121-82-retrigger.yml
+          git add .github/workflows/v121-82-policy-patch.yml
+          git commit -m "Retrigger #82 policy integration"
+          git push origin HEAD:fix/82-supply-chain-assurance
