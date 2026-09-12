@@ -88,22 +88,27 @@ does not run `ruff format`, and the 100-column target remains advisory because
 E501 is deliberately not selected.
 
 Mypy remains incremental. The global configuration continues to cover the whole
-`tools/` tree at the established baseline, while `[[tool.mypy.overrides]]` in
-`pyproject.toml` records modules that have crossed the strict boundary. The first
-such module is `_gatelib`, because it is imported by the focused-gate stack. Its
-override uses `strict = true`; once a module is listed there, do not weaken or
-remove that strict override merely to make a later change green.
+`tools/` tree at the established baseline. `_gatelib` is the first promoted
+strict module because it is imported by the focused-gate stack. In
+`pyproject.toml`, its per-module override spells out the exact strictness flags
+enabled by pinned mypy 2.3.1 rather than using the `strict = true` meta-option;
+this keeps strictness scoped to `_gatelib` and prevents unrelated modules from
+being promoted accidentally.
 
-The reproducible strict check for the first boundary is:
+The reproducible strict check for the boundary is:
 
 ```bash
 mypy --strict tools/_gatelib.py
 ```
 
-The pinned normal `mypy` CI invocation also exercises that boundary because the
-per-module override is active during the whole-tree check. Migrate additional
-modules only after they pass the pinned strict contract; record any temporary
-relaxation explicitly rather than adding blanket ignores.
+The normal hosted `mypy` invocation enforces the same pinned strict bundle on
+`_gatelib` through that per-module override while retaining the established
+whole-tree baseline elsewhere. Before the v1.2.1 release candidate is frozen,
+the exact strict command is also exercised as hosted evidence. Once a module is
+promoted, do not weaken its strict settings merely to make a later change green.
+Migrate additional modules only after they pass the pinned strict contract;
+record any narrow temporary relaxation explicitly rather than adding blanket
+ignores.
 
 Private-member debt is deliberately a separate architecture concern. The
 post-v1.2.0 inventory contains three recurring families: checker-development
