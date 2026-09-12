@@ -237,6 +237,7 @@
       "repeatable": "template:repeatable:{token}"
     },
     "template_only_paths": [
+      ".github/release-history-policy.json",
       ".github/workflows/checker-development.yml",
       ".github/workflows/portfolio-drift.yml",
       ".github/workflows/wiki-checks.yml",
@@ -248,8 +249,7 @@
       "docs/PORTFOLIO_DRIFT.md",
       "docs/PORTFOLIO_QUALITY.md",
       "docs/PROVISIONING.md",
-      "docs/wiki/_Sidebar.md",
-      "docs/wiki/catalogue.json",
+      "docs/WIKI_PUBLICATION.md",
       "docs/wiki/Choose-a-profile.md",
       "docs/wiki/Configure-GitHub.md",
       "docs/wiki/Create-the-repository.md",
@@ -264,7 +264,8 @@
       "docs/wiki/Run-the-quality-gates.md",
       "docs/wiki/Troubleshooting.md",
       "docs/wiki/Workflow-and-tool-reference.md",
-      "docs/WIKI_PUBLICATION.md",
+      "docs/wiki/_Sidebar.md",
+      "docs/wiki/catalogue.json",
       "tools/check_policy_coverage.py",
       "tools/check_portfolio_drift.py",
       "tools/check_wiki.py",
