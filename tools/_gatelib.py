@@ -8,11 +8,11 @@ this module: that file remains a self-contained distributable artifact.
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable
 import json
-from pathlib import Path
 import subprocess
 import sys
+from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 
