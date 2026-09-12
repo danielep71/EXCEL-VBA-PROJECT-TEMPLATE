@@ -79,6 +79,41 @@ The supported focused-tool interface is **path execution from the repository che
 
 `python -m tools.<module>` is **not** part of the supported contract: `tools/` is not a public Python package and no package-installation interface is promised. If module-mode execution is added later, it must be introduced deliberately with package-aware imports and fixtures for both invocation modes rather than relying on incidental interpreter path behavior. The canonical `check_repo.py` remains unaffected because it has no sibling import.
 
+### Python import and typing ratchet
+
+Ruff `I001` is part of the maintained Python lint baseline. Import blocks must
+therefore stay deterministically ordered alongside the existing E4/E7/E9/F,
+C90 and S314 checks. This is an ordering rule, not formatter adoption: CI still
+does not run `ruff format`, and the 100-column target remains advisory because
+E501 is deliberately not selected.
+
+Mypy remains incremental. The global configuration continues to cover the whole
+`tools/` tree at the established baseline, while `[[tool.mypy.overrides]]` in
+`pyproject.toml` records modules that have crossed the strict boundary. The first
+such module is `_gatelib`, because it is imported by the focused-gate stack. Its
+override uses `strict = true`; once a module is listed there, do not weaken or
+remove that strict override merely to make a later change green.
+
+The reproducible strict check for the first boundary is:
+
+```bash
+mypy --strict tools/_gatelib.py
+```
+
+The pinned normal `mypy` CI invocation also exercises that boundary because the
+per-module override is active during the whole-tree check. Migrate additional
+modules only after they pass the pinned strict contract; record any temporary
+relaxation explicitly rather than adding blanket ignores.
+
+Private-member debt is deliberately a separate architecture concern. The
+post-v1.2.0 inventory contains three recurring families: checker-development
+introspection of private `check_repo` parser/rule helpers, semantic policy-coverage
+harness access to canonical check internals, and focused-tool reuse of narrowly
+scoped private parsing helpers such as Markdown destination extraction. This
+patch does not enable Ruff `SLF` rules or redesign those boundaries. Only a
+private access that prevents the strict `_gatelib` boundary from passing belongs
+here; broader ownership/API cleanup remains later architecture work.
+
 ## 🧭 Internal boundaries
 
 `tools/checker_development.py` parses the checker with Python AST and requires the following ordered ownership boundaries:
