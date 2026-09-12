@@ -29,25 +29,30 @@ jobs:
       - name: Scope maintainer coverage documentation to template
         run: |
           set -euo pipefail
-          git rm --cached .github/workflows/v121-fix-81-docscope.yml
+          helper=.github/workflows/v121-fix-81-docscope.yml
+          git rm --cached "$helper"
+          rm "$helper"
           python3 - <<'PY'
           from pathlib import Path
 
           path = Path("tools/README.md")
           text = path.read_text(encoding="utf-8")
           start = "### Maintainer Python coverage\n"
+          marker_start = "<!-- " + "template:remove:start -->"
+          marker_end = "<!-- " + "template:remove:end -->"
+          wrapped_start = marker_start + "\n" + start
           if start not in text:
               raise SystemExit("coverage section anchor is missing")
-          if "<!-- template:remove:start -->\n### Maintainer Python coverage" not in text:
-              text = text.replace(start, "<!-- template:remove:start -->\n" + start, 1)
-          section_start = text.index("<!-- template:remove:start -->\n### Maintainer Python coverage")
+          if wrapped_start not in text:
+              text = text.replace(start, wrapped_start, 1)
+          section_start = text.index(wrapped_start)
           next_heading = text.find("\nComments and docstrings", section_start)
           if next_heading < 0:
               raise SystemExit("coverage section end anchor is missing")
           before = text[:next_heading]
           after = text[next_heading:]
-          if not before.rstrip().endswith("<!-- template:remove:end -->"):
-              before = before.rstrip() + "\n\n<!-- template:remove:end -->\n"
+          if not before.rstrip().endswith(marker_end):
+              before = before.rstrip() + "\n\n" + marker_end + "\n"
           path.write_text(before + after, encoding="utf-8", newline="\n")
           PY
 
@@ -67,7 +72,8 @@ jobs:
       - name: Commit permanent documentation repair
         run: |
           set -euo pipefail
-          git reset HEAD -- .github/workflows/v121-fix-81-docscope.yml
+          helper=.github/workflows/v121-fix-81-docscope.yml
+          git restore --source=HEAD --staged --worktree "$helper"
           git config user.name "Daniele Penza"
           git config user.email "104122869+danielep71@users.noreply.github.com"
           git commit -m "Keep Python coverage guidance template-only (#81)"
