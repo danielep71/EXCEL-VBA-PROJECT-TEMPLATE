@@ -11,10 +11,11 @@ import re
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from _gatelib import git_text, run_gate
+from _gatelib import git_text
 
 PROFILE_PATH = ".github/repository-profile.json"
 RELEASE_POLICY_PATH = ".github/release-policy.json"
@@ -22,15 +23,48 @@ VERSION_PATH = "VERSION"
 CHANGELOG_PATH = "CHANGELOG.md"
 DEFAULT_WORKFLOW = ".github/workflows/static-checks.yml"
 VERSION_PATTERN = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+SHA_PATTERN = re.compile(r"[0-9a-f]{40}$")
 
 
 class CloseoutError(RuntimeError):
-    """Raised when captured closeout evidence cannot be evaluated."""
+    """Captured closeout evidence cannot be evaluated deterministically."""
+
+
+@dataclass(frozen=True)
+class Options:
+    root: Path
+    snapshot: Path
+    tag: str
+    candidate_sha: str
+    milestone_number: int
+    workflow_path: str
+    expect_prerelease: bool
+    expect_latest: bool
+    output: Path | None = None
+    summary: Path | None = None
 
 
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise CloseoutError(message)
+
+
+def as_object(value: Any, name: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise CloseoutError(f"{name} must be an object")
+    return value
+
+
+def as_list(value: Any, name: str) -> list[Any]:
+    if not isinstance(value, list):
+        raise CloseoutError(f"{name} must be an array")
+    return value
+
+
+def as_string(value: Any, name: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise CloseoutError(f"{name} must be a non-empty string")
+    return value
 
 
 def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -53,10 +87,8 @@ def load_json(path: Path) -> Any:
 def git_show(root: Path, candidate: str, relative: str) -> str:
     completed = git_text(root, "show", f"{candidate}:{relative}")
     if completed.returncode:
-        raise CloseoutError(
-            f"cannot read {relative} from {candidate}: "
-            f"{completed.stderr.strip() or 'git show failed'}"
-        )
+        detail = completed.stderr.strip() or "git show failed"
+        raise CloseoutError(f"cannot read {relative} from {candidate}: {detail}")
     return completed.stdout
 
 
@@ -65,8 +97,7 @@ def candidate_json(root: Path, candidate: str, relative: str) -> dict[str, Any]:
         value = json.loads(git_show(root, candidate, relative), object_pairs_hook=unique_object)
     except json.JSONDecodeError as error:
         raise CloseoutError(f"{relative} at {candidate} is invalid JSON: {error}") from error
-    require(isinstance(value, dict), f"{relative} at {candidate} must be an object")
-    return value
+    return as_object(value, f"{relative} at {candidate}")
 
 
 def finding(category: str, control: str, message: str) -> dict[str, str]:
@@ -77,10 +108,9 @@ def workflow_runs(value: Any) -> tuple[list[dict[str, Any]], int | None]:
     pages = value if isinstance(value, list) else [value]
     rows: list[dict[str, Any]] = []
     total: int | None = None
-    for page in pages:
-        require(isinstance(page, dict), "workflow_runs must be an object or slurped objects")
-        current = page.get("workflow_runs")
-        require(isinstance(current, list), "workflow_runs payload lacks workflow_runs")
+    for raw_page in pages:
+        page = as_object(raw_page, "workflow_runs page")
+        current = as_list(page.get("workflow_runs"), "workflow_runs page.workflow_runs")
         rows.extend(row for row in current if isinstance(row, dict))
         count = page.get("total_count")
         if isinstance(count, int):
@@ -89,10 +119,16 @@ def workflow_runs(value: Any) -> tuple[list[dict[str, Any]], int | None]:
 
 
 def milestone_items(value: Any) -> list[dict[str, Any]]:
-    require(isinstance(value, list), "milestone_items must be an array or slurped arrays")
-    if value and all(isinstance(page, list) for page in value):
-        return [row for page in value for row in page if isinstance(row, dict)]
-    return [row for row in value if isinstance(row, dict)]
+    raw = as_list(value, "milestone_items")
+    if raw and all(isinstance(page, list) for page in raw):
+        return [
+            row
+            for page in raw
+            if isinstance(page, list)
+            for row in page
+            if isinstance(row, dict)
+        ]
+    return [row for row in raw if isinstance(row, dict)]
 
 
 def source_identity(
@@ -116,22 +152,25 @@ def source_identity(
         )
 
     profile_data = candidate_json(root, candidate, PROFILE_PATH)
-    repository = profile_data.get("repository")
-    require(isinstance(repository, str) and "/" in repository, "candidate repository is invalid")
-    mode = profile_data.get("mode")
-    profile = "template" if mode == "template" else profile_data.get("profile")
-    require(isinstance(profile, str) and profile, "candidate release profile is missing")
+    repository = as_string(profile_data.get("repository"), "candidate repository")
+    require("/" in repository, "candidate repository must use owner/name form")
+    mode_value = profile_data.get("mode")
+    mode = as_string(mode_value, "candidate mode")
+    if mode == "template":
+        profile = "template"
+    else:
+        profile = as_string(profile_data.get("profile"), "candidate release profile")
 
     policy = candidate_json(root, candidate, RELEASE_POLICY_PATH)
-    profiles = policy.get("profiles")
-    require(isinstance(profiles, dict), "release policy profiles are missing")
-    profile_policy = profiles.get(profile)
-    require(isinstance(profile_policy, dict), f"release policy profile {profile!r} is missing")
-    allowed = profile_policy.get("allowed_asset_globs")
-    require(
-        isinstance(allowed, list) and all(isinstance(item, str) and item for item in allowed),
-        "allowed_asset_globs must be an array of non-empty strings",
+    profiles = as_object(policy.get("profiles"), "release policy profiles")
+    profile_policy = as_object(profiles.get(profile), f"release policy profile {profile!r}")
+    raw_allowed = as_list(
+        profile_policy.get("allowed_asset_globs"),
+        f"release policy profile {profile!r}.allowed_asset_globs",
     )
+    if not all(isinstance(item, str) and item for item in raw_allowed):
+        raise CloseoutError("allowed_asset_globs must contain only non-empty strings")
+    allowed = [str(item) for item in raw_allowed]
 
     changelog = git_show(root, candidate, CHANGELOG_PATH)
     heading = re.search(
@@ -163,12 +202,14 @@ def source_identity(
                 f"candidate comparison link for {version} does not target {tag}",
             )
         )
-    if re.search(
+
+    unreleased = re.search(
         rf"^\[Unreleased\]:\s+https://github\.com/{re.escape(repository)}/compare/"
         rf"{re.escape(tag)}\.\.\.HEAD\s*$",
         changelog,
         re.MULTILINE,
-    ) is None:
+    )
+    if unreleased is None:
         findings.append(
             finding(
                 "deterministic",
@@ -194,12 +235,10 @@ def check_tag(
     candidate: str,
     findings: list[dict[str, str]],
 ) -> dict[str, Any]:
-    ref = snapshot.get("tag_ref")
-    require(isinstance(ref, dict), "snapshot.tag_ref must be an object")
+    ref = as_object(snapshot.get("tag_ref"), "snapshot.tag_ref")
     if ref.get("ref") != f"refs/tags/{tag}":
         findings.append(finding("deterministic", "tag", "provider tag ref does not match release tag"))
-    obj = ref.get("object")
-    require(isinstance(obj, dict), "snapshot.tag_ref lacks object")
+    obj = as_object(ref.get("object"), "snapshot.tag_ref.object")
     ref_type = obj.get("type")
     target: str | None = None
     tag_object_sha: str | None = None
@@ -208,14 +247,12 @@ def check_tag(
         findings.append(finding("deterministic", "tag", f"{tag} is lightweight; annotated tag required"))
     elif ref_type == "tag":
         tag_object_sha = obj.get("sha") if isinstance(obj.get("sha"), str) else None
-        annotated = snapshot.get("tag_object")
-        require(isinstance(annotated, dict), "annotated tag requires snapshot.tag_object")
+        annotated = as_object(snapshot.get("tag_object"), "snapshot.tag_object")
         if annotated.get("sha") != tag_object_sha:
             findings.append(finding("deterministic", "tag", "annotated tag object SHA mismatches tag ref"))
         if annotated.get("tag") != tag:
             findings.append(finding("deterministic", "tag", "annotated tag object names another tag"))
-        annotated_target = annotated.get("object")
-        require(isinstance(annotated_target, dict), "snapshot.tag_object lacks target object")
+        annotated_target = as_object(annotated.get("object"), "snapshot.tag_object.object")
         if annotated_target.get("type") != "commit":
             findings.append(finding("deterministic", "tag", "annotated tag does not target a commit"))
         target = (
@@ -273,19 +310,17 @@ def check_workflow(
             int(row.get("id") or 0),
         ),
     )
-    if selected.get("status") != "completed" or selected.get("conclusion") != "success":
+    status = selected.get("status")
+    conclusion = selected.get("conclusion")
+    if status != "completed" or conclusion != "success":
         findings.append(
-            finding(
-                "deterministic",
-                "tag-ci",
-                f"tag CI is {selected.get('status')!r}/{selected.get('conclusion')!r}",
-            )
+            finding("deterministic", "tag-ci", f"tag CI is {status!r}/{conclusion!r}")
         )
     return {
         "matches": len(matches),
         "run_id": selected.get("id"),
-        "status": selected.get("status"),
-        "conclusion": selected.get("conclusion"),
+        "status": status,
+        "conclusion": conclusion,
     }
 
 
@@ -296,21 +331,20 @@ def check_release(
     expect_latest: bool,
     findings: list[dict[str, str]],
 ) -> dict[str, Any]:
-    release = snapshot.get("release")
-    latest = snapshot.get("latest_release")
-    require(isinstance(release, dict), "snapshot.release must be an object")
-    require(isinstance(latest, dict), "snapshot.latest_release must be an object")
+    release = as_object(snapshot.get("release"), "snapshot.release")
+    latest = as_object(snapshot.get("latest_release"), "snapshot.latest_release")
     tag = f"v{identity['version']}"
     if release.get("tag_name") != tag:
         findings.append(finding("deterministic", "release", "GitHub Release uses another tag"))
     if release.get("draft") is not False or not release.get("published_at"):
         findings.append(finding("deterministic", "release", "GitHub Release is draft/unpublished"))
-    if bool(release.get("prerelease")) != expect_prerelease:
+    prerelease = bool(release.get("prerelease"))
+    if prerelease != expect_prerelease:
         findings.append(
             finding(
                 "deterministic",
                 "release",
-                f"prerelease flag is {bool(release.get('prerelease'))}; expected {expect_prerelease}",
+                f"prerelease flag is {prerelease}; expected {expect_prerelease}",
             )
         )
     latest_matches = release.get("id") == latest.get("id")
@@ -323,16 +357,15 @@ def check_release(
             )
         )
 
-    assets = release.get("assets")
-    require(isinstance(assets, list), "snapshot.release.assets must be an array")
+    raw_assets = as_list(release.get("assets"), "snapshot.release.assets")
     names = [
-        asset["name"]
-        for asset in assets
+        asset.get("name")
+        for asset in raw_assets
         if isinstance(asset, dict) and isinstance(asset.get("name"), str)
     ]
-    if len(names) != len(assets) or len(names) != len(set(names)):
+    if len(names) != len(raw_assets) or len(names) != len(set(names)):
         findings.append(finding("deterministic", "assets", "uploaded asset names are invalid/duplicate"))
-    allowed = identity["allowed_asset_globs"]
+    allowed = [str(item) for item in identity["allowed_asset_globs"]]
     unexpected = [
         name
         for name in names
@@ -340,11 +373,7 @@ def check_release(
     ]
     if not allowed and names:
         findings.append(
-            finding(
-                "deterministic",
-                "assets",
-                "source-only release profile contains uploaded assets",
-            )
+            finding("deterministic", "assets", "source-only release profile contains uploaded assets")
         )
     if unexpected:
         findings.append(
@@ -355,8 +384,10 @@ def check_release(
             )
         )
 
-    zip_exposed = isinstance(release.get("zipball_url"), str) and bool(release["zipball_url"])
-    tar_exposed = isinstance(release.get("tarball_url"), str) and bool(release["tarball_url"])
+    zip_url = release.get("zipball_url")
+    tar_url = release.get("tarball_url")
+    zip_exposed = isinstance(zip_url, str) and bool(zip_url)
+    tar_exposed = isinstance(tar_url, str) and bool(tar_url)
     if not zip_exposed or not tar_exposed:
         findings.append(
             finding(
@@ -365,22 +396,24 @@ def check_release(
                 "GitHub-generated source archive URLs are incomplete",
             )
         )
-    archive_observation = snapshot.get("source_archives")
-    require(isinstance(archive_observation, dict), "snapshot.source_archives must be an object")
+    archive_observation = as_object(
+        snapshot.get("source_archives"), "snapshot.source_archives"
+    )
     for kind in ("zip", "tar"):
-        if archive_observation.get(kind) != "pass":
+        observed = archive_observation.get(kind)
+        if observed != "pass":
             findings.append(
                 finding(
                     "observation",
                     "source-archives",
-                    f"{kind} source archive retrieval is {archive_observation.get(kind)!r}",
+                    f"{kind} source archive retrieval is {observed!r}",
                 )
             )
     return {
         "release_id": release.get("id"),
         "published_at": release.get("published_at"),
         "draft": release.get("draft"),
-        "prerelease": bool(release.get("prerelease")),
+        "prerelease": prerelease,
         "latest_matches": latest_matches,
         "asset_mode": "source-only" if not allowed else "binary-capable",
         "uploaded_assets": sorted(names),
@@ -397,12 +430,13 @@ def check_compare(
     findings: list[dict[str, str]],
 ) -> dict[str, Any]:
     previous = identity.get("previous_tag")
-    compare = snapshot.get("compare")
-    require(isinstance(compare, dict), "snapshot.compare must be an object")
+    compare = as_object(snapshot.get("compare"), "snapshot.compare")
     if previous is None:
         return {"previous_tag": None, "status": None, "candidate_seen": False}
-    expected = f"/compare/{previous}...v{identity['version']}"
-    if not isinstance(compare.get("html_url"), str) or not compare["html_url"].endswith(expected):
+    previous_tag = as_string(previous, "candidate previous tag")
+    expected = f"/compare/{previous_tag}...v{identity['version']}"
+    html_url = compare.get("html_url")
+    if not isinstance(html_url, str) or not html_url.endswith(expected):
         findings.append(
             finding("deterministic", "comparison-link", "provider comparison range mismatches changelog")
         )
@@ -411,8 +445,7 @@ def check_compare(
         findings.append(
             finding("deterministic", "comparison-link", f"provider comparison status is {status!r}")
         )
-    commits = compare.get("commits")
-    require(isinstance(commits, list), "snapshot.compare.commits must be an array")
+    commits = as_list(compare.get("commits"), "snapshot.compare.commits")
     candidate_seen = any(
         isinstance(row, dict) and row.get("sha") == candidate for row in commits
     )
@@ -424,7 +457,7 @@ def check_compare(
                 "provider comparison does not contain the certified candidate",
             )
         )
-    return {"previous_tag": previous, "status": status, "candidate_seen": candidate_seen}
+    return {"previous_tag": previous_tag, "status": status, "candidate_seen": candidate_seen}
 
 
 def check_milestone(
@@ -432,19 +465,19 @@ def check_milestone(
     milestone_number: int,
     findings: list[dict[str, str]],
 ) -> dict[str, Any]:
-    milestone = snapshot.get("milestone")
-    require(isinstance(milestone, dict), "snapshot.milestone must be an object")
+    milestone = as_object(snapshot.get("milestone"), "snapshot.milestone")
     items = milestone_items(snapshot.get("milestone_items"))
     if milestone.get("number") != milestone_number:
         findings.append(finding("deterministic", "milestone", "milestone number mismatches input"))
-    if any(
-        not isinstance(row.get("milestone"), dict)
-        or row["milestone"].get("number") != milestone_number
-        for row in items
-    ):
-        findings.append(
-            finding("deterministic", "milestone", "captured item belongs to another milestone")
-        )
+    if milestone.get("state") != "closed":
+        findings.append(finding("deterministic", "milestone", "release milestone is not closed"))
+    for row in items:
+        row_milestone = row.get("milestone")
+        if not isinstance(row_milestone, dict) or row_milestone.get("number") != milestone_number:
+            findings.append(
+                finding("deterministic", "milestone", "captured item belongs to another milestone")
+            )
+            break
     open_items = sorted(
         row["number"]
         for row in items
@@ -486,49 +519,54 @@ def check_wiki(
     findings: list[dict[str, str]],
 ) -> dict[str, Any]:
     if identity["mode"] != "template":
-        return {"applicable": False, "status": "not-applicable", "source_sha": None}
-    wiki = snapshot.get("wiki")
-    require(isinstance(wiki, dict), "template closeout requires snapshot.wiki")
-    if wiki.get("status") != "pass":
+        return {
+            "applicable": False,
+            "status": "not-applicable",
+            "source_sha": None,
+            "browser_review": "not-applicable",
+        }
+    wiki = as_object(snapshot.get("wiki"), "snapshot.wiki")
+    status = wiki.get("status")
+    source_sha = wiki.get("source_sha")
+    if status != "pass":
         findings.append(
-            finding("observation", "wiki", f"authoritative Wiki report is {wiki.get('status')!r}")
+            finding("observation", "wiki", f"authoritative Wiki report is {status!r}")
         )
-    if wiki.get("source_sha") != candidate:
+    if source_sha != candidate:
         findings.append(
             finding(
                 "observation",
                 "wiki",
-                f"Wiki source SHA is {wiki.get('source_sha')!r}; expected {candidate}",
+                f"Wiki source SHA is {source_sha!r}; expected {candidate}",
             )
         )
-    browser = snapshot.get("ui_observations")
-    require(isinstance(browser, dict), "snapshot.ui_observations must be an object")
-    if browser.get("wiki_browser_review") != "pass":
+    browser = as_object(snapshot.get("ui_observations"), "snapshot.ui_observations")
+    browser_review = browser.get("wiki_browser_review")
+    if browser_review != "pass":
         findings.append(
             finding(
                 "observation",
                 "wiki-browser-review",
-                f"Wiki browser review is {browser.get('wiki_browser_review')!r}",
+                f"Wiki browser review is {browser_review!r}",
             )
         )
     return {
         "applicable": True,
-        "status": wiki.get("status"),
-        "source_sha": wiki.get("source_sha"),
-        "browser_review": browser.get("wiki_browser_review"),
+        "status": status,
+        "source_sha": source_sha,
+        "browser_review": browser_review,
     }
 
 
-def build_report(options: argparse.Namespace) -> dict[str, Any]:
+def build_report(options: Options) -> dict[str, Any]:
     root = options.root.resolve()
     candidate = options.candidate_sha
-    require(re.fullmatch(r"[0-9a-f]{40}", candidate) is not None, "candidate SHA must be full lowercase hex")
+    require(SHA_PATTERN.fullmatch(candidate) is not None, "candidate SHA must be full lowercase hex")
     require(
         git_text(root, "cat-file", "-e", f"{candidate}^{{commit}}").returncode == 0,
         f"candidate commit is unavailable locally: {candidate}",
     )
-    snapshot = load_json(options.snapshot)
-    require(isinstance(snapshot, dict), "snapshot root must be an object")
+    snapshot = as_object(load_json(options.snapshot), "snapshot root")
     require(snapshot.get("schema_version") == 1, "unsupported closeout snapshot schema")
 
     findings: list[dict[str, str]] = []
@@ -613,7 +651,7 @@ def markdown_report(report: dict[str, Any]) -> str:
         ),
         (
             "Milestone membership",
-            not report["milestone"]["open_items"],
+            not report["milestone"]["open_items"] and report["milestone"]["state"] == "closed",
             f"{report['milestone']['membership_count']} items",
         ),
     ]
@@ -654,7 +692,16 @@ def markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def git(root: Path, *arguments: str) -> str:
+def write_report(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8", newline="\n")
+
+
+def write_json(path: Path, value: Any) -> None:
+    write_report(path, json.dumps(value, indent=2, sort_keys=True) + "\n")
+
+
+def fixture_git(root: Path, *arguments: str) -> str:
     completed = subprocess.run(
         [
             "git",
@@ -673,14 +720,10 @@ def git(root: Path, *arguments: str) -> str:
     return completed.stdout.strip()
 
 
-def write_json(path: Path, value: Any) -> None:
-    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
 def fixture(base: Path) -> tuple[Path, Path, str]:
     root = base / "repo"
     root.mkdir()
-    git(root, "init", "-b", "main")
+    fixture_git(root, "init", "-b", "main")
     (root / ".github").mkdir()
     repository = "owner/repo"
     version = "1.2.3"
@@ -702,9 +745,9 @@ def fixture(base: Path) -> tuple[Path, Path, str]:
         root / RELEASE_POLICY_PATH,
         {"schema_version": 1, "profiles": {"template": {"allowed_asset_globs": []}}},
     )
-    git(root, "add", "--all")
-    git(root, "commit", "-m", "Fixture release")
-    candidate = git(root, "rev-parse", "HEAD")
+    fixture_git(root, "add", "--all")
+    fixture_git(root, "commit", "-m", "Fixture release")
+    candidate = fixture_git(root, "rev-parse", "HEAD")
     tag_object_sha = "b" * 40
     release = {
         "id": 55,
@@ -771,8 +814,8 @@ def fixture(base: Path) -> tuple[Path, Path, str]:
     return root, snapshot_path, candidate
 
 
-def options(root: Path, snapshot: Path, candidate: str) -> argparse.Namespace:
-    return argparse.Namespace(
+def fixture_options(root: Path, snapshot: Path, candidate: str) -> Options:
+    return Options(
         root=root,
         snapshot=snapshot,
         tag="v1.2.3",
@@ -781,9 +824,6 @@ def options(root: Path, snapshot: Path, candidate: str) -> argparse.Namespace:
         workflow_path=DEFAULT_WORKFLOW,
         expect_prerelease=False,
         expect_latest=True,
-        output=None,
-        summary=None,
-        self_test=False,
     )
 
 
@@ -794,12 +834,13 @@ def run_self_test() -> int:
         with tempfile.TemporaryDirectory(prefix="release-closeout-") as raw:
             root, snapshot_path, candidate = fixture(Path(raw))
             if mutate is not None:
-                value = load_json(snapshot_path)
+                value = as_object(load_json(snapshot_path), "fixture snapshot")
                 mutate(value, candidate)
                 write_json(snapshot_path, value)
-            report = build_report(options(root, snapshot_path, candidate))
+            report = build_report(fixture_options(root, snapshot_path, candidate))
             controls = {row["control"] for row in report["findings"]}
-            ok = report["status"] == ("pass" if expected is None else "fail")
+            expected_status = "pass" if expected is None else "fail"
+            ok = report["status"] == expected_status
             ok = ok and (expected is None or expected in controls)
             if not ok:
                 failures.append(f"{name}: unexpected report {report['findings']!r}")
@@ -860,6 +901,11 @@ def run_self_test() -> int:
 
     run_case("open-milestone", open_item, "milestone")
 
+    def open_milestone(value: dict[str, Any], _candidate: str) -> None:
+        value["milestone"]["state"] = "open"
+
+    run_case("milestone-state", open_milestone, "milestone")
+
     def stale_count(value: dict[str, Any], _candidate: str) -> None:
         value["milestone"]["closed_issues"] = 99
 
@@ -875,20 +921,38 @@ def run_self_test() -> int:
 
     run_case("archive-retrieval", archive, "source-archives")
 
+    with tempfile.TemporaryDirectory(prefix="release-closeout-version-") as raw:
+        root, snapshot_path, candidate = fixture(Path(raw))
+        wrong = fixture_options(root, snapshot_path, candidate)
+        wrong = Options(
+            root=wrong.root,
+            snapshot=wrong.snapshot,
+            tag="v1.2.4",
+            candidate_sha=wrong.candidate_sha,
+            milestone_number=wrong.milestone_number,
+            workflow_path=wrong.workflow_path,
+            expect_prerelease=wrong.expect_prerelease,
+            expect_latest=wrong.expect_latest,
+        )
+        report = build_report(wrong)
+        controls = {row["control"] for row in report["findings"]}
+        if "source-version" not in controls:
+            failures.append("wrong-version: tag/VERSION mismatch was not rejected")
+
     if failures:
         print("SELF-TEST FAIL:", file=sys.stderr)
         for failure in failures:
             print(f"  - {failure}", file=sys.stderr)
         return 1
     print(
-        "SELF-TEST PASS: annotated/lightweight/moved tags, tag CI, release state, "
-        "asset policy, comparison resolution, milestone membership/counters, Wiki binding "
-        "and source-archive observations passed."
+        "SELF-TEST PASS: VERSION/tag binding, annotated/lightweight/moved tags, tag CI, "
+        "release state, asset policy, comparison resolution, milestone state/membership/counters, "
+        "Wiki binding and source-archive observations passed."
     )
     return 0
 
 
-def parse_arguments(argv: list[str]) -> argparse.Namespace:
+def parse_arguments(argv: list[str]) -> tuple[Options | None, bool]:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--snapshot", type=Path)
@@ -902,31 +966,54 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--summary", type=Path)
     parser.add_argument("--self-test", action="store_true")
-    result = parser.parse_args(argv)
-    if not result.self_test:
-        missing = [
-            name
-            for name in ("snapshot", "tag", "candidate_sha", "milestone_number")
-            if getattr(result, name) in (None, "")
-        ]
-        if missing:
-            parser.error(
-                "operational closeout requires "
-                + ", ".join("--" + name.replace("_", "-") for name in missing)
-            )
-    return result
+    args = parser.parse_args(argv)
+    if args.self_test:
+        return None, True
+    missing = [
+        name
+        for name in ("snapshot", "tag", "candidate_sha", "milestone_number")
+        if getattr(args, name) in (None, "")
+    ]
+    if missing:
+        parser.error(
+            "operational closeout requires "
+            + ", ".join("--" + name.replace("_", "-") for name in missing)
+        )
+    return (
+        Options(
+            root=args.root,
+            snapshot=args.snapshot,
+            tag=args.tag,
+            candidate_sha=args.candidate_sha,
+            milestone_number=args.milestone_number,
+            workflow_path=args.workflow_path,
+            expect_prerelease=args.expect_prerelease,
+            expect_latest=args.expect_latest,
+            output=args.output,
+            summary=args.summary,
+        ),
+        False,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = parse_arguments(sys.argv[1:] if argv is None else argv)
-    return run_gate(
-        args,
-        build=lambda: build_report(args),
-        markdown=markdown_report,
-        errors=(CloseoutError, OSError, ValueError, TypeError),
-        self_test=run_self_test,
-        self_test_error_prefix="SELF-TEST ERROR",
-    )
+    try:
+        options, self_test = parse_arguments(sys.argv[1:] if argv is None else argv)
+        if self_test:
+            return run_self_test()
+        if options is None:
+            raise CloseoutError("operational options are unavailable")
+        report = build_report(options)
+        markdown = markdown_report(report)
+        if options.output is not None:
+            write_json(options.output, report)
+        if options.summary is not None:
+            write_report(options.summary, markdown)
+        print(markdown, end="")
+        return 0 if report["status"] == "pass" else 1
+    except (CloseoutError, OSError, ValueError, TypeError) as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
