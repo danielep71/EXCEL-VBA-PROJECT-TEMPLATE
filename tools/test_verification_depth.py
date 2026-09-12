@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import ast
+import base64
 import json
 import tempfile
 import unittest
@@ -20,6 +22,7 @@ import check_release as release
 import check_release_semantics as semantics
 import check_template_contract as contract
 import check_wiki as wiki
+import checker_development as checker_dev
 import collect_portfolio_snapshot as snapshot
 import initialize_repository as initializer
 import policy_coverage_runner as coverage_runner
@@ -1401,7 +1404,7 @@ class ExternalLinkBoundaryTests(unittest.TestCase):
 
         raw = Raw()
         connection = external_links.PinnedHTTPS("example.com", "8.8.8.8", 1)
-        connection.tls_context = TLS()
+        setattr(connection, "tls_context", TLS())
         with patch.object(external_links.socket, "create_connection", return_value=raw):
             with self.assertRaisesRegex(RuntimeError, "tls"):
                 connection.connect()
@@ -1705,6 +1708,355 @@ class CloseoutCliDepthTests(unittest.TestCase):
             self.assertEqual(closeout.main(args), 1)
         with patch.object(closeout, "build_report", side_effect=closeout.CloseoutError("boom")):
             self.assertEqual(closeout.main(args), 2)
+
+class RemainingCoverageDepthTests(unittest.TestCase):
+    def test_semver_comparison_and_failure_boundaries(self) -> None:
+        with self.assertRaises(ValueError):
+            semantics.parse_semver("1.0")
+        with self.assertRaises(ValueError):
+            semantics.parse_semver("1.0.0-01")
+        stable = semantics.parse_semver("1.0.0")
+        prerelease = semantics.parse_semver("1.0.0-rc.1")
+        self.assertEqual(semantics.compare(stable, stable), 0)
+        self.assertEqual(semantics.compare(semantics.parse_semver("2.0.0"), stable), 1)
+        self.assertEqual(semantics.compare(stable, prerelease), 1)
+        self.assertEqual(semantics.compare(prerelease, stable), -1)
+        self.assertEqual(
+            semantics.compare(
+                semantics.parse_semver("1.0.0-alpha.2"),
+                semantics.parse_semver("1.0.0-alpha.1"),
+            ),
+            1,
+        )
+        self.assertEqual(
+            semantics.compare(
+                semantics.parse_semver("1.0.0-1"),
+                semantics.parse_semver("1.0.0-alpha"),
+            ),
+            -1,
+        )
+        self.assertEqual(
+            semantics.compare(
+                semantics.parse_semver("1.0.0-alpha"),
+                semantics.parse_semver("1.0.0-1"),
+            ),
+            1,
+        )
+        self.assertEqual(
+            semantics.compare(
+                semantics.parse_semver("1.0.0-beta"),
+                semantics.parse_semver("1.0.0-alpha"),
+            ),
+            1,
+        )
+        self.assertEqual(
+            semantics.compare(
+                semantics.parse_semver("1.0.0-alpha"),
+                semantics.parse_semver("1.0.0-alpha.1"),
+            ),
+            -1,
+        )
+        self.assertFalse(semantics.valid_date("2026-02-30"))
+        with patch.object(semantics, "_history_self_test_cases", return_value=[("forced", False)]):
+            self.assertEqual(semantics.run_self_test(), 1)
+
+    def test_checker_development_ast_failure_boundaries(self) -> None:
+        with patch.object(checker_dev.importlib.util, "spec_from_file_location", return_value=None):
+            with self.assertRaises(checker_dev.ContractError):
+                checker_dev.load_checker(Path("missing.py"))
+        with self.assertRaises(checker_dev.ContractError):
+            checker_dev.node_name(ast.Expr(value=ast.Constant(value="x")))
+
+        tree = ast.parse("def first():\n    pass\n\ndef second():\n    pass\n")
+        with patch.object(checker_dev, "SECTION_STARTS", (("one", "missing"),)):
+            rows, failures = checker_dev.section_report("", tree)
+        self.assertEqual(rows, [])
+        self.assertTrue(failures)
+
+        with patch.object(
+            checker_dev,
+            "SECTION_STARTS",
+            (("one", "second"), ("two", "first")),
+        ):
+            rows, failures = checker_dev.section_report("", tree)
+        self.assertEqual(rows, [])
+        self.assertTrue(any("strictly ordered" in item for item in failures))
+
+        with patch.object(checker_dev, "SECTION_STARTS", (("one", "second"),)):
+            rows, failures = checker_dev.section_report("", tree)
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(any("ownership covers" in item for item in failures))
+
+        imports_tree = ast.parse("from .local import x\nimport definitely_not_stdlib\n")
+        observed, failures = checker_dev.import_report(imports_tree)
+        self.assertIn("definitely_not_stdlib", observed)
+        self.assertTrue(any("relative imports" in item for item in failures))
+        self.assertTrue(any("non-approved" in item for item in failures))
+
+        fake_module: Any = type("FakeModule", (), {"CHECKS": (lambda: None,)})()
+        functions, failures = checker_dev.check_ids(fake_module)
+        self.assertEqual(functions, ["<lambda>"])
+        self.assertTrue(failures)
+
+    def test_whitespace_operational_and_selftest_failure_boundaries(self) -> None:
+        failed = type("Result", (), {"returncode": 1, "stdout": "", "stderr": "git failed"})()
+        passed = type("Result", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+        with patch.object(whitespace, "git", return_value=failed):
+            with self.assertRaises(RuntimeError):
+                whitespace.resolve_commit(Path("."), "bad")
+        with (
+            patch.object(whitespace, "resolve_commit", side_effect=["h" * 40, "b" * 40]),
+            patch.object(whitespace, "git", return_value=failed),
+        ):
+            with self.assertRaises(RuntimeError):
+                whitespace.resolve_committed_scope(Path("."), "HEAD", "base")
+        with self.assertRaises(ValueError):
+            whitespace.run_check(Path("."), "working-tree", base_revision="base")
+        with self.assertRaises(ValueError):
+            whitespace.run_check(Path("."), "working-tree", head_revision="other")
+
+        rendered = whitespace.markdown_report(
+            {
+                "mode": "working-tree",
+                "status": "fail",
+                "basis": "working-tree",
+                "base": "a" * 40,
+                "head": None,
+                "range": "working-tree",
+                "findings": ["bad whitespace"],
+            }
+        )
+        self.assertIn("staged and unstaged", rendered)
+        self.assertIn("```text", rendered)
+
+        fake_report = {
+            "status": "pass",
+            "basis": "first-parent",
+            "base": "x",
+            "head": "y",
+            "findings": [],
+        }
+        with (
+            patch.object(whitespace, "init_repo"),
+            patch.object(whitespace, "commit_file", return_value="a" * 40),
+            patch.object(whitespace, "git", return_value=passed),
+            patch.object(whitespace, "run_check", return_value=fake_report),
+        ):
+            self.assertEqual(whitespace.run_self_test(), 1)
+
+    def test_snapshot_success_paths_and_token_transport(self) -> None:
+        run_old = {
+            "id": 1,
+            "path": ".github/workflows/ci.yml",
+            "head_sha": "a" * 40,
+            "head_branch": "main",
+            "event": "push",
+            "status": "completed",
+            "conclusion": "success",
+            "run_attempt": 1,
+            "updated_at": "2026-09-12T00:00:00Z",
+        }
+        run_new = {**run_old, "id": 2}
+        ignored = {**run_old, "id": 3, "head_sha": "b" * 40}
+        job = {"id": 9, "name": "gate", "status": "completed", "conclusion": "success"}
+        release_row = {
+            "id": 5,
+            "tag_name": "v1.2.0",
+            "draft": False,
+            "prerelease": False,
+            "published_at": "2026-09-12T00:00:00Z",
+            "body": "notes",
+            "assets": [
+                {
+                    "name": "asset.zip",
+                    "size": 1,
+                    "digest": "sha256:x",
+                    "browser_download_url": "https://example.invalid/asset.zip",
+                }
+            ],
+        }
+
+        def fake_pages(path: str, key: str | None = None) -> list[Any]:
+            del key
+            if "actions/runs?" in path:
+                return [run_old, run_new, ignored]
+            if "/attempts/" in path:
+                return [job]
+            if path.endswith("/releases"):
+                return [release_row]
+            raise AssertionError(path)
+
+        repo: dict[str, Any] = {
+            "repository": "owner/repo",
+            "commit": "a" * 40,
+            "unavailable": {},
+        }
+        with (
+            patch.object(snapshot, "pages", side_effect=fake_pages),
+            patch.object(snapshot, "tag_commit", return_value="a" * 40),
+        ):
+            quality = snapshot.quality_evidence(repo)
+        self.assertEqual([item["id"] for item in quality["workflows"]], [2])
+        self.assertEqual(quality["workflows"][0]["jobs"][0]["name"], "gate")
+        self.assertEqual(quality["releases"][0]["resolved_commit"], "a" * 40)
+
+        metadata = {
+            "default_branch": "main",
+            "description": "demo",
+            "has_issues": True,
+            "allow_auto_merge": False,
+        }
+        tree = {
+            "tree": [{"path": snapshot.CONFIG, "sha": "blob", "type": "blob"}],
+            "truncated": False,
+        }
+
+        def fake_get(path: str) -> Any:
+            if path == "owner/repo":
+                return metadata
+            if path.endswith("/commits/main"):
+                return {"sha": "c" * 40}
+            if "/git/trees/" in path:
+                return tree
+            if path.endswith("/git/blobs/blob"):
+                return {"content": base64.b64encode(b'{"profile":"library"}').decode("ascii")}
+            raise AssertionError(path)
+
+        with (
+            patch.object(snapshot, "get", side_effect=fake_get),
+            patch.object(snapshot, "pages", return_value=[]),
+        ):
+            collected = snapshot.collect("owner/repo")
+        self.assertIn(snapshot.CONFIG, collected["files"])
+        self.assertEqual(collected["labels"], [])
+        self.assertEqual(collected["rulesets"], [])
+
+        class Response:
+            def __enter__(self) -> "Response":
+                return self
+
+            def __exit__(self, *args: Any) -> None:
+                return None
+
+            def read(self, size: int) -> bytes:
+                self.assert_size = size
+                return b"{}"
+
+        class Opener:
+            def open(self, request: Any, timeout: int) -> Response:
+                del request, timeout
+                return Response()
+
+        with (
+            patch.dict(snapshot.os.environ, {"GH_TOKEN": "token"}, clear=True),
+            patch.object(snapshot.urllib.request, "build_opener", return_value=Opener()),
+        ):
+            self.assertEqual(snapshot.get("owner/repo"), {})
+
+    def test_template_contract_selftest_failure_matrix(self) -> None:
+        case_mismatch = {"status": "fail", "findings": []}
+        case_missing = {"status": "fail", "findings": [{"message": "other"}]}
+        old = {"resolved_rule_set": ["template-contract-version"]}
+        deterministic_one = {"value": 1}
+        deterministic_two = {"value": 2}
+        before = {"contract_version": "1.0.0", "project_version": "9.9.9", "status": "pass"}
+        after = {"contract_version": "2.0.0", "project_version": "2.0.0", "status": "fail"}
+        cases: list[Any] = [
+            ("status-mismatch", {}, None, True, ""),
+            ("missing-finding", {}, None, False, "needle"),
+        ]
+        with (
+            patch.object(contract, "_cases", return_value=cases),
+            patch.object(
+                contract,
+                "_run_case",
+                side_effect=[
+                    case_mismatch,
+                    case_missing,
+                    old,
+                    deterministic_one,
+                    deterministic_two,
+                ],
+            ),
+            patch.object(contract, "_fixture", return_value=Path(".")),
+            patch.object(contract, "run_check", side_effect=[before, after]),
+            patch.object(contract, "write_text"),
+        ):
+            self.assertEqual(contract.run_self_test(), 1)
+
+        rendered = contract.markdown_report(
+            {
+                "status": "fail",
+                "mode": "template",
+                "contract_version": "1.2.0",
+                "contract_source": "owner/template",
+                "project_version": "9.9.9",
+                "resolved_rule_set": [],
+                "supported_versions": ["1.2.0"],
+                "findings": [{"message": "bad contract"}],
+            }
+        )
+        self.assertIn("bad contract", rendered)
+
+    def test_local_action_parser_reporting_and_git_failures(self) -> None:
+        self.assertIsNone(local_actions.uses_reference("run: echo no"))
+        self.assertIsNone(local_actions.safe_relative("not-local"))
+        self.assertIsNone(local_actions.safe_relative("./a/../b"))
+        self.assertIsNone(local_actions.safe_relative("./a//b"))
+        self.assertEqual(local_actions.unquote_scalar(' " value " '), "value")
+        self.assertIsNone(local_actions.top_scalar("name: x\n", "description"))
+
+        using, entrypoints, has_steps = local_actions.parse_runs_metadata(
+            "runs:\n  using: 'docker'\n  image: Dockerfile\n  steps:\nnext: x\n"
+        )
+        self.assertEqual(using, "docker")
+        self.assertEqual(entrypoints["image"], "Dockerfile")
+        self.assertTrue(has_steps)
+
+        report = {
+            "status": "fail",
+            "workflows": 1,
+            "local_references": [{"reference": "./x"}],
+            "findings": [{"path": "ci.yml", "line": 7, "message": "bad local action"}],
+        }
+        rendered = local_actions.markdown_report(report)
+        self.assertIn("ci.yml:7", rendered)
+        self.assertIn("bad local action", rendered)
+
+        failed = type("Result", (), {"returncode": 1, "stdout": b"", "stderr": b"failed"})()
+        passed = type("Result", (), {"returncode": 0, "stdout": b"", "stderr": b""})()
+        with patch.object(local_actions, "git", return_value=failed):
+            with self.assertRaises(RuntimeError):
+                local_actions.fixture_report("./missing", None, (".github/workflows/test.yml",))
+        with patch.object(local_actions, "git", side_effect=[passed, passed, passed, failed]):
+            with self.assertRaises(RuntimeError):
+                local_actions.fixture_report(
+                    "./missing",
+                    None,
+                    (".github/workflows/test.yml",),
+                )
+
+    def test_policy_selftest_determinism_failure_branches(self) -> None:
+        first = {
+            "status": "pass",
+            "counts": {
+                "canonical_sites": 1,
+                "canonical_covered": 1,
+                "canonical_uncovered": 0,
+                "canonical_cases": 0,
+                "focused_selftests": 0,
+                "matrix_rows": 0,
+                "exclusions": 0,
+            },
+            "uncovered": [],
+            "canonical_cases": [],
+            "failures": [],
+            "exclusions": [],
+            "nonce": 1,
+        }
+        second = {**first, "nonce": 2}
+        with patch.object(coverage_runner, "build_report", side_effect=[first, second]):
+            self.assertEqual(coverage_runner.run_self_test(Path(".")), 1)
 
 
 if __name__ == "__main__":
