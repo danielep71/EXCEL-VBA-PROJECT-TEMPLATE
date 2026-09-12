@@ -27,117 +27,137 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Apply strict-boundary CI wiring
+      - name: Apply strict-boundary CI wiring and retire helper
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          pyproject = Path('pyproject.toml')
-          text = pyproject.read_text(encoding='utf-8')
-          old = '''# Incremental strict-typing boundary. Add modules only after they are clean under
-          # the exact pinned `mypy --strict` contract; do not relax the migrated modules.
-          [[tool.mypy.overrides]]
-          module = "_gatelib"
-          strict = true
-          '''
-          old = old.replace('          ', '')
-          new = '''# Whole-tree mypy remains intentionally incremental. Modules promoted to the strict
-          # boundary are enforced by explicit fail-closed CI `mypy --strict <path>` steps;
-          # add a module only after it is strict-clean and keep the normal baseline green.
-          '''.replace('          ', '')
-          if old not in text:
-              raise SystemExit('pyproject strict override block not found')
-          pyproject.write_text(text.replace(old, new), encoding='utf-8', newline='\n')
+          pyproject = Path("pyproject.toml")
+          text = pyproject.read_text(encoding="utf-8")
+          old = (
+              "# Incremental strict-typing boundary. Add modules only after they are clean under\n"
+              "# the exact pinned `mypy --strict` contract; do not relax the migrated modules.\n"
+              "[[tool.mypy.overrides]]\n"
+              "module = \"_gatelib\"\n"
+              "strict = true\n"
+          )
+          new = (
+              "# Whole-tree mypy remains intentionally incremental. Modules promoted to the strict\n"
+              "# boundary are enforced by explicit fail-closed CI `mypy --strict <path>` steps;\n"
+              "# add a module only after it is strict-clean and keep the normal baseline green.\n"
+          )
+          if text.count(old) != 1:
+              raise SystemExit("pyproject strict override block is missing or ambiguous")
+          pyproject.write_text(text.replace(old, new), encoding="utf-8", newline="\n")
 
-          docs = Path('docs/CHECKER_DEVELOPMENT.md')
-          text = docs.read_text(encoding='utf-8')
-          old = '''Mypy remains incremental. The global configuration continues to cover the whole
-          `tools/` tree at the established baseline, while `[[tool.mypy.overrides]]` in
-          `pyproject.toml` records modules that have crossed the strict boundary. The first
-          such module is `_gatelib`, because it is imported by the focused-gate stack. Its
-          override uses `strict = true`; once a module is listed there, do not weaken or
-          remove that strict override merely to make a later change green.
+          docs = Path("docs/CHECKER_DEVELOPMENT.md")
+          text = docs.read_text(encoding="utf-8")
+          old = (
+              "Mypy remains incremental. The global configuration continues to cover the whole\n"
+              "`tools/` tree at the established baseline, while `[[tool.mypy.overrides]]` in\n"
+              "`pyproject.toml` records modules that have crossed the strict boundary. The first\n"
+              "such module is `_gatelib`, because it is imported by the focused-gate stack. Its\n"
+              "override uses `strict = true`; once a module is listed there, do not weaken or\n"
+              "remove that strict override merely to make a later change green.\n\n"
+              "The reproducible strict check for the first boundary is:\n\n"
+              "```bash\n"
+              "mypy --strict tools/_gatelib.py\n"
+              "```\n\n"
+              "The pinned normal `mypy` CI invocation also exercises that boundary because the\n"
+              "per-module override is active during the whole-tree check. Migrate additional\n"
+              "modules only after they pass the pinned strict contract; record any temporary\n"
+              "relaxation explicitly rather than adding blanket ignores.\n"
+          )
+          new = (
+              "Mypy remains incremental. The global configuration continues to cover the whole\n"
+              "`tools/` tree at the established baseline. Strict adoption is a separate explicit\n"
+              "CI ratchet: the first promoted module is `_gatelib`, because it is imported by the\n"
+              "focused-gate stack. The normal whole-tree invocation is intentionally left at the\n"
+              "established baseline so promoting one module cannot silently make unrelated files\n"
+              "strict.\n\n"
+              "The reproducible strict check for the first boundary is:\n\n"
+              "```bash\n"
+              "mypy --strict tools/_gatelib.py\n"
+              "```\n\n"
+              "`static-checks.yml` runs that command in its own fail-closed step and publishes the\n"
+              "result separately from the normal whole-tree mypy report. Once a module is added to\n"
+              "the strict CI boundary, do not remove or weaken that strict check merely to make a\n"
+              "later change green. Migrate additional modules only after they pass the pinned\n"
+              "strict contract; record any temporary relaxation explicitly rather than adding\n"
+              "blanket ignores.\n"
+          )
+          if text.count(old) != 1:
+              raise SystemExit("checker-development strict paragraph is missing or ambiguous")
+          docs.write_text(text.replace(old, new), encoding="utf-8", newline="\n")
 
-          The reproducible strict check for the first boundary is:
+          workflow = Path(".github/workflows/static-checks.yml")
+          text = workflow.read_text(encoding="utf-8")
+          if "mypy-strict-gatelib" in text:
+              raise SystemExit("strict _gatelib step already exists")
 
-          ```bash
-          mypy --strict tools/_gatelib.py
-          ```
+          baseline = (
+              "      - name: Enforce Python type baseline\n"
+              "        id: mypy\n"
+              "        continue-on-error: true\n"
+              "        run: |\n"
+              "          set -o pipefail\n"
+              "          mypy 2>&1 | tee test-results/mypy.txt\n"
+          )
+          strict_step = (
+              "\n"
+              "      - name: Enforce strict shared-gate typing boundary\n"
+              "        id: mypy-strict-gatelib\n"
+              "        continue-on-error: true\n"
+              "        run: |\n"
+              "          set -o pipefail\n"
+              "          mypy --strict tools/_gatelib.py 2>&1 | tee test-results/mypy-strict-gatelib.txt\n"
+          )
+          if text.count(baseline) != 1:
+              raise SystemExit("normal mypy step is missing or ambiguous")
+          text = text.replace(baseline, baseline + strict_step, 1)
 
-          The pinned normal `mypy` CI invocation also exercises that boundary because the
-          per-module override is active during the whole-tree check. Migrate additional
-          modules only after they pass the pinned strict contract; record any temporary
-          relaxation explicitly rather than adding blanket ignores.
-          '''.replace('          ', '')
-          new = '''Mypy remains incremental. The global configuration continues to cover the whole
-          `tools/` tree at the established baseline. Strict adoption is a separate explicit
-          CI ratchet: the first promoted module is `_gatelib`, because it is imported by the
-          focused-gate stack. The normal whole-tree invocation is intentionally left at the
-          established baseline so promoting one module cannot silently make unrelated files
-          strict.
-
-          The reproducible strict check for the first boundary is:
-
-          ```bash
-          mypy --strict tools/_gatelib.py
-          ```
-
-          `static-checks.yml` runs that command in its own fail-closed step and publishes the
-          result separately from the normal whole-tree mypy report. Once a module is added to
-          the strict CI boundary, do not remove or weaken that strict check merely to make a
-          later change green. Migrate additional modules only after they pass the pinned
-          strict contract; record any temporary relaxation explicitly rather than adding
-          blanket ignores.
-          '''.replace('          ', '')
-          if old not in text:
-              raise SystemExit('checker-development strict paragraph not found')
-          docs.write_text(text.replace(old, new), encoding='utf-8', newline='\n')
-
-          workflow = Path('.github/workflows/static-checks.yml')
-          text = workflow.read_text(encoding='utf-8')
-          anchor = '''      - name: Enforce Python type baseline
-                id: mypy
-                continue-on-error: true
-                run: |
-                  set -o pipefail
-                  mypy 2>&1 | tee test-results/mypy.txt
-          '''.replace('                ', '        ')
-          strict = '''
-      - name: Enforce strict shared-gate typing boundary
-        id: mypy-strict-gatelib
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          mypy --strict tools/_gatelib.py 2>&1 | tee test-results/mypy-strict-gatelib.txt
-          '''
-          if anchor not in text:
-              raise SystemExit('mypy step anchor not found')
-          text = text.replace(anchor, anchor + strict, 1)
-
+          summary = "              test-results/mypy.txt \\\n"
+          if text.count(summary) != 1:
+              raise SystemExit("summary mypy evidence marker is missing or ambiguous")
           text = text.replace(
-              '              test-results/mypy.txt \\\n',
-              '              test-results/mypy.txt \\\n              test-results/mypy-strict-gatelib.txt \\\n',
+              summary,
+              summary + "              test-results/mypy-strict-gatelib.txt \\\n",
               1,
           )
+
+          artifact = "            test-results/mypy.txt\n"
+          if text.count(artifact) != 1:
+              raise SystemExit("artifact mypy evidence marker is missing or ambiguous")
           text = text.replace(
-              '            test-results/mypy.txt\n',
-              '            test-results/mypy.txt\n            test-results/mypy-strict-gatelib.txt\n',
+              artifact,
+              artifact + "            test-results/mypy-strict-gatelib.txt\n",
               1,
           )
+
+          outcome = "          MYPY_OUTCOME: ${{ steps.mypy.outcome }}\n"
+          if text.count(outcome) != 1:
+              raise SystemExit("mypy outcome marker is missing or ambiguous")
           text = text.replace(
-              '          MYPY_OUTCOME: ${{ steps.mypy.outcome }}\n',
-              '          MYPY_OUTCOME: ${{ steps.mypy.outcome }}\n          MYPY_STRICT_GATELIB_OUTCOME: ${{ steps.mypy-strict-gatelib.outcome }}\n',
+              outcome,
+              outcome
+              + "          MYPY_STRICT_GATELIB_OUTCOME: ${{ steps.mypy-strict-gatelib.outcome }}\n",
               1,
           )
+
+          terminal = "            \"mypy type check:$MYPY_OUTCOME\" \\\n"
+          if text.count(terminal) != 1:
+              raise SystemExit("terminal mypy marker is missing or ambiguous")
           text = text.replace(
-              '            "mypy type check:$MYPY_OUTCOME" \\\n',
-              '            "mypy type check:$MYPY_OUTCOME" \\\n            "mypy strict _gatelib:$MYPY_STRICT_GATELIB_OUTCOME" \\\n',
+              terminal,
+              terminal
+              + "            \"mypy strict _gatelib:$MYPY_STRICT_GATELIB_OUTCOME\" \\\n",
               1,
           )
-          workflow.write_text(text, encoding='utf-8', newline='\n')
+          workflow.write_text(text, encoding="utf-8", newline="\n")
           PY
 
           git diff --check
+          git rm .github/workflows/normalize-imports-v121.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add pyproject.toml docs/CHECKER_DEVELOPMENT.md .github/workflows/static-checks.yml
