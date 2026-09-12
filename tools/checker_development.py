@@ -10,13 +10,15 @@ import hashlib
 import importlib.util
 import io
 import json
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from types import ModuleType
 from typing import Any
-from _gatelib import parse_report_args as parse_arguments, run_gate
+
+from _gatelib import parse_report_args as parse_arguments
+from _gatelib import run_gate
 
 TOOL_NAME = "Checker development contract"
 CHECKER_PATH = Path("tools/check_repo.py")
@@ -73,6 +75,10 @@ GATE_RUNNER_CONSUMERS = frozenset(
     }
 )
 GATE_RUNNER_EXCLUSIONS = {
+    "_release_closeout.py": (
+        "private post-release provider-snapshot validator with a dedicated self-test; "
+        "not a focused run_gate report CLI"
+    ),
     "collect_portfolio_snapshot.py": "GET-only evidence capture, not a report gate",
     "create_reusable_workflow_fixture.py": "disposable consumer provisioning, not a report gate",
     "check_release.py": (
@@ -101,7 +107,7 @@ SELF_TEST_EXCLUSIONS = {
     "provision_repository.py": "Simulated provisioning: python tools/test_provision_repository.py -v",
     "test_workflow_validation.py": "Normal invocation runs authoritative actionlint fixtures",
     "create_reusable_workflow_fixture.py": (
-        "Provisioning utility with no dedicated offline suite; live consumer pilot evidence is separate"
+        "Offline cases: python tools/test_workflow_validation.py; live consumer pilot evidence is separate"
     ),
 }
 

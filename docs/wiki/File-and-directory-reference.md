@@ -52,6 +52,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/workflows/labels-drift.yml` / workflow | PR label fixtures and separate daily/manual read-only live drift detection. | R / R / R | [.github/workflows/labels-drift.yml](../../.github/workflows/labels-drift.yml) |
 | `.github/workflows/labels-sync.yml` / workflow | Read-only PR validation and trusted main/manual label reconciliation. | R / R / R | [.github/workflows/labels-sync.yml](../../.github/workflows/labels-sync.yml) |
 | `.github/workflows/portfolio-drift.yml` / workflow | Template-only synthetic drift, quality and provisioner acceptance fixtures. | X / X / X | [.github/workflows/portfolio-drift.yml](../../.github/workflows/portfolio-drift.yml) |
+| `.github/workflows/release-closeout.yml` / workflow | Manual read-only capture and deterministic post-release closeout evidence. | R / R / R | [docs/RELEASE_CLOSEOUT.md](../../docs/RELEASE_CLOSEOUT.md) |
 | `.github/workflows/static-checks.yml` / workflow | Canonical/focused gates, quality tools, self-tests, artifacts and reusable interface. | R / R / R | [.github/workflows/static-checks.yml](../../.github/workflows/static-checks.yml) |
 | `.github/workflows/wiki-checks.yml` / workflow | Template-only offline wiki checks, publication fixtures and exact-source export artifact. | X / X / X | [.github/workflows/wiki-checks.yml](../../.github/workflows/wiki-checks.yml) |
 | `.github/workflows/wiki-drift.yml` / workflow | Separate weekly/manual anonymous wiki fetch and deterministic publication comparison. | X / X / X | [.github/workflows/wiki-drift.yml](../../.github/workflows/wiki-drift.yml) |
@@ -80,6 +81,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `docs/PROVISIONING.md` / document | Guarded setup planner, approved-digest apply and durable journal contract. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `docs/PUBLIC_API.txt` / document | Complete public declaration inventory with normalized signature records. | R / R / R | [docs/PUBLIC_API.txt](../../docs/PUBLIC_API.txt) |
 | `docs/README.md` / document | Documentation hub and single-authority mapping. | T / T / T | [docs/README.md](../../docs/README.md) |
+| `docs/RELEASE_CLOSEOUT.md` / document | Canonical post-publication release closeout procedure and evidence boundaries. | R / R / R | [docs/RELEASE_CLOSEOUT.md](../../docs/RELEASE_CLOSEOUT.md) |
 | `docs/RELEASE_EVIDENCE.md` / document | Candidate-bound release JSON and profile/asset evidence schemas. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `docs/RELEASE_PROVENANCE.md` / document | Complete payload inventory, build records and optional SSH trust/signatures. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `docs/RELEASE_SEMANTICS.md` / document | Strict SemVer, changelog ordering and comparison-link rules. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
@@ -115,6 +117,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/LOCAL_ACTIONS.md` / document | Repository-local composite/Node/Docker action validation boundaries. | R / R / R | [tools/LOCAL_ACTIONS.md](../../tools/LOCAL_ACTIONS.md) |
 | `tools/README.md` / document | Operational tool commands, reports and focused-gate responsibilities. | T / T / T | [tools/README.md](../../tools/README.md) |
 | `tools/_gatelib.py` / script | Shared Git, tracked-file, report and focused CLI orchestration primitives; imported helper. | R / R / R | [tools/README.md](../../tools/README.md) |
+| `tools/_release_closeout.py` / script | Private deterministic validator for retained post-release provider snapshots. | R / R / R | [docs/RELEASE_CLOSEOUT.md](../../docs/RELEASE_CLOSEOUT.md) |
 | `tools/check_committed_whitespace.py` / script | Validate staged/unstaged feedback or an explicit committed Git range. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/check_documentation.py` / script | Parse literal documented Python commands and registered contract references. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `tools/check_excel_evidence.py` / script | Validate exact-source host records, stage outcomes and retained-log hashes. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |

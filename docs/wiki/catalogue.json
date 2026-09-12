@@ -728,6 +728,21 @@
       "purpose": "Authoritative pinned-actionlint validation of workflows and invalid fixtures.",
       "kind": "script",
       "authority": "tools/README.md"
+    },
+    ".github/workflows/release-closeout.yml": {
+      "purpose": "Manual read-only capture and deterministic post-release closeout evidence.",
+      "kind": "workflow",
+      "authority": "docs/RELEASE_CLOSEOUT.md"
+    },
+    "docs/RELEASE_CLOSEOUT.md": {
+      "purpose": "Canonical post-publication release closeout procedure and evidence boundaries.",
+      "kind": "document",
+      "authority": "docs/RELEASE_CLOSEOUT.md"
+    },
+    "tools/_release_closeout.py": {
+      "purpose": "Private deterministic validator for retained post-release provider snapshots.",
+      "kind": "script",
+      "authority": "docs/RELEASE_CLOSEOUT.md"
     }
   },
   "directories": {

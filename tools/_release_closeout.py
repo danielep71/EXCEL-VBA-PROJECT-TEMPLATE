@@ -358,11 +358,13 @@ def check_release(
         )
 
     raw_assets = as_list(release.get("assets"), "snapshot.release.assets")
-    names = [
-        asset.get("name")
-        for asset in raw_assets
-        if isinstance(asset, dict) and isinstance(asset.get("name"), str)
-    ]
+    names: list[str] = []
+    for asset in raw_assets:
+        if not isinstance(asset, dict):
+            continue
+        name = asset.get("name")
+        if isinstance(name, str):
+            names.append(name)
     if len(names) != len(raw_assets) or len(names) != len(set(names)):
         findings.append(finding("deterministic", "assets", "uploaded asset names are invalid/duplicate"))
     allowed = [str(item) for item in identity["allowed_asset_globs"]]
