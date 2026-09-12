@@ -53,8 +53,8 @@ python3 tools/check_external_links.py --root . --as-of 2026-09-09 \
   --output test-results/external-links.json --summary test-results/external-links.md
 ```
 
-Use the actual UTC observation date for `--as-of`; exception expiry is evaluated
-against it. The workflow supplies that date automatically. The report contains
+Use the actual UTC observation date for `--as-of`; expiry is evaluated against
+it. The workflow supplies that date automatically. The report contains
 observations, not a permanent certification of remote content.
 
 The checker discovers Markdown destinations/reference definitions, HTML
@@ -85,9 +85,10 @@ parameters are not sent, including harmless-looking badge query strings.
 HTTP and other unapproved schemes are policy-blocked.
 
 Reports show the domain, source locations and SHA-256 URL identifier rather
-than the raw URL. Query strings, user information, redirect destinations and
-raw exception messages are not printed. Locate a finding through its referring
-document; do not paste credential-bearing URLs into issue or workflow logs.
+than the raw URL. Query strings, user information, redirect destinations,
+classification rationales and raw exception messages are not printed. Locate a
+finding through its referring document; do not paste credential-bearing URLs
+into issue or workflow logs.
 
 Temporary exceptions have exactly `id`, `reason` and `expires` fields. The ID
 is SHA-256 of the discovered URL with its fragment removed, as shown in the
@@ -100,36 +101,77 @@ report. An example shape is:
 An exception bypasses the probe with an explicit `EXCEPTED` result, not an
 availability claim. Missing rationale, duplicate identifiers and expired entries
 fail policy validation. Review renewal or remove the exception after correction.
-There are no shipped exceptions. Domain approvals are durable public-service
-decisions; temporary per-link exceptions always expire.
+There are no shipped temporary exceptions. Domain approvals are durable
+public-service decisions; temporary per-link exceptions always expire.
+
+### Restricted and pre-publication classifications
+
+Known non-public observations use the separate `classifications` array. Each
+entry has exactly `id`, `kind`, `reason` and `expires`. Supported kinds are:
+
+- `restricted-historical` for a preserved evidence URL known through prior
+  authenticated review to belong to a private/restricted historical target; and
+- `pending-publication` for a reviewed candidate URL whose target does not exist
+  anonymously until the associated tag/release is published.
+
+These classifications are **not exceptions**. They skip an anonymous request
+that cannot answer the intended question, but the resulting observation remains
+non-green. `RESTRICTED_HISTORICAL` and `PENDING_PUBLICATION` therefore never
+become `PASS` and never substitute for authenticated evidence or the later
+post-publication check.
+
+Classifications are exact URL-hash assertions, not domain or path wildcards.
+They require a rationale and an expiry/review date; unsupported kinds, duplicate
+IDs (including an ID also present in `exceptions`) and expired entries fail
+closed. The canonical policy currently records the 21 exact v1.0.0 pilot URLs
+preserved in `docs/PILOT_CERTIFICATION.md`. Those IDs were derived from the
+historical URLs already in the document; no credentials are stored.
+
+A release candidate may temporarily classify an exact tag-dependent URL as
+`pending-publication` only when its rationale and expiry are reviewed with the
+candidate. After publication, remove that classification and require the normal
+anonymous check. Do not use this mechanism for a public page that should already
+exist.
 
 ## 🚦 Interpreting Results
 
 | Outcome | Meaning and response |
 | --- | --- |
 | `OK` | Anonymous HTTP success, possibly after retry; not content or anchor validation |
-| `PERMANENT_FAILURE` | Repeated non-transient HTTP errors; inspect the reference before changing it |
+| `PERMANENT_FAILURE` | Repeated non-transient public HTTP errors; counted as a deterministic public-documentation defect unless explicitly classified before the observation |
 | `TRANSIENT_FAILURE` | Timeout, transport failure, rate limit or server error; retry later |
 | `ACCESS_RESTRICTED` | Authentication/access response, user information or query-bearing URL; no private login attempted |
+| `RESTRICTED_HISTORICAL` | Exact reviewed private/restricted historical target; no anonymous probe attempted; remains non-green |
+| `PENDING_PUBLICATION` | Exact reviewed target depends on publication/tag creation; no probe attempted; remains non-green until publication |
 | `POLICY_BLOCKED` | Unapproved scheme/domain/port or non-public DNS destination; review policy and URL |
 | `REDIRECT_FAILURE` | Missing redirect target, redirect loop or redirect limit reached |
-| `EXCEPTED` | Active reviewed exception; availability was not checked |
+| `EXCEPTED` | Active reviewed temporary exception; availability was not checked |
 | `NOT_APPLICABLE` | Non-HTTP contact link or unresolved template destination |
 
-Repeated anonymous 404s can also hide private resources. They are evidence of
-consistent anonymous failure, not proof that a private page was deleted. Review
-access restrictions and use a justified expiring exception where appropriate.
+The JSON and Markdown summary separately report `deterministic_public_defects`,
+`restricted_historical`, `pending_publication`, access restrictions and
+transients. This lets release review distinguish a genuinely missing public page
+from preserved restricted evidence without reconstructing raw URLs from hashes.
+A classification changes the diagnosis, not the terminal verdict.
 
-The network command exits 1 for any unresolved failure/restriction or exceeded
-limit, and 2 for invalid policy or operational failure. The workflow preserves
-its own non-green result without changing `Repository integrity`. JSON/Markdown
-observations upload even after a check fails, with 14-day retention; a job killed
-before report creation fails artifact publication rather than fabricating a report.
+An undeclared anonymous 404 remains `PERMANENT_FAILURE` after bounded retries.
+A 404 must never be inferred to mean “private” merely because GitHub can hide
+private repositories that way. Restricted status is accepted only through the
+explicit, expiring classification above.
+
+The network command exits 1 for any unresolved failure/restriction,
+`RESTRICTED_HISTORICAL`, `PENDING_PUBLICATION`, or exceeded limit, and 2 for
+invalid policy or operational failure. The workflow preserves its own non-green
+result without changing `Repository integrity`. JSON/Markdown observations
+upload even after a check fails, with 14-day retention; a job killed before
+report creation fails artifact publication rather than fabricating a report.
 
 ## 🧪 Validation Scope
 
-Offline fixtures cover command/context/policy renames, repeated missing pages,
-transient recovery, restricted access, redirects, request limits, exceptions,
-DNS/IP containment, concurrency and report redaction. They simulate HTTP results
-and do not establish current availability of every referenced website. The
-separate network workflow supplies dated observations when actually executed.
+Offline fixtures cover command/context/policy renames, repeated missing public
+pages, restricted historical targets, pending-publication targets, classification
+expiry/conflicts, transient recovery, restricted access, redirects, request
+limits, temporary exceptions, DNS/IP containment, concurrency and report
+redaction. They simulate HTTP results and do not establish current availability
+of every referenced website. The separate network workflow supplies dated
+observations when actually executed.

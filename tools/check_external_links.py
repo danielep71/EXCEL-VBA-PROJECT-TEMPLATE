@@ -22,27 +22,71 @@ from check_documentation import load_policy
 from check_repo import _markdown_destinations
 from release_provenance import nonempty, require
 
+CLASSIFICATION_STATUSES = {
+    "restricted-historical": "RESTRICTED_HISTORICAL",
+    "pending-publication": "PENDING_PUBLICATION",
+}
+PASSING_STATUSES = frozenset({"OK", "NOT_APPLICABLE", "EXCEPTED"})
+
+
+def _validate_expiring_id(item: Any, expected: set[str], as_of: date, seen: set[str]) -> None:
+    require(isinstance(item, dict) and set(item) == expected, "invalid external-link policy item")
+    identifier = item["id"]
+    require(
+        isinstance(identifier, str)
+        and re.fullmatch(r"[0-9a-f]{64}", identifier)
+        and identifier not in seen,
+        "invalid or duplicate external-link policy identity",
+    )
+    require(nonempty(item["reason"]), "external-link policy item requires a reason")
+    require(
+        isinstance(item["expires"], str) and date.fromisoformat(item["expires"]) >= as_of,
+        "expired external-link policy item",
+    )
+    seen.add(identifier)
+
 
 def validate_policy(policy: Any, as_of: date) -> None:
     require(isinstance(policy, dict), "network policy must be an object")
-    for key, limit in {"attempts": 3, "timeout_seconds": 15, "concurrency": 8,
-                       "redirects": 5, "max_links": 500}.items():
-        require(type(policy.get(key)) is int and 1 <= policy[key] <= limit, f"invalid network limit: {key}")
+    for key, limit in {
+        "attempts": 3,
+        "timeout_seconds": 15,
+        "concurrency": 8,
+        "redirects": 5,
+        "max_links": 500,
+    }.items():
+        require(
+            type(policy.get(key)) is int and 1 <= policy[key] <= limit,
+            f"invalid network limit: {key}",
+        )
     domains = policy.get("domains")
     require(isinstance(domains, dict) and bool(domains), "approved domains are required")
     for host, reason in domains.items():
-        require(bool(re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", host))
-                and "." in host and nonempty(reason), "domains require exact names and reasons")
+        require(
+            bool(re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", host))
+            and "." in host
+            and nonempty(reason),
+            "domains require exact names and reasons",
+        )
+
     exceptions = policy.get("exceptions")
+    classifications = policy.get("classifications")
     require(isinstance(exceptions, list), "exceptions must be an array")
-    seen = set()
+    require(isinstance(classifications, list), "classifications must be an array")
+    seen: set[str] = set()
     for item in exceptions:
-        require(isinstance(item, dict) and set(item) == {"id", "reason", "expires"}, "invalid exception")
-        require(isinstance(item["id"], str) and re.fullmatch(r"[0-9a-f]{64}", item["id"])
-                and item["id"] not in seen and nonempty(item["reason"]), "invalid exception identity/reason")
-        seen.add(item["id"])
-        require(isinstance(item["expires"], str) and date.fromisoformat(item["expires"]) >= as_of,
-                "expired external-link exception")
+        _validate_expiring_id(item, {"id", "reason", "expires"}, as_of, seen)
+    for item in classifications:
+        _validate_expiring_id(
+            item,
+            {"id", "kind", "reason", "expires"},
+            as_of,
+            seen,
+        )
+        require(
+            item["kind"] in CLASSIFICATION_STATUSES,
+            "unsupported external-link classification",
+        )
 
 
 def destinations(text: str) -> list[tuple[int, str]]:
@@ -52,8 +96,11 @@ def destinations(text: str) -> list[tuple[int, str]]:
         if line.lstrip().startswith(("```", "~~~")):
             fenced = not fenced
         elif not fenced:
-            result.extend((number, value) for value in re.findall(r'<(https?://[^\s<>]+)>', line))
-            result.extend((number, value) for value in re.findall(r'(?:href|src)=["\']([^"\']+)["\']', line))
+            result.extend((number, value) for value in re.findall(r"<(https?://[^\s<>]+)>", line))
+            result.extend(
+                (number, value)
+                for value in re.findall(r"(?:href|src)=[\"']([^\"']+)[\"']", line)
+            )
     return result
 
 
@@ -94,12 +141,19 @@ def request(url: str, timeout: int) -> tuple[int, str | None]:
     parsed = urlsplit(url)
     assert parsed.hostname is not None
     addresses = socket.getaddrinfo(parsed.hostname, 443, type=socket.SOCK_STREAM)
-    require(bool(addresses) and all(ipaddress.ip_address(item[4][0]).is_global for item in addresses),
-            "non-public DNS address")
+    require(
+        bool(addresses)
+        and all(ipaddress.ip_address(item[4][0]).is_global for item in addresses),
+        "non-public DNS address",
+    )
     connection = PinnedHTTPS(parsed.hostname, str(addresses[0][4][0]), timeout)
     try:
         path = quote(parsed.path or "/", safe="/%:@-._~!$&'()*+,;=")
-        connection.request("GET", path, headers={"User-Agent": "Template-Link-Check/1.0", "Accept": "*/*"})
+        connection.request(
+            "GET",
+            path,
+            headers={"User-Agent": "Template-Link-Check/1.0", "Accept": "*/*"},
+        )
         response = connection.getresponse()
         return response.status, response.getheader("Location")
     finally:
@@ -136,7 +190,12 @@ def attempt(url: str, policy: dict[str, Any], transport=request) -> tuple[str, i
     return "REDIRECT_FAILURE", None
 
 
-def probe(url: str, policy: dict[str, Any], transport=request, pause=time.sleep) -> dict[str, Any]:
+def probe(
+    url: str,
+    policy: dict[str, Any],
+    transport=request,
+    pause=time.sleep,
+) -> dict[str, Any]:
     statuses = []
     codes = []
     for number in range(policy["attempts"]):
@@ -172,15 +231,38 @@ def collect(root: Path) -> dict[str, dict[str, Any]]:
             # Fragments are not sent to servers and are not checked by this job.
             url = url.split("#", 1)[0]
             digest = hashlib.sha256(url.encode()).hexdigest()
-            links.setdefault(digest, {"url": url, "locations": []})["locations"].append(f"{path}:{line}")
+            links.setdefault(digest, {"url": url, "locations": []})["locations"].append(
+                f"{path}:{line}"
+            )
     return links
 
 
-def build_report(root: Path, as_of: date, transport=request, pause=time.sleep) -> dict[str, Any]:
+def _counts(rows: list[dict[str, Any]]) -> dict[str, int]:
+    return {
+        "deterministic_public_defects": sum(
+            row["status"] == "PERMANENT_FAILURE" for row in rows
+        ),
+        "restricted_historical": sum(
+            row["status"] == "RESTRICTED_HISTORICAL" for row in rows
+        ),
+        "pending_publication": sum(row["status"] == "PENDING_PUBLICATION" for row in rows),
+        "access_restricted": sum(row["status"] == "ACCESS_RESTRICTED" for row in rows),
+        "transient_failures": sum(row["status"] == "TRANSIENT_FAILURE" for row in rows),
+    }
+
+
+def build_report(
+    root: Path,
+    as_of: date,
+    transport=request,
+    pause=time.sleep,
+) -> dict[str, Any]:
     policy = load_policy(root)["network"]
     validate_policy(policy, as_of)
     links = collect(root)
     exceptions = {item["id"] for item in policy["exceptions"]}
+    classifications = {item["id"]: item for item in policy["classifications"]}
+
     def check(item: tuple[str, dict[str, Any]]) -> dict[str, Any]:
         digest, value = item
         url = value["url"]
@@ -188,24 +270,75 @@ def build_report(root: Path, as_of: date, transport=request, pause=time.sleep) -
             domain = urlsplit(url).hostname or "<none>"
         except ValueError:
             domain = "<invalid>"
-        result = ({"status": "EXCEPTED", "attempts": 0, "http_codes": []} if digest in exceptions
-                  else probe(url, policy, transport, pause))
-        return {"id": digest, "domain": domain, "locations": value["locations"], **result}
-    selected = sorted(links.items())[:policy["max_links"]]
+        classification = classifications.get(digest)
+        if classification is not None:
+            result = {
+                "status": CLASSIFICATION_STATUSES[classification["kind"]],
+                "attempts": 0,
+                "http_codes": [],
+                "classification": classification["kind"],
+            }
+        elif digest in exceptions:
+            result = {"status": "EXCEPTED", "attempts": 0, "http_codes": []}
+        else:
+            result = probe(url, policy, transport, pause)
+        return {
+            "id": digest,
+            "domain": domain,
+            "locations": value["locations"],
+            **result,
+        }
+
+    selected = sorted(links.items())[: policy["max_links"]]
     with ThreadPoolExecutor(max_workers=policy["concurrency"]) as pool:
         rows = list(pool.map(check, selected))
     limited = len(links) > policy["max_links"]
-    return {"status": "fail" if limited or any(row["status"] not in ("OK", "NOT_APPLICABLE", "EXCEPTED") for row in rows) else "pass",
-            "as_of": as_of.isoformat(), "limit_exceeded": limited, "discovered": len(links), "links": rows,
-            "scope_note": "Anonymous HTTP observations only; access restrictions and transients are not broken-page proof. Queries, credentials and fragments are not probed; URLs are represented by domain and SHA-256 ID."}
+    counts = _counts(rows)
+    status = (
+        "fail"
+        if limited or any(row["status"] not in PASSING_STATUSES for row in rows)
+        else "pass"
+    )
+    return {
+        "status": status,
+        "as_of": as_of.isoformat(),
+        "limit_exceeded": limited,
+        "discovered": len(links),
+        "counts": counts,
+        "links": rows,
+        "scope_note": (
+            "Anonymous HTTP observations only; access restrictions, declared historical "
+            "restrictions, pending-publication references and transients remain non-green "
+            "without being counted as deterministic public-page defects. Queries, credentials "
+            "and fragments are not probed; URLs are represented by domain and SHA-256 ID."
+        ),
+    }
 
 
 def markdown(report: dict[str, Any]) -> str:
-    lines = ["# External documentation links", "", f"Result: {report['status'].upper()}", "",
-             f"Discovered: {report['discovered']}; limit exceeded: {report['limit_exceeded']}", "",
-             "| Location | Domain | Outcome | Attempts | ID |", "| --- | --- | --- | --- | --- |"]
+    counts = report["counts"]
+    lines = [
+        "# External documentation links",
+        "",
+        f"Result: {report['status'].upper()}",
+        "",
+        f"Discovered: {report['discovered']}; limit exceeded: {report['limit_exceeded']}",
+        (
+            "Deterministic public defects: "
+            f"{counts['deterministic_public_defects']}; "
+            f"restricted historical: {counts['restricted_historical']}; "
+            f"pending publication: {counts['pending_publication']}; "
+            f"transient: {counts['transient_failures']}"
+        ),
+        "",
+        "| Location | Domain | Outcome | Attempts | ID |",
+        "| --- | --- | --- | --- | --- |",
+    ]
     for row in report["links"]:
-        lines.append(f"| {row['locations'][0]} | {row['domain']} | {row['status']} | {row['attempts']} | {row['id']} |")
+        lines.append(
+            f"| {row['locations'][0]} | {row['domain']} | {row['status']} | "
+            f"{row['attempts']} | {row['id']} |"
+        )
     return "\n".join(lines) + "\n\n" + report["scope_note"] + "\n"
 
 
@@ -216,8 +349,12 @@ def main() -> int:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--summary", type=Path)
     args = parser.parse_args()
-    return run_gate(args, build=lambda: build_report(args.root, args.as_of), markdown=markdown,
-                    errors=(ValueError, OSError, RuntimeError))
+    return run_gate(
+        args,
+        build=lambda: build_report(args.root, args.as_of),
+        markdown=markdown,
+        errors=(ValueError, OSError, RuntimeError),
+    )
 
 
 if __name__ == "__main__":
