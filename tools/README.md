@@ -20,6 +20,7 @@ formatter output are therefore not blocking rules. Prefer readable wrapping
 without changing literals or churning unrelated code. Editor indentation and
 line endings are defined in [`.editorconfig`](../.editorconfig).
 
+<!-- template:remove:start -->
 ### Maintainer Python coverage
 
 The canonical reproducible coverage command is the complete `Exercise maintained Python
@@ -39,6 +40,8 @@ children launched by semantic fixtures are combined before reporting. The hosted
 local contract uses a **95% statement-coverage floor** and emits both text and JSON
 evidence. Numeric coverage supplements the focused self-tests and policy-branch suites;
 it never replaces their behavioral or failure-semantics assertions.
+
+<!-- template:remove:end -->
 
 Comments and docstrings explain purpose, inputs, ownership, error handling and
 limits when these are not clear from the code. Check them whenever behavior
