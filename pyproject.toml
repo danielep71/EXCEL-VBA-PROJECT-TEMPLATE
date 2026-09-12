@@ -7,7 +7,7 @@ target-version = "py310"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "C90", "S314"]
+select = ["E4", "E7", "E9", "F", "I001", "C90", "S314"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 20
@@ -18,3 +18,9 @@ files = ["tools"]
 pretty = true
 show_error_codes = true
 warn_unused_configs = true
+
+# Incremental strict-typing boundary. Add modules only after they are clean under
+# the exact pinned `mypy --strict` contract; do not relax the migrated modules.
+[[tool.mypy.overrides]]
+module = "_gatelib"
+strict = true
