@@ -32,6 +32,16 @@ jobs:
 
           Path('.github/workflows/v121-depth-register.yml').unlink()
 
+          suite = Path('tools/test_verification_depth.py')
+          suite_text = suite.read_text(encoding='utf-8')
+          broken = '        self.assertFalse(closeout.check_wiki({}, {"mode": "generated"}, "a" * 40, [])["applicable"]\n'
+          fixed = '        self.assertFalse(closeout.check_wiki({}, {"mode": "generated"}, "a" * 40, [])["applicable"])\n'
+          if broken in suite_text:
+              suite_text = suite_text.replace(broken, fixed, 1)
+          elif fixed not in suite_text:
+              raise SystemExit('verification-depth syntax repair anchor changed unexpectedly')
+          suite.write_text(suite_text, encoding='utf-8', newline='\n')
+
           checker = Path('tools/checker_development.py')
           text = checker.read_text(encoding='utf-8')
           anchor = '    "test_release_provenance.py": "Unittest CLI; normal invocation runs its fixture suite",\n'
