@@ -134,15 +134,16 @@ jobs:
               1,
           )
 
-          outcome = "          MYPY_OUTCOME: ${{ steps.mypy.outcome }}\n"
-          if text.count(outcome) != 1:
+          lines = text.splitlines(keepends=True)
+          matches = [i for i, line in enumerate(lines) if line.startswith("          MYPY_OUTCOME:")]
+          if len(matches) != 1:
               raise SystemExit("mypy outcome marker is missing or ambiguous")
-          text = text.replace(
-              outcome,
-              outcome
-              + "          MYPY_STRICT_GATELIB_OUTCOME: ${{ steps.mypy-strict-gatelib.outcome }}\n",
-              1,
+          expression = "$" + "{{ steps.mypy-strict-gatelib.outcome }}"
+          lines.insert(
+              matches[0] + 1,
+              "          MYPY_STRICT_GATELIB_OUTCOME: " + expression + "\n",
           )
+          text = "".join(lines)
 
           terminal = "            \"mypy type check:$MYPY_OUTCOME\" \\\n"
           if text.count(terminal) != 1:
