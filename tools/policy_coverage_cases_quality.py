@@ -230,6 +230,54 @@ def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
         )
         module._write_fixture(root / workflow_path, text)
 
+    @case(
+        "workflow-pr-workflow-write-all",
+        "workflow-actions",
+        "Workflow triggered by pull_request must not request write-capable token permissions",
+    )
+    def _(root: Path) -> None:
+        text = (root / workflow_path).read_text(encoding="utf-8")
+        updated = text.replace("permissions:\n  contents: read", "permissions: write-all", 1)
+        if updated == text:
+            raise AssertionError("workflow-level permission mutation did not apply")
+        module._write_fixture(root / workflow_path, updated)
+
+    @case(
+        "workflow-pr-job-write-all",
+        "workflow-actions",
+        "Job reachable from pull_request must not request write-all permissions",
+    )
+    def _(root: Path) -> None:
+        text = (root / workflow_path).read_text(encoding="utf-8")
+        prefix, jobs = text.split("jobs:\n", 1)
+        jobs, count = re.subn(
+            r"(?m)^(  [A-Za-z0-9_-]+:\s*)$",
+            r"\1\n    permissions: write-all",
+            jobs,
+            count=1,
+        )
+        if count != 1:
+            raise AssertionError("job-level write-all mutation did not apply")
+        module._write_fixture(root / workflow_path, prefix + "jobs:\n" + jobs)
+
+    @case(
+        "workflow-pr-job-write-scope",
+        "workflow-actions",
+        "Job reachable from pull_request must not request write-capable token permissions",
+    )
+    def _(root: Path) -> None:
+        text = (root / workflow_path).read_text(encoding="utf-8")
+        prefix, jobs = text.split("jobs:\n", 1)
+        jobs, count = re.subn(
+            r"(?m)^(  [A-Za-z0-9_-]+:\s*)$",
+            r"\1\n    permissions:\n      issues: write",
+            jobs,
+            count=1,
+        )
+        if count != 1:
+            raise AssertionError("job-level scoped-write mutation did not apply")
+        module._write_fixture(root / workflow_path, prefix + "jobs:\n" + jobs)
+
     @case("version-unreadable", "version-changelog", "Cannot read version")
     def _(root: Path) -> None:
         (root / "VERSION").unlink()
