@@ -41,6 +41,10 @@ jobs:
               raise SystemExit('coverage-boundary payload not found')
           insertion = zlib.decompress(base64.b64decode(match.group(1))).decode('utf-8')
           insertion = insertion.replace('        cases = [\n', '        cases: list[Any] = [\n')
+          insertion = insertion.replace(
+              '        connection.tls_context = TLS()\n',
+              '        setattr(connection, "tls_context", TLS())\n',
+          )
 
           path = Path('tools/test_verification_depth.py')
           text = path.read_text(encoding='utf-8')
