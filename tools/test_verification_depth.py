@@ -7,6 +7,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import _release_closeout as closeout
@@ -33,7 +34,7 @@ class InitializerDepthTests(unittest.TestCase):
             with self.assertRaises(initializer.InitializationError):
                 initializer._load_config(root)
 
-            for document in (
+            documents: tuple[dict[str, object], ...] = (
                 {},
                 {"placeholders": []},
                 {"placeholders": {"pattern": "(", "catalogue": {}, "block_markers": {},
@@ -44,7 +45,8 @@ class InitializerDepthTests(unittest.TestCase):
                                   "template_only_paths": [], "exclude_paths": []}},
                 {"placeholders": {"pattern": "(A)", "catalogue": {}, "block_markers": {},
                                   "template_only_paths": "x", "exclude_paths": []}},
-            ):
+            )
+            for document in documents:
                 config.write_text(json.dumps(document), encoding="utf-8")
                 with self.assertRaises(initializer.InitializationError):
                     initializer._load_config(root)
@@ -54,7 +56,7 @@ class InitializerDepthTests(unittest.TestCase):
             initializer._parse_assignments(["NAME=value", "NAME=second"], "--set"),
             {"NAME": ["value", "second"]},
         )
-        bad = ("NOVALUE", "bad-name=x", "NAME=", "NAME=a\nb", "NAME={{TOKEN}}")
+        bad = ("NOVALUE", "bad-name=x", "NAME=", "NAME=a\nb", "NAME=" + "{" * 2 + "TOKEN" + "}" * 2)
         for entry in bad:
             with self.subTest(entry=entry):
                 with self.assertRaises(initializer.InitializationError):
@@ -152,7 +154,7 @@ class InitializerDepthTests(unittest.TestCase):
                     initializer._render_blocks("README.md", text, "library", {}, {}, catalogue)
 
     def test_replacement_badges_changelog_and_helpers(self) -> None:
-        catalogue = {
+        catalogue: dict[str, dict[str, Any]] = {
             "PROFILE": {"category": "profile-specific", "values": {"library": "lib"}},
             "REP": {"category": "repeatable", "item_format": "- {value}"},
         }
@@ -187,7 +189,7 @@ class InitializerDepthTests(unittest.TestCase):
         self.assertFalse(initializer._already_initialized(Path("."), config, "library", {}, {}))
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
-            generated = {
+            generated: dict[str, Any] = {
                 "mode": "generated",
                 "profile": "library",
                 "repository": "owner/repo",
@@ -281,18 +283,42 @@ class ReleaseDepthTests(unittest.TestCase):
             policy_path.write_text(json.dumps(good), encoding="utf-8")
             self.assertIsNotNone(release._load_policy(root)[0])
             variants = []
-            value = dict(good); value.pop("schema_version"); variants.append(value)
-            value = dict(good); value["schema_version"] = 2; variants.append(value)
-            value = dict(good); value["provenance_signature_mode"] = "bad"; variants.append(value)
-            value = dict(good); value["core_checks"] = []; variants.append(value)
-            value = dict(good); value["core_checks"] = ["x", "x"]; variants.append(value)
-            value = dict(good); value["profiles"] = {}; variants.append(value)
-            value = json.loads(json.dumps(good)); value["profiles"]["library"]["extra"] = 1; variants.append(value)
-            value = json.loads(json.dumps(good)); value["profiles"]["library"]["required_checks"] = []; variants.append(value)
-            value = json.loads(json.dumps(good)); value["profiles"]["library"]["required_checks"] = ["repository-integrity"]; variants.append(value)
-            value = json.loads(json.dumps(good)); value["profiles"]["library"]["allowed_asset_globs"] = ["../bad"]; variants.append(value)
-            value = dict(good); value["source_scan_exclude_paths"] = ["../bad"]; variants.append(value)
-            value = dict(good); value["template_construction_markers"] = []; variants.append(value)
+            value = dict(good)
+            value.pop("schema_version")
+            variants.append(value)
+            value = dict(good)
+            value["schema_version"] = 2
+            variants.append(value)
+            value = dict(good)
+            value["provenance_signature_mode"] = "bad"
+            variants.append(value)
+            value = dict(good)
+            value["core_checks"] = []
+            variants.append(value)
+            value = dict(good)
+            value["core_checks"] = ["x", "x"]
+            variants.append(value)
+            value = dict(good)
+            value["profiles"] = {}
+            variants.append(value)
+            value = json.loads(json.dumps(good))
+            value["profiles"]["library"]["extra"] = 1
+            variants.append(value)
+            value = json.loads(json.dumps(good))
+            value["profiles"]["library"]["required_checks"] = []
+            variants.append(value)
+            value = json.loads(json.dumps(good))
+            value["profiles"]["library"]["required_checks"] = ["repository-integrity"]
+            variants.append(value)
+            value = json.loads(json.dumps(good))
+            value["profiles"]["library"]["allowed_asset_globs"] = ["../bad"]
+            variants.append(value)
+            value = dict(good)
+            value["source_scan_exclude_paths"] = ["../bad"]
+            variants.append(value)
+            value = dict(good)
+            value["template_construction_markers"] = []
+            variants.append(value)
             for variant in variants:
                 with self.subTest(variant=variant):
                     policy_path.write_text(json.dumps(variant), encoding="utf-8")
