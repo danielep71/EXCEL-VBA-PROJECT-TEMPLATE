@@ -1,0 +1,55 @@
+name: One-shot mark release history policy template-only
+
+on:
+  push:
+    branches:
+      - release/v1.2.1
+    paths:
+      - .github/workflows/v121-history-policy-generation-fix.yml
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v1.2.1
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Mark release-history policy template-only
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('.github/repository-profile.json')
+          data = json.loads(path.read_text(encoding='utf-8'))
+          paths = data['placeholders']['template_only_paths']
+          target = '.github/release-history-policy.json'
+          if target in paths:
+              raise SystemExit('release-history policy is already template-only')
+          paths.append(target)
+          paths.sort()
+          path.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8', newline='\n')
+          PY
+          git diff --check
+
+      - name: Commit generation-boundary correction
+        run: |
+          set -euo pipefail
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git add .github/repository-profile.json
+          git commit -m "Keep release-history review state template-only (#81)"
+          git push origin HEAD:release/v1.2.1
