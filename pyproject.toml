@@ -19,8 +19,21 @@ pretty = true
 show_error_codes = true
 warn_unused_configs = true
 
-# Incremental strict-typing boundary. Add modules only after they are clean under
-# the exact pinned `mypy --strict` contract; do not relax the migrated modules.
+# Incremental strict-typing boundary for the first promoted module. `strict = true`
+# is deliberately not used inside an override because it is a meta-option; spell out
+# the mypy 2.3.1 strict bundle so the settings remain scoped to `_gatelib` only.
 [[tool.mypy.overrides]]
 module = "_gatelib"
-strict = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+implicit_reexport = false
+strict_equality = true
+extra_checks = true
