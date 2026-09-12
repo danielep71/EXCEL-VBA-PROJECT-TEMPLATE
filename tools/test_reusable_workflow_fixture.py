@@ -120,7 +120,3 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
             create_mock.assert_called_once_with(
                 root.resolve(), destination.resolve(), "library", SHA
             )
-
-
-if __name__ == "__main__":
-    unittest.main()
