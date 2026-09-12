@@ -748,6 +748,26 @@
       "purpose": "Authoritative pinned-actionlint validation of workflows and invalid fixtures.",
       "kind": "script",
       "authority": "tools/README.md"
+    },
+    ".github/dependabot.yml": {
+      "purpose": "Weekly proposal-only GitHub Actions dependency discovery.",
+      "kind": "policy",
+      "authority": "docs/DEPENDENCY_UPDATES.md"
+    },
+    ".github/workflows/codeql.yml": {
+      "purpose": "Trusted-context CodeQL analysis for maintained Python and JavaScript source.",
+      "kind": "workflow",
+      "authority": "docs/SUPPLY_CHAIN_ASSURANCE.md"
+    },
+    ".github/workflows/scorecard.yml": {
+      "purpose": "Trusted-context OpenSSF Scorecard publication and retained SARIF evidence.",
+      "kind": "workflow",
+      "authority": "docs/SUPPLY_CHAIN_ASSURANCE.md"
+    },
+    "docs/SUPPLY_CHAIN_ASSURANCE.md": {
+      "purpose": "Canonical CodeQL, Dependabot and Scorecard permission/evidence boundaries.",
+      "kind": "document",
+      "authority": "docs/SUPPLY_CHAIN_ASSURANCE.md"
     }
   },
   "directories": {
