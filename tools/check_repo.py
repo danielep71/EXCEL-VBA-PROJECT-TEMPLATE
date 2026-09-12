@@ -1734,7 +1734,104 @@ def check_workflow_actions(
             text = repo.text(path)
         except (OSError, UnicodeError):
             continue
-        for number, line in enumerate(text.splitlines(), start=1):
+        lines = text.splitlines()
+        has_pull_request = any(
+            re.match(r"^  pull_request:\s*(?:#.*)?$", line)
+            or re.match(r"^on:\s*\[[^]]*\bpull_request\b[^]]*\]\s*$", line)
+            for line in lines
+        )
+        for number, line in enumerate(lines, start=1):
+            if re.match(r"^  pull_request_target:\s*(?:#.*)?$", line) or re.match(
+                r"^on:\s*\[[^]]*\bpull_request_target\b[^]]*\]\s*$", line
+            ):
+                failures.append(
+                    finding(
+                        path,
+                        "pull_request_target is prohibited; untrusted pull requests must not execute privileged repository code.",
+                        number,
+                    )
+                )
+        if has_pull_request:
+            top_permissions = False
+            for number, line in enumerate(lines, start=1):
+                indent = len(line) - len(line.lstrip(" "))
+                stripped = line.strip()
+                if re.fullmatch(r"permissions:\s*write-all(?:\s*#.*)?", stripped) and indent == 0:
+                    failures.append(
+                        finding(
+                            path,
+                            "Workflow triggered by pull_request must not request write-capable token permissions.",
+                            number,
+                        )
+                    )
+                if indent == 0 and re.fullmatch(r"permissions:\s*(?:#.*)?", stripped):
+                    top_permissions = True
+                    continue
+                if top_permissions and stripped and not stripped.startswith("#") and indent == 0:
+                    top_permissions = False
+                if top_permissions and re.fullmatch(
+                    r"(?:actions|attestations|checks|contents|deployments|discussions|id-token|issues|models|packages|pages|pull-requests|repository-projects|security-events|statuses):\s*write(?:\s*#.*)?",
+                    stripped,
+                ):
+                    failures.append(
+                        finding(
+                            path,
+                            "Workflow triggered by pull_request must not request workflow-level write permissions.",
+                            number,
+                        )
+                    )
+
+            jobs_index = next(
+                (index for index, line in enumerate(lines) if re.fullmatch(r"jobs:\s*(?:#.*)?", line.strip()) and not line.startswith(" ")),
+                None,
+            )
+            if jobs_index is not None:
+                starts = [
+                    index
+                    for index in range(jobs_index + 1, len(lines))
+                    if re.match(r"^  [A-Za-z0-9_-]+:\s*(?:#.*)?$", lines[index])
+                ]
+                for position, start in enumerate(starts):
+                    end = starts[position + 1] if position + 1 < len(starts) else len(lines)
+                    block = lines[start:end]
+                    excludes_pull_request = any(
+                        re.match(
+                            r"^    if:\s*github\.event_name\s*!=\s*(['\"])pull_request\1\s*(?:#.*)?$",
+                            item,
+                        )
+                        for item in block
+                    )
+                    in_permissions = False
+                    for offset, item in enumerate(block):
+                        number = start + offset + 1
+                        indent = len(item) - len(item.lstrip(" "))
+                        stripped = item.strip()
+                        if indent == 4 and re.fullmatch(r"permissions:\s*write-all(?:\s*#.*)?", stripped):
+                            if not excludes_pull_request:
+                                failures.append(
+                                    finding(
+                                        path,
+                                        "Job reachable from pull_request must not request write-all permissions.",
+                                        number,
+                                    )
+                                )
+                        if indent == 4 and re.fullmatch(r"permissions:\s*(?:#.*)?", stripped):
+                            in_permissions = True
+                            continue
+                        if in_permissions and stripped and not stripped.startswith("#") and indent <= 4:
+                            in_permissions = False
+                        if in_permissions and re.fullmatch(
+                            r"(?:actions|attestations|checks|contents|deployments|discussions|id-token|issues|models|packages|pages|pull-requests|repository-projects|security-events|statuses):\s*write(?:\s*#.*)?",
+                            stripped,
+                        ) and not excludes_pull_request:
+                            failures.append(
+                                finding(
+                                    path,
+                                    "Job reachable from pull_request must not request write-capable token permissions.",
+                                    number,
+                                )
+                            )
+        for number, line in enumerate(lines, start=1):
             if "uses:" not in line:
                 continue
             match = uses_line.match(line)
@@ -2970,6 +3067,21 @@ def _degrade_workflow_actions(root: Path) -> None:
     _write_fixture(path, text)
 
 
+def _degrade_workflow_pull_request_target(root: Path) -> None:
+    path = root / ".github/workflows/static-checks.yml"
+    text = path.read_text(encoding="utf-8")
+    _write_fixture(path, text.replace("on:\n", "on:\n  pull_request_target:\n", 1))
+
+
+def _degrade_workflow_pr_write(root: Path) -> None:
+    path = root / ".github/workflows/static-checks.yml"
+    text = path.read_text(encoding="utf-8")
+    _write_fixture(
+        path,
+        text.replace("permissions:\n  contents: read", "permissions:\n  contents: write", 1),
+    )
+
+
 def _degrade_version_changelog(root: Path) -> None:
     _write_fixture(root / "VERSION", "version-one\n")
 
@@ -3060,6 +3172,8 @@ BRANCH_SELF_TEST_CASES: tuple[
     ("structured-xml-encoding", "structured-data", _degrade_structured_xml_encoding),
     ("structured-xml-doctype", "structured-data", _degrade_structured_xml_doctype),
     ("structured-xml-oversize", "structured-data", _degrade_structured_xml_oversize),
+    ("workflow-pull-request-target", "workflow-actions", _degrade_workflow_pull_request_target),
+    ("workflow-pr-write", "workflow-actions", _degrade_workflow_pr_write),
 )
 
 

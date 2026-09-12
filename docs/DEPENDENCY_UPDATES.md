@@ -15,12 +15,16 @@ The repository maintainer reviews the following sources weekly and before a
 release candidate is selected. Security advisories are triaged when received,
 without waiting for the weekly review. Record the review date, reviewer, sources
 checked, candidates, disposition and next action in a tracking issue; a no-change
-review must say so. A policy cadence is not an installed notification service:
-discovery is manual in this baseline, with no scheduled updater or bot merging.
+review must say so. Dependabot now performs weekly proposal discovery for GitHub
+Actions. It never auto-approves or auto-merges; provenance review and the manual
+merge decision below remain mandatory. Other dependency surfaces retain their
+explicit maintainer review cadence.
 
 | Dependency surface | Authoritative locations / discovery source | Update unit |
 | --- | --- | --- |
 | External Actions | Every `uses:` in `.github/workflows/`; official `actions/checkout`, `actions/setup-python`, `actions/upload-artifact` releases and advisories | Full commit SHA plus audited semantic-version comment; update all intended occurrences |
+| GitHub Actions update discovery | `.github/dependabot.yml`; Dependabot pull requests are proposals only | Weekly candidate proposal; preserve immutable SHA pins and manual approval |
+| Security analyzers | `.github/workflows/codeql.yml`, `.github/workflows/scorecard.yml`, and [SUPPLY_CHAIN_ASSURANCE.md](SUPPLY_CHAIN_ASSURANCE.md) | Reviewed Action pin, query/analyzer behavior, permissions, triggers, and publication boundary |
 | Reusable workflows | Caller job-level `uses:`, [published interface pin](REUSABLE_WORKFLOWS.md), template source and its compatibility notes | Full provider SHA plus interface revision; review coupled caller-local scripts separately |
 | actionlint | `ACTIONLINT_VERSION` and archive digest in the static workflow; `EXPECTED_ACTIONLINT_VERSION` in `tools/test_workflow_validation.py`; official `rhysd/actionlint` releases | Version, platform-specific archive SHA-256 and expected validator version together |
 | Python quality tools | `RUFF_VERSION` and `MYPY_VERSION` in the static workflow; official Astral Ruff and mypy release notes, PyPI distribution metadata | Exact package versions; review transitive/runtime compatibility and installation output |
@@ -127,8 +131,10 @@ merge gates**, not assertions parsed or certified by the static checker.
 The canonical single-maintainer ruleset does not require an independent review.
 Generated repositories must configure and verify their own live merge settings
 using [POST_CREATION_CHECKLIST.md](POST_CREATION_CHECKLIST.md); files alone cannot
-enforce GitHub account settings. No updater integration is installed by this
-policy. Any future proposal bot must retain immutable pins and manual approval.
+enforce GitHub account settings. Dependabot is the installed proposal bot for
+GitHub Actions only; it must retain immutable pins and manual approval. CodeQL
+and OpenSSF Scorecard provide additional public supply-chain evidence under
+[SUPPLY_CHAIN_ASSURANCE.md](SUPPLY_CHAIN_ASSURANCE.md), not dependency approval.
 
 ## ↩️ Rollback and failed updates
 

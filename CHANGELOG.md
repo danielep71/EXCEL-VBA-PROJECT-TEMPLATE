@@ -102,6 +102,7 @@ Use only the categories needed by a release.
 
 ### Changed
 
+- Added pinned CodeQL analysis for maintained Python/JavaScript, weekly GitHub Actions update proposals through Dependabot, and trusted-context OpenSSF Scorecard publication; pull-request workflows remain read-only and `pull_request_target` is prohibited by repository validation.
 - Added reproducible maintainer Python coverage with subprocess measurement, a 95% statement floor, and focused behavioral failure-path fixtures for release, template-contract, Wiki, initializer, closeout, and reusable-workflow tooling.
 - Added a read-only post-release closeout workflow that binds the annotated tag, tag-triggered CI, GitHub Release state, candidate-bound asset policy, comparison range, actual milestone membership, Wiki read-back, and provider-generated source archive observations to one certified SHA; uploaded assets remain distinct from GitHub source archives.
 - Defined changelog release dates as the reviewed release-section cut/freeze date rather than tag or publication timestamps. Release-semantic evidence now names that meaning explicitly, accepts same-day releases, and rejects backward cut/freeze-date ordering without relying on wall-clock or provider timestamps.

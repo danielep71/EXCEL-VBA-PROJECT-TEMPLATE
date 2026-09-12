@@ -37,6 +37,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/ISSUE_TEMPLATE/documentation.yml` / policy | Documentation defect intake identifying the authority and proposed correction. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `.github/ISSUE_TEMPLATE/feature.yml` / policy | Feature/change intake with scope, compatibility and acceptance criteria. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/PULL_REQUEST_TEMPLATE.md` / document | PR review/evidence checklist, including dependency-update information. | R / R / R | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
+| `.github/dependabot.yml` / policy | Weekly proposal-only GitHub Actions dependency discovery. | R / R / R | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `.github/documentation-policy.json` / policy | Registered documentation references, HTTP bounds, allowed domains and expiring exceptions. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `.github/excel-evidence-policy.json` / policy | Starter entry point, case registry, assertion count and expected-error case. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `.github/labels.json` / policy | Canonical core/profile/domain label definitions and reconciliation policy. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
@@ -48,11 +49,13 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/scripts/labels-drift.mjs` / script | Read-only label diff with planner cross-check and offline self-tests. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/scripts/labels-sync.mjs` / script | Validate label schema, resolve overlays, reconcile on trusted events and verify result. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/workflows/checker-development.yml` / workflow | Template-only independent checker contract and coverage execution. | X / X / X | [.github/workflows/checker-development.yml](../../.github/workflows/checker-development.yml) |
+| `.github/workflows/codeql.yml` / workflow | Trusted-context CodeQL analysis for maintained Python and JavaScript source. | R / R / R | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
 | `.github/workflows/external-links.yml` / workflow | Separate weekly/manual anonymous external-link observation with retained reports. | R / R / R | [.github/workflows/external-links.yml](../../.github/workflows/external-links.yml) |
 | `.github/workflows/labels-drift.yml` / workflow | PR label fixtures and separate daily/manual read-only live drift detection. | R / R / R | [.github/workflows/labels-drift.yml](../../.github/workflows/labels-drift.yml) |
 | `.github/workflows/labels-sync.yml` / workflow | Read-only PR validation and trusted main/manual label reconciliation. | R / R / R | [.github/workflows/labels-sync.yml](../../.github/workflows/labels-sync.yml) |
 | `.github/workflows/portfolio-drift.yml` / workflow | Template-only synthetic drift, quality and provisioner acceptance fixtures. | X / X / X | [.github/workflows/portfolio-drift.yml](../../.github/workflows/portfolio-drift.yml) |
 | `.github/workflows/release-closeout.yml` / workflow | Manual read-only capture and deterministic post-release closeout evidence. | R / R / R | [docs/RELEASE_CLOSEOUT.md](../../docs/RELEASE_CLOSEOUT.md) |
+| `.github/workflows/scorecard.yml` / workflow | Trusted-context OpenSSF Scorecard publication and retained SARIF evidence. | R / R / R | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
 | `.github/workflows/static-checks.yml` / workflow | Canonical/focused gates, quality tools, self-tests, artifacts and reusable interface. | R / R / R | [.github/workflows/static-checks.yml](../../.github/workflows/static-checks.yml) |
 | `.github/workflows/wiki-checks.yml` / workflow | Template-only offline wiki checks, publication fixtures and exact-source export artifact. | X / X / X | [.github/workflows/wiki-checks.yml](../../.github/workflows/wiki-checks.yml) |
 | `.github/workflows/wiki-drift.yml` / workflow | Separate weekly/manual anonymous wiki fetch and deterministic publication comparison. | X / X / X | [.github/workflows/wiki-drift.yml](../../.github/workflows/wiki-drift.yml) |
@@ -87,6 +90,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `docs/RELEASE_SEMANTICS.md` / document | Strict SemVer, changelog ordering and comparison-link rules. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
 | `docs/REPOSITORY_STRUCTURE.md` / document | Source layout, component roles, exports and distribution ownership. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `docs/REUSABLE_WORKFLOWS.md` / document | Immutable workflow interface pin, caller contract and adoption procedure. | T / T / T | [docs/REUSABLE_WORKFLOWS.md](../../docs/REUSABLE_WORKFLOWS.md) |
+| `docs/SUPPLY_CHAIN_ASSURANCE.md` / document | Canonical CodeQL, Dependabot and Scorecard permission/evidence boundaries. | R / R / R | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
 | `docs/TEMPLATE_CONTRACT.md` / document | Independent adopted control versions and migration classification. | R / R / R | [docs/TEMPLATE_CONTRACT.md](../../docs/TEMPLATE_CONTRACT.md) |
 | `docs/VBA_HOUSE_STYLE.md` / document | Procedure contracts, declaration annotations and explanatory body comments. | R / R / R | [docs/VBA_HOUSE_STYLE.md](../../docs/VBA_HOUSE_STYLE.md) |
 | `docs/WIKI_PUBLICATION.md` / document | Reviewed wiki source, complete inventory, exact-SHA publication and drift. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |

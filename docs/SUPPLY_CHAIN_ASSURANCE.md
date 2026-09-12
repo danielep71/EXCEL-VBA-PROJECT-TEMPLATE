@@ -1,6 +1,6 @@
 # 🔐 Supply-Chain Assurance
 
-This document owns the canonical template's public supply-chain analysis layer.
+This document owns the repository's public supply-chain analysis layer.
 It complements the deterministic repository gates and the controlled dependency
 update policy; it does not replace either one.
 
