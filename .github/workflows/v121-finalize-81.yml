@@ -96,7 +96,6 @@ jobs:
           PY
 
           python3 tools/check_wiki.py --root . --write-reference
-          git reset HEAD -- .github/workflows/v121-finalize-81.yml
           git add CHANGELOG.md tools/README.md docs/wiki/catalogue.json docs/wiki/File-and-directory-reference.md
 
       - name: Validate permanent #81 documentation and inventory
@@ -111,6 +110,7 @@ jobs:
       - name: Commit permanent finalization files
         run: |
           set -euo pipefail
+          git reset HEAD -- .github/workflows/v121-finalize-81.yml
           git config user.name "Daniele Penza"
           git config user.email "104122869+danielep71@users.noreply.github.com"
           git commit -m "Document and inventory Python verification depth (#81)"
