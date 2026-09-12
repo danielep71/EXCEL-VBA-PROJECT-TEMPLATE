@@ -1,0 +1,496 @@
+name: One-shot #81 final behavioral depth pass
+
+on:
+  push:
+    branches:
+      - release/v1.2.1
+    paths:
+      - .github/workflows/v121-81-final-depth.yml
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  deepen:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v1.2.1
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Add final behavioral depth fixtures
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/test_verification_depth.py")
+          text = path.read_text(encoding="utf-8")
+
+          old_imports = '''import _release_closeout as closeout
+          import check_local_actions as local_actions
+          import check_release as release
+          import check_release_semantics as semantics
+          import check_template_contract as contract
+          import check_wiki as wiki
+          import collect_portfolio_snapshot as snapshot
+          import initialize_repository as initializer
+          import policy_coverage_runner as coverage_runner
+          '''
+          new_imports = '''import _gatelib as gatelib
+          import _release_closeout as closeout
+          import check_committed_whitespace as whitespace
+          import check_external_links as external_links
+          import check_local_actions as local_actions
+          import check_release as release
+          import check_release_semantics as semantics
+          import check_template_contract as contract
+          import check_wiki as wiki
+          import collect_portfolio_snapshot as snapshot
+          import initialize_repository as initializer
+          import policy_coverage_runner as coverage_runner
+          import provision_repository as provision
+          '''
+          if old_imports not in text:
+              raise SystemExit("import anchor missing")
+          text = text.replace(old_imports, new_imports, 1)
+
+          anchor = '\n\nclass CloseoutCliDepthTests(unittest.TestCase):\n'
+          if anchor not in text:
+              raise SystemExit("class anchor missing")
+
+          addition = r'''
+
+          class SharedGateAndWhitespaceDepthTests(unittest.TestCase):
+              def test_shared_gate_tracked_files_and_whitespace_failures(self) -> None:
+                  failed = type("Result", (), {"returncode": 1, "stdout": "", "stderr": b"git failed"})()
+                  with patch.object(gatelib, "git_bytes", return_value=failed):
+                      with self.assertRaisesRegex(RuntimeError, "git failed"):
+                          gatelib.tracked_files(Path("."))
+
+                  failed_text = type("Result", (), {"returncode": 1, "stdout": "", "stderr": "bad revision"})()
+                  with patch.object(whitespace, "git", return_value=failed_text):
+                      with self.assertRaisesRegex(RuntimeError, "Cannot resolve commit"):
+                          whitespace.resolve_commit(Path("."), "missing")
+
+                  with (
+                      patch.object(whitespace, "resolve_commit", side_effect=["a" * 40, "b" * 40]),
+                      patch.object(whitespace, "git", return_value=failed_text),
+                  ):
+                      with self.assertRaisesRegex(RuntimeError, "Cannot compute merge base"):
+                          whitespace.resolve_committed_scope(Path("."), "head", "base")
+
+                  with self.assertRaisesRegex(ValueError, "--base"):
+                      whitespace.run_check(Path("."), "working-tree", base_revision="main")
+                  with self.assertRaisesRegex(ValueError, "--head"):
+                      whitespace.run_check(Path("."), "working-tree", head_revision="candidate")
+
+                  working = {
+                      "mode": "working-tree", "status": "fail", "basis": "working-tree",
+                      "base": "a", "head": None, "range": "working-tree",
+                      "findings": ["unstaged: trailing whitespace"],
+                  }
+                  committed = {
+                      "mode": "committed", "status": "pass", "basis": "merge-base",
+                      "base": "a", "head": "b", "range": "a..b", "findings": [],
+                  }
+                  self.assertIn("staged and unstaged", whitespace.markdown_report(working))
+                  self.assertIn("Inspected range", whitespace.markdown_report(committed))
+                  self.assertIn("trailing whitespace", whitespace.markdown_report(working))
+
+                  synthetic = {
+                      "status": "fail", "basis": "empty-tree", "base": "", "head": "", "findings": []
+                  }
+                  with patch.object(whitespace, "run_check", return_value=synthetic):
+                      self.assertEqual(whitespace.run_self_test(), 1)
+                  with patch.object(whitespace, "run_gate", return_value=7):
+                      self.assertEqual(whitespace.main(["--mode", "working-tree"]), 7)
+
+
+          class ExternalLinkBoundaryTests(unittest.TestCase):
+              @staticmethod
+              def policy() -> dict[str, Any]:
+                  return {
+                      "attempts": 3,
+                      "timeout_seconds": 1,
+                      "concurrency": 1,
+                      "redirects": 1,
+                      "max_links": 10,
+                      "domains": {"example.com": "fixture"},
+                      "exceptions": [],
+                      "classifications": [],
+                  }
+
+              def test_destinations_status_transport_and_probe_boundaries(self) -> None:
+                  found = external_links.destinations(
+                      "<https://example.com/a>\n"
+                      "<a href='https://example.com/b'>x</a>\n"
+                      "```\n<https://example.com/ignored>\n```\n"
+                  )
+                  values = {value for _, value in found}
+                  self.assertIn("https://example.com/a", values)
+                  self.assertIn("https://example.com/b", values)
+                  self.assertNotIn("https://example.com/ignored", values)
+
+                  policy = self.policy()
+                  self.assertEqual(external_links.url_status("mailto:test@example.com", policy), "NOT_APPLICABLE")
+                  self.assertEqual(external_links.url_status("http://example.com/a", policy), "POLICY_BLOCKED")
+                  self.assertEqual(external_links.url_status("https://user@example.com/a", policy), "ACCESS_RESTRICTED")
+                  self.assertEqual(external_links.url_status("https://example.com/a?q=1", policy), "ACCESS_RESTRICTED")
+                  self.assertEqual(external_links.url_status("https://other.example/a", policy), "POLICY_BLOCKED")
+                  self.assertEqual(external_links.url_status("https://[broken", policy), "POLICY_BLOCKED")
+                  self.assertIsNone(external_links.url_status("https://example.com/a", policy))
+
+                  def value_error(_url: str, _timeout: int) -> tuple[int, str | None]:
+                      raise ValueError("blocked")
+
+                  def os_error(_url: str, _timeout: int) -> tuple[int, str | None]:
+                      raise OSError("offline")
+
+                  self.assertEqual(external_links.attempt("https://example.com/a", policy, value_error)[0], "POLICY_BLOCKED")
+                  self.assertEqual(external_links.attempt("https://example.com/a", policy, os_error)[0], "TRANSIENT_FAILURE")
+                  self.assertEqual(external_links.attempt("https://example.com/a", policy, lambda _u, _t: (302, None)), ("REDIRECT_FAILURE", 302))
+                  self.assertEqual(external_links.attempt("https://example.com/a", policy, lambda _u, _t: (302, "/a"))[0], "REDIRECT_FAILURE")
+                  self.assertEqual(external_links.attempt("https://example.com/a", policy, lambda _u, _t: (204, None)), ("OK", 204))
+                  self.assertEqual(external_links.attempt("https://example.com/a", policy, lambda _u, _t: (403, None)), ("ACCESS_RESTRICTED", 403))
+                  self.assertEqual(external_links.attempt("https://example.com/a", policy, lambda _u, _t: (429, None)), ("TRANSIENT_FAILURE", 429))
+                  self.assertEqual(external_links.attempt("https://example.com/a", policy, lambda _u, _t: (404, None)), ("PERMANENT_FAILURE", 404))
+
+                  responses = iter([(500, None), (200, None)])
+                  pauses: list[int] = []
+                  recovered = external_links.probe(
+                      "https://example.com/a", policy,
+                      lambda _u, _t: next(responses),
+                      pauses.append,
+                  )
+                  self.assertEqual(recovered["status"], "OK")
+                  self.assertEqual(recovered["attempts"], 2)
+                  self.assertEqual(pauses, [1])
+                  permanent = external_links.probe(
+                      "https://example.com/a", policy,
+                      lambda _u, _t: (404, None),
+                      lambda _n: None,
+                  )
+                  self.assertEqual(permanent["status"], "PERMANENT_FAILURE")
+                  self.assertEqual(permanent["attempts"], 3)
+
+                  class Raw:
+                      closed = False
+
+                      def close(self) -> None:
+                          self.closed = True
+
+                  class TLS:
+                      def wrap_socket(self, *_args: Any, **_kwargs: Any) -> Any:
+                          raise RuntimeError("tls")
+
+                  raw = Raw()
+                  connection = external_links.PinnedHTTPS("example.com", "8.8.8.8", 1)
+                  connection.tls_context = TLS()
+                  with patch.object(external_links.socket, "create_connection", return_value=raw):
+                      with self.assertRaisesRegex(RuntimeError, "tls"):
+                          connection.connect()
+                  self.assertTrue(raw.closed)
+
+                  class Response:
+                      status = 200
+
+                      @staticmethod
+                      def getheader(_name: str) -> None:
+                          return None
+
+                  class Connection:
+                      closed = False
+
+                      def request(self, *_args: Any, **_kwargs: Any) -> None:
+                          return None
+
+                      @staticmethod
+                      def getresponse() -> Response:
+                          return Response()
+
+                      def close(self) -> None:
+                          self.closed = True
+
+                  fake = Connection()
+                  with (
+                      patch.object(external_links.socket, "getaddrinfo", return_value=[(None, None, None, None, ("8.8.8.8", 443))]),
+                      patch.object(external_links, "PinnedHTTPS", return_value=fake),
+                  ):
+                      self.assertEqual(external_links.request("https://example.com/a b", 1), (200, None))
+                  self.assertTrue(fake.closed)
+                  with patch.object(external_links.socket, "getaddrinfo", return_value=[(None, None, None, None, ("127.0.0.1", 443))]):
+                      with self.assertRaises(ValueError):
+                          external_links.request("https://example.com/a", 1)
+
+              def test_collect_report_limit_and_cli_paths(self) -> None:
+                  with tempfile.TemporaryDirectory() as name:
+                      root = Path(name)
+                      (root / "README.md").write_text(
+                          "<https://example.com/a#frag>\n<a src='https://example.com/b'>x</a>\n",
+                          encoding="utf-8",
+                      )
+                      (root / "plain.txt").write_text("<https://example.com/c>\n", encoding="utf-8")
+                      with patch.object(external_links, "tracked_files", return_value={"README.md", "plain.txt"}):
+                          links = external_links.collect(root)
+                      self.assertEqual(len(links), 2)
+                      self.assertTrue(all("#" not in row["url"] for row in links.values()))
+
+                  first, second, third = "a" * 64, "b" * 64, "c" * 64
+                  policy = self.policy()
+                  policy["exceptions"] = [{"id": second, "reason": "fixture", "expires": "2027-01-01"}]
+                  policy["classifications"] = [
+                      {"id": first, "kind": "restricted-historical", "reason": "fixture", "expires": "2027-01-01"}
+                  ]
+                  links = {
+                      first: {"url": "https://example.com/a", "locations": ["README.md:1"]},
+                      second: {"url": "https://example.com/b", "locations": ["README.md:2"]},
+                      third: {"url": "https://example.com/c", "locations": ["README.md:3"]},
+                  }
+                  with (
+                      patch.object(external_links, "load_policy", return_value={"network": policy}),
+                      patch.object(external_links, "collect", return_value=links),
+                  ):
+                      report = external_links.build_report(
+                          Path("."), external_links.date(2026, 9, 12),
+                          transport=lambda _u, _t: (200, None), pause=lambda _n: None,
+                      )
+                  self.assertEqual(report["status"], "fail")
+                  self.assertEqual(report["counts"]["restricted_historical"], 1)
+                  self.assertEqual({row["status"] for row in report["links"]}, {"RESTRICTED_HISTORICAL", "EXCEPTED", "OK"})
+                  self.assertIn("RESTRICTED_HISTORICAL", external_links.markdown(report))
+
+                  limited_policy = self.policy()
+                  limited_policy["max_links"] = 1
+                  with (
+                      patch.object(external_links, "load_policy", return_value={"network": limited_policy}),
+                      patch.object(external_links, "collect", return_value=links),
+                  ):
+                      limited = external_links.build_report(
+                          Path("."), external_links.date(2026, 9, 12),
+                          transport=lambda _u, _t: (200, None), pause=lambda _n: None,
+                      )
+                  self.assertTrue(limited["limit_exceeded"])
+                  self.assertEqual(limited["status"], "fail")
+
+                  with (
+                      patch.object(external_links.sys, "argv", ["links", "--as-of", "2026-09-12"]),
+                      patch.object(external_links, "run_gate", return_value=7),
+                  ):
+                      self.assertEqual(external_links.main(), 7)
+
+
+          class TemplateContractFailureDepthTests(unittest.TestCase):
+              def test_contract_markdown_and_selftest_failure_reporting(self) -> None:
+                  report = {
+                      "status": "fail",
+                      "mode": "generated",
+                      "contract_version": "1.2.0",
+                      "contract_source": "owner/template",
+                      "project_version": "9.9.9",
+                      "resolved_rule_set": ["one", "two"],
+                      "supported_versions": ["1.2.0"],
+                      "findings": [{"message": "fixture failure"}],
+                  }
+                  rendered = contract.markdown_report(report)
+                  self.assertIn("Controls required", rendered)
+                  self.assertIn("fixture failure", rendered)
+
+                  synthetic = {
+                      "status": "fail",
+                      "findings": [],
+                      "contract_version": "1.2.0",
+                      "project_version": "1.2.0",
+                      "resolved_rule_set": [],
+                  }
+                  with (
+                      patch.object(contract, "_cases", return_value=[("expected-pass", {}, None, True, "")]),
+                      patch.object(contract, "_run_case", return_value=synthetic),
+                      patch.object(contract, "_fixture", return_value=Path(".")),
+                      patch.object(contract, "run_check", return_value=synthetic),
+                      patch.object(contract, "write_text"),
+                  ):
+                      self.assertEqual(contract.run_self_test(), 1)
+
+
+          class SnapshotCollectorAdditionalDepthTests(unittest.TestCase):
+              def test_get_pagination_tag_and_release_success_boundaries(self) -> None:
+                  class Response:
+                      def __enter__(self) -> "Response":
+                          return self
+
+                      def __exit__(self, *_args: Any) -> None:
+                          return None
+
+                      @staticmethod
+                      def read(_limit: int) -> bytes:
+                          return b"x" * 10_000_001
+
+                  class Opener:
+                      @staticmethod
+                      def open(*_args: Any, **_kwargs: Any) -> Response:
+                          return Response()
+
+                  with patch.object(snapshot.urllib.request, "build_opener", return_value=Opener()):
+                      with self.assertRaisesRegex(ValueError, "size limit"):
+                          snapshot.get("owner/repo")
+
+                  with patch.object(snapshot, "get", return_value={"total_count": 1000, "items": []}):
+                      with self.assertRaisesRegex(ValueError, "Actions search limit"):
+                          snapshot.pages("x", "items")
+                  with patch.object(snapshot, "get", return_value={"x": 1}):
+                      with self.assertRaisesRegex(ValueError, "Expected paginated"):
+                          snapshot.pages("x")
+                  with patch.object(snapshot, "get", return_value=[0] * 100):
+                      with self.assertRaisesRegex(ValueError, "Pagination limit"):
+                          snapshot.pages("x")
+
+                  with patch.object(snapshot, "get", return_value={"object": {"type": "blob", "sha": "a" * 40}}):
+                      with self.assertRaisesRegex(ValueError, "does not resolve"):
+                          snapshot.tag_commit("owner/repo", "v1")
+                  with patch.object(snapshot, "get", return_value={"object": {"type": "tag", "sha": "a" * 40}}):
+                      with self.assertRaisesRegex(ValueError, "indirection limit"):
+                          snapshot.tag_commit("owner/repo", "v1")
+
+                  repo = {
+                      "repository": "owner/repo",
+                      "commit": "a" * 40,
+                      "captured_at": "2026-09-12T00:00:00+00:00",
+                      "unavailable": {},
+                  }
+                  release_row = {
+                      "id": 7, "tag_name": "v1.2.0", "draft": False, "prerelease": False,
+                      "published_at": "2026-09-12T00:00:00Z", "body": "notes", "assets": [],
+                  }
+                  with (
+                      patch.object(snapshot, "pages", side_effect=[[], [release_row]]),
+                      patch.object(snapshot, "tag_commit", return_value="a" * 40),
+                  ):
+                      quality = snapshot.quality_evidence(repo)
+                  self.assertEqual(quality["releases"][0]["resolved_commit"], "a" * 40)
+
+              def test_collect_blob_failure_is_explicit(self) -> None:
+                  config_path = snapshot.CONFIG
+                  metadata = {
+                      "default_branch": "main", "description": "x", "has_issues": True,
+                      "allow_auto_merge": False,
+                  }
+                  tree = {"tree": [{"path": config_path, "sha": "b" * 40, "type": "blob"}], "truncated": False}
+
+                  def fake_get(path: str) -> Any:
+                      if path == "owner/repo":
+                          return metadata
+                      if "/commits/" in path:
+                          return {"sha": "a" * 40}
+                      if "/git/trees/" in path:
+                          return tree
+                      if "/git/blobs/" in path:
+                          raise snapshot.urllib.error.HTTPError("u", 403, "no", Message(), None)
+                      raise AssertionError(path)
+
+                  with (
+                      patch.object(snapshot, "get", side_effect=fake_get),
+                      patch.object(snapshot, "pages", return_value=[]),
+                  ):
+                      report = snapshot.collect("owner/repo")
+                  self.assertIn(config_path, report["unavailable"])
+                  self.assertNotIn(config_path, report["files"])
+
+
+          class ProvisioningPrimitiveDepthTests(unittest.TestCase):
+              def test_transport_collection_and_source_json_boundaries(self) -> None:
+                  with self.assertRaises(ValueError):
+                      provision.GitHub("bad", None)
+                  api = provision.GitHub("owner/repo", None)
+                  with self.assertRaises(ValueError):
+                      api.request("GET", "relative")
+                  with self.assertRaises(ValueError):
+                      api.request("POST", "/labels", {})
+
+                  class Response:
+                      def __init__(self, data: bytes):
+                          self.data = data
+
+                      def __enter__(self) -> "Response":
+                          return self
+
+                      def __exit__(self, *_args: Any) -> None:
+                          return None
+
+                      def read(self, _limit: int) -> bytes:
+                          return self.data
+
+                  class Opener:
+                      def __init__(self, data: bytes):
+                          self.data = data
+
+                      def open(self, *_args: Any, **_kwargs: Any) -> Response:
+                          return Response(self.data)
+
+                  with patch.object(provision, "build_opener", return_value=Opener(b'{"ok": true}')):
+                      self.assertEqual(api.request("GET"), {"ok": True})
+                  with patch.object(provision, "build_opener", return_value=Opener(b"x" * 10_000_001)):
+                      with self.assertRaises(ValueError):
+                          api.request("GET")
+
+                  class BadCollection:
+                      @staticmethod
+                      def request(*_args: Any, **_kwargs: Any) -> dict[str, int]:
+                          return {"bad": 1}
+
+                  with self.assertRaisesRegex(ValueError, "Invalid collection"):
+                      provision.collection(BadCollection(), "/labels")
+
+                  class FullCollection:
+                      @staticmethod
+                      def request(*_args: Any, **_kwargs: Any) -> list[int]:
+                          return [0] * 100
+
+                  with self.assertRaisesRegex(ValueError, "Incomplete collection"):
+                      provision.collection(FullCollection(), "/labels")
+
+                  class Source:
+                      def __init__(self, value: dict[str, Any]):
+                          self.value = value
+
+                      def request(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+                          return self.value
+
+                  with self.assertRaisesRegex(ValueError, "Expected source JSON"):
+                      provision.source_json(Source({"encoding": "utf-8", "type": "file"}), "x.json", "a" * 40)
+                  encoded = provision.base64.b64encode(b'{"x": 1}').decode("ascii")
+                  parsed = provision.source_json(
+                      Source({"encoding": "base64", "type": "file", "content": encoded}),
+                      "x.json", "a" * 40,
+                  )
+                  self.assertEqual(parsed, {"x": 1})
+          '''
+
+          text = text.replace(anchor, addition + anchor, 1)
+          path.write_text(text, encoding="utf-8", newline="\n")
+          PY
+
+      - name: Validate added behavioral fixtures
+        run: |
+          set -euo pipefail
+          python3 tools/test_verification_depth.py -v
+          python3 tools/initialize_repository.py --root . --self-test
+          python3 -m compileall -q tools/test_verification_depth.py
+          git diff --check
+
+      - name: Commit final depth fixtures
+        run: |
+          set -euo pipefail
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git add tools/test_verification_depth.py
+          git commit -m "Expand #81 final behavioral coverage"
+          git push origin HEAD:release/v1.2.1
