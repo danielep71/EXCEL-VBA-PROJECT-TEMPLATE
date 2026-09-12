@@ -1,5 +1,5 @@
 # Python tooling quality contract for the repository-maintenance scripts.
-# The distributed VBA starter remains dependency-free; Ruff and mypy are CI/development tools only.
+# The distributed VBA starter remains dependency-free; Ruff, mypy and coverage.py are CI/development tools only.
 
 [tool.ruff]
 target-version = "py310"
@@ -36,3 +36,17 @@ warn_return_any = true
 implicit_reexport = false
 strict_equality = true
 extra_checks = true
+
+# Statement-coverage contract for maintained Python tooling. The subprocess patch
+# measures Python child processes started by the semantic fixtures, so exercised
+# release/checker behavior is not lost merely because a test uses subprocess.run.
+[tool.coverage.run]
+source = ["tools"]
+parallel = true
+relative_files = true
+patch = ["subprocess"]
+
+[tool.coverage.report]
+omit = ["tools/test_*.py"]
+show_missing = true
+fail_under = 95
