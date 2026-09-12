@@ -59,7 +59,7 @@ jobs:
           run tools/test_portfolio_quality.py -v
           run tools/test_provision_repository.py -v
           run tools/test_release_provenance.py -v
-          run tools/test_reusable_workflow_fixture.py -v
+          run -m unittest discover -s tools -p 'test_reusable_workflow_fixture.py' -v
           run tools/test_wiki.py -v
 
           run tools/checker_development.py --root . \
