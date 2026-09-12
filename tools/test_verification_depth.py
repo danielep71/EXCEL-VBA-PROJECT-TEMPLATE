@@ -124,6 +124,7 @@ class InitializerDepthTests(unittest.TestCase):
             )
 
     def test_render_blocks_behaviors_and_failures(self) -> None:
+        marker = "<!-- " + "template:"
         catalogue = {
             "OPT": {"category": "optional"},
             "REP": {"category": "repeatable"},
@@ -131,22 +132,22 @@ class InitializerDepthTests(unittest.TestCase):
         }
         text = (
             "a\n"
-            "<!-- template:remove:start -->\nremove\n<!-- template:remove:end -->\n"
-            "<!-- template:profile:library:start -->\nlib\n<!-- template:profile:library:end -->\n"
-            "<!-- template:optional:OPT:start -->\nopt\n<!-- template:optional:OPT:end -->\n"
-            "<!-- template:repeatable:REP:start -->\nrep\n<!-- template:repeatable:REP:end -->\n"
+            "" + marker + "remove:start -->\nremove\n" + marker + "remove:end -->\n"
+            "" + marker + "profile:library:start -->\nlib\n" + marker + "profile:library:end -->\n"
+            "" + marker + "optional:OPT:start -->\nopt\n" + marker + "optional:OPT:end -->\n"
+            "" + marker + "repeatable:REP:start -->\nrep\n" + marker + "repeatable:REP:end -->\n"
         )
         rendered = initializer._render_blocks(
             "README.md", text, "library", {"OPT": "yes"}, {"REP": ["x"]}, catalogue
         )
         self.assertEqual(rendered, "a\nlib\nopt\nrep\n")
         cases = (
-            ("bad <!-- template:oops -->\n", "invalid template block marker"),
-            ("<!-- template:remove:start -->\n<!-- template:remove:start -->\n", "may not nest"),
-            ("<!-- template:optional:BAD:start -->\n", "is not optional"),
-            ("<!-- template:repeatable:BAD:start -->\n", "is not repeatable"),
-            ("<!-- template:remove:end -->\n", "unmatched template block end"),
-            ("<!-- template:remove:start -->\n", "unclosed template block"),
+            ("bad " + marker + "oops -->\n", "invalid template block marker"),
+            ("" + marker + "remove:start -->\n" + marker + "remove:start -->\n", "may not nest"),
+            ("" + marker + "optional:BAD:start -->\n", "is not optional"),
+            ("" + marker + "repeatable:BAD:start -->\n", "is not repeatable"),
+            ("" + marker + "remove:end -->\n", "unmatched template block end"),
+            ("" + marker + "remove:start -->\n", "unclosed template block"),
         )
         for text, message in cases:
             with self.subTest(message=message):
