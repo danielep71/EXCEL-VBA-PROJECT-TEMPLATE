@@ -1,0 +1,184 @@
+name: One-shot v1.2.1 maintenance
+
+on:
+  push:
+    branches:
+      - release/v1.2.1
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  maintain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v1.2.1
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.10"
+
+      - name: Apply mechanical integration updates
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('.')
+
+          # This workflow is deliberately one-shot; remove it from the resulting tree first.
+          Path('.github/workflows/v121-maintenance.yml').unlink()
+
+          checker = Path('tools/checker_development.py')
+          text = checker.read_text(encoding='utf-8')
+          old = '''import io
+          import json
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tempfile
+          from types import ModuleType
+          from typing import Any
+          from _gatelib import parse_report_args as parse_arguments, run_gate
+          '''
+          new = '''import io
+          import json
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+          from types import ModuleType
+          from typing import Any
+
+          from _gatelib import parse_report_args as parse_arguments
+          from _gatelib import run_gate
+          '''
+          if old not in text:
+              raise SystemExit('checker-development import block changed unexpectedly')
+          checker.write_text(text.replace(old, new, 1), encoding='utf-8', newline='\n')
+
+          pyproject = Path('pyproject.toml')
+          text = pyproject.read_text(encoding='utf-8')
+          marker = 'warn_redundant_casts = true\n'
+          if marker not in text:
+              raise SystemExit('mypy override marker changed unexpectedly')
+          pyproject.write_text(text.replace(marker, '', 1), encoding='utf-8', newline='\n')
+
+          workflow = Path('.github/workflows/checker-development.yml')
+          text = workflow.read_text(encoding='utf-8')
+          anchor = '          run tools/check_template_contract.py --root . --self-test\n'
+          closeout = '          run tools/_release_closeout.py --self-test\n'
+          if closeout not in text:
+              if anchor not in text:
+                  raise SystemExit('coverage self-test anchor changed unexpectedly')
+              text = text.replace(anchor, anchor + closeout, 1)
+
+          old_summary = '''          echo "## Python statement coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo "- Candidate: \\`$(git rev-parse HEAD)\\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Scope: maintained \\`tools/*.py\\`; \\`tools/test_*.py\\` excluded from the denominator." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Floor: **95% statement coverage**." >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f test-results/coverage-report.txt ]]; then
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            cat test-results/coverage-report.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Coverage report was not produced." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          '''
+          new_summary = '''          {
+            echo "## Python statement coverage"
+            echo
+            echo "- Candidate: \\`$(git rev-parse HEAD)\\`"
+            echo "- Scope: maintained \\`tools/*.py\\`; \\`tools/test_*.py\\` excluded from the denominator."
+            echo "- Floor: **95% statement coverage**."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f test-results/coverage-report.txt ]]; then
+            {
+              echo '```text'
+              cat test-results/coverage-report.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Coverage report was not produced." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          '''
+          if old_summary not in text:
+              raise SystemExit('coverage summary block changed unexpectedly')
+          workflow.write_text(text.replace(old_summary, new_summary, 1), encoding='utf-8', newline='\n')
+
+          catalogue_path = Path('docs/wiki/catalogue.json')
+          catalogue = json.loads(catalogue_path.read_text(encoding='utf-8'))
+          files = catalogue['files']
+          files['.github/workflows/release-closeout.yml'] = {
+              'purpose': 'Manual read-only capture and deterministic post-release closeout evidence.',
+              'kind': 'workflow',
+              'authority': 'docs/RELEASE_CLOSEOUT.md',
+          }
+          files['docs/RELEASE_CLOSEOUT.md'] = {
+              'purpose': 'Canonical post-publication release closeout procedure and evidence boundaries.',
+              'kind': 'document',
+              'authority': 'docs/RELEASE_CLOSEOUT.md',
+          }
+          files['tools/_release_closeout.py'] = {
+              'purpose': 'Private deterministic validator for retained post-release provider snapshots.',
+              'kind': 'script',
+              'authority': 'docs/RELEASE_CLOSEOUT.md',
+          }
+          catalogue_path.write_text(
+              json.dumps(catalogue, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+              newline='\n',
+          )
+
+          changelog = Path('CHANGELOG.md')
+          text = changelog.read_text(encoding='utf-8')
+          entry = ('- Added a read-only post-release closeout workflow that binds the annotated tag, '
+                   'tag-triggered CI, GitHub Release state, candidate-bound asset policy, comparison '
+                   'range, actual milestone membership, Wiki read-back, and provider-generated source '
+                   'archive observations to one certified SHA; uploaded assets remain distinct from '
+                   'GitHub source archives.\n')
+          if entry not in text:
+              anchor = '## [Unreleased]\n\n### Changed\n\n'
+              if anchor not in text:
+                  raise SystemExit('Unreleased Changed anchor changed unexpectedly')
+              text = text.replace(anchor, anchor + entry, 1)
+              changelog.write_text(text, encoding='utf-8', newline='\n')
+          PY
+
+          python3 tools/check_wiki.py --root . --write-reference
+
+      - name: Validate mechanical result before commit
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "ruff==0.16.6" "mypy==2.3.1"
+          ruff check tools
+          mypy
+          python3 tools/_release_closeout.py --self-test
+          python3 tools/check_wiki.py --root .
+          git diff --check
+
+      - name: Commit integrated result and remove one-shot workflow
+        run: |
+          set -euo pipefail
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git add --all
+          git commit -m "Integrate deterministic release closeout validation (#80)"
+          git push origin HEAD:release/v1.2.1
