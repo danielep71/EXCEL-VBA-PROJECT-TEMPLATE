@@ -40,6 +40,8 @@ extra_checks = true
 # Statement-coverage contract for maintained Python tooling. The subprocess patch
 # measures Python child processes started by the semantic fixtures, so exercised
 # release/checker behavior is not lost merely because a test uses subprocess.run.
+# The canonical local/hosted command sequence is the "Exercise maintained Python
+# tooling under coverage" block in .github/workflows/checker-development.yml.
 [tool.coverage.run]
 source = ["tools"]
 parallel = true
