@@ -173,6 +173,7 @@ jobs:
           run tools/test_provision_repository.py -v
           run tools/test_release_provenance.py -v
           run -m unittest discover -s tools -p 'test_workflow_validation.py' -v
+          run tools/test_verification_depth.py -v
           run tools/test_wiki.py -v
 
           run tools/checker_development.py --root . \
