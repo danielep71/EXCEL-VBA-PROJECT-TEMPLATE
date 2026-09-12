@@ -76,9 +76,9 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
                 caller = (destination / ".github/workflows/static-checks.yml").read_text(
                     encoding="utf-8"
                 )
+                canonical_repo = "".join(("danielep71/EXCEL-VBA-", "PROJECT-TEMPLATE"))
                 self.assertIn(
-                    "uses: danielep71/EXCEL-VBA-PROJECT-TEMPLATE/"
-                    f".github/workflows/static-checks.yml@{SHA} # v1.0.0",
+                    f"uses: {canonical_repo}/.github/workflows/static-checks.yml@{SHA} # v1.0.0",
                     caller,
                 )
                 self.assertIn(f"expected-profile: {profile}", caller)
