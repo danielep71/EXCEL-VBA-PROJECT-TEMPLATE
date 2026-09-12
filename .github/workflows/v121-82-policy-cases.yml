@@ -1,0 +1,47 @@
+name: One-shot add #82 semantic policy cases
+
+on:
+  push:
+    branches:
+      - fix/82-supply-chain-assurance
+    paths:
+      - .github/workflows/v121-82-policy-cases.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Check out #82 branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix/82-supply-chain-assurance
+          fetch-depth: 0
+
+      - name: Add focused cases for every new workflow finding site
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tools/policy_coverage_cases_quality.py')
+          text = path.read_text(encoding='utf-8')
+          needle = '''    @case("workflow-action-comment", "workflow-actions", "audited semantic-version comment")\n    def _(root: Path) -> None:\n        text = (root / workflow_path).read_text(encoding="utf-8").replace(\n            " # v4.2.2", "", 1\n        )\n        module._write_fixture(root / workflow_path, text)\n\n'''
+          addition = needle + '''    @case(\n        "workflow-pr-workflow-write-all",\n        "workflow-actions",\n        "Workflow triggered by pull_request must not request write-capable token permissions",\n    )\n    def _(root: Path) -> None:\n        text = (root / workflow_path).read_text(encoding="utf-8").replace(\n            "permissions:\\n  contents: read", "permissions: write-all", 1\n        )\n        module._write_fixture(root / workflow_path, text)\n\n    @case(\n        "workflow-pr-job-write-all",\n        "workflow-actions",\n        "Job reachable from pull_request must not request write-all permissions",\n    )\n    def _(root: Path) -> None:\n        text = (root / workflow_path).read_text(encoding="utf-8").replace(\n            "  repository-integrity:\\n",\n            "  repository-integrity:\\n    permissions: write-all\\n",\n            1,\n        )\n        module._write_fixture(root / workflow_path, text)\n\n    @case(\n        "workflow-pr-job-write-scope",\n        "workflow-actions",\n        "Job reachable from pull_request must not request write-capable token permissions",\n    )\n    def _(root: Path) -> None:\n        text = (root / workflow_path).read_text(encoding="utf-8").replace(\n            "  repository-integrity:\\n",\n            "  repository-integrity:\\n    permissions:\\n      issues: write\\n",\n            1,\n        )\n        module._write_fixture(root / workflow_path, text)\n\n'''
+          if needle not in text:
+              raise SystemExit('workflow policy-case insertion point drifted')
+          path.write_text(text.replace(needle, addition, 1), encoding='utf-8')
+          PY
+
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git rm .github/workflows/v121-82-policy-cases.yml
+          git add tools/policy_coverage_cases_quality.py
+          python tools/check_policy_coverage.py --root . --self-test
+          python tools/check_repo.py --root . --self-test
+          python tools/check_repo.py --root .
+          git diff --check
+          git commit -m "Cover #82 workflow permission findings"
+          git push origin HEAD:fix/82-supply-chain-assurance
