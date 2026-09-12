@@ -112,8 +112,9 @@ def _load_policy(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, str]
     if not isinstance(value, dict):
         return None, [_finding("invalid-release-policy", POLICY_PATH, "root must be an object")]
     required = {
-        "schema_version", "evidence_schema_version", "core_checks", "profiles",
-        "source_scan_exclude_paths", "template_construction_markers",
+        "schema_version", "evidence_schema_version", "provenance_signature_mode",
+        "core_checks", "profiles", "source_scan_exclude_paths",
+        "template_construction_markers",
     }
     if set(value) != required:
         missing = sorted(required - set(value))
@@ -126,6 +127,11 @@ def _load_policy(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, str]
         return None, [_finding("invalid-release-policy", POLICY_PATH, "; ".join(detail))]
     if value.get("schema_version") != SCHEMA_VERSION or value.get("evidence_schema_version") != SCHEMA_VERSION:
         return None, [_finding("invalid-release-policy", POLICY_PATH, "unsupported schema version")]
+    if value.get("provenance_signature_mode") not in {"none", "ssh"}:
+        return None, [_finding(
+            "invalid-release-policy", POLICY_PATH,
+            "provenance_signature_mode must be none or ssh",
+        )]
     core = value.get("core_checks")
     profiles = value.get("profiles")
     excludes = value.get("source_scan_exclude_paths")
