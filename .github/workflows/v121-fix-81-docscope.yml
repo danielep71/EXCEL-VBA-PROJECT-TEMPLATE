@@ -1,0 +1,74 @@
+name: One-shot repair Python coverage documentation scope
+
+on:
+  push:
+    branches:
+      - release/v1.2.1
+    paths:
+      - .github/workflows/v121-fix-81-docscope.yml
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v1.2.1
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Scope maintainer coverage documentation to template
+        run: |
+          set -euo pipefail
+          git rm --cached .github/workflows/v121-fix-81-docscope.yml
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/README.md")
+          text = path.read_text(encoding="utf-8")
+          start = "### Maintainer Python coverage\n"
+          if start not in text:
+              raise SystemExit("coverage section anchor is missing")
+          if "<!-- template:remove:start -->\n### Maintainer Python coverage" not in text:
+              text = text.replace(start, "<!-- template:remove:start -->\n" + start, 1)
+          section_start = text.index("<!-- template:remove:start -->\n### Maintainer Python coverage")
+          next_heading = text.find("\nComments and docstrings", section_start)
+          if next_heading < 0:
+              raise SystemExit("coverage section end anchor is missing")
+          before = text[:next_heading]
+          after = text[next_heading:]
+          if not before.rstrip().endswith("<!-- template:remove:end -->"):
+              before = before.rstrip() + "\n\n<!-- template:remove:end -->\n"
+          path.write_text(before + after, encoding="utf-8", newline="\n")
+          PY
+
+          python3 tools/check_wiki.py --root . --write-reference
+          git add tools/README.md docs/wiki/File-and-directory-reference.md
+
+      - name: Validate generated profiles and canonical sources
+        run: |
+          set -euo pipefail
+          python3 tools/initialize_repository.py --root . --self-test
+          python3 tools/check_wiki.py --root .
+          python3 tools/check_documentation.py --root .
+          python3 tools/check_repo.py --root .
+          python3 tools/checker_development.py --root . --self-test
+          git diff --check
+
+      - name: Commit permanent documentation repair
+        run: |
+          set -euo pipefail
+          git reset HEAD -- .github/workflows/v121-fix-81-docscope.yml
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git commit -m "Keep Python coverage guidance template-only (#81)"
+          git push origin HEAD:release/v1.2.1
