@@ -41,7 +41,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/excel-evidence-policy.json` / policy | Starter entry point, case registry, assertion count and expected-error case. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `.github/labels.json` / policy | Canonical core/profile/domain label definitions and reconciliation policy. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/provisioning-policy.json` / policy | Reviewed metadata/features/merge/required-check goals and exception rationale. | R / R / R | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
-| `.github/release-history-policy.json` / policy | Canonical-template merge-history rules, exact-SHA reviewed exceptions and preserved historical records. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
+| `.github/release-history-policy.json` / policy | Canonical-template merge-history rules, exact-SHA reviewed exceptions and preserved historical records. | X / X / X | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
 | `.github/release-policy.json` / policy | Required candidate checks, allowed profile assets and construction-history exclusions. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `.github/release-provenance.json` / policy | Expected source/workflow identity and optional committed SSH signing trust. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `.github/repository-profile.json` / policy | Mode, profile, identity, roles, paths, placeholder schema and adopted control version. | T / T / T | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
