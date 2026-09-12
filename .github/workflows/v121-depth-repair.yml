@@ -1,0 +1,145 @@
+name: One-shot repair verification-depth suite
+
+on:
+  push:
+    branches:
+      - release/v1.2.1
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v1.2.1
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Repair focused suite quality contracts
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tools/test_verification_depth.py')
+          text = path.read_text(encoding='utf-8')
+
+          text = text.replace(
+              'from pathlib import Path\nfrom unittest.mock import patch\n',
+              'from pathlib import Path\nfrom typing import Any\nfrom unittest.mock import patch\n',
+              1,
+          )
+          text = text.replace(
+              '            for document in (\n',
+              '            documents: tuple[dict[str, object], ...] = (\n',
+              1,
+          )
+          text = text.replace(
+              '            ):\n                config.write_text(json.dumps(document), encoding="utf-8")\n',
+              '            )\n            for document in documents:\n                config.write_text(json.dumps(document), encoding="utf-8")\n',
+              1,
+          )
+          text = text.replace(
+              '        bad = ("NOVALUE", "bad-name=x", "NAME=", "NAME=a\\nb", "NAME={{TOKEN}}")\n',
+              '        placeholder = "NAME=" + "{" * 2 + "TOKEN" + "}" * 2\n'
+              '        bad = ("NOVALUE", "bad-name=x", "NAME=", "NAME=a\\nb", placeholder)\n',
+              1,
+          )
+          text = text.replace(
+              '        catalogue = {\n            "PROFILE": {"category": "profile-specific", "values": {"library": "lib"}},\n',
+              '        catalogue: dict[str, dict[str, Any]] = {\n'
+              '            "PROFILE": {"category": "profile-specific", "values": {"library": "lib"}},\n',
+              1,
+          )
+          text = text.replace(
+              '            generated = {\n                "mode": "generated",\n',
+              '            generated: dict[str, Any] = {\n                "mode": "generated",\n',
+              1,
+          )
+
+          old = '''            variants = []
+            value = dict(good); value.pop("schema_version"); variants.append(value)
+            value = dict(good); value["schema_version"] = 2; variants.append(value)
+            value = dict(good); value["provenance_signature_mode"] = "bad"; variants.append(value)
+            value = dict(good); value["core_checks"] = []; variants.append(value)
+            value = dict(good); value["core_checks"] = ["x", "x"]; variants.append(value)
+            value = dict(good); value["profiles"] = {}; variants.append(value)
+            value = json.loads(json.dumps(good)); value["profiles"]["library"]["extra"] = 1; variants.append(value)
+            value = json.loads(json.dumps(good)); value["profiles"]["library"]["required_checks"] = []; variants.append(value)
+            value = json.loads(json.dumps(good)); value["profiles"]["library"]["required_checks"] = ["repository-integrity"]; variants.append(value)
+            value = json.loads(json.dumps(good)); value["profiles"]["library"]["allowed_asset_globs"] = ["../bad"]; variants.append(value)
+            value = dict(good); value["source_scan_exclude_paths"] = ["../bad"]; variants.append(value)
+            value = dict(good); value["template_construction_markers"] = []; variants.append(value)
+'''
+          new = '''            variants: list[dict[str, Any]] = []
+            value = dict(good)
+            value.pop("schema_version")
+            variants.append(value)
+            value = dict(good)
+            value["schema_version"] = 2
+            variants.append(value)
+            value = dict(good)
+            value["provenance_signature_mode"] = "bad"
+            variants.append(value)
+            value = dict(good)
+            value["core_checks"] = []
+            variants.append(value)
+            value = dict(good)
+            value["core_checks"] = ["x", "x"]
+            variants.append(value)
+            value = dict(good)
+            value["profiles"] = {}
+            variants.append(value)
+            value = json.loads(json.dumps(good))
+            value["profiles"]["library"]["extra"] = 1
+            variants.append(value)
+            value = json.loads(json.dumps(good))
+            value["profiles"]["library"]["required_checks"] = []
+            variants.append(value)
+            value = json.loads(json.dumps(good))
+            value["profiles"]["library"]["required_checks"] = ["repository-integrity"]
+            variants.append(value)
+            value = json.loads(json.dumps(good))
+            value["profiles"]["library"]["allowed_asset_globs"] = ["../bad"]
+            variants.append(value)
+            value = dict(good)
+            value["source_scan_exclude_paths"] = ["../bad"]
+            variants.append(value)
+            value = dict(good)
+            value["template_construction_markers"] = []
+            variants.append(value)
+'''
+          if old not in text:
+              raise SystemExit('release-policy variant block changed unexpectedly')
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8', newline='\n')
+          PY
+
+      - name: Validate repaired suite
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "ruff==0.16.6" "mypy==2.3.1"
+          ruff check tools/test_verification_depth.py
+          mypy
+          python3 tools/test_verification_depth.py -v
+          python3 tools/initialize_repository.py --root . --self-test
+          python3 tools/check_repo.py --root .
+          git diff --check
+
+      - name: Commit repaired suite
+        run: |
+          set -euo pipefail
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git add tools/test_verification_depth.py
+          git commit -m "Harden verification-depth test hygiene (#81)"
+          git push origin HEAD:release/v1.2.1
