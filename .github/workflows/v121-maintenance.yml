@@ -36,8 +36,6 @@ jobs:
           import json
           from pathlib import Path
 
-          root = Path('.')
-
           # This workflow is deliberately one-shot; remove it from the resulting tree first.
           Path('.github/workflows/v121-maintenance.yml').unlink()
 
@@ -85,43 +83,37 @@ jobs:
                   raise SystemExit('coverage self-test anchor changed unexpectedly')
               text = text.replace(anchor, anchor + closeout, 1)
 
-          old_summary = '''          echo "## Python statement coverage" >> "$GITHUB_STEP_SUMMARY"
-          echo >> "$GITHUB_STEP_SUMMARY"
-          echo "- Candidate: \\`$(git rev-parse HEAD)\\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Scope: maintained \\`tools/*.py\\`; \\`tools/test_*.py\\` excluded from the denominator." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Floor: **95% statement coverage**." >> "$GITHUB_STEP_SUMMARY"
-          echo >> "$GITHUB_STEP_SUMMARY"
-          if [[ -f test-results/coverage-report.txt ]]; then
-            echo '```text' >> "$GITHUB_STEP_SUMMARY"
-            cat test-results/coverage-report.txt >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Coverage report was not produced." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
+          step_start = text.find('      - name: Add coverage summary\n')
+          step_end = text.find('      - name: Upload coverage evidence\n', step_start)
+          if step_start < 0 or step_end < 0:
+              raise SystemExit('coverage summary step boundaries changed unexpectedly')
+          replacement = '''      - name: Add coverage summary
+            id: coverage-summary
+            if: always()
+            continue-on-error: true
+            run: |
+              {
+                echo "## Python statement coverage"
+                echo
+                echo "- Candidate: \\`$(git rev-parse HEAD)\\`"
+                echo "- Scope: maintained \\`tools/*.py\\`; \\`tools/test_*.py\\` excluded from the denominator."
+                echo "- Floor: **95% statement coverage**."
+                echo
+              } >> "$GITHUB_STEP_SUMMARY"
+              if [[ -f test-results/coverage-report.txt ]]; then
+                {
+                  echo '```text'
+                  cat test-results/coverage-report.txt
+                  echo '```'
+                } >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "Coverage report was not produced." >> "$GITHUB_STEP_SUMMARY"
+                exit 1
+              fi
+
           '''
-          new_summary = '''          {
-            echo "## Python statement coverage"
-            echo
-            echo "- Candidate: \\`$(git rev-parse HEAD)\\`"
-            echo "- Scope: maintained \\`tools/*.py\\`; \\`tools/test_*.py\\` excluded from the denominator."
-            echo "- Floor: **95% statement coverage**."
-            echo
-          } >> "$GITHUB_STEP_SUMMARY"
-          if [[ -f test-results/coverage-report.txt ]]; then
-            {
-              echo '```text'
-              cat test-results/coverage-report.txt
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Coverage report was not produced." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-          '''
-          if old_summary not in text:
-              raise SystemExit('coverage summary block changed unexpectedly')
-          workflow.write_text(text.replace(old_summary, new_summary, 1), encoding='utf-8', newline='\n')
+          text = text[:step_start] + replacement + text[step_end:]
+          workflow.write_text(text, encoding='utf-8', newline='\n')
 
           catalogue_path = Path('docs/wiki/catalogue.json')
           catalogue = json.loads(catalogue_path.read_text(encoding='utf-8'))
@@ -162,6 +154,8 @@ jobs:
               changelog.write_text(text, encoding='utf-8', newline='\n')
           PY
 
+          # Stage the one-shot deletion so git ls-files presents the intended permanent tree.
+          git add --all
           python3 tools/check_wiki.py --root . --write-reference
 
       - name: Validate mechanical result before commit
