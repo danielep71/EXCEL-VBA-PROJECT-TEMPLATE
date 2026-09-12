@@ -65,7 +65,33 @@ jobs:
           '''
           if old not in text:
               raise SystemExit('checker-development import block changed unexpectedly')
-          checker.write_text(text.replace(old, new, 1), encoding='utf-8', newline='\n')
+          text = text.replace(old, new, 1)
+
+          closeout_exclusion = '''    "_release_closeout.py": (
+              "private post-release provider-snapshot validator with a dedicated self-test; "
+              "not a focused run_gate report CLI"
+          ),
+          '''
+          exclusion_anchor = 'GATE_RUNNER_EXCLUSIONS = {\n'
+          if closeout_exclusion not in text:
+              if exclusion_anchor not in text:
+                  raise SystemExit('gate-runner exclusion anchor changed unexpectedly')
+              text = text.replace(exclusion_anchor, exclusion_anchor + closeout_exclusion, 1)
+
+          stale_fixture_reason = '''    "create_reusable_workflow_fixture.py": (
+              "Provisioning utility with no dedicated offline suite; live consumer pilot evidence is separate"
+          ),
+          '''
+          current_fixture_reason = '''    "create_reusable_workflow_fixture.py": (
+              "Offline cases: python tools/test_workflow_validation.py; "
+              "live consumer pilot evidence is separate"
+          ),
+          '''
+          if stale_fixture_reason in text:
+              text = text.replace(stale_fixture_reason, current_fixture_reason, 1)
+          elif current_fixture_reason not in text:
+              raise SystemExit('reusable-workflow fixture exclusion changed unexpectedly')
+          checker.write_text(text, encoding='utf-8', newline='\n')
 
           pyproject = Path('pyproject.toml')
           text = pyproject.read_text(encoding='utf-8')
@@ -82,6 +108,13 @@ jobs:
               if isinstance(asset, dict) and isinstance(asset.get("name"), str)
           ]
           '''
+          # The source block uses eight spaces for the comprehension body; normalize the
+          # text here so this one-shot remains exact while still failing closed on drift.
+          old_names = old_names.replace('              asset', '        asset').replace(
+              '              for asset', '        for asset'
+          ).replace('              if isinstance', '        if isinstance').replace(
+              '          ]', '    ]'
+          )
           new_names = '''    names: list[str] = []
               for asset in raw_assets:
                   if not isinstance(asset, dict):
@@ -90,6 +123,13 @@ jobs:
                   if isinstance(name, str):
                       names.append(name)
           '''
+          new_names = new_names.replace('              for asset', '    for asset').replace(
+              '                  if not', '        if not'
+          ).replace('                      continue', '            continue').replace(
+              '                  name =', '        name ='
+          ).replace('                  if isinstance', '        if isinstance').replace(
+              '                      names.append', '            names.append'
+          )
           if old_names not in text:
               raise SystemExit('closeout asset-name block changed unexpectedly')
           closeout_helper.write_text(
@@ -188,8 +228,10 @@ jobs:
           python -m pip install --disable-pip-version-check "ruff==0.16.6" "mypy==2.3.1"
           ruff check tools
           mypy
+          python3 tools/checker_development.py --root . --self-test
           python3 tools/_release_closeout.py --self-test
           python3 tools/check_wiki.py --root .
+          python3 tools/check_repo.py --root .
           git diff --check
 
       - name: Commit integrated result and remove one-shot workflow
