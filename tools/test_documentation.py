@@ -31,6 +31,7 @@ class DocumentationTests(unittest.TestCase):
         self.policy["references"] = []
         self.policy["historical_documents"] = {}
         self.policy["network"]["domains"] = {"example.org": "Synthetic documentation service"}
+        self.policy["network"]["classifications"] = []
         (self.root / "README.md").write_text("# Fixture\n\npython3 tools/fixture.py --root .\n")
         (self.root / "tools/fixture.py").write_text("import argparse\np=argparse.ArgumentParser()\np.add_argument('--root')\n")
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
@@ -143,6 +144,51 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(len(calls), 3)
         self.assertEqual(sleeps, [1, 2])
 
+    def test_public_404_remains_deterministic_public_defect(self):
+        url = "https://example.org/missing"
+        (self.root / "README.md").write_text(f"[missing]({url})\n")
+        self.save()
+        report = links.build_report(self.root, TODAY, lambda *args: (404, None), lambda *args: None)
+        self.assertEqual(report["status"], "fail")
+        self.assertEqual(report["links"][0]["status"], "PERMANENT_FAILURE")
+        self.assertEqual(report["counts"]["deterministic_public_defects"], 1)
+        self.assertEqual(report["counts"]["restricted_historical"], 0)
+
+    def test_restricted_historical_is_non_green_and_not_probed(self):
+        url = "https://example.org/private-history"
+        identifier = hashlib.sha256(url.encode()).hexdigest()
+        (self.root / "README.md").write_text(f"[history]({url})\n")
+        self.policy["network"]["classifications"] = [{
+            "id": identifier,
+            "kind": "restricted-historical",
+            "reason": "Authenticated historical evidence",
+            "expires": "2026-09-10",
+        }]
+        self.save()
+        report = links.build_report(self.root, TODAY, lambda *args: self.fail("classified target must not be probed"))
+        self.assertEqual(report["status"], "fail")
+        self.assertEqual(report["links"][0]["status"], "RESTRICTED_HISTORICAL")
+        self.assertEqual(report["counts"]["restricted_historical"], 1)
+        self.assertEqual(report["counts"]["deterministic_public_defects"], 0)
+        self.assertNotIn("private-history", json.dumps(report) + links.markdown(report))
+
+    def test_pending_publication_is_distinct_non_green_classification(self):
+        url = "https://example.org/compare/v1.0.0...v1.1.0"
+        identifier = hashlib.sha256(url.encode()).hexdigest()
+        (self.root / "README.md").write_text(f"[future-tag]({url})\n")
+        self.policy["network"]["classifications"] = [{
+            "id": identifier,
+            "kind": "pending-publication",
+            "reason": "Reviewed candidate link depends on a tag not published yet",
+            "expires": "2026-09-10",
+        }]
+        self.save()
+        report = links.build_report(self.root, TODAY, lambda *args: self.fail("pending target must not be probed"))
+        self.assertEqual(report["status"], "fail")
+        self.assertEqual(report["links"][0]["status"], "PENDING_PUBLICATION")
+        self.assertEqual(report["counts"]["pending_publication"], 1)
+        self.assertEqual(report["counts"]["deterministic_public_defects"], 0)
+
     def test_transient_then_recovery(self):
         report, calls, _ = self.probe([(503, None), (200, None)])
         self.assertEqual(report["status"], "OK")
@@ -209,6 +255,29 @@ class DocumentationTests(unittest.TestCase):
             links.validate_policy(network, date(2026, 9, 11))
         network["exceptions"] = []
         network["attempts"] = 100
+        with self.assertRaises(ValueError):
+            links.validate_policy(network, TODAY)
+
+    def test_classification_expiry_kind_and_identity_fail_closed(self):
+        network = self.policy["network"]
+        network["classifications"] = [{
+            "id": "b" * 64,
+            "kind": "restricted-historical",
+            "reason": "Reviewed private evidence",
+            "expires": "2026-09-08",
+        }]
+        with self.assertRaises(ValueError):
+            links.validate_policy(network, TODAY)
+        network["classifications"][0]["expires"] = "2026-09-10"
+        network["classifications"][0]["kind"] = "private-maybe"
+        with self.assertRaises(ValueError):
+            links.validate_policy(network, TODAY)
+        network["classifications"][0]["kind"] = "restricted-historical"
+        network["exceptions"] = [{
+            "id": "b" * 64,
+            "reason": "Conflicting exception",
+            "expires": "2026-09-10",
+        }]
         with self.assertRaises(ValueError):
             links.validate_policy(network, TODAY)
 
