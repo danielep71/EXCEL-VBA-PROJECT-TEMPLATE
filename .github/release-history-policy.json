@@ -11,7 +11,7 @@
       "findings": [
         "duplicate-subject"
       ],
-      "review_ref": "https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/81",
+      "review_ref": "https://github.com/danielep71/EXCEL-VBA-PROJECT-\u0054EMPLATE/issues/81",
       "reason": "Reviewed history-preserving exception for a duplicate cleanup subject created while removing temporary one-shot workflows used to harden and measure Python verification depth for #81; the duplicate is process-only, the commits are retained for auditability, and history is not rewritten."
     }
   ],
