@@ -35,6 +35,7 @@ jobs:
           path = Path("tools/test_verification_depth.py")
           text = path.read_text(encoding="utf-8")
           imports = (
+              "from email.message import Message\n"
               "import check_local_actions as local_actions\n"
               "import collect_portfolio_snapshot as snapshot\n"
               "import policy_coverage_runner as coverage_runner\n"
@@ -45,6 +46,11 @@ jobs:
                   raise SystemExit("import anchor missing")
               text = text.replace(anchor, anchor + imports, 1)
           payload = Path(".github/v121-81-depth-payload.txt").read_text(encoding="utf-8")
+          old_http = 'snapshot.urllib.error.HTTPError("u", 403, "no", {}, None)'
+          new_http = 'snapshot.urllib.error.HTTPError("u", 403, "no", Message(), None)'
+          if old_http not in payload:
+              raise SystemExit("HTTP fixture typing anchor missing")
+          payload = payload.replace(old_http, new_http, 1)
           marker = '\n\nif __name__ == "__main__":\n'
           if marker not in text:
               raise SystemExit("test footer missing")
