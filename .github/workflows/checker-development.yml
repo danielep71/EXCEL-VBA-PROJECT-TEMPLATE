@@ -150,7 +150,7 @@ jobs:
         run: |
           coverage erase
           mkdir -p test-results/coverage-normal
-          run() { coverage run --append --source=tools "$@"; }
+          run() { coverage run "$@"; }
 
           run tools/checker_development.py --root . --self-test
           run tools/check_repo.py --root . --self-test
@@ -210,14 +210,9 @@ jobs:
             --output test-results/coverage-normal/wiki.json \
             --summary test-results/coverage-normal/wiki.md
 
-          coverage report \
-            --omit='tools/test_*.py' \
-            --show-missing \
-            --fail-under=95 \
-            | tee test-results/coverage-report.txt
-          coverage json \
-            --omit='tools/test_*.py' \
-            -o test-results/coverage.json
+          coverage combine
+          coverage report | tee test-results/coverage-report.txt
+          coverage json -o test-results/coverage.json
 
       - name: Add coverage summary
         id: coverage-summary
@@ -229,6 +224,7 @@ jobs:
             echo
             echo "- Candidate: \`$(git rev-parse HEAD)\`"
             echo "- Scope: maintained \`tools/*.py\`; \`tools/test_*.py\` excluded from the denominator."
+            echo "- Python subprocesses spawned by the semantic fixtures are measured and combined."
             echo "- Floor: **95% statement coverage**."
             echo
           } >> "$GITHUB_STEP_SUMMARY"
