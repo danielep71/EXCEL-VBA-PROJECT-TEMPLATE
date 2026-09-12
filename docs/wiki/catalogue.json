@@ -189,6 +189,11 @@
       "kind": "policy",
       "authority": "docs/RELEASE_EVIDENCE.md"
     },
+    ".github/release-history-policy.json": {
+      "purpose": "Canonical-template merge-history rules, exact-SHA reviewed exceptions and preserved historical records.",
+      "kind": "policy",
+      "authority": "docs/RELEASE_SEMANTICS.md"
+    },
     ".github/release-provenance.json": {
       "purpose": "Expected source/workflow identity and optional committed SSH signing trust.",
       "kind": "policy",
@@ -590,7 +595,7 @@
       "authority": "docs/RELEASE_EVIDENCE.md"
     },
     "tools/check_release_semantics.py": {
-      "purpose": "Enforce strict version, dated changelog, ordering and comparison semantics.",
+      "purpose": "Enforce strict version, dated changelog, comparison and canonical-template history semantics.",
       "kind": "script",
       "authority": "docs/RELEASE_SEMANTICS.md"
     },

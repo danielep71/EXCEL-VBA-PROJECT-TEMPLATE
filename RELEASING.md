@@ -196,6 +196,18 @@ and maintainer decision in the PR before merging. Availability of multiple merge
 methods in GitHub settings does not override this convention; this is a review
 policy, not a claim that repository settings enforce squash-only merging.
 
+<!-- template:remove:start -->
+For the canonical template, release certification also checks this convention
+against the complete Git range from the previous release tag to the candidate.
+An intentional history-preserving merge must be registered in
+`.github/release-history-policy.json` before certification with the previous
+`base_tag`, exact commit SHA, permitted finding type, GitHub issue/PR review
+reference, and a concrete reason. Stale, out-of-range or overbroad exceptions
+are blocking. This machine-check is template-maintainer policy; generated
+repositories do not inherit it unless they deliberately adopt an equivalent
+local control.
+<!-- template:remove:end -->
+
 An implementation PR may merge before release certification for stabilization.
 That does not authorize tagging or publication. Keep incomplete acceptance work
 open, then certify the final `main` commit before tagging. A squash or merge
@@ -206,9 +218,11 @@ the required final-candidate evidence rather than silently rebinding old results
 **Historical exception:** the v1.1.0 release PR used squash merging. The v1.2.0
 implementation entered `main` through PR #49 at
 `ac78ddca5de9de1fbfbf89d504b8ba93b06220c4` using a history-preserving merge
-during the move to stabilization on `main`. This records the existing outcome;
-it does not establish squash merging as the method used then or claim that
-v1.2.0 was published. Keep that merge and its ancestry intact.
+during the move to stabilization on `main`. The later v1.2.0 clean-room
+stabilization merge commits from PRs #68, #71 and #74 are retained in
+`.github/release-history-policy.json` as descriptive historical records. Those
+records preserve the published ancestry but do not exempt any future release
+range. Keep all published v1.2.0 ancestry intact.
 <!-- template:remove:end -->
 
 Do not force-push shared `main` or rewrite published tags to make historical
@@ -220,6 +234,10 @@ merges conform retroactively. Apply this convention to future merges.
 Before creating a release tag for the canonical template, complete and retain
 all of these additional checks against the same exact candidate SHA:
 
+- run `python3 tools/check_release_semantics.py --root . --self-test` and the
+  current-tree release-semantics validation; the previous-release-to-candidate
+  history range must contain no unapproved merge commit, duplicate commit
+  subject, stale exception or overbroad exception;
 - run the live external-link observation defined by
   [`docs/DOCUMENTATION_CHECKS.md`](docs/DOCUMENTATION_CHECKS.md); deterministic
   documentation defects must be zero, while restricted or transient network
@@ -297,6 +315,11 @@ Create the release from the protected annotated tag. Include:
 - changelog comparison link; and
 - security-reporting link.
 
+Curate the release notes from `CHANGELOG.md`, the owning issues/PRs and retained
+release evidence. Do not generate authoritative notes from raw commit subjects:
+an approved ancestry-preserving exception can legitimately make Git history
+contain subjects that are unsuitable or duplicated as user-facing release text.
+
 Upload the already-tested, already-hashed artifacts. Do not rebuild between
 certification/tagging and publication.
 
@@ -321,7 +344,7 @@ problem and publish a corrected patch release. Vulnerability handling follows
 
 ## 📚 Related authorities
 
-- [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) — exact version/changelog semantics
+- [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) — exact version/changelog/history semantics
 - [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) — evidence and asset-manifest schema
 - [`INSTALLATION.md`](INSTALLATION.md) — clean install/upgrade validation
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — change/review workflow

@@ -41,6 +41,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/excel-evidence-policy.json` / policy | Starter entry point, case registry, assertion count and expected-error case. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `.github/labels.json` / policy | Canonical core/profile/domain label definitions and reconciliation policy. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/provisioning-policy.json` / policy | Reviewed metadata/features/merge/required-check goals and exception rationale. | R / R / R | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
+| `.github/release-history-policy.json` / policy | Canonical-template merge-history rules, exact-SHA reviewed exceptions and preserved historical records. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
 | `.github/release-policy.json` / policy | Required candidate checks, allowed profile assets and construction-history exclusions. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `.github/release-provenance.json` / policy | Expected source/workflow identity and optional committed SSH signing trust. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `.github/repository-profile.json` / policy | Mode, profile, identity, roles, paths, placeholder schema and adopted control version. | T / T / T | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
@@ -122,7 +123,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/check_policy_coverage.py` / script | Independent policy-branch coverage entry point for the canonical checker. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/check_portfolio_drift.py` / script | Compare captured repository structure with the explicitly adopted control set. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |
 | `tools/check_release.py` / script | Validate an actual release candidate/evidence/assets/tag or synthetic self-tests. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
-| `tools/check_release_semantics.py` / script | Enforce strict version, dated changelog, ordering and comparison semantics. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
+| `tools/check_release_semantics.py` / script | Enforce strict version, dated changelog, comparison and canonical-template history semantics. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
 | `tools/check_repo.py` / script | Self-contained dependency-free canonical 21-rule repository-quality gate. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/check_template_contract.py` / script | Resolve adopted contract versions and reject invalid or unsupported identities. | R / R / R | [docs/TEMPLATE_CONTRACT.md](../../docs/TEMPLATE_CONTRACT.md) |
 | `tools/check_vba_conditionals.py` / script | Validate conditional compilation and reachable PtrSafe declarations in three host models. | R / R / R | [tools/README.md](../../tools/README.md) |
