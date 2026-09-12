@@ -4,7 +4,17 @@
     "merge_commits": "block-unless-excepted",
     "duplicate_subjects": "block-unless-excepted"
   },
-  "exceptions": [],
+  "exceptions": [
+    {
+      "base_tag": "v1.2.0",
+      "commit": "b56be1c5c85613439f648d54dd21f08061666722",
+      "findings": [
+        "duplicate-subject"
+      ],
+      "review_ref": "https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues/81",
+      "reason": "Reviewed history-preserving exception for a duplicate cleanup subject created while removing temporary one-shot workflows used to harden and measure Python verification depth for #81; the duplicate is process-only, the commits are retained for auditability, and history is not rewritten."
+    }
+  ],
   "historical_records": [
     {
       "release": "v1.2.0",
