@@ -97,6 +97,43 @@ When at least one release exists:
 Missing, duplicated, stale, or mismatched comparison links fail release
 semantics.
 
+## Canonical-template history policy
+
+The canonical template additionally applies a squash-by-default history rule to
+the Git range from the previous reachable release tag to the candidate SHA. This
+branch is **template-maintainer policy only**: initialized/generated repositories
+receive no blocking history verdict unless they deliberately adopt an equivalent
+local rule.
+
+The committed authority is `.github/release-history-policy.json`. The gate reads
+that file from the exact candidate Git object rather than trusting a mutable
+working-copy override. Two conditions are blocking by default:
+
+- a multi-parent commit in the candidate release range; and
+- a duplicate normalized commit subject in that same range.
+
+A deliberate history-preserving merge can be approved by adding an exception
+that binds all of the following before release certification:
+
+- the previous release `base_tag` that scopes the exception;
+- the exact 40-character commit SHA;
+- the permitted finding type (`merge-commit` and/or `duplicate-subject`);
+- a GitHub issue or pull-request review reference; and
+- a non-empty reason explaining why ancestry preservation is required.
+
+Exceptions fail closed if they are stale, point outside the inspected range, or
+permit a condition that is not actually present. This prevents a standing or
+wildcard exception from silently weakening future releases.
+
+The same policy file retains historical records for the v1.2.0 stabilization
+merges in PRs #68, #71, and #74. Those records are descriptive only: they keep
+published ancestry visible without exempting any later candidate range or
+requiring a rewrite of the immutable v1.2.0 history.
+
+Release notes remain curated from the changelog, issues, and reviewed release
+evidence. Raw commit subjects are never treated as an authoritative release-note
+source, especially when an approved history-preserving exception exists.
+
 ## Validation
 
 Run the deterministic policy fixtures:
@@ -115,11 +152,17 @@ python3 tools/check_release_semantics.py \
 ```
 
 The generated evidence names the changelog date semantic explicitly as
-`release-section-cut-freeze-date`. The self-test covers valid stable and
-pre-release versions, numeric pre-release leading zeros, SemVer precedence,
-duplicate and out-of-order releases, impossible dates, same-day cut/freeze
-dates, backward cut/freeze-date ordering, `VERSION`/heading disagreement, and
-missing or incorrect comparison links.
+`release-section-cut-freeze-date`. For the canonical template it also records the
+previous release tag, inspected commit range, reviewed exceptions actually used,
+and retained historical records. Generated repositories report the history branch
+as not applicable.
+
+The self-test covers valid stable and pre-release versions, numeric pre-release
+leading zeros, SemVer precedence, duplicate and out-of-order releases,
+impossible dates, same-day cut/freeze dates, backward cut/freeze-date ordering,
+`VERSION`/heading disagreement, missing or incorrect comparison links, compliant
+squash history, an approved merge exception, an unapproved merge commit, and
+duplicate-subject rejection.
 
 A release candidate is not eligible for tagging unless this gate, the executable
 release-integrity gate, the repository gates, and all applicable runtime evidence
