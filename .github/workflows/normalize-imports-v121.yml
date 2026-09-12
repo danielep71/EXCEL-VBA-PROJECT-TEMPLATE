@@ -1,0 +1,49 @@
+name: Normalize v1.2.1 Python imports
+run-name: Normalize imports — ${{ github.ref_name }} @ ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - release/v1.2.1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: normalize-v121-imports
+  cancel-in-progress: true
+
+jobs:
+  normalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v1.2.1
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.10'
+
+      - name: Normalize imports and commit if needed
+        env:
+          RUFF_VERSION: '0.16.6'
+        run: |
+          python -m pip install --disable-pip-version-check "ruff==${RUFF_VERSION}"
+          ruff check tools --select I001 --fix
+          if git diff --quiet -- tools; then
+            echo 'No import-order changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tools
+          git commit -m 'Normalize Python import ordering (#85)'
+          git push origin HEAD:release/v1.2.1
