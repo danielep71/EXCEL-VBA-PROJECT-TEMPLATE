@@ -2,7 +2,7 @@
 
 [![SemVer: strict](https://img.shields.io/badge/SemVer-strict-3f4551)](https://semver.org/spec/v2.0.0.html)
 [![Changelog: ordered](https://img.shields.io/badge/changelog-ordered-0969da)](../CHANGELOG.md)
-[![Dates: Gregorian](https://img.shields.io/badge/dates-Gregorian-217346)](../CHANGELOG.md#date-and-version-rules)
+[![Dates: cut%2Ffreeze](https://img.shields.io/badge/dates-cut%2Ffreeze-217346)](../CHANGELOG.md#date-and-version-rules)
 [![Gate: fail closed](https://img.shields.io/badge/gate-fail%20closed-success)](../tools/check_release_semantics.py)
 
 This document defines release-only version and changelog semantics for the
@@ -35,6 +35,36 @@ headings use exactly:
 
 Pre-release versions use the same heading form with their valid SemVer suffix.
 Every date must be a real Gregorian calendar date.
+
+### Changelog date semantic
+
+The date in a released changelog heading is the **release-section cut/freeze
+date**: the calendar date on which the reviewed `Unreleased` content is moved
+into that versioned section and the release section is frozen for the candidate.
+It is not the Git tag creation date, GitHub Release publication date, first
+installation date, or a timestamp inferred from Git history.
+
+Tagging and publication may occur later than the cut/freeze date. That delay does
+not make the changelog heading stale and must not cause a published historical
+section to be rewritten. The canonical v1.2.0 record is therefore valid with a
+`2026-09-10` changelog cut/freeze date and tag/publication on `2026-09-12`.
+
+If a candidate is abandoned and the release section is materially reopened, a
+later reviewed candidate may be cut/frozen again with a new date. That is a new
+release-preparation event, not a cosmetic attempt to match a future publication
+date.
+
+Across newest-to-oldest release headings, cut/freeze dates must not move
+backward. Same-day releases are valid. This ordering is deterministic and is
+enforced by `tools/check_release_semantics.py` in addition to Gregorian-date
+validation.
+
+The gate deliberately does **not** compare changelog dates with commit, tag, or
+provider publication timestamps. Those timestamps do not prove when the
+release section was frozen, and wall-clock equality would make otherwise valid
+release preparation brittle and timezone-dependent. The maintainer release
+sequence records the cut/freeze event; the static gate proves the parts that are
+available from candidate source alone.
 
 Dated releases appear newest to oldest by **full SemVer precedence**, not by
 lexical text or date alone. Duplicate release versions are invalid. When
@@ -84,10 +114,12 @@ python3 tools/check_release_semantics.py \
   --summary test-results/release-semantics.md
 ```
 
-The self-test covers valid stable and pre-release versions, numeric pre-release
-leading zeros, SemVer precedence, duplicate and out-of-order releases,
-impossible dates, `VERSION`/heading disagreement, and missing or incorrect
-comparison links.
+The generated evidence names the changelog date semantic explicitly as
+`release-section-cut-freeze-date`. The self-test covers valid stable and
+pre-release versions, numeric pre-release leading zeros, SemVer precedence,
+duplicate and out-of-order releases, impossible dates, same-day cut/freeze
+dates, backward cut/freeze-date ordering, `VERSION`/heading disagreement, and
+missing or incorrect comparison links.
 
 A release candidate is not eligible for tagging unless this gate, the executable
 release-integrity gate, the repository gates, and all applicable runtime evidence

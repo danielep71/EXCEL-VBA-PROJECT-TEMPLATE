@@ -22,6 +22,7 @@ SEMVER_RE = re.compile(
 HEADING_RE = re.compile(r"^## \[([^\]]+)\] - (\d{4}-\d{2}-\d{2})\s*$")
 LINK_RE = re.compile(r"^\[([^\]]+)\]:\s*(\S+)\s*$")
 TOOL_NAME = "Release semantics"
+CHANGELOG_DATE_SEMANTICS = "release-section-cut-freeze-date"
 
 
 @dataclass(frozen=True)
@@ -168,6 +169,30 @@ def _validate_release_order(
         )
 
 
+def _validate_release_dates(
+    releases: list[dict[str, Any]], findings: list[dict[str, Any]]
+) -> None:
+    for current, older in zip(releases, releases[1:]):
+        if not valid_date(current["date"]) or not valid_date(older["date"]):
+            continue
+        current_date = date.fromisoformat(current["date"])
+        older_date = date.fromisoformat(older["date"])
+        if current_date >= older_date:
+            continue
+        findings.append(
+            {
+                "path": "CHANGELOG.md",
+                "line": current["line"],
+                "message": (
+                    "release-section cut/freeze dates must not move backward across "
+                    "newest-to-oldest release headings; "
+                    f"{current['version']} uses {current['date']} but older "
+                    f"{older['version']} uses {older['date']}"
+                ),
+            }
+        )
+
+
 def _parse_links(
     changelog: str, findings: list[dict[str, Any]]
 ) -> dict[str, tuple[str, int]]:
@@ -267,6 +292,7 @@ def analyze(version: str, changelog: str, repository: str) -> dict[str, Any]:
 
     releases = _parse_releases(changelog, findings)
     _validate_release_order(releases, version, version_semver, findings)
+    _validate_release_dates(releases, findings)
     links = _parse_links(changelog, findings)
     _validate_links(releases, links, repository, findings)
 
@@ -281,6 +307,11 @@ def analyze(version: str, changelog: str, repository: str) -> dict[str, Any]:
         "version": version,
         "repository": repository,
         "releases": release_evidence,
+        "date_policy": {
+            "semantic": CHANGELOG_DATE_SEMANTICS,
+            "ordering": "newer-release-cut-date>=older-release-cut-date",
+            "tag_publication_relation": "independent",
+        },
         "link_policy": {
             "unreleased": "latest-tag...HEAD",
             "initial_release": "release-tag",
@@ -303,11 +334,12 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         f"- **Status:** {str(report['status']).upper()}",
         f"- **VERSION:** `{report['version']}`",
+        "- **Changelog date semantic:** release-section cut/freeze date",
         f"- **Released headings:** {len(report['releases'])}",
         f"- **Findings:** {len(report['findings'])}",
     ]
     if report["releases"]:
-        lines.extend(["", "| Version | Date | Line |", "| --- | --- | ---: |"])
+        lines.extend(["", "| Version | Cut/freeze date | Line |", "| --- | --- | ---: |"])
         for item in report["releases"]:
             lines.append(f"| `{item['version']}` | {item['date']} | {item['line']} |")
     if report["findings"]:
@@ -357,6 +389,17 @@ def run_self_test() -> int:
             fixture(
                 "1.1.0",
                 [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-04")],
+                canonical_links(stable_versions),
+            ),
+        )
+    )
+    cases.append(
+        (
+            "valid-same-day-cut-dates",
+            "pass",
+            fixture(
+                "1.1.0",
+                [("1.1.0", "2026-09-05"), ("1.0.0", "2026-09-05")],
                 canonical_links(stable_versions),
             ),
         )
@@ -417,6 +460,17 @@ def run_self_test() -> int:
             ),
         )
     )
+    cases.append(
+        (
+            "cut-date-regression",
+            "fail",
+            fixture(
+                "1.1.0",
+                [("1.1.0", "2026-09-04"), ("1.0.0", "2026-09-05")],
+                canonical_links(stable_versions),
+            ),
+        )
+    )
     bad_links = canonical_links(stable_versions)
     bad_links["Unreleased"] = "https://github.com/example/repo/compare/v0.9.0...HEAD"
     cases.append(
@@ -461,6 +515,8 @@ def run_self_test() -> int:
             failures.append(
                 f"{name}: expected {expected}, got {report['status']} ({report['findings']})"
             )
+        if report["date_policy"]["semantic"] != CHANGELOG_DATE_SEMANTICS:
+            failures.append(f"{name}: changelog date semantic is missing or incorrect")
     if compare(parse_semver("1.0.0-alpha.2"), parse_semver("1.0.0-alpha.10")) >= 0:
         failures.append("SemVer numeric prerelease precedence is incorrect")
     if compare(parse_semver("1.0.0"), parse_semver("1.0.0-rc.1")) <= 0:
@@ -473,8 +529,8 @@ def run_self_test() -> int:
         return 1
     print(
         "SELF-TEST PASS: stable/prerelease SemVer, numeric identifier rules, precedence, "
-        "duplicates, ordering, Gregorian dates, VERSION agreement, and comparison-link "
-        "policy passed."
+        "duplicates, ordering, Gregorian cut/freeze dates, non-backward cut-date ordering, "
+        "VERSION agreement, and comparison-link policy passed."
     )
     return 0
 

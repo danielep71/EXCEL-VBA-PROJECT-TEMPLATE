@@ -43,7 +43,8 @@ documentation before the first functional release.
   in source, issues, or technical documentation.
 - Record only validation actually performed. State skipped environments and
   known limitations plainly.
-- Move Unreleased entries into a dated version section during release.
+- Move Unreleased entries into a dated version section on the release-section
+  cut/freeze date defined below.
 - Do not edit a published release entry except to correct a demonstrable factual
   or link error; annotate material corrections instead of rewriting history.
 - Never claim that a tag, binary, workbook, hash, test run, or environment was
@@ -60,8 +61,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for change and evidence requirements and
 |---|---|
 | Version | `MAJOR.MINOR.PATCH`, without the leading `v` in headings |
 | Release heading | `## [X.Y.Z] - YYYY-MM-DD` |
-| Date | Gregorian calendar date in ISO `YYYY-MM-DD` format |
-| Ordering | Unreleased first; released versions newest to oldest by SemVer precedence |
+| Date | Gregorian ISO `YYYY-MM-DD` release-section cut/freeze date; it may precede tag creation or publication |
+| Ordering | Unreleased first; released versions newest to oldest by SemVer precedence; cut/freeze dates do not move backward |
 | Comparison | Unreleased → latest tag; each later release → preceding tag; initial release → release tag |
 | Patch | Backward-compatible correction or hardening |
 | Minor | Backward-compatible capability |
@@ -98,6 +99,10 @@ Use only the categories needed by a release.
 <a id="unreleased"></a>
 
 ## [Unreleased]
+
+### Changed
+
+- Defined changelog release dates as the reviewed release-section cut/freeze date rather than tag or publication timestamps. Release-semantic evidence now names that meaning explicitly, accepts same-day releases, and rejects backward cut/freeze-date ordering without relying on wall-clock or provider timestamps.
 
 ## [1.2.0] - 2026-09-10
 
@@ -263,7 +268,7 @@ Use only the categories needed by a release.
 
 <!--
 Release procedure:
-1. Move applicable Unreleased entries under: ## [X.Y.Z] - YYYY-MM-DD
+1. Move applicable Unreleased entries under ## [X.Y.Z] - YYYY-MM-DD using the release-section cut/freeze date.
 2. Remove empty categories.
 3. Set [Unreleased] to compare the new latest tag to HEAD.
 4. For the initial release, link directly to its release tag. For every later

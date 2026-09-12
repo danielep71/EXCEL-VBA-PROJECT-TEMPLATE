@@ -10,8 +10,10 @@
 
 Replace the initializer's `0.0.0` sentinel with the intended nonzero version.
 Move the relevant Unreleased changes into a dated release section and update
-comparison links. The first release has no previous-tag diff; review the complete
-initial project tree instead.
+comparison links. Use the date on which that reviewed release section is
+**cut/frozen for the candidate**. The changelog date is not required to equal the
+later tag-creation or GitHub Release publication date. The first release has no
+previous-tag diff; review the complete initial project tree instead.
 
 Merge the release changes through the protected process. If that merge changes
 the candidate SHA, certify the merged commit before tagging. From the exact
@@ -29,6 +31,9 @@ python tools/check_release_semantics.py --root .
 ```
 
 Stop on a dirty tree, a sentinel version, failed gates or an unreviewed delta.
+The release-semantic gate verifies Gregorian cut/freeze dates and rejects a
+newer release whose cut/freeze date moves backward relative to an older release;
+same-day releases remain valid.
 
 ## 2. Collect actual evidence
 
@@ -84,7 +89,9 @@ git push origin "refs/tags/${release_tag}"
 In GitHub Releases, draft the release from that existing tag. Summarize behavior,
 installation, compatibility, supported environments and known limitations.
 Upload the tested assets, checksums and retained evidence as appropriate, then
-publish. Do not let the release form create a different tag target.
+publish. Do not let the release form create a different tag target, and do not
+rewrite the changelog date merely because publication occurs later than the
+release-section cut/freeze date.
 
 Download the published assets, compare hashes, verify the tag target and follow
 installation in a clean environment. For source-only releases, inspect the source
