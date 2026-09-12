@@ -74,6 +74,30 @@ jobs:
               raise SystemExit('mypy override marker changed unexpectedly')
           pyproject.write_text(text.replace(marker, '', 1), encoding='utf-8', newline='\n')
 
+          closeout_helper = Path('tools/_release_closeout.py')
+          text = closeout_helper.read_text(encoding='utf-8')
+          old_names = '''    names = [
+              asset.get("name")
+              for asset in raw_assets
+              if isinstance(asset, dict) and isinstance(asset.get("name"), str)
+          ]
+          '''
+          new_names = '''    names: list[str] = []
+              for asset in raw_assets:
+                  if not isinstance(asset, dict):
+                      continue
+                  name = asset.get("name")
+                  if isinstance(name, str):
+                      names.append(name)
+          '''
+          if old_names not in text:
+              raise SystemExit('closeout asset-name block changed unexpectedly')
+          closeout_helper.write_text(
+              text.replace(old_names, new_names, 1),
+              encoding='utf-8',
+              newline='\n',
+          )
+
           workflow = Path('.github/workflows/checker-development.yml')
           text = workflow.read_text(encoding='utf-8')
           anchor = '          run tools/check_template_contract.py --root . --self-test\n'
