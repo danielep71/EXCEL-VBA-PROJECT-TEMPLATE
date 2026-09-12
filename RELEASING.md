@@ -69,15 +69,26 @@ Update the applicable release surfaces in one reviewable change:
 - user-facing documentation/examples affected by the release; and
 - package metadata where the project actually has one.
 
-Do not duplicate SemVer/order/link rules here. Run the authoritative semantic
-contract:
+When moving `Unreleased` entries into the versioned section, use the calendar
+date on which that reviewed release section is **cut/frozen for the candidate**.
+That is the changelog release date. It is independent of the later annotated-tag
+creation date and GitHub Release publication date. Do not rewrite a frozen or
+published section merely because tagging or publication occurs on a later day.
+If a candidate is abandoned and the release section is materially reopened, a
+later reviewed cut/freeze may deliberately use a new date.
+
+Do not duplicate the remaining SemVer/order/link rules here. Run the authoritative
+semantic contract:
 
 ```bash
 python3 tools/check_release_semantics.py --root . --self-test
 python3 tools/check_release_semantics.py --root .
 ```
 
-Historical changelog sections and immutable evidence remain historical.
+The gate verifies Gregorian validity and non-backward cut/freeze-date ordering;
+it deliberately does not infer the cut/freeze event from Git, tag, or provider
+timestamps. Historical changelog sections and immutable evidence remain
+historical.
 
 ## 3. Verify documentation and installation
 
