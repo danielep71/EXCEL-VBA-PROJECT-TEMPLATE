@@ -29,6 +29,7 @@ TAG_RE = re.compile(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z
 REVIEW_RE = re.compile(
     r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/(?:issues|pull)/[1-9]\d*"
 )
+SYNTHETIC_PR_MERGE_RE = re.compile(r"Merge ([0-9a-f]{40}) into ([0-9a-f]{40})")
 TOOL_NAME = "Release semantics"
 CHANGELOG_DATE_SEMANTICS = "release-section-cut-freeze-date"
 HISTORY_FINDINGS = frozenset({"merge-commit", "duplicate-subject"})
@@ -368,6 +369,20 @@ def _load_history_policy(root: Path, candidate: str) -> dict[str, Any]:
     return policy
 
 
+def _effective_history_candidate(root: Path, checkout_sha: str) -> str:
+    parents = _git_output(root, "show", "-s", "--format=%P", checkout_sha).split()
+    if len(parents) != 2:
+        return checkout_sha
+    subject = _git_output(root, "show", "-s", "--format=%s", checkout_sha)
+    match = SYNTHETIC_PR_MERGE_RE.fullmatch(subject)
+    if match is None:
+        return checkout_sha
+    head_sha, base_sha = match.groups()
+    if parents != [base_sha, head_sha]:
+        return checkout_sha
+    return head_sha
+
+
 def _previous_release_tag(root: Path, candidate: str) -> str:
     parent = _git_output(root, "rev-parse", f"{candidate}^")
     tag = _git_output(
@@ -469,23 +484,26 @@ def _history_findings(
 
 
 def _release_history_report(root: Path, config: dict[str, Any]) -> dict[str, Any]:
-    candidate = _git_output(root, "rev-parse", "HEAD")
+    checkout_sha = _git_output(root, "rev-parse", "HEAD")
     if config.get("mode") != "template" or config.get("profile") is not None:
         return {
             "applicable": False,
-            "candidate_sha": candidate,
+            "checkout_sha": checkout_sha,
+            "candidate_sha": checkout_sha,
             "previous_tag": None,
             "commits": [],
             "exceptions_used": [],
             "historical_records": [],
             "findings": [],
         }
+    candidate = _effective_history_candidate(root, checkout_sha)
     policy = _load_history_policy(root, candidate)
     base_tag = _previous_release_tag(root, candidate)
     rows = _history_rows(root, base_tag, candidate)
     findings, used = _history_findings(rows, policy, base_tag)
     return {
         "applicable": True,
+        "checkout_sha": checkout_sha,
         "candidate_sha": candidate,
         "previous_tag": base_tag,
         "commits": rows,
@@ -579,10 +597,15 @@ def markdown_report(report: dict[str, Any]) -> str:
             [
                 f"- **Template history policy:** {'applicable' if history['applicable'] else 'not applicable'}",
                 f"- **History range base:** `{history['previous_tag'] or 'not applicable'}`",
+                f"- **History candidate:** `{history['candidate_sha']}`",
                 f"- **History commits inspected:** {len(history['commits'])}",
                 f"- **History exceptions used:** {len(history['exceptions_used'])}",
             ]
         )
+        if history["checkout_sha"] != history["candidate_sha"]:
+            lines.append(
+                f"- **Synthetic PR merge checkout:** `{history['checkout_sha']}` resolved to PR head"
+            )
     if report["releases"]:
         lines.extend(["", "| Version | Cut/freeze date | Line |", "| --- | --- | ---: |"])
         for item in report["releases"]:
@@ -667,9 +690,9 @@ def _history_base_fixture(root: Path) -> None:
     _fixture_git(root, "tag", "-a", "v1.0.0", "-m", "v1.0.0")
 
 
-def _history_commit(root: Path, text: str, subject: str) -> str:
-    (root / "fixture.txt").write_text(text + "\n", encoding="utf-8")
-    _fixture_git(root, "add", "fixture.txt")
+def _history_commit(root: Path, filename: str, text: str, subject: str) -> str:
+    (root / filename).write_text(text + "\n", encoding="utf-8")
+    _fixture_git(root, "add", filename)
     _fixture_git(root, "commit", "-m", subject)
     return _fixture_git(root, "rev-parse", "HEAD")
 
@@ -677,9 +700,9 @@ def _history_commit(root: Path, text: str, subject: str) -> str:
 def _history_merge_case(root: Path, approved: bool) -> dict[str, Any]:
     _history_base_fixture(root)
     _fixture_git(root, "switch", "-c", "feature")
-    _history_commit(root, "feature", "Feature change")
+    _history_commit(root, "feature.txt", "feature", "Feature change")
     _fixture_git(root, "switch", "main")
-    _history_commit(root, "main", "Mainline preparation")
+    _history_commit(root, "main.txt", "main", "Mainline preparation")
     _fixture_git(root, "merge", "--no-ff", "feature", "-m", "Reviewed feature merge")
     merge_sha = _fixture_git(root, "rev-parse", "HEAD")
     if approved:
@@ -710,7 +733,7 @@ def _history_self_test_cases() -> list[tuple[str, bool]]:
         compliant = area / "compliant"
         compliant.mkdir()
         _history_base_fixture(compliant)
-        _history_commit(compliant, "one", "Focused squash result")
+        _history_commit(compliant, "focused.txt", "one", "Focused squash result")
         report = _release_history_report(
             compliant, json.loads((compliant / CONFIG_PATH).read_text(encoding="utf-8"))
         )
@@ -735,8 +758,8 @@ def _history_self_test_cases() -> list[tuple[str, bool]]:
         duplicate = area / "duplicate"
         duplicate.mkdir()
         _history_base_fixture(duplicate)
-        _history_commit(duplicate, "one", "Repeated subject")
-        _history_commit(duplicate, "two", "Repeated subject")
+        _history_commit(duplicate, "one.txt", "one", "Repeated subject")
+        _history_commit(duplicate, "two.txt", "two", "Repeated subject")
         report = _release_history_report(
             duplicate, json.loads((duplicate / CONFIG_PATH).read_text(encoding="utf-8"))
         )
