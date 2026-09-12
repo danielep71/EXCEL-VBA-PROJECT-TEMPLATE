@@ -848,7 +848,8 @@ class ExtendedReleaseAndCloseoutDepthTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
-            (root / "token.txt").write_text("{{TOKEN}} TemplateIdentity\n", encoding="utf-8")
+            placeholder = "{" + "{TOKEN}" + "}"
+            (root / "token.txt").write_text(f"{placeholder} TemplateIdentity\n", encoding="utf-8")
             (root / "bad.txt").write_bytes(b"\xff")
             configuration = {
                 "identity": {"exclude_paths": [], "template_tokens": ["TemplateIdentity"]}
@@ -976,7 +977,8 @@ class ExtendedReleaseAndCloseoutDepthTests(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, "invalid value"):
                 initializer._record_arguments(root)
 
-            (root / "x.md").write_text("<!-- template:oops -->\n", encoding="utf-8")
+            bad_marker = "<" + "!-- template:oops --" + ">"
+            (root / "x.md").write_text(bad_marker + "\n", encoding="utf-8")
             with patch.object(initializer, "_tracked_files", return_value=["x.md"]):
                 with self.assertRaisesRegex(AssertionError, "retained a template marker"):
                     initializer._assert_generated_cleanup(root, "library")
