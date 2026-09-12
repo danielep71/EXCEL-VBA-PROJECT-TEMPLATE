@@ -32,6 +32,8 @@ class ProvenanceTests(unittest.TestCase):
         self.signature = None
 
     def fixture(self, profile="application", binary=True, signed=False):
+        if signed:
+            self.policy["provenance_signature_mode"] = "ssh"
         gate._fixture_repository(self.root, profile, self.policy)
         self.configuration = gate._fixture_configuration(profile)
         self.configuration["template_contract"] = {"version": "1.2.0", "source": "example/template"}
@@ -232,6 +234,66 @@ class ProvenanceTests(unittest.TestCase):
         self.record_path.write_text(self.record_path.read_text().replace(
             '"schema_version": 1', '"schema_version": 1, "schema_version": 1'))
         self.fails()
+
+    def test_release_policy_requires_signature_mode(self):
+        policy_root = self.area / "policy"
+        (policy_root / ".github").mkdir(parents=True)
+        missing = copy.deepcopy(self.policy)
+        missing.pop("provenance_signature_mode")
+        (policy_root / gate.POLICY_PATH).write_text(json.dumps(missing))
+        loaded, findings = gate._load_policy(policy_root)
+        self.assertIsNone(loaded)
+        self.assertIn("invalid-release-policy", [item["code"] for item in findings])
+
+    def test_release_policy_rejects_unsupported_signature_mode(self):
+        policy_root = self.area / "policy"
+        (policy_root / ".github").mkdir(parents=True)
+        invalid = copy.deepcopy(self.policy)
+        invalid["provenance_signature_mode"] = "gpg"
+        (policy_root / gate.POLICY_PATH).write_text(json.dumps(invalid))
+        loaded, findings = gate._load_policy(policy_root)
+        self.assertIsNone(loaded)
+        self.assertIn("invalid-release-policy", [item["code"] for item in findings])
+
+    def test_committed_release_policy_selector_is_required_by_provenance(self):
+        self.fixture("library", binary=False)
+        release_policy = json.loads((self.root / gate.POLICY_PATH).read_text())
+        release_policy.pop("provenance_signature_mode")
+        (self.root / gate.POLICY_PATH).write_text(json.dumps(release_policy))
+        gate._git(self.root, "add", gate.POLICY_PATH)
+        gate._git(self.root, "commit", "-m", "Remove provenance selector")
+        sha = gate._git_output(self.root, "rev-parse", "HEAD")
+        findings = provenance.validate(self.root, self.configuration, sha,
+                                       self.evidence_path, None, None, None)
+        self.assertTrue(findings)
+        self.assertIn("requires provenance_signature_mode", findings[0]["message"])
+
+    def test_provenance_mode_must_match_unsigned_release_policy(self):
+        self.fixture("library", binary=False)
+        trust = copy.deepcopy(self.trust)
+        trust["signature"] = {"mode": "ssh", "principal": "release@example.invalid",
+                              "allowed_signers": ".github/release-signers"}
+        (self.root / provenance.POLICY).write_text(json.dumps(trust))
+        gate._git(self.root, "add", provenance.POLICY)
+        gate._git(self.root, "commit", "-m", "Mismatch provenance mode")
+        sha = gate._git_output(self.root, "rev-parse", "HEAD")
+        findings = provenance.validate(self.root, self.configuration, sha,
+                                       self.evidence_path, None, None, None)
+        self.assertTrue(findings)
+        self.assertIn("differs from release policy", findings[0]["message"])
+
+    def test_provenance_mode_must_match_signed_release_policy(self):
+        self.fixture("library", binary=False)
+        release_policy = json.loads((self.root / gate.POLICY_PATH).read_text())
+        release_policy["provenance_signature_mode"] = "ssh"
+        (self.root / gate.POLICY_PATH).write_text(json.dumps(release_policy))
+        gate._git(self.root, "add", gate.POLICY_PATH)
+        gate._git(self.root, "commit", "-m", "Require signed provenance")
+        sha = gate._git_output(self.root, "rev-parse", "HEAD")
+        findings = provenance.validate(self.root, self.configuration, sha,
+                                       self.evidence_path, None, None, None)
+        self.assertTrue(findings)
+        self.assertIn("differs from release policy", findings[0]["message"])
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
     def test_real_ssh_signature_and_tamper(self):

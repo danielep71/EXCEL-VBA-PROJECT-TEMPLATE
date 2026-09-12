@@ -2,7 +2,7 @@
 
 [![Contract: 1.2.0](https://img.shields.io/badge/contract-1.2.0-217346)](TEMPLATE_CONTRACT.md)
 [![Digest: SHA-256](https://img.shields.io/badge/digest-SHA--256-1D76DB)](#-minimum-levels)
-[![Signatures: optional](https://img.shields.io/badge/signatures-optional-6f42c1)](#-optional-signatures)
+[![Signatures: policy-selected](https://img.shields.io/badge/signatures-policy--selected-6f42c1)](#-signature-policy)
 
 This is the authority for build records and signature verification under template
 contract 1.2.0. The existing [release evidence contract](RELEASE_EVIDENCE.md)
@@ -18,10 +18,12 @@ calls `tools/release_provenance.py`; there is no second publication verdict.
 | `ui-component` | Base release evidence; no artificial workbook required | Base evidence, SHA-256 manifest and build record |
 | `application` | Base release evidence; no artificial workbook required | Base evidence, SHA-256 manifest and build record |
 
-Enabling SSH verification raises every distribution's minimum to a signed build
-record, including source-only releases. Unknown signature modes fail. Contracts
-1.0.0 and 1.1.0 retain their previous evidence rules; advanced inputs require
-1.2.0. Unsupported future contracts fail instead of inheriting today's policy.
+Selecting SSH verification raises every distribution's minimum to a signed build
+record, including source-only releases. The selection is explicit in
+`.github/release-policy.json`; omission, an unsupported value, or disagreement
+with `.github/release-provenance.json` fails closed. Contracts 1.0.0 and 1.1.0
+retain their previous evidence rules; advanced inputs require 1.2.0. Unsupported
+future contracts fail instead of inheriting today's policy.
 
 `dist/` is the complete payload boundary. Its regular files must exactly equal
 the evidence asset list and digests. Missing, additional, changed, duplicate or
@@ -32,9 +34,9 @@ For source-only releases, `dist/` must be empty or absent.
 
 Commit `.github/release-provenance.json` before freezing the candidate. The
 default identifies `.github/workflows/static-checks.yml` in the candidate's own
-repository and leaves signatures disabled. `@repository` and `@candidate` resolve
-to the committed repository identity and exact release SHA. They are policy
-references, not initialization placeholders.
+repository. `@repository` and `@candidate` resolve to the committed repository
+identity and exact release SHA. They are policy references, not initialization
+placeholders.
 
 Set `workflow.path` to the workflow responsible for the retained release
 validation or build record. For a reusable provider, set `workflow.repository`
@@ -47,6 +49,29 @@ The gate reads policy and signing keys from candidate Git objects. Editing the
 working copy or an external record cannot disable required verification. The
 reviewed candidate SHA and trusted verifier installation are the trust roots:
 review changes to that policy as carefully as changes to the workflow itself.
+
+## 🔏 Signature Policy
+
+`.github/release-policy.json` is the selector for the provenance-record signature
+requirement. Its top-level `provenance_signature_mode` field is mandatory and
+supports exactly:
+
+- `"none"` — detached provenance signing is disabled; a supplied provenance
+  signature is rejected rather than silently ignored;
+- `"ssh"` — a provenance record and detached OpenSSH signature are mandatory,
+  including for source-only releases.
+
+`.github/release-provenance.json` supplies the candidate-bound trust details and
+must declare the **same** mode in its `signature` object. The duplication is
+intentional: the release policy selects the required assurance level, while the
+provenance trust policy supplies the verification configuration. Neither file may
+silently raise or lower the other. A missing selector, unsupported selector, or
+mode mismatch is a blocking release finding.
+
+The default canonical/template baseline selects `"none"` explicitly in both
+files. This is an explicit unsigned provenance policy, not permission inferred
+from an absent setting. Git-tag signing is a separate control and does not satisfy
+or replace this provenance-record policy.
 
 ## 🧾 Build Record
 
@@ -105,11 +130,20 @@ public key in an allowed-signers file, for example `.github/release-signers`:
 release@example.org ssh-ed25519 REPLACE_WITH_APPROVED_PUBLIC_KEY
 ```
 
-Change the policy's `signature` object before freezing the candidate:
+To enable signing, change the release selector before freezing the candidate:
+
+```json
+{"provenance_signature_mode": "ssh"}
+```
+
+and configure the matching provenance trust policy:
 
 ```json
 {"mode": "ssh", "principal": "release@example.org", "allowed_signers": ".github/release-signers"}
 ```
+
+Both changes belong in the reviewed candidate. Changing only one file is a
+policy mismatch and fails before signature verification.
 
 Sign the finalized record with the dedicated namespace:
 
@@ -121,12 +155,14 @@ The gate invokes `ssh-keygen -Y verify` with the committed allowed signers,
 configured principal, namespace and exact record bytes. See the
 [OpenSSH manual](https://man.openbsd.org/ssh-keygen.1) for key and allowed-signers
 formats. An absent tool, unsupported operation, timeout, missing signature,
-wrong key/namespace, or changed record blocks publication. Supplying a signature
-while policy says `none` also fails: no signature is silently left unchecked.
+wrong key/namespace, changed record, or policy mismatch blocks publication.
+Supplying a signature while both policies say `none` also fails: no signature is
+silently left unchecked.
 
 ## ✅ Verification and Retention
 
-1. Check out the reviewed candidate; retain the exact source SHA and policy.
+1. Check out the reviewed candidate; retain the exact source SHA and both release
+   and provenance trust policies.
 2. Stage only the approved downloadable payloads in `dist/`. Build/test them
    using the recorded environment and keep the actual logs.
 3. Finalize base evidence, manifest and build record; sign last if enabled.
@@ -168,6 +204,7 @@ that the key remains approved today.
 ## 🧪 Validation Scope
 
 `python3 tools/test_release_provenance.py -v` exercises synthetic candidates,
-payload tampering and real ephemeral SSH signatures. It runs with the existing
-release self-test in repository CI. It does not build or execute Office files,
-request signing credentials, or publish a release.
+payload tampering, explicit unsigned policy, missing/unsupported selectors,
+both policy-mismatch directions, and real ephemeral SSH signatures. It runs with
+the existing release self-test in repository CI. It does not build or execute
+Office files, request signing credentials, or publish a release.
