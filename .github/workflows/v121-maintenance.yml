@@ -41,55 +41,30 @@ jobs:
 
           checker = Path('tools/checker_development.py')
           text = checker.read_text(encoding='utf-8')
-          old = '''import io
-          import json
-          from pathlib import Path
-          import subprocess
-          import sys
-          import tempfile
-          from types import ModuleType
-          from typing import Any
-          from _gatelib import parse_report_args as parse_arguments, run_gate
-          '''
-          new = '''import io
-          import json
-          import subprocess
-          import sys
-          import tempfile
-          from pathlib import Path
-          from types import ModuleType
-          from typing import Any
 
-          from _gatelib import parse_report_args as parse_arguments
-          from _gatelib import run_gate
-          '''
-          if old not in text:
-              raise SystemExit('checker-development import block changed unexpectedly')
-          text = text.replace(old, new, 1)
-
-          closeout_exclusion = '''    "_release_closeout.py": (
-              "private post-release provider-snapshot validator with a dedicated self-test; "
-              "not a focused run_gate report CLI"
-          ),
-          '''
+          closeout_exclusion = (
+              '    "_release_closeout.py": (\n'
+              '        "private post-release provider-snapshot validator with a dedicated self-test; "\n'
+              '        "not a focused run_gate report CLI"\n'
+              '    ),\n'
+          )
           exclusion_anchor = 'GATE_RUNNER_EXCLUSIONS = {\n'
           if closeout_exclusion not in text:
               if exclusion_anchor not in text:
                   raise SystemExit('gate-runner exclusion anchor changed unexpectedly')
               text = text.replace(exclusion_anchor, exclusion_anchor + closeout_exclusion, 1)
 
-          stale_fixture_reason = '''    "create_reusable_workflow_fixture.py": (
-              "Provisioning utility with no dedicated offline suite; live consumer pilot evidence is separate"
-          ),
-          '''
-          current_fixture_reason = '''    "create_reusable_workflow_fixture.py": (
-              "Offline cases: python tools/test_workflow_validation.py; "
-              "live consumer pilot evidence is separate"
-          ),
-          '''
-          if stale_fixture_reason in text:
-              text = text.replace(stale_fixture_reason, current_fixture_reason, 1)
-          elif current_fixture_reason not in text:
+          stale_reason = (
+              'Provisioning utility with no dedicated offline suite; '
+              'live consumer pilot evidence is separate'
+          )
+          current_reason = (
+              'Offline cases: python tools/test_workflow_validation.py; '
+              'live consumer pilot evidence is separate'
+          )
+          if stale_reason in text:
+              text = text.replace(stale_reason, current_reason, 1)
+          elif current_reason not in text:
               raise SystemExit('reusable-workflow fixture exclusion changed unexpectedly')
           checker.write_text(text, encoding='utf-8', newline='\n')
 
@@ -102,33 +77,21 @@ jobs:
 
           closeout_helper = Path('tools/_release_closeout.py')
           text = closeout_helper.read_text(encoding='utf-8')
-          old_names = '''    names = [
-              asset.get("name")
-              for asset in raw_assets
-              if isinstance(asset, dict) and isinstance(asset.get("name"), str)
-          ]
-          '''
-          # The source block uses eight spaces for the comprehension body; normalize the
-          # text here so this one-shot remains exact while still failing closed on drift.
-          old_names = old_names.replace('              asset', '        asset').replace(
-              '              for asset', '        for asset'
-          ).replace('              if isinstance', '        if isinstance').replace(
-              '          ]', '    ]'
+          old_names = (
+              '    names = [\n'
+              '        asset.get("name")\n'
+              '        for asset in raw_assets\n'
+              '        if isinstance(asset, dict) and isinstance(asset.get("name"), str)\n'
+              '    ]\n'
           )
-          new_names = '''    names: list[str] = []
-              for asset in raw_assets:
-                  if not isinstance(asset, dict):
-                      continue
-                  name = asset.get("name")
-                  if isinstance(name, str):
-                      names.append(name)
-          '''
-          new_names = new_names.replace('              for asset', '    for asset').replace(
-              '                  if not', '        if not'
-          ).replace('                      continue', '            continue').replace(
-              '                  name =', '        name ='
-          ).replace('                  if isinstance', '        if isinstance').replace(
-              '                      names.append', '            names.append'
+          new_names = (
+              '    names: list[str] = []\n'
+              '    for asset in raw_assets:\n'
+              '        if not isinstance(asset, dict):\n'
+              '            continue\n'
+              '        name = asset.get("name")\n'
+              '        if isinstance(name, str):\n'
+              '            names.append(name)\n'
           )
           if old_names not in text:
               raise SystemExit('closeout asset-name block changed unexpectedly')
@@ -151,31 +114,32 @@ jobs:
           step_end = text.find('      - name: Upload coverage evidence\n', step_start)
           if step_start < 0 or step_end < 0:
               raise SystemExit('coverage summary step boundaries changed unexpectedly')
-          replacement = '''      - name: Add coverage summary
-            id: coverage-summary
-            if: always()
-            continue-on-error: true
-            run: |
-              {
-                echo "## Python statement coverage"
-                echo
-                echo "- Candidate: \\`$(git rev-parse HEAD)\\`"
-                echo "- Scope: maintained \\`tools/*.py\\`; \\`tools/test_*.py\\` excluded from the denominator."
-                echo "- Floor: **95% statement coverage**."
-                echo
-              } >> "$GITHUB_STEP_SUMMARY"
-              if [[ -f test-results/coverage-report.txt ]]; then
-                {
-                  echo '```text'
-                  cat test-results/coverage-report.txt
-                  echo '```'
-                } >> "$GITHUB_STEP_SUMMARY"
-              else
-                echo "Coverage report was not produced." >> "$GITHUB_STEP_SUMMARY"
-                exit 1
-              fi
-
-          '''
+          replacement = (
+              '      - name: Add coverage summary\n'
+              '        id: coverage-summary\n'
+              '        if: always()\n'
+              '        continue-on-error: true\n'
+              '        run: |\n'
+              '          {\n'
+              '            echo "## Python statement coverage"\n'
+              '            echo\n'
+              '            echo "- Candidate: \\`$(git rev-parse HEAD)\\`"\n'
+              '            echo "- Scope: maintained \\`tools/*.py\\`; '
+              '\\`tools/test_*.py\\` excluded from the denominator."\n'
+              '            echo "- Floor: **95% statement coverage**."\n'
+              '            echo\n'
+              '          } >> "$GITHUB_STEP_SUMMARY"\n'
+              '          if [[ -f test-results/coverage-report.txt ]]; then\n'
+              '            {\n'
+              "              echo '```text'\n"
+              '              cat test-results/coverage-report.txt\n'
+              "              echo '```'\n"
+              '            } >> "$GITHUB_STEP_SUMMARY"\n'
+              '          else\n'
+              '            echo "Coverage report was not produced." >> "$GITHUB_STEP_SUMMARY"\n'
+              '            exit 1\n'
+              '          fi\n\n'
+          )
           text = text[:step_start] + replacement + text[step_end:]
           workflow.write_text(text, encoding='utf-8', newline='\n')
 
@@ -205,11 +169,13 @@ jobs:
 
           changelog = Path('CHANGELOG.md')
           text = changelog.read_text(encoding='utf-8')
-          entry = ('- Added a read-only post-release closeout workflow that binds the annotated tag, '
-                   'tag-triggered CI, GitHub Release state, candidate-bound asset policy, comparison '
-                   'range, actual milestone membership, Wiki read-back, and provider-generated source '
-                   'archive observations to one certified SHA; uploaded assets remain distinct from '
-                   'GitHub source archives.\n')
+          entry = (
+              '- Added a read-only post-release closeout workflow that binds the annotated tag, '
+              'tag-triggered CI, GitHub Release state, candidate-bound asset policy, comparison '
+              'range, actual milestone membership, Wiki read-back, and provider-generated source '
+              'archive observations to one certified SHA; uploaded assets remain distinct from '
+              'GitHub source archives.\n'
+          )
           if entry not in text:
               anchor = '## [Unreleased]\n\n### Changed\n\n'
               if anchor not in text:
@@ -226,6 +192,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check "ruff==0.16.6" "mypy==2.3.1"
+          ruff check tools/checker_development.py --fix
           ruff check tools
           mypy
           python3 tools/checker_development.py --root . --self-test
