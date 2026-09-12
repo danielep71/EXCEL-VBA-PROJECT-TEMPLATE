@@ -262,7 +262,7 @@ jobs:
           if [[ "${{ inputs.allow_not_latest }}" == "true" ]]; then
             args+=(--allow-not-latest)
           fi
-          python3 tools/check_release_closeout.py "${args[@]}"
+          python3 tools/_release_closeout.py "${args[@]}"
 
       - name: Publish closeout summary
         id: summary
