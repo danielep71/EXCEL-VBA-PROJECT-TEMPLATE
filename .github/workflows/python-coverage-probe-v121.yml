@@ -17,7 +17,7 @@ defaults:
 jobs:
   coverage:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - name: Check out exact SHA
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,6 +38,7 @@ jobs:
       - name: Exercise maintained semantic and offline suites under coverage
         run: |
           coverage erase
+          mkdir -p test-results/coverage-normal
           run() { coverage run --append --source=tools "$@"; }
 
           run tools/checker_development.py --root . --self-test
@@ -58,7 +59,43 @@ jobs:
           run tools/test_portfolio_quality.py -v
           run tools/test_provision_repository.py -v
           run tools/test_release_provenance.py -v
+          run tools/test_reusable_workflow_fixture.py -v
           run tools/test_wiki.py -v
+
+          run tools/checker_development.py --root . \
+            --output test-results/coverage-normal/checker-development.json \
+            --summary test-results/coverage-normal/checker-development.md
+          run tools/check_repo.py --root . \
+            --output test-results/coverage-normal/check-repo.json \
+            --summary test-results/coverage-normal/check-repo.md
+          run tools/check_documentation.py --root . \
+            --output test-results/coverage-normal/documentation.json \
+            --summary test-results/coverage-normal/documentation.md
+          run tools/check_release_semantics.py --root . \
+            --output test-results/coverage-normal/release-semantics.json \
+            --summary test-results/coverage-normal/release-semantics.md
+          run tools/check_committed_whitespace.py --root . --mode committed \
+            --head "$(git rev-parse HEAD)" \
+            --output test-results/coverage-normal/committed-whitespace.json \
+            --summary test-results/coverage-normal/committed-whitespace.md
+          run tools/check_vba_jumps.py --root . \
+            --output test-results/coverage-normal/vba-jumps.json \
+            --summary test-results/coverage-normal/vba-jumps.md
+          run tools/check_vba_conditionals.py --root . \
+            --output test-results/coverage-normal/vba-conditionals.json \
+            --summary test-results/coverage-normal/vba-conditionals.md
+          run tools/check_vba_public_api.py --root . \
+            --output test-results/coverage-normal/vba-public-api.json \
+            --summary test-results/coverage-normal/vba-public-api.md
+          run tools/check_local_actions.py --root . \
+            --output test-results/coverage-normal/local-actions.json \
+            --summary test-results/coverage-normal/local-actions.md
+          run tools/check_template_contract.py --root . \
+            --output test-results/coverage-normal/template-contract.json \
+            --summary test-results/coverage-normal/template-contract.md
+          run tools/check_wiki.py --root . \
+            --output test-results/coverage-normal/wiki.json \
+            --summary test-results/coverage-normal/wiki.md
 
       - name: Report production-tool statement coverage
         run: |
