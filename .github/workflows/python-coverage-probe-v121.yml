@@ -1,0 +1,81 @@
+name: Python coverage probe v1.2.1
+run-name: Python coverage probe — ${{ github.ref_name }} @ ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - release/v1.2.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  coverage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.10"
+
+      - name: Install pinned coverage tool
+        run: python -m pip install --disable-pip-version-check "coverage==7.10.6"
+
+      - name: Exercise maintained semantic and offline suites under coverage
+        run: |
+          coverage erase
+          run() { coverage run --append --source=tools "$@"; }
+
+          run tools/checker_development.py --root . --self-test
+          run tools/check_repo.py --root . --self-test
+          run tools/check_policy_coverage.py --root . --self-test
+          run tools/check_release.py --root . --self-test
+          run tools/check_release_semantics.py --root . --self-test
+          run tools/initialize_repository.py --root . --self-test
+          run tools/check_committed_whitespace.py --root . --self-test
+          run tools/check_vba_jumps.py --root . --self-test
+          run tools/check_vba_conditionals.py --root . --self-test
+          run tools/check_vba_public_api.py --root . --self-test
+          run tools/check_local_actions.py --root . --self-test
+
+          run tools/test_documentation.py -v
+          run tools/test_excel_evidence.py -v
+          run tools/test_portfolio_drift.py -v
+          run tools/test_portfolio_quality.py -v
+          run tools/test_provision_repository.py -v
+          run tools/test_release_provenance.py -v
+          run tools/test_wiki.py -v
+
+      - name: Report production-tool statement coverage
+        run: |
+          coverage report \
+            --omit='tools/test_*.py' \
+            --show-missing \
+            --skip-covered \
+            | tee coverage-report.txt
+          coverage json \
+            --omit='tools/test_*.py' \
+            -o coverage.json
+
+      - name: Upload probe evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-coverage-probe-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            coverage-report.txt
+            coverage.json
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 9
