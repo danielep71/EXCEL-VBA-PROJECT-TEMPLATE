@@ -9,15 +9,15 @@ from __future__ import annotations
 
 import argparse
 import base64
-from datetime import datetime, timezone
 import json
 import os
 import re
 import sys
-from typing import Any
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
+from typing import Any
 
 from check_portfolio_drift import CONFIG, PATHS
 

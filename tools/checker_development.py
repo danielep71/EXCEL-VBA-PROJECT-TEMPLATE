@@ -10,13 +10,15 @@ import hashlib
 import importlib.util
 import io
 import json
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from types import ModuleType
 from typing import Any
-from _gatelib import parse_report_args as parse_arguments, run_gate
+
+from _gatelib import parse_report_args as parse_arguments
+from _gatelib import run_gate
 
 TOOL_NAME = "Checker development contract"
 CHECKER_PATH = Path("tools/check_repo.py")

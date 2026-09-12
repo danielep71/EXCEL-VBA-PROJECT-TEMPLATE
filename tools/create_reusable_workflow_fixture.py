@@ -7,8 +7,8 @@ The destination must not exist. No remote repository or branch is changed.
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import re
+from pathlib import Path
 
 import initialize_repository as initializer
 

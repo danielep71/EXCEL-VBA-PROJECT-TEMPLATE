@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import tempfile
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 POLICY = ".github/release-provenance.json"

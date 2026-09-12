@@ -4,12 +4,12 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import hashlib
 import json
-from pathlib import Path
 import re
 import subprocess
+from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from _gatelib import run_gate

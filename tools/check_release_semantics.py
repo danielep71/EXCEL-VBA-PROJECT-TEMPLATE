@@ -3,17 +3,18 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date
 import json
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
 from typing import Any
 
-from _gatelib import git_text, parse_report_args as parse_args, run_gate
+from _gatelib import git_text, run_gate
+from _gatelib import parse_report_args as parse_args
 
 CONFIG_PATH = ".github/repository-profile.json"
 HISTORY_POLICY_PATH = ".github/release-history-policy.json"

@@ -6,8 +6,8 @@ import argparse
 import hashlib
 import importlib
 import json
-from pathlib import Path, PurePosixPath
 import re
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from _gatelib import run_gate

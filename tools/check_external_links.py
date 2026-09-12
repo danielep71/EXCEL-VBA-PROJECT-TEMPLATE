@@ -4,16 +4,16 @@
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
-from datetime import date
 import hashlib
 import http.client
 import ipaddress
-from pathlib import Path
 import re
 import socket
 import ssl
 import time
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urljoin, urlsplit
 

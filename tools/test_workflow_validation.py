@@ -10,14 +10,13 @@ portable YAML subset parser cannot authoritatively decide.
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 import os
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
-
+from dataclasses import dataclass
+from pathlib import Path
 
 EXPECTED_ACTIONLINT_VERSION = "1.7.12"
 

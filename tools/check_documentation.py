@@ -6,8 +6,8 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Any
 
 from _gatelib import run_gate, tracked_files

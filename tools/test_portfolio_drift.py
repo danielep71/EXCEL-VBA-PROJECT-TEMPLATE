@@ -1,12 +1,12 @@
 """Independent synthetic drift fixtures; never query or modify a live repository."""
 from __future__ import annotations
 
-import copy
 import contextlib
+import copy
 import io
 import json
-from email.message import Message
 import unittest
+from email.message import Message
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 

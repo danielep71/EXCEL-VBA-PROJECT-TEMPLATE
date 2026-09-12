@@ -5,11 +5,11 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import check_release as gate

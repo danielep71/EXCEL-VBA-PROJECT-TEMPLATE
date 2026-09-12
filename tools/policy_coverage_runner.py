@@ -2,17 +2,25 @@ from __future__ import annotations
 
 import inspect
 import json
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from typing import Any, Callable
 
-from policy_coverage_core import (CORE_TOOL, TOOL_NAME, CoverageError, load_module, production_finding_sites, rule_by_id)
+from _gatelib import parse_report_args as parse_args
+from _gatelib import run_gate
 from policy_coverage_cases_config import configuration_cases
-from policy_coverage_cases_repo import repository_cases
 from policy_coverage_cases_quality import quality_cases
-from _gatelib import parse_report_args as parse_args, run_gate
+from policy_coverage_cases_repo import repository_cases
+from policy_coverage_core import (
+    CORE_TOOL,
+    TOOL_NAME,
+    CoverageError,
+    load_module,
+    production_finding_sites,
+    rule_by_id,
+)
 
 
 def run_core_coverage(root: Path) -> dict[str, Any]:

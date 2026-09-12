@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
-from check_wiki import compare_bundle, directories, read_json, render_page, sidebar, validate_catalogue, write_bundle
+from check_wiki import (
+    compare_bundle,
+    directories,
+    read_json,
+    render_page,
+    sidebar,
+    validate_catalogue,
+    write_bundle,
+)
 
 
 def catalogue_fixture(root: Path) -> tuple[dict, set[str]]:

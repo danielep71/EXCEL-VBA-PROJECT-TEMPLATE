@@ -16,15 +16,14 @@ import argparse
 import fnmatch
 import hashlib
 import json
-from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
+from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Iterable
 from urllib.parse import unquote, urlsplit
-import xml.etree.ElementTree as ET
-
 
 SCHEMA_VERSION = 1
 CONFIG_PATH = ".github/repository-profile.json"

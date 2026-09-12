@@ -4,15 +4,16 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from typing import Any
 
-from _gatelib import git_bytes as git, parse_report_args as parse_args, run_gate
-
+from _gatelib import git_bytes as git
+from _gatelib import parse_report_args as parse_args
+from _gatelib import run_gate
 from check_vba_conditionals import reachable_sources
 
 CONFIG_PATH = ".github/repository-profile.json"

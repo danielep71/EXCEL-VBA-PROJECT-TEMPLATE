@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import date
 import hashlib
 import json
-from pathlib import Path
 import subprocess
 import tempfile
 import threading
 import time
 import unittest
+from datetime import date
+from pathlib import Path
 from unittest.mock import patch
 
 import check_documentation as docs
