@@ -127,7 +127,8 @@ def _load_policy(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, str]
         return None, [_finding("invalid-release-policy", POLICY_PATH, "; ".join(detail))]
     if value.get("schema_version") != SCHEMA_VERSION or value.get("evidence_schema_version") != SCHEMA_VERSION:
         return None, [_finding("invalid-release-policy", POLICY_PATH, "unsupported schema version")]
-    if value.get("provenance_signature_mode") not in {"none", "ssh"}:
+    signature_mode = value.get("provenance_signature_mode")
+    if not isinstance(signature_mode, str) or signature_mode not in {"none", "ssh"}:
         return None, [_finding(
             "invalid-release-policy", POLICY_PATH,
             "provenance_signature_mode must be none or ssh",
