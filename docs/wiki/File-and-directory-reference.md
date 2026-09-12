@@ -151,6 +151,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/test_portfolio_quality.py` / script | Synthetic quality, missing-evidence and freshness-boundary fixtures. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
 | `tools/test_provision_repository.py` / script | Stateful simulated API fixtures for planning, guarded writes and partial failure. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `tools/test_release_provenance.py` / script | Release-payload fixtures and ephemeral SSH signing/verification controls. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
+| `tools/test_verification_depth.py` / script | Focused behavioral failure-path coverage for release, contract, Wiki, initializer and closeout tooling. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/test_wiki.py` / script | Offline publication link, source identity, missing/extra/modified page and safe-export fixtures. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `tools/test_workflow_validation.py` / script | Authoritative pinned-actionlint validation of workflows and invalid fixtures. | R / R / R | [tools/README.md](../../tools/README.md) |
 

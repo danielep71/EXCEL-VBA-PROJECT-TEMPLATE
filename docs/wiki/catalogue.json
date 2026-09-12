@@ -184,15 +184,15 @@
       "kind": "policy",
       "authority": "docs/PROVISIONING.md"
     },
-    ".github/release-policy.json": {
-      "purpose": "Required candidate checks, allowed profile assets and construction-history exclusions.",
-      "kind": "policy",
-      "authority": "docs/RELEASE_EVIDENCE.md"
-    },
     ".github/release-history-policy.json": {
       "purpose": "Canonical-template merge-history rules, exact-SHA reviewed exceptions and preserved historical records.",
       "kind": "policy",
       "authority": "docs/RELEASE_SEMANTICS.md"
+    },
+    ".github/release-policy.json": {
+      "purpose": "Required candidate checks, allowed profile assets and construction-history exclusions.",
+      "kind": "policy",
+      "authority": "docs/RELEASE_EVIDENCE.md"
     },
     ".github/release-provenance.json": {
       "purpose": "Expected source/workflow identity and optional committed SSH signing trust.",
@@ -238,6 +238,11 @@
       "purpose": "Template-only synthetic drift, quality and provisioner acceptance fixtures.",
       "kind": "workflow",
       "authority": ".github/workflows/portfolio-drift.yml"
+    },
+    ".github/workflows/release-closeout.yml": {
+      "purpose": "Manual read-only capture and deterministic post-release closeout evidence.",
+      "kind": "workflow",
+      "authority": "docs/RELEASE_CLOSEOUT.md"
     },
     ".github/workflows/static-checks.yml": {
       "purpose": "Canonical/focused gates, quality tools, self-tests, artifacts and reusable interface.",
@@ -378,6 +383,11 @@
       "purpose": "Documentation hub and single-authority mapping.",
       "kind": "document",
       "authority": "docs/README.md"
+    },
+    "docs/RELEASE_CLOSEOUT.md": {
+      "purpose": "Canonical post-publication release closeout procedure and evidence boundaries.",
+      "kind": "document",
+      "authority": "docs/RELEASE_CLOSEOUT.md"
     },
     "docs/RELEASE_EVIDENCE.md": {
       "purpose": "Candidate-bound release JSON and profile/asset evidence schemas.",
@@ -554,6 +564,11 @@
       "kind": "script",
       "authority": "tools/README.md"
     },
+    "tools/_release_closeout.py": {
+      "purpose": "Private deterministic validator for retained post-release provider snapshots.",
+      "kind": "script",
+      "authority": "docs/RELEASE_CLOSEOUT.md"
+    },
     "tools/check_committed_whitespace.py": {
       "purpose": "Validate staged/unstaged feedback or an explicit committed Git range.",
       "kind": "script",
@@ -719,6 +734,11 @@
       "kind": "script",
       "authority": "docs/RELEASE_PROVENANCE.md"
     },
+    "tools/test_verification_depth.py": {
+      "purpose": "Focused behavioral failure-path coverage for release, contract, Wiki, initializer and closeout tooling.",
+      "kind": "script",
+      "authority": "tools/README.md"
+    },
     "tools/test_wiki.py": {
       "purpose": "Offline publication link, source identity, missing/extra/modified page and safe-export fixtures.",
       "kind": "script",
@@ -728,21 +748,6 @@
       "purpose": "Authoritative pinned-actionlint validation of workflows and invalid fixtures.",
       "kind": "script",
       "authority": "tools/README.md"
-    },
-    ".github/workflows/release-closeout.yml": {
-      "purpose": "Manual read-only capture and deterministic post-release closeout evidence.",
-      "kind": "workflow",
-      "authority": "docs/RELEASE_CLOSEOUT.md"
-    },
-    "docs/RELEASE_CLOSEOUT.md": {
-      "purpose": "Canonical post-publication release closeout procedure and evidence boundaries.",
-      "kind": "document",
-      "authority": "docs/RELEASE_CLOSEOUT.md"
-    },
-    "tools/_release_closeout.py": {
-      "purpose": "Private deterministic validator for retained post-release provider snapshots.",
-      "kind": "script",
-      "authority": "docs/RELEASE_CLOSEOUT.md"
     }
   },
   "directories": {

@@ -102,6 +102,7 @@ Use only the categories needed by a release.
 
 ### Changed
 
+- Added reproducible maintainer Python coverage with subprocess measurement, a 95% statement floor, and focused behavioral failure-path fixtures for release, template-contract, Wiki, initializer, closeout, and reusable-workflow tooling.
 - Added a read-only post-release closeout workflow that binds the annotated tag, tag-triggered CI, GitHub Release state, candidate-bound asset policy, comparison range, actual milestone membership, Wiki read-back, and provider-generated source archive observations to one certified SHA; uploaded assets remain distinct from GitHub source archives.
 - Defined changelog release dates as the reviewed release-section cut/freeze date rather than tag or publication timestamps. Release-semantic evidence now names that meaning explicitly, accepts same-day releases, and rejects backward cut/freeze-date ordering without relying on wall-clock or provider timestamps.
 - Made provenance-record signature mode an explicit release-policy selector. Contract 1.2.0 candidates now fail closed when the selector is missing or unsupported, or when the committed provenance trust policy attempts to use a different mode; Git-tag signing remains a separate control.
