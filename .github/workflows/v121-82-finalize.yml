@@ -1,0 +1,111 @@
+name: One-shot finalize #82 supply-chain controls
+
+on:
+  push:
+    branches:
+      - fix/82-supply-chain-assurance
+    paths:
+      - .github/workflows/v121-82-finalize.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Check out #82 branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix/82-supply-chain-assurance
+          fetch-depth: 0
+
+      - name: Integrate fail-closed policy, documentation, and generated reference
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+
+          path = root / 'tools/check_repo.py'
+          text = path.read_text(encoding='utf-8')
+          old = '''        try:\n            text = repo.text(path)\n        except (OSError, UnicodeError):\n            continue\n        for number, line in enumerate(text.splitlines(), start=1):\n            if "uses:" not in line:\n                continue\n'''
+          new = '''        try:\n            text = repo.text(path)\n        except (OSError, UnicodeError):\n            continue\n        lines = text.splitlines()\n        has_pull_request = any(\n            re.match(r"^  pull_request:\\s*(?:#.*)?$", line)\n            or re.match(r"^on:\\s*\\[[^]]*\\bpull_request\\b[^]]*\\]\\s*$", line)\n            for line in lines\n        )\n        for number, line in enumerate(lines, start=1):\n            if re.match(r"^  pull_request_target:\\s*(?:#.*)?$", line) or re.match(\n                r"^on:\\s*\\[[^]]*\\bpull_request_target\\b[^]]*\\]\\s*$", line\n            ):\n                failures.append(\n                    finding(\n                        path,\n                        "pull_request_target is prohibited; untrusted pull requests must not execute privileged repository code.",\n                        number,\n                    )\n                )\n        if has_pull_request:\n            top_permissions = False\n            for number, line in enumerate(lines, start=1):\n                indent = len(line) - len(line.lstrip(" "))\n                stripped = line.strip()\n                if re.fullmatch(r"permissions:\\s*write-all(?:\\s*#.*)?", stripped) and indent == 0:\n                    failures.append(\n                        finding(\n                            path,\n                            "Workflow triggered by pull_request must not request write-capable token permissions.",\n                            number,\n                        )\n                    )\n                if indent == 0 and re.fullmatch(r"permissions:\\s*(?:#.*)?", stripped):\n                    top_permissions = True\n                    continue\n                if top_permissions and stripped and not stripped.startswith("#") and indent == 0:\n                    top_permissions = False\n                if top_permissions and re.fullmatch(\n                    r"(?:actions|attestations|checks|contents|deployments|discussions|id-token|issues|models|packages|pages|pull-requests|repository-projects|security-events|statuses):\\s*write(?:\\s*#.*)?",\n                    stripped,\n                ):\n                    failures.append(\n                        finding(\n                            path,\n                            "Workflow triggered by pull_request must not request workflow-level write permissions.",\n                            number,\n                        )\n                    )\n\n            jobs_index = next(\n                (index for index, line in enumerate(lines) if re.fullmatch(r"jobs:\\s*(?:#.*)?", line.strip()) and not line.startswith(" ")),\n                None,\n            )\n            if jobs_index is not None:\n                starts = [\n                    index\n                    for index in range(jobs_index + 1, len(lines))\n                    if re.match(r"^  [A-Za-z0-9_-]+:\\s*(?:#.*)?$", lines[index])\n                ]\n                for position, start in enumerate(starts):\n                    end = starts[position + 1] if position + 1 < len(starts) else len(lines)\n                    block = lines[start:end]\n                    excludes_pull_request = any(\n                        re.match(\n                            r"^    if:\\s*github\\.event_name\\s*!=\\s*(['\\\"])pull_request\\1\\s*(?:#.*)?$",\n                            item,\n                        )\n                        for item in block\n                    )\n                    in_permissions = False\n                    for offset, item in enumerate(block):\n                        number = start + offset + 1\n                        indent = len(item) - len(item.lstrip(" "))\n                        stripped = item.strip()\n                        if indent == 4 and re.fullmatch(r"permissions:\\s*write-all(?:\\s*#.*)?", stripped):\n                            if not excludes_pull_request:\n                                failures.append(\n                                    finding(\n                                        path,\n                                        "Job reachable from pull_request must not request write-all permissions.",\n                                        number,\n                                    )\n                                )\n                        if indent == 4 and re.fullmatch(r"permissions:\\s*(?:#.*)?", stripped):\n                            in_permissions = True\n                            continue\n                        if in_permissions and stripped and not stripped.startswith("#") and indent <= 4:\n                            in_permissions = False\n                        if in_permissions and re.fullmatch(\n                            r"(?:actions|attestations|checks|contents|deployments|discussions|id-token|issues|models|packages|pages|pull-requests|repository-projects|security-events|statuses):\\s*write(?:\\s*#.*)?",\n                            stripped,\n                        ) and not excludes_pull_request:\n                            failures.append(\n                                finding(\n                                    path,\n                                    "Job reachable from pull_request must not request write-capable token permissions.",\n                                    number,\n                                )\n                            )\n        for number, line in enumerate(lines, start=1):\n            if "uses:" not in line:\n                continue\n'''
+          if old not in text:
+              raise SystemExit('check_workflow_actions insertion point drifted')
+          text = text.replace(old, new, 1)
+
+          old = '''def _degrade_workflow_actions(root: Path) -> None:\n    path = root / ".github/workflows/static-checks.yml"\n    text = path.read_text(encoding="utf-8")\n    text = re.sub(r"actions/checkout@[0-9a-f]{40}", "actions/checkout@v4", text)\n    _write_fixture(path, text)\n\n\ndef _degrade_version_changelog(root: Path) -> None:\n'''
+          new = '''def _degrade_workflow_actions(root: Path) -> None:\n    path = root / ".github/workflows/static-checks.yml"\n    text = path.read_text(encoding="utf-8")\n    text = re.sub(r"actions/checkout@[0-9a-f]{40}", "actions/checkout@v4", text)\n    _write_fixture(path, text)\n\n\ndef _degrade_workflow_pull_request_target(root: Path) -> None:\n    path = root / ".github/workflows/static-checks.yml"\n    text = path.read_text(encoding="utf-8")\n    _write_fixture(path, text.replace("on:\\n", "on:\\n  pull_request_target:\\n", 1))\n\n\ndef _degrade_workflow_pr_write(root: Path) -> None:\n    path = root / ".github/workflows/static-checks.yml"\n    text = path.read_text(encoding="utf-8")\n    _write_fixture(\n        path,\n        text.replace("permissions:\\n  contents: read", "permissions:\\n  contents: write", 1),\n    )\n\n\ndef _degrade_version_changelog(root: Path) -> None:\n'''
+          if old not in text:
+              raise SystemExit('workflow degradation insertion point drifted')
+          text = text.replace(old, new, 1)
+
+          old = '''    ("structured-xml-oversize", "structured-data", _degrade_structured_xml_oversize),\n)\n'''
+          new = '''    ("structured-xml-oversize", "structured-data", _degrade_structured_xml_oversize),\n    ("workflow-pull-request-target", "workflow-actions", _degrade_workflow_pull_request_target),\n    ("workflow-pr-write", "workflow-actions", _degrade_workflow_pr_write),\n)\n'''
+          if old not in text:
+              raise SystemExit('branch fixture insertion point drifted')
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+
+          path = root / 'docs/DEPENDENCY_UPDATES.md'
+          text = path.read_text(encoding='utf-8')
+          old = '''release candidate is selected. Security advisories are triaged when received,\nwithout waiting for the weekly review. Record the review date, reviewer, sources\nchecked, candidates, disposition and next action in a tracking issue; a no-change\nreview must say so. A policy cadence is not an installed notification service:\ndiscovery is manual in this baseline, with no scheduled updater or bot merging.\n'''
+          new = '''release candidate is selected. Security advisories are triaged when received,\nwithout waiting for the weekly review. Record the review date, reviewer, sources\nchecked, candidates, disposition and next action in a tracking issue; a no-change\nreview must say so. Dependabot now performs weekly proposal discovery for GitHub\nActions. It never auto-approves or auto-merges; provenance review and the manual\nmerge decision below remain mandatory. Other dependency surfaces retain their\nexplicit maintainer review cadence.\n'''
+          if old not in text:
+              raise SystemExit('dependency monitoring paragraph drifted')
+          text = text.replace(old, new, 1)
+          needle = '| External Actions | Every `uses:` in `.github/workflows/`; official `actions/checkout`, `actions/setup-python`, `actions/upload-artifact` releases and advisories | Full commit SHA plus audited semantic-version comment; update all intended occurrences |\n'
+          addition = needle + '| GitHub Actions update discovery | `.github/dependabot.yml`; Dependabot pull requests are proposals only | Weekly candidate proposal; preserve immutable SHA pins and manual approval |\n| Security analyzers | `.github/workflows/codeql.yml`, `.github/workflows/scorecard.yml`, and [SUPPLY_CHAIN_ASSURANCE.md](SUPPLY_CHAIN_ASSURANCE.md) | Reviewed Action pin, query/analyzer behavior, permissions, triggers, and publication boundary |\n'
+          if needle not in text:
+              raise SystemExit('dependency table insertion point drifted')
+          text = text.replace(needle, addition, 1)
+          old = '''Generated repositories must configure and verify their own live merge settings\nusing [POST_CREATION_CHECKLIST.md](POST_CREATION_CHECKLIST.md); files alone cannot\nenforce GitHub account settings. No updater integration is installed by this\npolicy. Any future proposal bot must retain immutable pins and manual approval.\n'''
+          new = '''Generated repositories must configure and verify their own live merge settings\nusing [POST_CREATION_CHECKLIST.md](POST_CREATION_CHECKLIST.md); files alone cannot\nenforce GitHub account settings. Dependabot is the installed proposal bot for\nGitHub Actions only; it must retain immutable pins and manual approval. CodeQL\nand OpenSSF Scorecard provide additional public supply-chain evidence under\n[SUPPLY_CHAIN_ASSURANCE.md](SUPPLY_CHAIN_ASSURANCE.md), not dependency approval.\n'''
+          if old not in text:
+              raise SystemExit('dependency closeout paragraph drifted')
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+
+          path = root / 'docs/SUPPLY_CHAIN_ASSURANCE.md'
+          text = path.read_text(encoding='utf-8')
+          text = text.replace("the canonical template's public supply-chain analysis layer", "the repository's public supply-chain analysis layer", 1)
+          path.write_text(text, encoding='utf-8')
+
+          path = root / 'README.md'
+          text = path.read_text(encoding='utf-8')
+          needle = '[![Static checks](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/static-checks.yml/badge.svg?branch=main)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/static-checks.yml)\n'
+          addition = needle + '[![CodeQL](https://github.com/{{REPOSITORY_PATH}}/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/{{REPOSITORY_PATH}}/actions/workflows/codeql.yml)\n[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/{{REPOSITORY_PATH}}/badge)](https://securityscorecards.dev/viewer/?uri=github.com/{{REPOSITORY_PATH}})\n'
+          if needle not in text:
+              raise SystemExit('README badge insertion point drifted')
+          text = text.replace(needle, addition, 1)
+          needle = '[Security](SECURITY.md)\n'
+          replacement = '[Security](SECURITY.md)\n&nbsp;·&nbsp;\n[Supply chain](docs/SUPPLY_CHAIN_ASSURANCE.md)\n'
+          if needle not in text:
+              raise SystemExit('README navigation insertion point drifted')
+          text = text.replace(needle, replacement, 1)
+          path.write_text(text, encoding='utf-8')
+
+          path = root / 'CHANGELOG.md'
+          text = path.read_text(encoding='utf-8')
+          needle = '### Changed\n\n'
+          addition = needle + '- Added pinned CodeQL analysis for maintained Python/JavaScript, weekly GitHub Actions update proposals through Dependabot, and trusted-context OpenSSF Scorecard publication; pull-request workflows remain read-only and `pull_request_target` is prohibited by repository validation.\n'
+          if needle not in text:
+              raise SystemExit('CHANGELOG insertion point drifted')
+          text = text.replace(needle, addition, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git rm .github/workflows/v121-82-finalize.yml
+          git add -A
+          python tools/check_wiki.py --root . --write-reference
+          git add -A
+          python tools/check_repo.py --root . --self-test
+          python tools/check_repo.py --root .
+          python tools/test_wiki.py -v
+          git diff --check
+          git commit -m "Integrate #82 supply-chain assurance controls"
+          git push origin HEAD:fix/82-supply-chain-assurance
