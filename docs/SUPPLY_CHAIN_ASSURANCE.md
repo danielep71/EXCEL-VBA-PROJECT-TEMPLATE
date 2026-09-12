@@ -48,6 +48,9 @@ score.
 
 ## Review and maintenance
 
+Pull-request review uses the existing read-only deterministic gates; analyzer
+publication is deferred until the reviewed change reaches a trusted branch.
+
 Before merging a CodeQL, Scorecard, or dependency-workflow change:
 
 1. resolve every proposed Action release tag to its upstream commit and record
