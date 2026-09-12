@@ -1,4 +1,4 @@
-name: One-shot repair #81 placeholder fixture
+name: One-shot repair #81 source-safe fixtures
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
 
-      - name: Make placeholder fixture source-safe
+      - name: Make fixture source text safe for initializer scanning
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -34,15 +34,25 @@ jobs:
 
           path = Path("tools/test_verification_depth.py")
           text = path.read_text(encoding="utf-8")
+
           token = "{" + "{TOKEN}" + "}"
-          old = f'(root / "token.txt").write_text("{token} TemplateIdentity\\n", encoding="utf-8")'
-          new = 'placeholder = "{" + "{TOKEN}" + "}"\n            (root / "token.txt").write_text(f"{placeholder} TemplateIdentity\\n", encoding="utf-8")'
-          if old not in text:
+          old_token = f'(root / "token.txt").write_text("{token} TemplateIdentity\\n", encoding="utf-8")'
+          new_token = 'placeholder = "{" + "{TOKEN}" + "}"\n            (root / "token.txt").write_text(f"{placeholder} TemplateIdentity\\n", encoding="utf-8")'
+          if old_token not in text:
               raise SystemExit("placeholder fixture anchor is missing")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8", newline="\n")
+          text = text.replace(old_token, new_token, 1)
+
+          bad_marker = "<" + "!-- template:oops --" + ">"
+          old_marker = f'(root / "x.md").write_text("{bad_marker}\\n", encoding="utf-8")'
+          new_marker = 'bad_marker = "<" + "!-- template:oops --" + ">"\n            (root / "x.md").write_text(bad_marker + "\\n", encoding="utf-8")'
+          if old_marker not in text:
+              raise SystemExit("template-marker fixture anchor is missing")
+          text = text.replace(old_marker, new_marker, 1)
+
+          path.write_text(text, encoding="utf-8", newline="\n")
           PY
 
-      - name: Validate repaired fixture
+      - name: Validate repaired fixtures
         run: |
           set -euo pipefail
           python3 tools/test_verification_depth.py -v
@@ -55,5 +65,5 @@ jobs:
           git config user.name "Daniele Penza"
           git config user.email "104122869+danielep71@users.noreply.github.com"
           git add tools/test_verification_depth.py
-          git commit -m "Keep #81 placeholder fixture source-safe"
+          git commit -m "Keep #81 failure fixtures source-safe"
           git push origin HEAD:release/v1.2.1
