@@ -1,0 +1,75 @@
+name: One-shot repair #81 behavioral depth
+
+on:
+  push:
+    branches:
+      - release/v1.2.1
+    paths:
+      - .github/workflows/v121-81-depth-repair.yml
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v1.2.1
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Recover and apply behavioral payload
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path(".github/workflows/v121-81-depth-expansion.yml").read_text(encoding="utf-8")
+          start_token = "addition = r'''"
+          end_token = "'''\n          text = text.replace(marker, addition + marker, 1)"
+          if start_token not in source or end_token not in source:
+              raise SystemExit("depth payload markers are missing")
+          addition = source.split(start_token, 1)[1].split(end_token, 1)[0]
+
+          path = Path("tools/test_verification_depth.py")
+          text = path.read_text(encoding="utf-8")
+          import_anchor = "import check_release as release\n"
+          import_line = "import check_release_semantics as semantics\n"
+          if import_line not in text:
+              if import_anchor not in text:
+                  raise SystemExit("release import anchor is missing")
+              text = text.replace(import_anchor, import_anchor + import_line, 1)
+          marker = '\n\nif __name__ == "__main__":\n'
+          if marker not in text:
+              raise SystemExit("test module footer is missing")
+          if "class ReleaseSemanticsDepthTests" in text:
+              raise SystemExit("depth expansion is already present")
+          text = text.replace(marker, addition + marker, 1)
+          path.write_text(text, encoding="utf-8", newline="\n")
+          PY
+
+      - name: Validate expanded behavioral suite
+        run: |
+          set -euo pipefail
+          python3 tools/test_verification_depth.py -v
+          python3 -m pip install --disable-pip-version-check "ruff==0.16.6" "mypy==2.3.1"
+          ruff check tools/test_verification_depth.py
+          mypy tools/test_verification_depth.py
+          git diff --check
+
+      - name: Commit expanded suite
+        run: |
+          set -euo pipefail
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git add tools/test_verification_depth.py
+          git commit -m "Expand release-critical behavioral coverage (#81)"
+          git push origin HEAD:release/v1.2.1
