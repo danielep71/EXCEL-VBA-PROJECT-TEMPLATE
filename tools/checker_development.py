@@ -96,6 +96,7 @@ SELF_TEST_EXCLUSIONS = {
     "test_portfolio_quality.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_provision_repository.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_release_provenance.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_verification_depth.py": "Unittest CLI; focused release-critical failure-path coverage",
     "test_wiki.py": "Unittest CLI; normal invocation runs its fixture suite",
     "check_documentation.py": "Offline fixtures: python tools/test_documentation.py -v",
     "check_wiki.py": "Offline fixtures: python tools/test_wiki.py -v",

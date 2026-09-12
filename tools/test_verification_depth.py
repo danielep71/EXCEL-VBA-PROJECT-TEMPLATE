@@ -530,7 +530,7 @@ class CloseoutDepthTests(unittest.TestCase):
         }, 4, findings)
         self.assertEqual(result["open_items"], [1])
         self.assertGreaterEqual(len(findings), 5)
-        self.assertFalse(closeout.check_wiki({}, {"mode": "generated"}, "a" * 40, [])["applicable"]
+        self.assertFalse(closeout.check_wiki({}, {"mode": "generated"}, "a" * 40, [])["applicable"])
         findings = []
         result = closeout.check_wiki({
             "wiki": {"status": "fail", "source_sha": "b" * 40},
