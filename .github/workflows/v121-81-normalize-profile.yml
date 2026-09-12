@@ -1,0 +1,68 @@
+name: One-shot normalize #81 generated profile
+
+on:
+  push:
+    branches:
+      - release/v1.2.1
+    paths:
+      - .github/workflows/v121-81-normalize-profile.yml
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  normalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v1.2.1
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Normalize profile and regenerate wiki inventory
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('.github/repository-profile.json')
+          data = json.loads(path.read_text(encoding='utf-8'))
+          values = data['placeholders']['template_only_paths']
+          data['placeholders']['template_only_paths'] = sorted(values, key=str.casefold)
+          path.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8', newline='\n')
+          PY
+          git rm .github/workflows/v121-81-normalize-profile.yml
+          python3 tools/check_wiki.py --root . --write-reference
+          git diff --check
+
+      - name: Commit candidate locally
+        run: |
+          set -euo pipefail
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git add .github/repository-profile.json docs/wiki/File-and-directory-reference.md
+          git commit -m "Normalize #81 generated-profile lifecycle inventory"
+
+      - name: Validate clean committed candidate
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          python3 tools/initialize_repository.py --root . --self-test
+          python3 tools/check_repo.py --root .
+          python3 tools/check_release_semantics.py --root .
+          python3 tools/check_wiki.py --root .
+          python3 tools/test_verification_depth.py -v
+          git diff --check
+
+      - name: Push validated candidate
+        run: |
+          set -euo pipefail
+          git push origin HEAD:release/v1.2.1
