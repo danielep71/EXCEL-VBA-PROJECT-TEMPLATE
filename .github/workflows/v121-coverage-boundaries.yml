@@ -1,0 +1,75 @@
+name: One-shot add remaining #81 coverage boundaries
+
+on:
+  push:
+    branches:
+      - release/v1.2.1
+    paths:
+      - .github/workflows/v121-coverage-boundaries.yml
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/v1.2.1
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Add deterministic remaining-boundary tests
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import zlib
+          from pathlib import Path
+
+          payload = "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"
+          insertion = zlib.decompress(base64.b64decode(payload)).decode("utf-8")
+          path = Path("tools/test_verification_depth.py")
+          text = path.read_text(encoding="utf-8")
+          if "class RemainingCoverageDepthTests" in text:
+              raise SystemExit("remaining coverage suite already present")
+          text = text.replace("import json\n", "import ast\nimport base64\nimport json\n", 1)
+          text = text.replace(
+              "import check_local_actions as local_actions\n",
+              "import check_committed_whitespace as whitespace\n"
+              "import check_local_actions as local_actions\n"
+              "import checker_development as checker_dev\n",
+              1,
+          )
+          anchor = '\n\nif __name__ == "__main__":\n'
+          if anchor not in text:
+              raise SystemExit("test-suite terminal anchor changed unexpectedly")
+          text = text.replace(anchor, insertion + anchor, 1)
+          path.write_text(text, encoding="utf-8", newline="\n")
+          PY
+
+      - name: Validate expanded behavioral suite
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "ruff==0.16.6" "mypy==2.3.1"
+          ruff check tools/test_verification_depth.py --fix
+          ruff check tools/test_verification_depth.py
+          mypy
+          python3 tools/test_verification_depth.py -v
+          git diff --check
+
+      - name: Commit expanded suite
+        run: |
+          set -euo pipefail
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git add tools/test_verification_depth.py
+          git commit -m "Cover remaining deterministic Python boundaries (#81)"
+          git push origin HEAD:release/v1.2.1
