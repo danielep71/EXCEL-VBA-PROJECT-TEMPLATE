@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "evidence_schema_version": 1,
+  "provenance_signature_mode": "none",
   "core_checks": [
     "repository-integrity",
     "vba-compile",
