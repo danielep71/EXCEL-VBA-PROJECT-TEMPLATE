@@ -58,6 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m pip install --disable-pip-version-check "ruff==0.16.6" "mypy==2.3.1" "PyYAML==6.0.3"
+          ruff check tools/test_verification_depth.py --fix
           python3 tools/test_verification_depth.py -v
           python3 tools/initialize_repository.py --root . --self-test
           ruff check tools/test_verification_depth.py
