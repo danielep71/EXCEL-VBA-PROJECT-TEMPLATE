@@ -261,6 +261,7 @@ jobs:
           git config user.email "104122869+danielep71@users.noreply.github.com"
           git rm .github/workflows/v121-82-complexity-refactor.yml
           git add tools/check_repo.py
+          python -m pip install --disable-pip-version-check "ruff==0.16.6" "mypy==2.3.1"
           ruff check tools
           mypy
           python tools/check_policy_coverage.py --root . --self-test
