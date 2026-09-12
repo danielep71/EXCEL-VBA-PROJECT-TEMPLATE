@@ -27,7 +27,10 @@ untrusted pull-request code. CodeQL receives only `contents: read` plus
 `contents: read`, `security-events: write`, and `id-token: write`; the latter is
 used only for Scorecard result publication. The repository-quality gate rejects
 `pull_request_target` and rejects write-capable permissions in any workflow that
-runs on `pull_request`.
+runs on `pull_request`. Event detection, workflow-level permission analysis,
+job-level permission analysis, and immutable Action pin validation remain
+separate checker routines so each finding is independently testable and the
+canonical gate stays within its enforced complexity ceiling.
 
 Checkout credentials are not persisted. No supply-chain workflow has a source,
 release, label, issue, branch, or repository mutation step.
