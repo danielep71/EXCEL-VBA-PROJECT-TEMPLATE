@@ -1,0 +1,60 @@
+name: One-shot register #82 wiki inventory
+
+on:
+  push:
+    branches:
+      - fix/82-supply-chain-assurance
+    paths:
+      - .github/workflows/v121-82-catalogue.yml
+
+permissions:
+  contents: write
+
+jobs:
+  register:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out #82 branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix/82-supply-chain-assurance
+          fetch-depth: 0
+
+      - name: Register permanent #82 files and self-delete
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('docs/wiki/catalogue.json')
+          data = json.loads(path.read_text(encoding='utf-8'))
+          files = data['files']
+          files['.github/dependabot.yml'] = {
+              'purpose': 'Weekly proposal-only GitHub Actions dependency discovery.',
+              'kind': 'policy',
+              'authority': 'docs/DEPENDENCY_UPDATES.md',
+          }
+          files['.github/workflows/codeql.yml'] = {
+              'purpose': 'Trusted-context CodeQL analysis for maintained Python and JavaScript source.',
+              'kind': 'workflow',
+              'authority': 'docs/SUPPLY_CHAIN_ASSURANCE.md',
+          }
+          files['.github/workflows/scorecard.yml'] = {
+              'purpose': 'Trusted-context OpenSSF Scorecard publication and retained SARIF evidence.',
+              'kind': 'workflow',
+              'authority': 'docs/SUPPLY_CHAIN_ASSURANCE.md',
+          }
+          files['docs/SUPPLY_CHAIN_ASSURANCE.md'] = {
+              'purpose': 'Canonical CodeQL, Dependabot and Scorecard permission/evidence boundaries.',
+              'kind': 'document',
+              'authority': 'docs/SUPPLY_CHAIN_ASSURANCE.md',
+          }
+          path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+          PY
+          git config user.name "Daniele Penza"
+          git config user.email "104122869+danielep71@users.noreply.github.com"
+          git rm .github/workflows/v121-82-catalogue.yml
+          git add docs/wiki/catalogue.json
+          git commit -m "Register #82 files in wiki inventory"
+          git push origin HEAD:fix/82-supply-chain-assurance
