@@ -15,6 +15,7 @@ import tempfile
 from typing import Any
 
 POLICY = ".github/release-provenance.json"
+RELEASE_POLICY = ".github/release-policy.json"
 NAMESPACE = "excel-vba-release"
 SHA = re.compile(r"[0-9a-f]{40}")
 
@@ -57,6 +58,16 @@ def committed(root: Path, sha: str, path: str) -> bytes:
     return result.stdout
 
 
+def release_signature_mode(root: Path, sha: str) -> str:
+    release_policy = decode(committed(root, sha, RELEASE_POLICY))
+    require(isinstance(release_policy, dict), "release policy must be an object")
+    mode = release_policy.get("provenance_signature_mode")
+    require(mode in ("none", "ssh"),
+            "release policy requires provenance_signature_mode to be none or ssh")
+    assert isinstance(mode, str)
+    return mode
+
+
 def policy_for(root: Path, sha: str, configuration: dict[str, Any]) -> dict[str, Any]:
     policy = decode(committed(root, sha, POLICY))
     object_keys(policy, "schema_version workflow signature", "policy")
@@ -79,10 +90,13 @@ def policy_for(root: Path, sha: str, configuration: dict[str, Any]) -> dict[str,
     signature = policy["signature"]
     require(isinstance(signature, dict), "invalid signature policy")
     mode = signature.get("mode")
+    expected_mode = release_signature_mode(root, sha)
+    require(mode in ("none", "ssh"), "unsupported signature mode")
+    require(mode == expected_mode,
+            f"provenance signature mode {mode!r} differs from release policy {expected_mode!r}")
     if mode == "none":
         object_keys(signature, "mode", "signature policy")
     else:
-        require(mode == "ssh", "unsupported signature mode")
         object_keys(signature, "mode principal allowed_signers", "signature policy")
         require(nonempty(signature["principal"]) and relative(signature["allowed_signers"]),
                 "signature policy requires a principal and committed allowed-signers path")
