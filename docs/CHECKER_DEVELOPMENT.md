@@ -30,6 +30,14 @@ runner tests cover CLI flags, defaults/help, self-test dispatch, diagnostic
 prefixes, exit mapping, deterministic evidence, write failures and propagation
 of non-operational exceptions.
 
+The canonical-template merge-history control introduced after v1.2.0 does **not**
+add another focused-gate entry point. Its ownership sits inside the already
+registered `check_release_semantics.py` consumer: the normal SemVer/changelog
+report gains a template-only history branch, while generated repositories report
+that branch as not applicable. The deterministic history fixtures therefore run
+through `check_release_semantics.py --self-test`, preserving the existing
+shared-runner registry and avoiding a parallel orchestration path.
+
 `tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused operational gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary in the canonical template. The checker-development workflow, this document, and the `policy_coverage_*` semantic-coverage harness are template-maintainer assets and are removed by initialization rather than shipped into generated projects.
 
 The public API gate also uses `check_vba_conditionals.py` to evaluate the same three supported compilation environments. It checks name collisions only where declarations can coexist, and requires one manifest declaration row plus a `# SIG` record for every distinct reachable signature. Unknown conditions fail closed. These are static models, not evidence of Excel runtime certification.
@@ -96,6 +104,11 @@ python3 tools/checker_development.py --root . --self-test
 ```
 
 The contract directly tests representative YAML, GitHub-style Markdown anchors, EditorConfig parsing, VBA lexical stripping, Markdown/console serialization, CLI flags and operational exit-code mapping. The full `check_repo.py --self-test` and semantic policy-coverage matrix remain separate higher-level gates. Hosted CI keeps both template-maintainer contracts together in `checker-development.yml`; the operational `static-checks.yml` deliberately remains free of template-only policy-coverage tooling so the generated workflow is self-contained.
+
+Release-history fixtures are owned by the existing release-semantics suite rather
+than this AST/interface harness. `python3 tools/check_release_semantics.py --root . --self-test`
+proves compliant squash history, reviewed merge exceptions, unapproved merge
+rejection and duplicate-subject rejection using temporary Git repositories.
 
 ## 📦 Portability and artifact identity
 
