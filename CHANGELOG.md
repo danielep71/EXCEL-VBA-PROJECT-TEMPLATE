@@ -115,6 +115,7 @@ Use only the categories needed by a release.
 
 - Harden workflow-policy recognition so scalar and simple flow-mapping pull-request triggers and flow-mapping write permissions cannot bypass the documented read-only and prohibited-trigger controls.
 - Apply external-link URL policy before historical or pending-publication classifications, and render the same five aggregate outcome counts in JSON and Markdown, including access-restricted links.
+- Report active release-history exceptions whose base tag no longer matches the candidate's current previous-release tag, while preserving durable prior-release ancestry only as descriptive historical evidence.
 
 ## [1.2.0] - 2026-09-10
 
