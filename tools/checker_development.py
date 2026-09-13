@@ -84,6 +84,10 @@ GATE_RUNNER_EXCLUSIONS = {
     "check_release.py": (
         "atomic evidence writes and a console rendering distinct from its Markdown summary"
     ),
+    "release_certification.py": (
+        "mutually exclusive build/verify bundle modes emitting JSON to stdout; "
+        "not a focused run_gate report CLI"
+    ),
     "test_workflow_validation.py": "text-only report with no JSON evidence output",
     "initialize_repository.py": "repository provisioning CLI, not a focused report gate",
 }

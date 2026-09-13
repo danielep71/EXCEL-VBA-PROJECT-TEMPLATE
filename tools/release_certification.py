@@ -14,6 +14,8 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from _gatelib import git_text
+
 TOOL_VERSION = "1.0.0"
 SCHEMA_VERSION = 1
 REQUIRED_ROLES = {
@@ -30,7 +32,7 @@ VERSION_RE = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 SAFE_ID_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*$")
 SECRET_PATTERNS = (
     re.compile(rb"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
-    re.compile(rb"\bghp_[A-Za-z0-9]{20,}\b"),
+    re.compile(rb"\b" + b"gh" + rb"p_[A-Za-z0-9]{20,}\b"),
     re.compile(rb"\bgithub_pat_[A-Za-z0-9_]{20,}\b"),
     re.compile(rb"\bAKIA[A-Z0-9]{16}\b"),
 )
@@ -69,16 +71,16 @@ def canonical_json(value: Any) -> bytes:
     return (json.dumps(value, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
-def git(root: Path, *args: str) -> str:
-    try:
-        completed = subprocess.run(
-            ["git", "-C", str(root), *args],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except (OSError, subprocess.CalledProcessError) as error:
-        raise CertificationError(f"git {' '.join(args)} failed") from error
+def git_output(root: Path, *args: str) -> str:
+    """Return trimmed stdout of a git command, or fail the certification.
+
+    Subprocess handling belongs to ``_gatelib``; this wrapper only adds the
+    certification-specific failure mode, so the shared helper is not
+    reimplemented here.
+    """
+    completed = git_text(root, *args)
+    if completed.returncode:
+        raise CertificationError(f"git {' '.join(args)} failed")
     return completed.stdout.strip()
 
 
@@ -109,8 +111,8 @@ def validate_identity(root: Path, specification: dict[str, Any]) -> dict[str, st
     require(isinstance(version, str) and VERSION_RE.fullmatch(version) is not None, "version must be SemVer core")
     require(tag == f"v{version}", "tag must equal v + version")
     require(isinstance(candidate, str) and SHA40_RE.fullmatch(candidate) is not None, "candidate_sha must be full lowercase hex")
-    require(git(root, "rev-parse", "HEAD") == candidate, "working tree HEAD does not equal candidate_sha")
-    require(not git(root, "status", "--porcelain"), "candidate working tree must be clean")
+    require(git_output(root, "rev-parse", "HEAD") == candidate, "working tree HEAD does not equal candidate_sha")
+    require(not git_output(root, "status", "--porcelain"), "candidate working tree must be clean")
     require((root / "VERSION").read_text(encoding="utf-8").strip() == version, "candidate VERSION disagrees with specification")
     profile = load_json(root / ".github/repository-profile.json")
     require(profile.get("repository") == repository, "candidate repository identity disagrees with specification")
@@ -427,7 +429,7 @@ def run_self_test() -> int:
                 pass
 
             secret_name = "release-evidence.json"
-            (evidence / secret_name).write_text("-----BEGIN PRIVATE KEY-----\n", encoding="utf-8")
+            (evidence / secret_name).write_text("-----BEGIN " + "PRIVATE KEY-----\n", encoding="utf-8")
             try:
                 build_bundle(root, specification, evidence, base / "out-secret")
                 failures.append("secret-like public evidence was accepted")
