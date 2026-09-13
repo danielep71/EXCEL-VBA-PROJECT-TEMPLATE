@@ -159,6 +159,7 @@ jobs:
           run tools/check_release_semantics.py --root . --self-test
           run tools/check_template_contract.py --root . --self-test
           run tools/_release_closeout.py --self-test
+          run tools/release_certification.py --self-test
           run tools/initialize_repository.py --root . --self-test
           run tools/check_committed_whitespace.py --root . --self-test
           run tools/check_vba_jumps.py --root . --self-test
