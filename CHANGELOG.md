@@ -111,6 +111,11 @@ Use only the categories needed by a release.
 - Replaced the disposable per-task workflow pattern with `.github/workflows/maintenance.yml`, one permanent dispatch-only home for maintenance tasks that must run in the pinned environment and commit their result. The task list is a closed `choice` passed to the shell through `env`, write scope is granted on the job rather than the workflow, the result is validated before it is committed, and a task that changes nothing exits without an empty commit. Both files are template-only and are removed from generated projects by initialization.
 - Added canonical-template release-history validation from the previous release tag to the candidate SHA. Unapproved merge commits and duplicate commit subjects now block release semantics; base-tag/SHA-scoped reviewed exceptions remain auditable, while v1.2.0 merge ancestry is preserved as historical evidence and generated projects do not inherit this policy.
 
+### Fixed
+
+- Harden workflow-policy recognition so scalar and simple flow-mapping pull-request triggers and flow-mapping write permissions cannot bypass the documented read-only and prohibited-trigger controls.
+- Apply external-link URL policy before historical or pending-publication classifications, and render the same five aggregate outcome counts in JSON and Markdown, including access-restricted links.
+
 ## [1.2.0] - 2026-09-10
 
 ### Added
