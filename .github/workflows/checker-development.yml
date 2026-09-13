@@ -169,6 +169,7 @@ jobs:
 
           run tools/test_documentation.py -v
           run tools/test_excel_evidence.py -v
+          run tools/test_external_links.py -v
           run tools/test_portfolio_drift.py -v
           run tools/test_portfolio_quality.py -v
           run tools/test_provision_repository.py -v
