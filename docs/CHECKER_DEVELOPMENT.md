@@ -203,6 +203,14 @@ that work:
 gh workflow run maintenance.yml --ref <branch> -f task=regenerate-wiki-reference
 ```
 
+That command works only after the file has reached the default branch. GitHub
+registers a `workflow_dispatch` workflow from `main` alone, so while this file
+lives only on a release branch the workflow is not dispatchable at all — the
+Actions UI does not offer it and the REST dispatch endpoint answers 404. Naming
+the branch with `--ref` does not work around it. Once the file is on `main`,
+`--ref` may name any branch that carries it, and the task commits to that
+branch.
+
 It replaces the pattern of adding a disposable workflow per task. Each such
 workflow triggered on its own push, granted itself `contents: write`, ran at the
 moment it was introduced and then deleted itself, which left a permanent entry

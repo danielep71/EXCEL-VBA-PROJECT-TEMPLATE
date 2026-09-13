@@ -24,9 +24,16 @@ name: Maintenance task
 # Run it with:
 #   gh workflow run maintenance.yml --ref <branch> -f task=<task>
 #
-# Note: GitHub only offers a `workflow_dispatch` workflow in the Actions UI once
-# the file exists on the default branch. Until this reaches `main`, dispatch it
-# with the `gh` command above or the REST API, naming the branch explicitly.
+# Prerequisite, verified rather than assumed: GitHub registers a
+# `workflow_dispatch` workflow only once the file is on the DEFAULT branch.
+# Until this file reaches `main` the workflow does not exist as far as the API
+# is concerned, and both the Actions UI and
+# `POST /actions/workflows/maintenance.yml/dispatches` answer 404. Naming the
+# branch explicitly does not work around it; there is no dispatch path from a
+# feature branch alone.
+#
+# Once the file is on `main`, `--ref` may name any branch that carries it, and
+# the task runs against — and commits to — that branch.
 
 on:
   workflow_dispatch:
