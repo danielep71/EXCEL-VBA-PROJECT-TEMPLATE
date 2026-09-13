@@ -147,6 +147,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/policy_coverage_core.py` / script | Coverage fixture data model and shared branch-observation primitives; imported helper. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/policy_coverage_runner.py` / script | Aggregate semantic branch observations into reproducible policy-coverage reports. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/provision_repository.py` / script | Plan live new-repository settings or apply a reviewed digest with a durable journal. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
+| `tools/release_certification.py` / script | Build or verify deterministic, candidate-bound release certification bundles. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/release_provenance.py` / script | Release helper for complete payloads, build identity and optional SSH verification. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `tools/report_portfolio_quality.py` / script | Produce freshness-aware quality/conformance reports from captured observations. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
 | `tools/test_documentation.py` / script | Offline command/reference and HTTP failure fixtures; no live website certification. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |

@@ -694,6 +694,11 @@
       "kind": "script",
       "authority": "docs/PROVISIONING.md"
     },
+    "tools/release_certification.py": {
+      "purpose": "Build or verify deterministic, candidate-bound release certification bundles.",
+      "kind": "script",
+      "authority": "docs/RELEASE_EVIDENCE.md"
+    },
     "tools/release_provenance.py": {
       "purpose": "Release helper for complete payloads, build identity and optional SSH verification.",
       "kind": "script",
