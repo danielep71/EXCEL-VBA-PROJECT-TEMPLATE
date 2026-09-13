@@ -367,11 +367,12 @@ jobs:
             echo "Release closeout report was not produced."
             exit 1
           fi
-          cat test-results/release-closeout.md >> "$GITHUB_STEP_SUMMARY"
-          echo >> "$GITHUB_STEP_SUMMARY"
-          echo "## Durable certification evidence" >> "$GITHUB_STEP_SUMMARY"
-          if [[ -f "$EVIDENCE/certification-verification.json" ]]; then
-            python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          {
+            cat test-results/release-closeout.md
+            echo
+            echo "## Durable certification evidence"
+            if [[ -f "$EVIDENCE/certification-verification.json" ]]; then
+              python3 - <<'PY'
           import json
           import os
           from pathlib import Path
@@ -384,9 +385,10 @@ jobs:
               print(f"- Candidate: `{data['candidate_sha']}`")
               print(f"- Retention surface: `{data['retention_surface']}`")
           PY
-          else
-            echo "- Status: **MISSING**" >> "$GITHUB_STEP_SUMMARY"
-          fi
+            else
+              echo "- Status: **MISSING**"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Retain closeout evidence
         id: artifact

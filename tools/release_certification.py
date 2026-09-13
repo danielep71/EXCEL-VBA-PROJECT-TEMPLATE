@@ -360,7 +360,8 @@ def plan_release_assets(release_path: Path, tag: str) -> dict[str, Any]:
     release = load_json(release_path)
     require(release.get("tag_name") == tag, "GitHub Release tag disagrees with requested tag")
     raw_assets = release.get("assets")
-    require(isinstance(raw_assets, list), "GitHub Release assets must be an array")
+    if not isinstance(raw_assets, list):
+        raise CertificationError("GitHub Release assets must be an array")
     expected = certification_asset_names(tag)
     expected_names = set(expected.values())
     seen_names: set[str] = set()
@@ -416,7 +417,8 @@ def verify_release_plan(plan_path: Path, download_dir: Path, candidate_sha: str)
     require(SHA40_RE.fullmatch(candidate_sha) is not None, "candidate_sha must be full lowercase hex")
     require(plan.get("retention_surface") == "github-release-assets", "unsupported retention surface")
     assets = plan.get("certification_assets")
-    require(isinstance(assets, list) and len(assets) == 3, "release-asset plan must contain three certification assets")
+    if not isinstance(assets, list) or len(assets) != 3:
+        raise CertificationError("release-asset plan must contain three certification assets")
     by_name: dict[str, dict[str, Any]] = {}
     for raw in assets:
         require(isinstance(raw, dict), "certification asset plan entry must be an object")
