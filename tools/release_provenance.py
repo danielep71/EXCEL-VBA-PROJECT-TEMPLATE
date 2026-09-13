@@ -233,7 +233,7 @@ def _github_signing_keys(username: str) -> list[str]:
         headers={
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": GITHUB_API_VERSION,
-            "User-Agent": "excel-vba-project-template-release-verifier",
+            "User-Agent": "release-tag-verifier",
         },
     )
     try:
