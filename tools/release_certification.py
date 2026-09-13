@@ -42,9 +42,25 @@ class CertificationError(RuntimeError):
     """Certification input or retained bundle violates the contract."""
 
 
-def require(condition: bool, message: str) -> None:
+def require(condition: object, message: str) -> None:
+    """Fail certification unless ``condition`` is truthy.
+
+    Typed as ``object`` rather than ``bool`` because every call site passes the
+    result of a truthiness test, not a coerced boolean.
+    """
     if not condition:
         raise CertificationError(message)
+
+
+def require_str(value: Any, message: str) -> str:
+    """Return ``value`` when it is a string, else fail certification.
+
+    Returning the value narrows it for the type checker, so downstream use does
+    not depend on a separate ``require`` call the checker cannot see.
+    """
+    if not isinstance(value, str):
+        raise CertificationError(message)
+    return value
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -103,14 +119,14 @@ def safe_relative(value: str, field: str) -> str:
 
 def validate_identity(root: Path, specification: dict[str, Any]) -> dict[str, str]:
     require(specification.get("schema_version") == SCHEMA_VERSION, "unsupported specification schema")
-    repository = specification.get("repository")
-    version = specification.get("version")
-    tag = specification.get("tag")
-    candidate = specification.get("candidate_sha")
-    require(isinstance(repository, str) and re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) is not None, "repository must use owner/name form")
-    require(isinstance(version, str) and VERSION_RE.fullmatch(version) is not None, "version must be SemVer core")
+    repository = require_str(specification.get("repository"), "repository must use owner/name form")
+    version = require_str(specification.get("version"), "version must be SemVer core")
+    tag = require_str(specification.get("tag"), "tag must equal v + version")
+    candidate = require_str(specification.get("candidate_sha"), "candidate_sha must be full lowercase hex")
+    require(re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) is not None, "repository must use owner/name form")
+    require(VERSION_RE.fullmatch(version) is not None, "version must be SemVer core")
     require(tag == f"v{version}", "tag must equal v + version")
-    require(isinstance(candidate, str) and SHA40_RE.fullmatch(candidate) is not None, "candidate_sha must be full lowercase hex")
+    require(SHA40_RE.fullmatch(candidate) is not None, "candidate_sha must be full lowercase hex")
     require(git_output(root, "rev-parse", "HEAD") == candidate, "working tree HEAD does not equal candidate_sha")
     require(not git_output(root, "status", "--porcelain"), "candidate working tree must be clean")
     require((root / "VERSION").read_text(encoding="utf-8").strip() == version, "candidate VERSION disagrees with specification")
@@ -133,7 +149,8 @@ def validate_records(
     specification: dict[str, Any], evidence_dir: Path
 ) -> tuple[list[dict[str, Any]], dict[str, bytes]]:
     raw_records = specification.get("records")
-    require(isinstance(raw_records, list) and raw_records, "records must be a non-empty array")
+    if not isinstance(raw_records, list) or not raw_records:
+        raise CertificationError("records must be a non-empty array")
     seen_ids: set[str] = set()
     seen_roles: set[str] = set()
     seen_archive_paths: set[str] = set()
@@ -285,13 +302,15 @@ def verify_bundle(bundle: Path, manifest_path: Path, digest_path: Path) -> dict[
     require(manifest.get("bundle_name") == bundle.name, "manifest bundle_name mismatches bundle")
     expected_line = digest_path.read_text(encoding="ascii")
     match = re.fullmatch(r"([0-9a-f]{64})  ([^\r\n]+)\n", expected_line)
-    require(match is not None, "digest file must contain one canonical SHA-256 line")
+    if match is None:
+        raise CertificationError("digest file must contain one canonical SHA-256 line")
     require(match.group(2) == bundle.name, "digest file names another bundle")
     actual_digest = sha256_bytes(bundle.read_bytes())
     require(match.group(1) == actual_digest, "bundle SHA-256 mismatch")
 
     records = manifest.get("records")
-    require(isinstance(records, list), "manifest records must be an array")
+    if not isinstance(records, list):
+        raise CertificationError("manifest records must be an array")
     expected_entries = {"certification-manifest.json": canonical_json(manifest)}
     for raw in records:
         require(isinstance(raw, dict), "manifest record must be an object")
