@@ -121,9 +121,20 @@ that binds all of the following before release certification:
 - a GitHub issue or pull-request review reference; and
 - a non-empty reason explaining why ancestry preservation is required.
 
-Exceptions fail closed if they are stale, point outside the inspected range, or
-permit a condition that is not actually present. This prevents a standing or
-wildcard exception from silently weakening future releases.
+Every entry in `exceptions` is active release policy and must name the **current
+previous-release base tag** for the candidate being inspected. An entry carrying
+any other `base_tag` is stale and produces
+`superseded-history-exception-base`; it is never silently ignored. When an
+exception's base is superseded, remove the active exception or, if the event must
+remain documented, preserve it as descriptive evidence under
+`historical_records`. Historical records never grant an exception to a later
+release range.
+
+Exceptions also fail closed when a current-base entry points outside the
+inspected range or permits a condition that is not actually present. These are
+reported separately from a superseded-base entry so the gate distinguishes
+range staleness from base-scope staleness and prevents a standing or wildcard
+exception from silently weakening future releases.
 
 The same policy file retains historical records for the v1.2.0 stabilization
 merges in PRs #68, #71, and #74. Those records are descriptive only: they keep
@@ -161,8 +172,8 @@ The self-test covers valid stable and pre-release versions, numeric pre-release
 leading zeros, SemVer precedence, duplicate and out-of-order releases,
 impossible dates, same-day cut/freeze dates, backward cut/freeze-date ordering,
 `VERSION`/heading disagreement, missing or incorrect comparison links, compliant
-squash history, an approved merge exception, an unapproved merge commit, and
-duplicate-subject rejection.
+squash history, an approved current-base exception, a superseded-base exception,
+an unapproved merge commit, and duplicate-subject rejection.
 
 A release candidate is not eligible for tagging unless this gate, the executable
 release-integrity gate, the repository gates, and all applicable runtime evidence
