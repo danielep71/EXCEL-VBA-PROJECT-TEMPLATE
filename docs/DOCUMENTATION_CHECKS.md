@@ -114,11 +114,18 @@ entry has exactly `id`, `kind`, `reason` and `expires`. Supported kinds are:
 - `pending-publication` for a reviewed candidate URL whose target does not exist
   anonymously until the associated tag/release is published.
 
-These classifications are **not exceptions**. They skip an anonymous request
-that cannot answer the intended question, but the resulting observation remains
-non-green. `RESTRICTED_HISTORICAL` and `PENDING_PUBLICATION` therefore never
-become `PASS` and never substitute for authenticated evidence or the later
-post-publication check.
+These classifications are **not exceptions**. Before a classification is applied,
+the checker evaluates the existing local URL policy without performing network
+I/O. `POLICY_BLOCKED` and `ACCESS_RESTRICTED` therefore take precedence over
+`RESTRICTED_HISTORICAL` and `PENDING_PUBLICATION`: a classification may explain
+an observed link state, but it never exempts an invalid scheme/domain/port or a
+credential/query-bearing URL from local policy. A policy-clean classified URL
+still skips the anonymous request that cannot answer the intended question, and
+the resulting classification status remains non-green.
+
+`RESTRICTED_HISTORICAL` and `PENDING_PUBLICATION` therefore never become `PASS`
+and never substitute for authenticated evidence or the later post-publication
+check.
 
 Classifications are exact URL-hash assertions, not domain or path wildcards.
 They require a rationale and an expiry/review date; unsupported kinds, duplicate
@@ -138,21 +145,22 @@ exist.
 | Outcome | Meaning and response |
 | --- | --- |
 | `OK` | Anonymous HTTP success, possibly after retry; not content or anchor validation |
-| `PERMANENT_FAILURE` | Repeated non-transient public HTTP errors; counted as a deterministic public-documentation defect unless explicitly classified before the observation |
+| `PERMANENT_FAILURE` | Repeated non-transient public HTTP errors; counted as a deterministic public-documentation defect unless a policy-clean URL is explicitly classified before observation |
 | `TRANSIENT_FAILURE` | Timeout, transport failure, rate limit or server error; retry later |
-| `ACCESS_RESTRICTED` | Authentication/access response, user information or query-bearing URL; no private login attempted |
+| `ACCESS_RESTRICTED` | Authentication/access response, user information or query-bearing URL; no private login attempted; takes precedence over classification |
 | `RESTRICTED_HISTORICAL` | Exact reviewed private/restricted historical target; no anonymous probe attempted; remains non-green |
 | `PENDING_PUBLICATION` | Exact reviewed target depends on publication/tag creation; no probe attempted; remains non-green until publication |
-| `POLICY_BLOCKED` | Unapproved scheme/domain/port or non-public DNS destination; review policy and URL |
+| `POLICY_BLOCKED` | Unapproved scheme/domain/port or non-public DNS destination; review policy and URL; local policy takes precedence over classification |
 | `REDIRECT_FAILURE` | Missing redirect target, redirect loop or redirect limit reached |
 | `EXCEPTED` | Active reviewed temporary exception; availability was not checked |
 | `NOT_APPLICABLE` | Non-HTTP contact link or unresolved template destination |
 
-The JSON and Markdown summary separately report `deterministic_public_defects`,
-`restricted_historical`, `pending_publication`, access restrictions and
-transients. This lets release review distinguish a genuinely missing public page
-from preserved restricted evidence without reconstructing raw URLs from hashes.
-A classification changes the diagnosis, not the terminal verdict.
+The JSON and Markdown summary report the same five aggregates:
+`deterministic_public_defects`, `restricted_historical`, `pending_publication`,
+`access_restricted`, and `transient_failures`. This lets release review
+distinguish a genuinely missing public page from preserved restricted evidence
+without reconstructing raw URLs from hashes. A classification changes the
+diagnosis only after local policy passes; it never weakens the terminal verdict.
 
 An undeclared anonymous 404 remains `PERMANENT_FAILURE` after bounded retries.
 A 404 must never be inferred to mean “private” merely because GitHub can hide
@@ -170,7 +178,8 @@ report creation fails artifact publication rather than fabricating a report.
 
 Offline fixtures cover command/context/policy renames, repeated missing public
 pages, restricted historical targets, pending-publication targets, classification
-expiry/conflicts, transient recovery, restricted access, redirects, request
+expiry/conflicts, classification-versus-local-policy precedence, aggregate
+JSON/Markdown parity, transient recovery, restricted access, redirects, request
 limits, temporary exceptions, DNS/IP containment, concurrency and report
 redaction. They simulate HTTP results and do not establish current availability
 of every referenced website. The separate network workflow supplies dated
