@@ -2,7 +2,7 @@
 
 [![Binding: exact SHA](https://img.shields.io/badge/binding-exact%20SHA-217346)](#-evidence-json)
 [![Profiles: 4](https://img.shields.io/badge/profiles-4-6f42c1)](#-policy)
-[![Tags: annotated](https://img.shields.io/badge/tags-annotated-1D76DB)](#-commands)
+[![Tags: template SSH-signed](https://img.shields.io/badge/tags-template%20SSH--signed-1D76DB)](#-commands)
 [![Assets: digest verified](https://img.shields.io/badge/assets-digest%20verified-success)](#-source--only-and-binary-distributions)
 
 This contract defines the machine-readable evidence consumed by
@@ -35,7 +35,7 @@ Additional required checks are profile-specific:
 | `library` | Public API and caller-contract evidence |
 | `ui-component` | UI state, cleanup, recovery, DPI/accessibility, and lifecycle evidence |
 | `application` | Startup, shutdown, upgrade, recovery, packaging, and end-to-end smoke evidence |
-| `template` | All three generated-profile pilots and live branch/tag governance evidence |
+| `template` | All three generated-profile pilots, live branch/tag governance evidence, and the separately verified canonical Git-tag trust policy once the release tag exists |
 
 All checks use `status: "PASS"`, a non-empty `detail`, and the same
 `candidate_sha`. Project-specific checks may be added with lower-case,
@@ -150,11 +150,23 @@ python3 tools/check_release.py \
 Add `--asset-manifest ../release-assets.sha256` for a binary distribution.
 Contract 1.2.0 also requires `--provenance ../release-provenance.json` for
 binary distributions. Follow [RELEASE_PROVENANCE.md](RELEASE_PROVENANCE.md)
-for build records and optional SSH signatures. Keep only deliverable payloads
-in `dist/`: the gate rejects undeclared files there, including non-binary files.
-After creating the annotated tag locally, repeat the command with
-`--require-tag-ref`. That final mode requires the tag object to be annotated and
-to resolve to the same candidate SHA. Any non-zero result blocks publication.
+for build records, the optional provenance-record SSH signature, and the
+canonical template's distinct Git-tag trust policy. Keep only deliverable
+payloads in `dist/`: the gate rejects undeclared files there, including
+non-binary files.
+
+After creating the local tag, repeat the command with `--require-tag-ref`. For
+all profiles that mode requires an annotated tag object resolving to the exact
+candidate SHA. For the canonical `template` profile, the committed provenance
+trust policy additionally requires the tag's SSH signature to verify against a
+public SSH signing key currently registered to the explicitly trusted GitHub
+account. Generated profiles retain annotation/target verification only unless
+they deliberately adopt a stronger local policy.
+
+The canonical tag signature is **not** the optional detached signature on an
+external provenance record. The two controls have separate policy objects,
+verification mechanisms, and failure modes; neither can silently satisfy the
+other. Any non-zero post-tag result blocks publication.
 
 ## 🚫 What the Gate Rejects
 
@@ -172,8 +184,17 @@ The deterministic self-test covers all four release profiles and rejects:
 - an absent manifest or incorrect asset digest; and
 - a lightweight or moved tag.
 
-The live `v*` ruleset provides the complementary server-side control: release
-tags cannot be deleted, updated, or recreated outside the protected policy.
+The provenance integration suite adds the canonical-template trust negatives:
+an unsigned annotated tag, signature from the wrong public key, corrupted SSH
+signature, signed tag moved to a different commit, and a tag whose former signer
+has been removed from current trust. It also proves planned signer overlap and
+that generated projects do not inherit the canonical signed-tag requirement.
+
+The live `v*` ruleset provides the complementary server-side immutability
+control: release tags cannot be deleted, updated, or recreated outside the
+protected policy. A valid signature authenticates the tag signer; it does not
+prove Excel/runtime behavior, build provenance, or the truth of external
+evidence.
 
 ---
 
