@@ -4,24 +4,35 @@
 [![Profiles: 4](https://img.shields.io/badge/profiles-4-6f42c1)](#-policy)
 [![Tags: template SSH-signed](https://img.shields.io/badge/tags-template%20SSH--signed-1D76DB)](#-commands)
 [![Assets: digest verified](https://img.shields.io/badge/assets-digest%20verified-success)](#-source--only-and-binary-distributions)
+[![Certification: retained release assets](https://img.shields.io/badge/certification-release%20assets-0969da)](#-durable-canonical-template-certification)
 
 This contract defines the machine-readable evidence consumed by
 `tools/check_release.py`. It binds version, changelog, tag, source checks,
 Excel evidence, profile-specific assurance, and any staged binary assets to one
-full candidate commit SHA.
+full candidate commit SHA. For the canonical template it also defines the
+durable certification bundle published beside the GitHub Release and verified
+again after publication.
 
 ## 🧩 Why Evidence Stays Outside the Candidate
 
-The evidence JSON is deliberately supplied separately from the candidate Git
-tree. A committed file cannot contain the hash of the commit that contains that
-file: changing the recorded hash changes the commit again. Keep the final
-evidence in the release review, a protected workflow artifact, or the draft
-release record. The checker proves that every record names the exact candidate;
-the retention mechanism preserves that checked file.
+Candidate-bound evidence is deliberately supplied separately from the candidate
+Git tree. A committed file cannot contain the hash of the commit that contains
+that file: changing the recorded hash changes the commit again. Build and retain
+the final evidence outside the candidate source tree.
+
+For canonical-template releases, the authoritative durable retention surface is
+the **published GitHub Release asset set**, not a short-lived Actions artifact.
+The deterministic certification ZIP, its standalone manifest, and its SHA-256
+file are uploaded to the Release and are expected to remain available for the
+lifetime of that published release. The release closeout workflow downloads
+those published bytes again and verifies them independently. Actions artifacts
+may retain additional operational evidence, but their expiry is not the public
+retention contract.
 
 ## 📜 Policy
 
-`.github/release-policy.json` is the versioned policy. Every profile requires:
+`.github/release-policy.json` is the versioned release-evidence policy. Every
+profile requires:
 
 - `repository-integrity` with an HTTPS run URL;
 - `vba-compile` with the tested Excel environment; and
@@ -35,7 +46,7 @@ Additional required checks are profile-specific:
 | `library` | Public API and caller-contract evidence |
 | `ui-component` | UI state, cleanup, recovery, DPI/accessibility, and lifecycle evidence |
 | `application` | Startup, shutdown, upgrade, recovery, packaging, and end-to-end smoke evidence |
-| `template` | All three generated-profile pilots, live branch/tag governance evidence, and the separately verified canonical Git-tag trust policy once the release tag exists |
+| `template` | All three generated-profile pilots, live branch/tag governance evidence, the separately verified canonical Git-tag trust policy once the release tag exists, and the durable certification bundle described below |
 
 All checks use `status: "PASS"`, a non-empty `detail`, and the same
 `candidate_sha`. Project-specific checks may be added with lower-case,
@@ -90,8 +101,14 @@ compile or regression evidence; the documented manual fallback remains valid.
 ## 📦 Source-Only and Binary Distributions
 
 A library or template release is source-only by default. Set `distribution` to
-`source-only`, keep `assets` empty, and omit the asset manifest. UI-component
-and application profiles may do the same.
+`source-only`, keep the **product/runtime** `assets` array empty, and omit the
+binary asset manifest. UI-component and application profiles may do the same.
+
+Canonical-template certification attachments are not runtime/product assets.
+The three `certification-vX.Y.Z.*` files described below are retained evidence
+and therefore do **not** turn a source-only template release into a binary
+distribution. The post-release closeout partitions those files from product
+assets before applying `allowed_asset_globs`.
 
 The template profile deliberately retains its registered placeholders,
 template-only blocks, canonical repository identity, and construction history.
@@ -125,16 +142,146 @@ identity. It does not prove that a manually built workbook was produced from
 the exported source; compile, regression, package-test, and build-process
 evidence carry that separate claim.
 
+## 🗄️ Durable canonical-template certification
+
+`tools/release_certification.py` builds one deterministic, candidate-bound
+certification package outside the candidate tree. The bundle must account for
+these six roles:
+
+| Role | Typical retained evidence |
+| --- | --- |
+| `excel-evidence` | Exact-source compile/regression log or structured host record |
+| `external-links` | Final external-link observation/classification report |
+| `gate-evidence` | Hosted/static/checker-development evidence selected for certification |
+| `release-evidence` | The exact external release-evidence JSON consumed by `check_release.py` |
+| `release-integrity` | The final pre/post-tag release-integrity report |
+| `wiki-publication` | Exact-source Wiki publication/read-back evidence |
+
+A record is either `public-file` or `restricted-reference`:
+
+- `public-file` publishes the reviewed bytes inside the ZIP and records their
+  archive path, size, and SHA-256. The input record must explicitly state
+  `redaction_reviewed: true`; secret-like material is rejected.
+- `restricted-reference` publishes **no protected bytes**. It records only the
+  evidence identity/reference, its SHA-256, and the concrete reason public
+  retrieval is unavailable. Restricted evidence must never be silently omitted
+  or exposed merely to make the public bundle complete.
+
+A minimal external specification has this shape:
+
+```json
+{
+  "schema_version": 1,
+  "repository": "{{REPOSITORY_PATH}}",
+  "version": "1.2.1",
+  "tag": "v1.2.1",
+  "candidate_sha": "0123456789abcdef0123456789abcdef01234567",
+  "records": [
+    {
+      "id": "release-evidence",
+      "role": "release-evidence",
+      "visibility": "public-file",
+      "path": "release-evidence.json",
+      "public_name": "release-evidence.json",
+      "redaction_reviewed": true
+    },
+    {
+      "id": "restricted-provider-record",
+      "role": "restricted-provider-record",
+      "visibility": "restricted-reference",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reference": "provider-record:123",
+      "reason": "provider access restriction"
+    }
+  ]
+}
+```
+
+The complete specification must contain one unique record for every required
+role. Additional restricted-reference roles are allowed when useful for the
+release review.
+
+Build twice only for deterministic comparison/testing; publish one accepted
+output set. The canonical names are derived from the release tag:
+
+```text
+certification-v1.2.1.zip
+certification-v1.2.1.manifest.json
+certification-v1.2.1.sha256
+```
+
+Build and locally verify them after the candidate is frozen and the final
+release evidence is available:
+
+```bash
+candidate_sha="$(git rev-parse HEAD)"
+release_version="$(tr -d '\r\n' < VERSION)"
+release_tag="v${release_version}"
+
+python3 tools/release_certification.py \
+  --root . \
+  --build ../certification-input.json \
+  --evidence-dir ../certification-evidence \
+  --output-dir ../certification-output
+
+python3 tools/release_certification.py \
+  --verify-bundle "../certification-output/certification-${release_tag}.zip" \
+  --manifest "../certification-output/certification-${release_tag}.manifest.json" \
+  --digest "../certification-output/certification-${release_tag}.sha256"
+```
+
+The bundle contains its own canonical manifest; the same manifest is published
+as a standalone Release asset. The `.sha256` file contains one canonical line
+for the ZIP. The verifier requires the published manifest, internal manifest,
+entry set, per-record sizes/digests, bundle filename, tag, and candidate binding
+to agree.
+
+### Publication and retention contract
+
+For each canonical-template GitHub Release:
+
+1. upload the three certification files above **unchanged** as GitHub Release
+   assets, in addition to any separately allowed product/runtime assets;
+2. do not rebuild, rename, replace, or silently delete them after publication;
+3. include the ZIP filename and SHA-256 in the release notes, plus a statement
+   that the manifest and digest are attached to the same Release;
+4. treat the GitHub Release page and each asset's browser download URL as the
+   stable public reference; and
+5. retain those assets for the lifetime of the published release. Short-lived
+   Actions artifacts may duplicate them operationally but are not the durable
+   public copy.
+
+If an evidence error is discovered after publication, do not replace the bytes
+under the same immutable release claim. Document the defect and publish a
+corrected patch release where necessary.
+
+### Independent post-publication retrieval
+
+The dispatch-only `Release closeout` workflow is the mandatory canonical
+post-publication retrieval check. It reads the published Release asset metadata,
+requires exactly the three certification names for the tag, separates them from
+product/runtime assets, downloads each through the GitHub Release asset API, and
+runs `release_certification.py` against the downloaded bytes. The closeout is
+non-green if an asset is missing/duplicated/stale, the downloaded bytes differ
+from the published digest/manifest, or the embedded tag/candidate differs from
+the certified release.
+
+The workflow retains the closeout snapshot and verification report as
+short-lived operational evidence; the Release assets themselves are the durable
+public evidence source.
+
 ## 🛠️ Commands
 
-First certify the checker itself:
+First certify the release checker and certification-bundle tool themselves:
 
 ```bash
 python3 tools/check_release.py --root . --self-test \
   --summary test-results/release-self-test.md
+python3 tools/release_certification.py --self-test
 ```
 
-Before tagging, validate an external evidence file and any staged assets:
+Before tagging, validate an external evidence file and any staged product
+assets:
 
 ```bash
 candidate_sha="$(git rev-parse HEAD)"
@@ -168,9 +315,15 @@ external provenance record. The two controls have separate policy objects,
 verification mechanisms, and failure modes; neither can silently satisfy the
 other. Any non-zero post-tag result blocks publication.
 
-## 🚫 What the Gate Rejects
+After the GitHub Release is published with the certification assets, run the
+`Release closeout` workflow for that exact tag, candidate SHA, and milestone.
+For the canonical template, successful durable-certification retrieval is part
+of the terminal closeout verdict.
 
-The deterministic self-test covers all four release profiles and rejects:
+## 🚫 What the Gates Reject
+
+The deterministic release self-test covers all four release profiles and
+rejects:
 
 - a version/tag mismatch or `0.0.0` sentinel;
 - an invalid or missing dated changelog release;
@@ -179,10 +332,16 @@ The deterministic self-test covers all four release profiles and rejects:
 - a template release carrying a generated-project initialization record or
   missing its pilot/governance evidence;
 - missing evidence or missing profile-specific checks;
-- evidence or assets bound to another candidate SHA;
+- evidence or product assets bound to another candidate SHA;
 - unapproved library or profile binaries;
-- an absent manifest or incorrect asset digest; and
+- an absent product-asset manifest or incorrect asset digest; and
 - a lightweight or moved tag.
+
+The certification-bundle self-test additionally rejects missing required roles,
+secret-like public evidence, non-deterministic output, a same-filename bundle
+whose bytes no longer match the digest, incomplete/stale GitHub Release
+certification asset sets, and downloaded Release bytes whose candidate/tag or
+manifest/digest contract disagrees.
 
 The provenance integration suite adds the canonical-template trust negatives:
 an unsigned annotated tag, signature from the wrong public key, corrupted SSH
@@ -198,4 +357,6 @@ evidence.
 
 ---
 
-**Release principle:** certify one immutable candidate, bind every claim to it, and publish only what the evidence proves.
+**Release principle:** certify one immutable candidate, retain its reviewable
+evidence outside that candidate, and publish only output whose identity can be
+independently re-verified later.

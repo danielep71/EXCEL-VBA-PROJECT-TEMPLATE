@@ -16,7 +16,7 @@ from typing import Any
 
 from _gatelib import git_text
 
-TOOL_VERSION = "1.0.0"
+TOOL_VERSION = "1.1.0"
 SCHEMA_VERSION = 1
 REQUIRED_ROLES = {
     "excel-evidence",
@@ -29,7 +29,9 @@ REQUIRED_ROLES = {
 SHA256_RE = re.compile(r"[0-9a-f]{64}$")
 SHA40_RE = re.compile(r"[0-9a-f]{40}$")
 VERSION_RE = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+TAG_RE = re.compile(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 SAFE_ID_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*$")
+CERTIFICATION_NAMESPACE_RE = re.compile(r"certification-v[^/]+(?:\.zip|\.manifest\.json|\.sha256)$")
 SECRET_PATTERNS = (
     re.compile(rb"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
     re.compile(rb"\b" + b"gh" + rb"p_[A-Za-z0-9]{20,}\b"),
@@ -344,6 +346,106 @@ def verify_bundle(bundle: Path, manifest_path: Path, digest_path: Path) -> dict[
     }
 
 
+def certification_asset_names(tag: str) -> dict[str, str]:
+    require(TAG_RE.fullmatch(tag) is not None, "release tag must be v + SemVer core")
+    base = f"certification-{tag}"
+    return {
+        "bundle": base + ".zip",
+        "manifest": base + ".manifest.json",
+        "digest": base + ".sha256",
+    }
+
+
+def plan_release_assets(release_path: Path, tag: str) -> dict[str, Any]:
+    release = load_json(release_path)
+    require(release.get("tag_name") == tag, "GitHub Release tag disagrees with requested tag")
+    raw_assets = release.get("assets")
+    require(isinstance(raw_assets, list), "GitHub Release assets must be an array")
+    expected = certification_asset_names(tag)
+    expected_names = set(expected.values())
+    seen_names: set[str] = set()
+    certification: dict[str, dict[str, Any]] = {}
+    product_assets: list[dict[str, Any]] = []
+
+    for index, raw in enumerate(raw_assets):
+        require(isinstance(raw, dict), f"release assets[{index}] must be an object")
+        name = require_str(raw.get("name"), f"release assets[{index}].name must be a string")
+        require(name not in seen_names, f"duplicate GitHub Release asset name: {name}")
+        seen_names.add(name)
+        if name in expected_names:
+            api_url = require_str(raw.get("url"), f"release asset {name} requires an API URL")
+            browser_url = require_str(
+                raw.get("browser_download_url"),
+                f"release asset {name} requires a browser download URL",
+            )
+            kind = next(key for key, value in expected.items() if value == name)
+            asset_id = raw.get("id")
+            require(isinstance(asset_id, int) and asset_id > 0, f"release asset {name} requires an asset id")
+            certification[kind] = {
+                "name": name,
+                "asset_id": asset_id,
+                "api_url": api_url,
+                "browser_download_url": browser_url,
+                "size": raw.get("size"),
+                "provider_digest": raw.get("digest"),
+            }
+        elif CERTIFICATION_NAMESPACE_RE.fullmatch(name) is not None:
+            raise CertificationError(f"unexpected certification evidence asset: {name}")
+        else:
+            product_assets.append(raw)
+
+    missing = [expected[kind] for kind in ("bundle", "manifest", "digest") if kind not in certification]
+    require(not missing, "required certification evidence assets are missing: " + ", ".join(missing))
+    ordered = [certification[kind] for kind in ("bundle", "manifest", "digest")]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "ready",
+        "tag": tag,
+        "retention_surface": "github-release-assets",
+        "retention_lifetime": "published-release-lifetime",
+        "certification_assets": ordered,
+        "product_assets": product_assets,
+    }
+
+
+def verify_release_plan(plan_path: Path, download_dir: Path, candidate_sha: str) -> dict[str, Any]:
+    plan = load_json(plan_path)
+    require(plan.get("schema_version") == SCHEMA_VERSION, "unsupported release-asset plan schema")
+    require(plan.get("status") == "ready", "release-asset plan is not ready")
+    tag = require_str(plan.get("tag"), "release-asset plan requires a tag")
+    require(SHA40_RE.fullmatch(candidate_sha) is not None, "candidate_sha must be full lowercase hex")
+    require(plan.get("retention_surface") == "github-release-assets", "unsupported retention surface")
+    assets = plan.get("certification_assets")
+    require(isinstance(assets, list) and len(assets) == 3, "release-asset plan must contain three certification assets")
+    by_name: dict[str, dict[str, Any]] = {}
+    for raw in assets:
+        require(isinstance(raw, dict), "certification asset plan entry must be an object")
+        name = require_str(raw.get("name"), "certification asset plan entry requires a name")
+        require(name not in by_name, f"duplicate certification asset plan entry: {name}")
+        by_name[name] = raw
+    names = certification_asset_names(tag)
+    require(set(by_name) == set(names.values()), "release-asset plan names do not match the tag")
+    download_dir = download_dir.resolve()
+    bundle = download_dir / names["bundle"]
+    manifest = download_dir / names["manifest"]
+    digest = download_dir / names["digest"]
+    verified = verify_bundle(bundle, manifest, digest)
+    require(verified.get("candidate_sha") == candidate_sha, "published bundle candidate SHA mismatch")
+    require(verified.get("tag") == tag, "published bundle tag mismatch")
+    return {
+        **verified,
+        "retention_surface": plan["retention_surface"],
+        "retention_lifetime": plan.get("retention_lifetime"),
+        "assets": [
+            {
+                "name": name,
+                "browser_download_url": by_name[name].get("browser_download_url"),
+            }
+            for name in names.values()
+        ],
+    }
+
+
 def fixture_git(root: Path, *args: str) -> str:
     completed = subprocess.run(
         ["git", "-C", str(root), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", *args],
@@ -429,11 +531,100 @@ def run_self_test() -> int:
             )
             require(verified["candidate_sha"] == candidate, "verification lost candidate binding")
 
-            tampered = base / "tampered.zip"
-            tampered.write_bytes(first_bundle.read_bytes() + b"x")
+            same_name_tamper = base / "tampered" / first_bundle.name
+            same_name_tamper.parent.mkdir()
+            same_name_tamper.write_bytes(first_bundle.read_bytes() + b"x")
             try:
-                verify_bundle(tampered, Path(result_one["manifest"]), Path(result_one["digest"]))
-                failures.append("tampered bundle was accepted")
+                verify_bundle(
+                    same_name_tamper,
+                    Path(result_one["manifest"]),
+                    Path(result_one["digest"]),
+                )
+                failures.append("same-filename tampered bundle was accepted")
+            except CertificationError:
+                pass
+
+            release = {
+                "tag_name": "v1.2.3",
+                "assets": [
+                    {
+                        "id": 1,
+                        "name": Path(result_one["bundle"]).name,
+                        "url": "https://api.github.example/assets/1",
+                        "browser_download_url": "https://github.example/download/1",
+                        "size": Path(result_one["bundle"]).stat().st_size,
+                    },
+                    {
+                        "id": 2,
+                        "name": Path(result_one["manifest"]).name,
+                        "url": "https://api.github.example/assets/2",
+                        "browser_download_url": "https://github.example/download/2",
+                        "size": Path(result_one["manifest"]).stat().st_size,
+                    },
+                    {
+                        "id": 3,
+                        "name": Path(result_one["digest"]).name,
+                        "url": "https://api.github.example/assets/3",
+                        "browser_download_url": "https://github.example/download/3",
+                        "size": Path(result_one["digest"]).stat().st_size,
+                    },
+                    {
+                        "id": 4,
+                        "name": "dist/example.xlsm",
+                        "url": "https://api.github.example/assets/4",
+                        "browser_download_url": "https://github.example/download/4",
+                        "size": 123,
+                    },
+                ],
+            }
+            release_path = base / "release.json"
+            release_path.write_text(json.dumps(release) + "\n", encoding="utf-8")
+            plan = plan_release_assets(release_path, "v1.2.3")
+            require(len(plan["certification_assets"]) == 3, "release plan lost certification assets")
+            require(len(plan["product_assets"]) == 1, "release plan did not separate product assets")
+            plan_path = base / "release-plan.json"
+            plan_path.write_bytes(canonical_json(plan))
+            downloaded = base / "downloaded"
+            downloaded.mkdir()
+            for key in ("bundle", "manifest", "digest"):
+                source = Path(result_one[key])
+                (downloaded / source.name).write_bytes(source.read_bytes())
+            retained = verify_release_plan(plan_path, downloaded, candidate)
+            require(retained["bundle_sha256"] == result_one["bundle_sha256"], "retained verification lost bundle digest")
+
+            (downloaded / first_bundle.name).write_bytes(first_bundle.read_bytes() + b"x")
+            try:
+                verify_release_plan(plan_path, downloaded, candidate)
+                failures.append("tampered downloaded release asset was accepted")
+            except CertificationError:
+                pass
+            (downloaded / first_bundle.name).write_bytes(first_bundle.read_bytes())
+
+            missing_release = json.loads(release_path.read_text(encoding="utf-8"))
+            missing_release["assets"] = missing_release["assets"][1:]
+            missing_release_path = base / "release-missing.json"
+            missing_release_path.write_text(json.dumps(missing_release) + "\n", encoding="utf-8")
+            try:
+                plan_release_assets(missing_release_path, "v1.2.3")
+                failures.append("missing published certification asset was accepted")
+            except CertificationError:
+                pass
+
+            stale_release = json.loads(release_path.read_text(encoding="utf-8"))
+            stale_release["assets"].append(
+                {
+                    "id": 5,
+                    "name": "certification-v1.2.2.zip",
+                    "url": "https://api.github.example/assets/5",
+                    "browser_download_url": "https://github.example/download/5",
+                    "size": 1,
+                }
+            )
+            stale_release_path = base / "release-stale.json"
+            stale_release_path.write_text(json.dumps(stale_release) + "\n", encoding="utf-8")
+            try:
+                plan_release_assets(stale_release_path, "v1.2.3")
+                failures.append("unexpected certification namespace asset was accepted")
             except CertificationError:
                 pass
 
@@ -462,7 +653,11 @@ def run_self_test() -> int:
             print(f"[FAIL] {failure}")
         print(f"SELF-TEST FAIL: {len(failures)} failure(s).")
         return 1
-    print("SELF-TEST PASS: deterministic build, exact-SHA binding, verification, required-role, tamper, restricted-reference, and secret-leakage controls passed.")
+    print(
+        "SELF-TEST PASS: deterministic build, exact-SHA binding, same-filename tamper, "
+        "required-role, restricted-reference, secret-leakage, GitHub Release asset planning, "
+        "product/evidence separation, retained-download verification and missing/stale asset controls passed."
+    )
     return 0
 
 
@@ -476,6 +671,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--verify-bundle", type=Path)
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--digest", type=Path)
+    parser.add_argument("--plan-release-assets", type=Path, metavar="RELEASE_JSON")
+    parser.add_argument("--release-tag")
+    parser.add_argument("--verify-release-plan", type=Path, metavar="PLAN_JSON")
+    parser.add_argument("--download-dir", type=Path)
+    parser.add_argument("--candidate-sha")
     return parser.parse_args(argv)
 
 
@@ -484,17 +684,36 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if options.self_test:
             return run_self_test()
+        selected = sum(
+            item is not None
+            for item in (
+                options.build,
+                options.verify_bundle,
+                options.plan_release_assets,
+                options.verify_release_plan,
+            )
+        )
+        require(selected == 1, "choose exactly one build or verification mode")
         if options.build is not None:
             require(options.evidence_dir is not None, "--build requires --evidence-dir")
             require(options.output_dir is not None, "--build requires --output-dir")
-            require(options.verify_bundle is None and options.manifest is None and options.digest is None, "build and verify modes are mutually exclusive")
             result = build_bundle(options.root, options.build, options.evidence_dir, options.output_dir)
         elif options.verify_bundle is not None:
             require(options.manifest is not None and options.digest is not None, "--verify-bundle requires --manifest and --digest")
             require(options.evidence_dir is None and options.output_dir is None, "verify mode does not accept build directories")
             result = verify_bundle(options.verify_bundle, options.manifest, options.digest)
+        elif options.plan_release_assets is not None:
+            require(options.release_tag is not None, "--plan-release-assets requires --release-tag")
+            result = plan_release_assets(options.plan_release_assets, options.release_tag)
         else:
-            raise CertificationError("choose --build, --verify-bundle, or --self-test")
+            require(options.verify_release_plan is not None, "release plan path is unavailable")
+            require(options.download_dir is not None, "--verify-release-plan requires --download-dir")
+            require(options.candidate_sha is not None, "--verify-release-plan requires --candidate-sha")
+            result = verify_release_plan(
+                options.verify_release_plan,
+                options.download_dir,
+                options.candidate_sha,
+            )
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0
     except (CertificationError, OSError, UnicodeError, zipfile.BadZipFile) as error:
