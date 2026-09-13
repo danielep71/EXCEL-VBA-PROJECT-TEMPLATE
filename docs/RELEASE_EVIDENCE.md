@@ -172,7 +172,7 @@ A minimal external specification has this shape:
 ```json
 {
   "schema_version": 1,
-  "repository": "{{REPOSITORY_PATH}}",
+  "repository": "owner/repository",
   "version": "1.2.1",
   "tag": "v1.2.1",
   "candidate_sha": "0123456789abcdef0123456789abcdef01234567",
