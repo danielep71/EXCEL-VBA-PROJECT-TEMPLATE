@@ -150,6 +150,77 @@ than this AST/interface harness. `python3 tools/check_release_semantics.py --roo
 proves compliant squash history, reviewed merge exceptions, unapproved merge
 rejection and duplicate-subject rejection using temporary Git repositories.
 
+## 🖥️ Local pre-push validation
+
+Hosted CI is authoritative, but a maintainer should be able to reach the same
+verdict before pushing. Two files make that reproducible.
+
+`tools/requirements-dev.txt` pins the Python tooling to the exact versions the
+hosted workflows install. It mirrors `RUFF_VERSION` and `MYPY_VERSION` from
+`static-checks.yml` and the `coverage` and `PyYAML` pins from
+`checker-development.yml`; those workflows remain the sources of truth and this
+file follows them. `actionlint` is a Go binary rather than a Python package, so
+it is documented there but not installable from it.
+
+`tools/dev_check.sh` runs the locally reproducible gates in the hosted order and
+prints a pass/fail/skip verdict:
+
+```bash
+python3 -m pip install -r tools/requirements-dev.txt
+tools/dev_check.sh              # full local set
+FAST=1 tools/dev_check.sh       # skip the initializer and policy-coverage gates
+```
+
+The script guards its own premise in two steps before running any gate. It first
+checks that each pin still mirrors the workflow that owns it — `RUFF_VERSION`,
+`MYPY_VERSION`, the `actionlint` version and digest from `static-checks.yml`,
+and the `coverage`/`PyYAML` pins from `checker-development.yml` — so a workflow
+pin that moves without this file cannot turn a clean local run into a false
+negative. It then checks that every installed version matches the pin. Both are
+failures rather than warnings, because a local run on different versions can
+disagree with CI in both directions. A mismatched PyYAML is the clearest case:
+`check_portfolio_drift.py` refuses to run on any other version, and the
+resulting failure names the portfolio suites rather than the real cause.
+
+Workflow validation is the one gate that needs a non-Python tool.
+`tools/requirements-dev.txt` carries the command that installs the same pinned,
+digest-verified `actionlint` binary `static-checks.yml` uses; with it on `PATH`
+the local run covers every tracked workflow and reports no skips.
+
+The script is explicitly not a claim of CI equivalence. Workflow validation
+without `actionlint` on `PATH`, the statement-coverage floor, Excel evidence,
+live GitHub state and the hosted terminal verdicts are reported as SKIPPED
+rather than counted as passes, and remain the hosted gates' responsibility.
+
+## 🧰 Registered maintenance tasks
+
+Some maintenance work must run in the pinned hosted environment and commit its
+result — regenerating the wiki inventory reference is the current example.
+`.github/workflows/maintenance.yml` is the one permanent, dispatch-only home for
+that work:
+
+```bash
+gh workflow run maintenance.yml --ref <branch> -f task=regenerate-wiki-reference
+```
+
+It replaces the pattern of adding a disposable workflow per task. Each such
+workflow triggered on its own push, granted itself `contents: write`, ran at the
+moment it was introduced and then deleted itself, which left a permanent entry
+in the Actions tab and no window in which it could be reviewed.
+
+The permanent workflow keeps these rules, and a change to it is a reviewed edit:
+
+- `workflow_dispatch` only; it never triggers itself and never on push.
+- The task list is a closed `choice`. An arbitrary-command input would be the
+  script-injection hole Scorecard's Dangerous-Workflow check flags, so adding a
+  task means editing this file.
+- The selected task reaches the shell through `env`, never through inline
+  `${{ }}` interpolation.
+- Write scope is granted on the job, not the workflow.
+- The result is validated before it is committed, and a task that changes
+  nothing exits cleanly instead of creating an empty commit.
+- It never deletes itself.
+
 ## 📦 Portability and artifact identity
 
 The runtime checker may import only Python standard-library modules and must not use relative imports. No `pip`, package manager, virtual environment, generated package tree or network dependency is required in a generated VBA repository.
@@ -162,8 +233,9 @@ Every development-contract report records the SHA-256 of `tools/check_repo.py`. 
 2. Run `python3 tools/checker_development.py --root . --self-test`.
 3. Run `python3 tools/check_repo.py --root . --self-test`.
 4. Run `python3 tools/check_policy_coverage.py --root . --self-test` so every canonical blocking finding remains exercised.
-5. Run the normal repository gate and require successful hosted terminal verdicts from both `Checker development` and `Repository integrity`.
-6. If a deliberate internal boundary, CLI contract or canonical check order changes, update this document and `checker_development.py` in the same reviewed change.
+5. Run `tools/dev_check.sh` to reproduce the locally checkable part of hosted CI before pushing.
+6. Run the normal repository gate and require successful hosted terminal verdicts from both `Checker development` and `Repository integrity`.
+7. If a deliberate internal boundary, CLI contract or canonical check order changes, update this document and `checker_development.py` in the same reviewed change.
 
 ## 🚫 Non-goals
 

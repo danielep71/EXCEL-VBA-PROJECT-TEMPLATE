@@ -53,6 +53,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/workflows/external-links.yml` / workflow | Separate weekly/manual anonymous external-link observation with retained reports. | R / R / R | [.github/workflows/external-links.yml](../../.github/workflows/external-links.yml) |
 | `.github/workflows/labels-drift.yml` / workflow | PR label fixtures and separate daily/manual read-only live drift detection. | R / R / R | [.github/workflows/labels-drift.yml](../../.github/workflows/labels-drift.yml) |
 | `.github/workflows/labels-sync.yml` / workflow | Read-only PR validation and trusted main/manual label reconciliation. | R / R / R | [.github/workflows/labels-sync.yml](../../.github/workflows/labels-sync.yml) |
+| `.github/workflows/maintenance.yml` / workflow | Template-only dispatch-only home for registered maintenance tasks that commit their result. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `.github/workflows/portfolio-drift.yml` / workflow | Template-only synthetic drift, quality and provisioner acceptance fixtures. | X / X / X | [.github/workflows/portfolio-drift.yml](../../.github/workflows/portfolio-drift.yml) |
 | `.github/workflows/release-closeout.yml` / workflow | Manual read-only capture and deterministic post-release closeout evidence. | R / R / R | [docs/RELEASE_CLOSEOUT.md](../../docs/RELEASE_CLOSEOUT.md) |
 | `.github/workflows/scorecard.yml` / workflow | Trusted-context OpenSSF Scorecard publication and retained SARIF evidence. | R / R / R | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
@@ -140,6 +141,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/checker_development.py` / script | Independent canonical-checker architecture, self-test and shared-runner contract. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/collect_portfolio_snapshot.py` / script | GET-only capture of explicit repositories and source/live observations. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |
 | `tools/create_reusable_workflow_fixture.py` / script | Create a disposable initialized caller pinned to an explicit provider commit. | X / X / X | [docs/REUSABLE_WORKFLOWS.md](../../docs/REUSABLE_WORKFLOWS.md) |
+| `tools/dev_check.sh` / script | Run the locally reproducible part of hosted CI with the pinned tool versions. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/initialize_repository.py` / script | Validate values, preview transformations, apply once and verify identical-input no-op. | R / R / R | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
 | `tools/policy_coverage_cases_config.py` / script | Synthetic configuration and policy-validation branch cases; imported helper. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/policy_coverage_cases_quality.py` / script | Synthetic content/source quality branch cases; imported helper. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
@@ -150,6 +152,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/release_certification.py` / script | Build or verify deterministic, candidate-bound release certification bundles. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/release_provenance.py` / script | Release helper for complete payloads, build identity and optional SSH verification. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `tools/report_portfolio_quality.py` / script | Produce freshness-aware quality/conformance reports from captured observations. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
+| `tools/requirements-dev.txt` / policy | Local development pins mirroring the versions hosted CI installs. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/test_documentation.py` / script | Offline command/reference and HTTP failure fixtures; no live website certification. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `tools/test_excel_evidence.py` / script | Synthetic host-record and stage-failure fixtures; does not execute Excel. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `tools/test_portfolio_drift.py` / script | Synthetic structural/adoption drift fixtures for all supported profiles. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |

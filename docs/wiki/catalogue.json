@@ -234,6 +234,11 @@
       "kind": "workflow",
       "authority": ".github/workflows/labels-sync.yml"
     },
+    ".github/workflows/maintenance.yml": {
+      "purpose": "Template-only dispatch-only home for registered maintenance tasks that commit their result.",
+      "kind": "workflow",
+      "authority": "docs/CHECKER_DEVELOPMENT.md"
+    },
     ".github/workflows/portfolio-drift.yml": {
       "purpose": "Template-only synthetic drift, quality and provisioner acceptance fixtures.",
       "kind": "workflow",
@@ -659,6 +664,11 @@
       "kind": "script",
       "authority": "docs/REUSABLE_WORKFLOWS.md"
     },
+    "tools/dev_check.sh": {
+      "purpose": "Run the locally reproducible part of hosted CI with the pinned tool versions.",
+      "kind": "script",
+      "authority": "docs/CHECKER_DEVELOPMENT.md"
+    },
     "tools/initialize_repository.py": {
       "purpose": "Validate values, preview transformations, apply once and verify identical-input no-op.",
       "kind": "script",
@@ -708,6 +718,11 @@
       "purpose": "Produce freshness-aware quality/conformance reports from captured observations.",
       "kind": "script",
       "authority": "docs/PORTFOLIO_QUALITY.md"
+    },
+    "tools/requirements-dev.txt": {
+      "purpose": "Local development pins mirroring the versions hosted CI installs.",
+      "kind": "policy",
+      "authority": "docs/CHECKER_DEVELOPMENT.md"
     },
     "tools/test_documentation.py": {
       "purpose": "Offline command/reference and HTTP failure fixtures; no live website certification.",
