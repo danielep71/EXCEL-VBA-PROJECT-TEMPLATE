@@ -263,25 +263,15 @@ the documentation policy.
 
 ## 9. Create and verify the release tag
 
-Tag only the certified commit. Run the release-integrity checker before and after
-creating the local tag. Initialized generated projects use an annotated tag by
-default unless they deliberately adopt a stronger local policy. The canonical
-template overrides that default with an SSH-signed annotated tag.
+Tag only the certified commit and run the release-integrity checker before and
+after creating the local tag. The default generated-project contract remains an
+annotated tag; generated repositories do not inherit the canonical SSH-signing
+requirement unless they explicitly adopt an equivalent local policy.
 
-<!-- template:remove:start -->
-### Canonical-template SSH signing prerequisite
+### Initialized generated project
 
-Before tagging the canonical template, the maintainer must have an SSH signing
-key whose private half remains outside the repository and whose public half is
-registered on GitHub **as an SSH signing key** for the `github_user` named by the
-candidate's `.github/release-provenance.json`. For the current canonical policy,
-that account and verification principal are both `danielep71`.
-
-Set `RELEASE_SIGNING_KEY` to the local private-key path. Do not commit the private
-key, a copy of it, an agent socket, or signing credentials. The post-tag release
-gate retrieves only the account's public SSH signing keys from GitHub and builds
-a temporary OpenSSH allowed-signers file for verification.
-<!-- template:remove:end -->
+Use this sequence for an initialized generated project under the default tag
+policy:
 
 ```bash
 git switch main
@@ -289,12 +279,6 @@ git pull --ff-only
 candidate_sha="$(git rev-parse HEAD)"
 release_version="$(tr -d '\r\n' < VERSION)"
 release_tag="v${release_version}"
-tag_mode="-a"
-
-<!-- template:remove:start -->
-tag_mode="-s"
-: "${RELEASE_SIGNING_KEY:?set RELEASE_SIGNING_KEY to the canonical SSH signing private key}"
-<!-- template:remove:end -->
 
 python3 tools/check_release.py \
   --root . \
@@ -304,12 +288,7 @@ python3 tools/check_release.py \
   --output test-results/release-integrity.json \
   --summary test-results/release-integrity.md
 
-if [[ "$tag_mode" = "-s" ]]; then
-  git -c gpg.format=ssh -c user.signingkey="$RELEASE_SIGNING_KEY" \
-    tag -s "$release_tag" -m "{{PROJECT_NAME}} ${release_version}"
-else
-  git tag -a "$release_tag" -m "{{PROJECT_NAME}} ${release_version}"
-fi
+git tag -a "$release_tag" -m "{{PROJECT_NAME}} ${release_version}"
 
 python3 tools/check_release.py \
   --root . \
@@ -321,25 +300,59 @@ python3 tools/check_release.py \
 git push origin "$release_tag"
 ```
 
-Add `--asset-manifest ../release-assets.sha256` when the release distributes
-binary assets. For contract 1.2.0 add the build record and any required
-provenance-record signature using
-[the provenance procedure](docs/RELEASE_PROVENANCE.md). The provenance-record
-signature is an independent assertion signature; it never substitutes for the
-canonical template's Git-tag signature.
+<!-- template:remove:start -->
+### Canonical-template SSH-signed tag
 
-For the canonical template, the post-tag `--require-tag-ref` validation now
+**Do not use the generated-project `git tag -a` command above for the canonical
+template.** The maintainer must have an SSH signing key whose private half
+remains outside the repository and whose public half is registered on GitHub
+**as an SSH signing key** for the `github_user` named by the candidate's
+`.github/release-provenance.json`. For the current canonical policy, that account
+and verification principal are both `danielep71`.
+
+Set `RELEASE_SIGNING_KEY` to the local private-key path. Do not commit the private
+key, a copy of it, an agent socket, or signing credentials. Then run:
+
+```bash
+git switch main
+git pull --ff-only
+candidate_sha="$(git rev-parse HEAD)"
+release_version="$(tr -d '\r\n' < VERSION)"
+release_tag="v${release_version}"
+: "${RELEASE_SIGNING_KEY:?set RELEASE_SIGNING_KEY to the canonical SSH signing private key}"
+
+python3 tools/check_release.py \
+  --root . \
+  --tag "$release_tag" \
+  --candidate-sha "$candidate_sha" \
+  --evidence ../release-evidence.json \
+  --output test-results/release-integrity.json \
+  --summary test-results/release-integrity.md
+
+git -c gpg.format=ssh -c user.signingkey="$RELEASE_SIGNING_KEY" \
+  tag -s "$release_tag" -m "{{PROJECT_NAME}} ${release_version}"
+
+python3 tools/check_release.py \
+  --root . \
+  --tag "$release_tag" \
+  --candidate-sha "$candidate_sha" \
+  --evidence ../release-evidence.json \
+  --require-tag-ref
+
+git push origin "$release_tag"
+```
+
+The authoritative post-tag gate retrieves only the configured GitHub account's
+public SSH signing keys and builds a temporary OpenSSH allowed-signers file. It
 requires all three facts before the tag can be pushed: the ref is an annotated
 tag object, it resolves to the certified candidate SHA, and its SSH signature
-verifies against the current public SSH signing keys registered to the trusted
-GitHub account in the committed candidate policy. Failure to read that registry,
-no registered signing key, an unsigned tag, a signature from another key, a
-corrupted signature, or a moved/recreated tag is blocking. Pre-tag candidate
-validation remains network-independent because signature verification starts only
-after the local tag exists.
+verifies against current trusted signer material. Failure to read the registry,
+no usable registered signing key, an unsigned tag, another key, a corrupted
+signature, or a moved/recreated tag is blocking. Pre-tag candidate validation
+remains network-independent because tag-signature verification starts only after
+the local tag exists.
 
-<!-- template:remove:start -->
-### Canonical signer rotation and revocation
+#### Canonical signer rotation and revocation
 
 For planned rotation, register the replacement public key on GitHub as an SSH
 signing key before retiring the old key. During the overlap, either registered
@@ -354,6 +367,13 @@ Retain the exact successful release-gate evidence from publication as historical
 evidence; do not re-add a compromised key merely to make an old verification
 green.
 <!-- template:remove:end -->
+
+Add `--asset-manifest ../release-assets.sha256` to both applicable release-gate
+invocations when the release distributes binary assets. For contract 1.2.0 add
+the build record and any required provenance-record signature using
+[the provenance procedure](docs/RELEASE_PROVENANCE.md). The provenance-record
+signature is an independent assertion signature; it never substitutes for the
+canonical template's Git-tag signature.
 
 Do not push the tag if either release check fails. An incorrect local tag that
 has **not** been pushed may be deleted and recreated after the candidate and
