@@ -100,6 +100,8 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-09-14
+
 ### Changed
 
 - Added pinned CodeQL analysis for maintained Python/JavaScript, weekly GitHub Actions update proposals through Dependabot, and trusted-context OpenSSF Scorecard publication; pull-request workflows remain read-only and `pull_request_target` is prohibited by repository validation.
@@ -116,6 +118,7 @@ Use only the categories needed by a release.
 - Harden workflow-policy recognition so scalar and simple flow-mapping pull-request triggers and flow-mapping write permissions cannot bypass the documented read-only and prohibited-trigger controls.
 - Apply external-link URL policy before historical or pending-publication classifications, and render the same five aggregate outcome counts in JSON and Markdown, including access-restricted links.
 - Report active release-history exceptions whose base tag no longer matches the candidate's current previous-release tag, while preserving durable prior-release ancestry only as descriptive historical evidence.
+- Removed the obsolete development-only duplicate-history exception after the v1.2.1 release branch was squash-integrated, so release semantics evaluate only commits that remain in the canonical mainline release range.
 
 ## [1.2.0] - 2026-09-10
 
@@ -272,7 +275,8 @@ Use only the categories needed by a release.
 - Made profile and domain label selection a versioned repository policy that
   both the checker and trusted reconciliation workflow validate and consume.
 
-[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases/tag/v1.0.0
