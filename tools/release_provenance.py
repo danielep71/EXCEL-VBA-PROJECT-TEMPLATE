@@ -2,22 +2,37 @@
 
 Checks assertions and optionally authenticates their signer, not the builder.
 Trust policy is read from the candidate Git object, never from release inputs.
+Canonical-template tag signing is a separate SSH authenticity control whose
+trusted key set is the maintainer GitHub account's public SSH signing-key registry.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import tempfile
+import urllib.error
+import urllib.request
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 POLICY = ".github/release-provenance.json"
 RELEASE_POLICY = ".github/release-policy.json"
 NAMESPACE = "excel-vba-release"
+GITHUB_API_VERSION = "2026-03-10"
 SHA = re.compile(r"[0-9a-f]{40}")
+GITHUB_USER = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?")
+SSH_KEY_PREFIXES = (
+    "ssh-ed25519 ",
+    "ssh-rsa ",
+    "ecdsa-sha2-nistp256 ",
+    "ecdsa-sha2-nistp384 ",
+    "ecdsa-sha2-nistp521 ",
+    "sk-ssh-ed25519@openssh.com ",
+    "sk-ecdsa-sha2-nistp256@openssh.com ",
+)
 
 
 def require(condition: object, message: str) -> None:
@@ -68,9 +83,29 @@ def release_signature_mode(root: Path, sha: str) -> str:
     return mode
 
 
+def _validate_tag_signature_policy(value: Any) -> None:
+    object_keys(value, "generated template", "tag signature policy")
+    generated = value["generated"]
+    template = value["template"]
+    object_keys(generated, "mode", "generated tag signature policy")
+    require(generated["mode"] == "none",
+            "generated tag signature policy must remain none unless the template contract changes")
+    require(isinstance(template, dict), "invalid template tag signature policy")
+    mode = template.get("mode")
+    require(mode in ("none", "ssh-github"), "unsupported template tag signature mode")
+    if mode == "none":
+        object_keys(template, "mode", "template tag signature policy")
+        return
+    object_keys(template, "mode principal github_user", "template tag signature policy")
+    require(nonempty(template["principal"]), "template tag signature principal must be nonempty")
+    require(isinstance(template["github_user"], str)
+            and GITHUB_USER.fullmatch(template["github_user"]),
+            "template tag signature github_user is invalid")
+
+
 def policy_for(root: Path, sha: str, configuration: dict[str, Any]) -> dict[str, Any]:
     policy = decode(committed(root, sha, POLICY))
-    object_keys(policy, "schema_version workflow signature", "policy")
+    object_keys(policy, "schema_version workflow signature tag_signature", "policy")
     require(type(policy["schema_version"]) is int and policy["schema_version"] == 1,
             "unsupported provenance policy schema")
     workflow = policy["workflow"]
@@ -100,6 +135,7 @@ def policy_for(root: Path, sha: str, configuration: dict[str, Any]) -> dict[str,
         object_keys(signature, "mode principal allowed_signers", "signature policy")
         require(nonempty(signature["principal"]) and relative(signature["allowed_signers"]),
                 "signature policy requires a principal and committed allowed-signers path")
+    _validate_tag_signature_policy(policy["tag_signature"])
     return policy
 
 
@@ -180,6 +216,88 @@ def verify_signature(root: Path, sha: str, policy: dict[str, Any], raw: bytes,
         require(result.returncode == 0, "SSH provenance signature verification failed")
 
 
+def _extract_ssh_key(value: Any) -> str | None:
+    if not isinstance(value, dict):
+        return None
+    for field in ("key", "title"):
+        candidate = value.get(field)
+        if isinstance(candidate, str) and candidate.startswith(SSH_KEY_PREFIXES):
+            return candidate.strip()
+    return None
+
+
+def _github_signing_keys(username: str) -> list[str]:
+    url = f"https://api.github.com/users/{username}/ssh_signing_keys?per_page=100"
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": GITHUB_API_VERSION,
+            "User-Agent": "release-tag-verifier",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            require(response.status == 200, f"GitHub signing-key registry returned HTTP {response.status}")
+            raw = response.read(1024 * 1024 + 1)
+    except (urllib.error.URLError, TimeoutError) as error:
+        raise ValueError(f"could not read GitHub SSH signing-key registry: {error}") from error
+    require(len(raw) <= 1024 * 1024, "GitHub signing-key registry response is too large")
+    value = decode(raw)
+    require(isinstance(value, list), "GitHub signing-key registry response must be an array")
+    keys = sorted({key for item in value if (key := _extract_ssh_key(item)) is not None})
+    require(keys, f"GitHub user {username} has no usable public SSH signing keys")
+    return keys
+
+
+def verify_tag_signature(root: Path, sha: str, configuration: dict[str, Any],
+                         evidence: dict[str, Any], policy: dict[str, Any]) -> None:
+    scope = "template" if configuration.get("mode") == "template" else "generated"
+    tag_policy = policy["tag_signature"][scope]
+    if tag_policy["mode"] == "none":
+        return
+    tag = evidence.get("tag")
+    require(nonempty(tag), "release evidence must name the tag before tag-signature verification")
+    assert isinstance(tag, str)
+    reference = f"refs/tags/{tag}"
+    exists = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", f"{reference}^{{object}}"],
+        capture_output=True, check=False, timeout=30,
+    )
+    if exists.returncode != 0:
+        # Pre-tag candidate validation remains valid. check_release.py --require-tag-ref
+        # separately makes absence blocking after the local tag is created.
+        return
+    kind = subprocess.run(
+        ["git", "-C", str(root), "cat-file", "-t", reference],
+        capture_output=True, check=False, text=True, encoding="utf-8", errors="replace", timeout=30,
+    )
+    require(kind.returncode == 0 and kind.stdout.strip() == "tag",
+            "canonical release tag must be an annotated tag object before signature verification")
+    target = subprocess.run(
+        ["git", "-C", str(root), "rev-list", "-n", "1", reference],
+        capture_output=True, check=False, text=True, encoding="utf-8", errors="replace", timeout=30,
+    )
+    require(target.returncode == 0 and target.stdout.strip() == sha,
+            "signed release tag does not target the certified candidate")
+    keys = _github_signing_keys(tag_policy["github_user"])
+    with tempfile.TemporaryDirectory(prefix="release-tag-signature-") as directory:
+        signers = Path(directory) / "allowed_signers"
+        signers.write_text(
+            "".join(f"{tag_policy['principal']} {key}\n" for key in keys),
+            encoding="utf-8",
+            newline="\n",
+        )
+        result = subprocess.run([
+            "git", "-C", str(root),
+            "-c", "gpg.format=ssh",
+            "-c", f"gpg.ssh.allowedSignersFile={signers}",
+            "verify-tag", tag,
+        ], capture_output=True, check=False, text=True, encoding="utf-8", errors="replace", timeout=30)
+        require(result.returncode == 0,
+                f"SSH release-tag signature verification failed for trusted GitHub signer {tag_policy['github_user']}")
+
+
 def validate(root: Path, configuration: dict[str, Any], sha: str, evidence_path: Path,
              manifest_path: Path | None, provenance_path: Path | None,
              signature_path: Path | None) -> list[dict[str, str]]:
@@ -197,6 +315,7 @@ def validate(root: Path, configuration: dict[str, Any], sha: str, evidence_path:
         raw_evidence = evidence_path.read_bytes()
         evidence = decode(raw_evidence)
         require(isinstance(evidence, dict), "release evidence must be an object")
+        verify_tag_signature(root, sha, configuration, evidence, policy)
         assets = inventory(root, evidence)
         required = evidence.get("distribution") == "binary" or policy["signature"]["mode"] != "none"
         if provenance_path is None:

@@ -40,7 +40,9 @@ A release is valid only when:
 4. VBA compile and applicable regression/specialist checks pass on that candidate;
 5. every distributed artifact is derived from and tested against that candidate;
 6. external evidence and optional asset hashes bind to the candidate;
-7. the annotated lower-case `v*` tag targets the certified commit; and
+7. the annotated lower-case `v*` tag targets the certified commit; for the
+   canonical template, that tag also carries a verified SSH signature from the
+   signer trust policy committed in the candidate; and
 8. post-publication retrieval/installation checks pass.
 
 If source changes after certification, the affected evidence is stale and must be
@@ -259,10 +261,17 @@ non-success observations until separately resolved or explicitly reported under
 the documentation policy.
 <!-- template:remove:end -->
 
-## 9. Create the protected annotated tag
+## 9. Create and verify the release tag
 
-Tag only the certified commit. Run the release-integrity checker before and after
-creating the local annotated tag:
+Tag only the certified commit and run the release-integrity checker before and
+after creating the local tag. The default generated-project contract remains an
+annotated tag; generated repositories do not inherit the canonical SSH-signing
+requirement unless they explicitly adopt an equivalent local policy.
+
+### Initialized generated project
+
+Use this sequence for an initialized generated project under the default tag
+policy:
 
 ```bash
 git switch main
@@ -291,11 +300,86 @@ python3 tools/check_release.py \
 git push origin "$release_tag"
 ```
 
-Add `--asset-manifest ../release-assets.sha256` when the release distributes
-binary assets. For contract 1.2.0 add the build record and any required signature
-using [the provenance procedure](docs/RELEASE_PROVENANCE.md).
-Do not push the tag if either check fails. Never move or recreate
-a public tag to hide an error.
+<!-- template:remove:start -->
+### Canonical-template SSH-signed tag
+
+**Do not use the generated-project `git tag -a` command above for the canonical
+template.** The maintainer must have an SSH signing key whose private half
+remains outside the repository and whose public half is registered on GitHub
+**as an SSH signing key** for the `github_user` named by the candidate's
+`.github/release-provenance.json`. For the current canonical policy, that account
+and verification principal are both `danielep71`.
+
+Set `RELEASE_SIGNING_KEY` to the local private-key path. Do not commit the private
+key, a copy of it, an agent socket, or signing credentials. Then run:
+
+```bash
+git switch main
+git pull --ff-only
+candidate_sha="$(git rev-parse HEAD)"
+release_version="$(tr -d '\r\n' < VERSION)"
+release_tag="v${release_version}"
+: "${RELEASE_SIGNING_KEY:?set RELEASE_SIGNING_KEY to the canonical SSH signing private key}"
+
+python3 tools/check_release.py \
+  --root . \
+  --tag "$release_tag" \
+  --candidate-sha "$candidate_sha" \
+  --evidence ../release-evidence.json \
+  --output test-results/release-integrity.json \
+  --summary test-results/release-integrity.md
+
+git -c gpg.format=ssh -c user.signingkey="$RELEASE_SIGNING_KEY" \
+  tag -s "$release_tag" -m "{{PROJECT_NAME}} ${release_version}"
+
+python3 tools/check_release.py \
+  --root . \
+  --tag "$release_tag" \
+  --candidate-sha "$candidate_sha" \
+  --evidence ../release-evidence.json \
+  --require-tag-ref
+
+git push origin "$release_tag"
+```
+
+The authoritative post-tag gate retrieves only the configured GitHub account's
+public SSH signing keys and builds a temporary OpenSSH allowed-signers file. It
+requires all three facts before the tag can be pushed: the ref is an annotated
+tag object, it resolves to the certified candidate SHA, and its SSH signature
+verifies against current trusted signer material. Failure to read the registry,
+no usable registered signing key, an unsigned tag, another key, a corrupted
+signature, or a moved/recreated tag is blocking. Pre-tag candidate validation
+remains network-independent because tag-signature verification starts only after
+the local tag exists.
+
+#### Canonical signer rotation and revocation
+
+For planned rotation, register the replacement public key on GitHub as an SSH
+signing key before retiring the old key. During the overlap, either registered
+key can satisfy current trust; sign the next candidate with the replacement and
+verify it through the release gate before removing the old key. For compromise,
+remove the affected public key from the GitHub signing-key registry immediately
+and stop release publication until a replacement is registered and verified.
+
+The registry is deliberately a **current-trust** source. After a key is removed,
+a fresh verification of an older tag signed only by that key becomes non-green.
+Retain the exact successful release-gate evidence from publication as historical
+evidence; do not re-add a compromised key merely to make an old verification
+green.
+<!-- template:remove:end -->
+
+Add `--asset-manifest ../release-assets.sha256` to both applicable release-gate
+invocations when the release distributes binary assets. For contract 1.2.0 add
+the build record and any required provenance-record signature using
+[the provenance procedure](docs/RELEASE_PROVENANCE.md). The provenance-record
+signature is an independent assertion signature; it never substitutes for the
+canonical template's Git-tag signature.
+
+Do not push the tag if either release check fails. An incorrect local tag that
+has **not** been pushed may be deleted and recreated after the candidate and
+signing setup are corrected, followed by a complete post-tag verification. Once
+a tag has been pushed or published, never move, delete, recreate, or replace it
+to hide an error; publish a corrected patch release instead.
 
 ## 10. Publish the GitHub Release
 
@@ -326,6 +410,9 @@ certification/tagging and publication.
 ## 11. Verify after publication
 
 - [ ] Tag resolves to the certified SHA.
+<!-- template:remove:start -->
+- [ ] Canonical-template tag signature still verifies against the current trusted GitHub SSH signing-key registry.
+<!-- template:remove:end -->
 - [ ] `VERSION` and changelog agree with the tag.
 - [ ] Published assets download and hashes match.
 - [ ] Installation and documentation links work.
@@ -337,15 +424,18 @@ Do not announce broad availability until these checks pass.
 
 ## 🧯 Recovery
 
-Before publication, repair the candidate and rerun every affected gate. After a
-public release, never silently replace assets or move the tag: document the
-problem and publish a corrected patch release. Vulnerability handling follows
-[`SECURITY.md`](SECURITY.md).
+Before publication, repair the candidate and rerun every affected gate. An
+unpushed incorrect tag may be deleted and recreated only after correcting the
+candidate/signing setup and repeating post-tag verification. After a public
+release, never silently replace assets, move the tag, or recreate its signature:
+document the problem and publish a corrected patch release. Vulnerability
+handling follows [`SECURITY.md`](SECURITY.md).
 
 ## 📚 Related authorities
 
 - [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) — exact version/changelog/history semantics
 - [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) — evidence and asset-manifest schema
+- [`docs/RELEASE_PROVENANCE.md`](docs/RELEASE_PROVENANCE.md) — build-record and signature trust policy
 - [`INSTALLATION.md`](INSTALLATION.md) — clean install/upgrade validation
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — change/review workflow
 - [`SECURITY.md`](SECURITY.md) — vulnerability handling

@@ -14,16 +14,19 @@ calls `tools/release_provenance.py`; there is no second publication verdict.
 | Profile | Source-only distribution | Generated binary assets |
 | --- | --- | --- |
 | `library` | Base release evidence; empty `assets`; no manifest or build record required | Disallowed by the base release policy |
-| `template` | Base release evidence, including pilots and governance | Disallowed by the base release policy |
+| `template` | Base release evidence, including pilots and governance; canonical Git-tag signature required once the tag exists | Disallowed by the base release policy |
 | `ui-component` | Base release evidence; no artificial workbook required | Base evidence, SHA-256 manifest and build record |
 | `application` | Base release evidence; no artificial workbook required | Base evidence, SHA-256 manifest and build record |
 
-Selecting SSH verification raises every distribution's minimum to a signed build
-record, including source-only releases. The selection is explicit in
-`.github/release-policy.json`; omission, an unsupported value, or disagreement
-with `.github/release-provenance.json` fails closed. Contracts 1.0.0 and 1.1.0
-retain their previous evidence rules; advanced inputs require 1.2.0. Unsupported
-future contracts fail instead of inheriting today's policy.
+Selecting SSH verification for the **provenance record** raises every
+distribution's minimum to a signed build record, including source-only releases.
+That selection is explicit in `.github/release-policy.json`; omission, an
+unsupported value, or disagreement with `.github/release-provenance.json` fails
+closed. The canonical template's Git-tag signature is a separate authenticity
+control and does not change whether an external provenance record is required.
+Contracts 1.0.0 and 1.1.0 retain their previous evidence rules; advanced inputs
+require 1.2.0. Unsupported future contracts fail instead of inheriting today's
+policy.
 
 `dist/` is the complete payload boundary. Its regular files must exactly equal
 the evidence asset list and digests. Missing, additional, changed, duplicate or
@@ -45,16 +48,57 @@ use a branch, tag, or a workflow that did not participate. Record the actual
 invocation's run ID and attempt. A local default workflow must exist in the
 candidate; a remote provider's content and run must be reviewed separately.
 
-The gate reads policy and signing keys from candidate Git objects. Editing the
-working copy or an external record cannot disable required verification. The
-reviewed candidate SHA and trusted verifier installation are the trust roots:
-review changes to that policy as carefully as changes to the workflow itself.
+The gate reads policy and any committed provenance-signing keys from candidate
+Git objects. Editing the working copy or an external record cannot disable
+required verification. The reviewed candidate SHA and trusted verifier
+installation are trust roots: review changes to that policy as carefully as
+changes to the workflow itself.
+
+The same policy file also owns `tag_signature`, which has separate `generated`
+and `template` scopes. Generated repositories use `mode: "none"` by default and
+therefore retain the existing annotated-tag contract unless they deliberately
+adopt an equivalent stronger local control. The canonical template uses:
+
+```json
+{
+  "mode": "ssh-github",
+  "principal": "danielep71",
+  "github_user": "danielep71"
+}
+```
+
+When the canonical local release tag exists, the verifier reads the public SSH
+**signing-key** registry for the configured GitHub user, constructs a temporary
+OpenSSH allowed-signers file using the configured principal, and invokes
+`git verify-tag` with SSH verification. No private key, token, or signing
+credential is read from the repository. The registry lookup is deliberately
+live current-trust evidence; inability to retrieve it or the absence of usable
+registered signing keys is non-green.
 
 ## 🔏 Signature Policy
 
-`.github/release-policy.json` is the selector for the provenance-record signature
-requirement. Its top-level `provenance_signature_mode` field is mandatory and
-supports exactly:
+Two independent signature controls exist. They must not be conflated.
+
+### Git-tag signature
+
+The canonical template's `tag_signature.template.mode = "ssh-github"` requires
+an SSH-signed annotated Git tag once the tag exists locally. Verification proves
+both that the tag resolves to the certified candidate and that its signature is
+valid under a public SSH signing key currently registered to the explicitly
+trusted GitHub account. An unsigned tag, a different key, a damaged signature,
+a moved/recreated tag, or unavailable current trust fails publication.
+
+Pre-tag candidate validation remains possible and network-independent: the tag
+signature check begins only once `refs/tags/<release-tag>` exists. The
+post-tag `check_release.py --require-tag-ref` invocation is therefore the
+publication boundary. Existing published v1.2.0 history remains immutable and
+is not retrofitted.
+
+### Provenance-record signature
+
+`.github/release-policy.json` is the selector for the **external provenance
+record** signature requirement. Its top-level `provenance_signature_mode` field
+is mandatory and supports exactly:
 
 - `"none"` — detached provenance signing is disabled; a supplied provenance
   signature is rejected rather than silently ignored;
@@ -68,10 +112,10 @@ provenance trust policy supplies the verification configuration. Neither file ma
 silently raise or lower the other. A missing selector, unsupported selector, or
 mode mismatch is a blocking release finding.
 
-The default canonical/template baseline selects `"none"` explicitly in both
-files. This is an explicit unsigned provenance policy, not permission inferred
-from an absent setting. Git-tag signing is a separate control and does not satisfy
-or replace this provenance-record policy.
+The current canonical baseline selects `"none"` explicitly for the provenance
+record. That does not weaken or satisfy the separate canonical Git-tag signature
+requirement. Conversely, a valid provenance-record signature cannot substitute
+for an unsigned or untrusted canonical release tag.
 
 ## 🧾 Build Record
 
@@ -119,18 +163,20 @@ manifest is omitted. All environment fields must be nonempty; use an explicit
 `not applicable: source-only` explanation for unused Office/build fields.
 Keep runtime test environments in the separate base evidence even if identical.
 
-## ✍️ Optional Signatures
+## ✍️ Optional Provenance-Record Signatures
 
-This implementation supports detached OpenSSH signatures, without a signing
-service dependency. It does not claim SLSA or verify vendor attestations.
-Use an approved release signing key kept outside the repository. Commit its
-public key in an allowed-signers file, for example `.github/release-signers`:
+This implementation supports detached OpenSSH signatures for external provenance
+records, without a signing-service dependency. It does not claim SLSA or verify
+vendor attestations. Use an approved release signing key kept outside the
+repository. Commit its public key in an allowed-signers file, for example
+`.github/release-signers`:
 
 ```text
 release@example.org ssh-ed25519 REPLACE_WITH_APPROVED_PUBLIC_KEY
 ```
 
-To enable signing, change the release selector before freezing the candidate:
+To enable provenance-record signing, change the release selector before freezing
+the candidate:
 
 ```json
 {"provenance_signature_mode": "ssh"}
@@ -156,8 +202,8 @@ configured principal, namespace and exact record bytes. See the
 [OpenSSH manual](https://man.openbsd.org/ssh-keygen.1) for key and allowed-signers
 formats. An absent tool, unsupported operation, timeout, missing signature,
 wrong key/namespace, changed record, or policy mismatch blocks publication.
-Supplying a signature while both policies say `none` also fails: no signature is
-silently left unchecked.
+Supplying a provenance signature while both provenance policies say `none` also
+fails: no signature is silently left unchecked.
 
 ## ✅ Verification and Retention
 
@@ -165,9 +211,13 @@ silently left unchecked.
    and provenance trust policies.
 2. Stage only the approved downloadable payloads in `dist/`. Build/test them
    using the recorded environment and keep the actual logs.
-3. Finalize base evidence, manifest and build record; sign last if enabled.
-4. Run the integrated gate, adding `--require-tag-ref` after the annotated tag
-   exists. Omit `--provenance-signature` when signing is disabled:
+3. Finalize base evidence, manifest and build record; sign the provenance record
+   last if that independent control is enabled.
+4. Create the release tag according to [`RELEASING.md`](../RELEASING.md), then
+   run the integrated gate with `--require-tag-ref`. For the canonical template,
+   this post-tag run verifies the SSH-signed tag through current GitHub signer
+   trust. Omit `--provenance-signature` when provenance-record signing is
+   disabled:
 
 ```bash
 python3 tools/check_release.py --root . --tag v1.0.0 \
@@ -175,36 +225,59 @@ python3 tools/check_release.py --root . --tag v1.0.0 \
   --evidence ../release-evidence.json \
   --asset-manifest ../release-assets.sha256 \
   --provenance ../release-provenance.json \
-  --provenance-signature ../release-provenance.json.sig
+  --provenance-signature ../release-provenance.json.sig \
+  --require-tag-ref
 ```
 
-5. Retain the checked evidence, manifest, record, signature if enabled, build
-   logs, gate output and workflow run/attempt alongside the release. Recheck
-   downloaded payloads using the same candidate and those exact bytes.
+5. Retain the checked evidence, manifest, record, provenance signature if enabled,
+   tag-verification gate output, build logs, and workflow run/attempt alongside
+   the release. Recheck downloaded payloads using the same candidate and those
+   exact bytes.
 
-Checksums prove byte identity. A verified signature authenticates the approved
-signer's assertions. Neither independently proves that Excel imported the
-recorded source, that an environment description is truthful, or that a named
-workflow ran successfully. Review its exact source, logs and outcome separately.
-The default static workflow supplies validation identity, not an automated
-Excel builder. Optional Windows/Excel automation is a separate contract.
+Checksums prove byte identity. A verified tag signature authenticates the trusted
+signer's Git tag; a verified provenance-record signature authenticates the
+approved signer's assertions in that separate record. Neither independently
+proves that Excel imported the recorded source, that an environment description
+is truthful, or that a named workflow ran successfully. Review exact source,
+logs and outcomes separately. The default static workflow supplies validation
+identity, not an automated Excel builder. Optional Windows/Excel automation is a
+separate contract.
 
 ## ↩️ Rollback and Key Changes
 
 If validation fails before publication, stop, correct the candidate or rebuild
-assets, and regenerate every affected digest and signature. After publication,
-never replace assets silently or move the tag. Restore a previously certified
-version after verifying its retained bundle; publish corrections under a new
-version with fresh evidence. Commit and review signer rotation or policy
-changes before a new candidate. If a key is compromised, remove it from the
-current trust policy and document which historical releases require independent
-revalidation: an old candidate's embedded key is historical trust, not proof
-that the key remains approved today.
+assets, and regenerate every affected digest/signature. An incorrect local tag
+that has not been pushed may be deleted and recreated only after the candidate
+or signing setup is corrected and the complete post-tag verification is rerun.
+After publication, never replace assets silently or move/recreate the tag;
+publish corrections under a new version with fresh evidence.
+
+For canonical Git-tag signer rotation, register the replacement public key on
+GitHub as an SSH signing key before retiring the old one. Overlap allows a
+controlled transition; sign and verify the next release with the replacement,
+then remove the old key. For compromise, remove the affected public signing key
+from GitHub immediately. Fresh verification of historical tags signed only by a
+removed key then becomes non-green by design: the GitHub registry represents
+**current** trust. Preserve the exact successful publication-time gate evidence
+as historical evidence and never re-enable a compromised key merely to make an
+old tag green.
+
+Provenance-record signer changes are separate: when that optional control is
+enabled, commit and review its allowed-signers rotation before freezing the new
+candidate. An old candidate's embedded provenance key is historical trust, not
+proof that the key remains approved today.
 
 ## 🧪 Validation Scope
 
 `python3 tools/test_release_provenance.py -v` exercises synthetic candidates,
-payload tampering, explicit unsigned policy, missing/unsupported selectors,
-both policy-mismatch directions, and real ephemeral SSH signatures. It runs with
-the existing release self-test in repository CI. It does not build or execute
-Office files, request signing credentials, or publish a release.
+payload tampering, explicit unsigned provenance policy, missing/unsupported
+selectors, both provenance policy-mismatch directions, and real ephemeral SSH
+signatures. The signed-tag matrix separately proves a valid current trusted key,
+unsigned tag, wrong key, corrupted signature, signed moved tag, signer overlap,
+revocation, and generated-project non-inheritance. Tests use ephemeral private
+keys only and never request or expose the maintainer's real signing key.
+
+The suite runs with the existing release self-test in repository CI. It does not
+build or execute Office files, use the maintainer's live signing credentials, or
+publish a release. The actual canonical post-tag release check performs the live
+public GitHub signing-key lookup when the release tag exists.

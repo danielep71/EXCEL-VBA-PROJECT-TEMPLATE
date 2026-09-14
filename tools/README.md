@@ -13,12 +13,39 @@ have separately documented observation, credential and mutation boundaries.
 ## 📐 Python presentation and lint policy
 
 [`pyproject.toml`](../pyproject.toml) sets Python 3.10 as the compatibility target
-and 100 columns as a formatting target. CI runs `ruff check tools` with the
-selected E4, E7, E9, F, C90 and S314 rules and a McCabe ceiling of 20, plus mypy.
-E501 is not selected and CI does not run `ruff format --check`; line length and
-formatter output are therefore not blocking rules. Prefer readable wrapping
-without changing literals or churning unrelated code. Editor indentation and
-line endings are defined in [`.editorconfig`](../.editorconfig).
+and 100 columns as a formatting target. CI runs `ruff check tools` with exactly
+`E4`, `E7`, `E9`, `F`, `I001`, `C90`, and `S314`; `I001` rejects unsorted or
+unformatted import blocks, and `C90` uses a McCabe ceiling of 20. CI also runs
+`mypy` across `tools/`; `_gatelib` is subject to the pinned mypy 2.3.1 strict
+bundle through its per-module override while the rest of the tree remains on the
+established whole-tree baseline. E501 is not selected and CI does not run
+`ruff format --check`; line length and formatter output are therefore not
+blocking rules. Prefer readable wrapping without changing literals or churning
+unrelated code. Editor indentation and line endings are defined in
+[`.editorconfig`](../.editorconfig).
+
+<!-- template:remove:start -->
+### Maintainer Python coverage
+
+The canonical reproducible coverage command is the complete `Exercise maintained Python
+tooling under coverage` shell block in
+[`.github/workflows/checker-development.yml`](../.github/workflows/checker-development.yml).
+It is intentionally CI-independent: after installing the pinned dependencies below, run
+that block verbatim from the repository root in Bash.
+
+```bash
+python -m pip install --disable-pip-version-check "coverage[toml]==7.10.6" "PyYAML==6.0.3"
+```
+
+The measurement scope is maintained `tools/*.py`. Test drivers matching
+`tools/test_*.py` are excluded from the denominator, while the maintained code they
+exercise remains measured. Coverage.py subprocess measurement is enabled so Python
+children launched by semantic fixtures are combined before reporting. The hosted and
+local contract uses a **95% statement-coverage floor** and emits both text and JSON
+evidence. Numeric coverage supplements the focused self-tests and policy-branch suites;
+it never replaces their behavioral or failure-semantics assertions.
+
+<!-- template:remove:end -->
 
 Comments and docstrings explain purpose, inputs, ownership, error handling and
 limits when these are not clear from the code. Check them whenever behavior

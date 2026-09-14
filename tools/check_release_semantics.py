@@ -3,17 +3,18 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date
 import json
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
 from typing import Any
 
-from _gatelib import git_text, parse_report_args as parse_args, run_gate
+from _gatelib import git_text, run_gate
+from _gatelib import parse_report_args as parse_args
 
 CONFIG_PATH = ".github/repository-profile.json"
 HISTORY_POLICY_PATH = ".github/release-history-policy.json"
@@ -439,13 +440,26 @@ def _history_conditions(rows: list[dict[str, Any]]) -> dict[str, set[str]]:
 def _history_findings(
     rows: list[dict[str, Any]], policy: dict[str, Any], base_tag: str
 ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    findings: list[dict[str, Any]] = []
     active: dict[str, set[str]] = {}
     for item in policy["exceptions"]:
-        if item["base_tag"] == base_tag:
-            active.setdefault(item["commit"], set()).update(item["findings"])
+        if item["base_tag"] != base_tag:
+            findings.append(
+                {
+                    "code": "superseded-history-exception-base",
+                    "path": item["commit"],
+                    "message": (
+                        f"exception records base tag {item['base_tag']!r} but current "
+                        f"previous-release base tag is {base_tag!r}; remove the active "
+                        "exception or preserve durable historical evidence under "
+                        "historical_records"
+                    ),
+                }
+            )
+            continue
+        active.setdefault(item["commit"], set()).update(item["findings"])
     observed = _history_conditions(rows)
     by_sha = {row["commit"]: row for row in rows}
-    findings: list[dict[str, Any]] = []
     used: list[dict[str, str]] = []
     for commit, conditions in sorted(observed.items()):
         allowed = active.get(commit, set())
@@ -697,7 +711,9 @@ def _history_commit(root: Path, filename: str, text: str, subject: str) -> str:
     return _fixture_git(root, "rev-parse", "HEAD")
 
 
-def _history_merge_case(root: Path, approved: bool) -> dict[str, Any]:
+def _history_merge_case(
+    root: Path, approved: bool, exception_base_tag: str = "v1.0.0"
+) -> dict[str, Any]:
     _history_base_fixture(root)
     _fixture_git(root, "switch", "-c", "feature")
     _history_commit(root, "feature.txt", "feature", "Feature change")
@@ -709,7 +725,7 @@ def _history_merge_case(root: Path, approved: bool) -> dict[str, Any]:
         policy = json.loads((root / HISTORY_POLICY_PATH).read_text(encoding="utf-8"))
         policy["exceptions"] = [
             {
-                "base_tag": "v1.0.0",
+                "base_tag": exception_base_tag,
                 "commit": merge_sha,
                 "findings": ["merge-commit"],
                 "review_ref": "https://github.com/example/repo/pull/1",
@@ -746,6 +762,26 @@ def _history_self_test_cases() -> list[tuple[str, bool]]:
             (
                 "approved-merge-exception",
                 not report["findings"] and len(report["exceptions_used"]) == 1,
+            )
+        )
+
+        superseded = area / "superseded-base"
+        superseded.mkdir()
+        report = _history_merge_case(
+            superseded, approved=True, exception_base_tag="v0.9.0"
+        )
+        stale_base = [
+            item
+            for item in report["findings"]
+            if item.get("code") == "superseded-history-exception-base"
+        ]
+        results.append(
+            (
+                "superseded-base-exception",
+                len(stale_base) == 1
+                and SHA_RE.fullmatch(str(stale_base[0].get("path", ""))) is not None
+                and "v0.9.0" in stale_base[0]["message"]
+                and "v1.0.0" in stale_base[0]["message"],
             )
         )
 
@@ -921,8 +957,8 @@ def run_self_test() -> int:
         return 1
     print(
         "SELF-TEST PASS: SemVer, changelog cut/freeze dates, comparison links, "
-        "compliant squash history, reviewed merge exceptions, unapproved merges, and "
-        "duplicate-subject rejection passed."
+        "compliant squash history, reviewed merge exceptions, superseded-base "
+        "exception hygiene, unapproved merges, and duplicate-subject rejection passed."
     )
     return 0
 

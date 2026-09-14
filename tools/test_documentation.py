@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import date
 import hashlib
 import json
-from pathlib import Path
 import subprocess
 import tempfile
 import threading
 import time
 import unittest
+from datetime import date
+from pathlib import Path
 from unittest.mock import patch
 
 import check_documentation as docs
@@ -188,6 +188,53 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(report["links"][0]["status"], "PENDING_PUBLICATION")
         self.assertEqual(report["counts"]["pending_publication"], 1)
         self.assertEqual(report["counts"]["deterministic_public_defects"], 0)
+
+    def test_classification_cannot_override_local_url_policy(self):
+        cases = (
+            ("http://example.org/private-history", "POLICY_BLOCKED"),
+            ("https://example.org/private-history?token=fixture", "ACCESS_RESTRICTED"),
+        )
+        for url, expected in cases:
+            with self.subTest(url=url):
+                identifier = hashlib.sha256(url.encode()).hexdigest()
+                (self.root / "README.md").write_text(f"[classified]({url})\n")
+                self.policy["network"]["classifications"] = [{
+                    "id": identifier,
+                    "kind": "restricted-historical",
+                    "reason": "Reviewed historical classification",
+                    "expires": "2026-09-10",
+                }]
+                self.save()
+                report = links.build_report(
+                    self.root,
+                    TODAY,
+                    lambda *args: self.fail("policy-rejected classified target must not be probed"),
+                )
+                self.assertEqual(report["links"][0]["status"], expected)
+                self.assertEqual(report["links"][0]["attempts"], 0)
+                self.assertEqual(report["status"], "fail")
+
+    def test_markdown_exposes_every_json_count_category(self):
+        rows = [
+            {"status": "PERMANENT_FAILURE"},
+            {"status": "RESTRICTED_HISTORICAL"},
+            {"status": "PENDING_PUBLICATION"},
+            {"status": "ACCESS_RESTRICTED"},
+            {"status": "TRANSIENT_FAILURE"},
+        ]
+        counts = links._counts(rows)
+        self.assertEqual(set(counts), set(links.COUNT_LABELS))
+        report = {
+            "status": "fail",
+            "discovered": len(rows),
+            "limit_exceeded": False,
+            "counts": counts,
+            "links": [],
+            "scope_note": "fixture scope",
+        }
+        rendered = links.markdown(report)
+        for key, label in links.COUNT_LABELS.items():
+            self.assertIn(f"{label}: {counts[key]}", rendered)
 
     def test_transient_then_recovery(self):
         report, calls, _ = self.probe([(503, None), (200, None)])

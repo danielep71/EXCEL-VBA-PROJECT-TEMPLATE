@@ -13,20 +13,19 @@ operational error.
 from __future__ import annotations
 
 import argparse
-from datetime import date
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
 import tempfile
+from datetime import date
+from pathlib import Path, PurePosixPath
 from typing import Any
 
-from release_provenance import validate as validate_provenance
 from check_excel_evidence import release_findings as excel_release_findings
-
+from release_provenance import validate as validate_provenance
 
 SCHEMA_VERSION = 1
 TOOL_NAME = "Canonical release integrity"

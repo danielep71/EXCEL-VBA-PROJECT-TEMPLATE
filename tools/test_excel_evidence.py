@@ -7,9 +7,9 @@ import copy
 import hashlib
 import io
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 import check_excel_evidence as host
 import check_release as release

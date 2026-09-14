@@ -102,9 +102,20 @@ Use only the categories needed by a release.
 
 ### Changed
 
+- Added pinned CodeQL analysis for maintained Python/JavaScript, weekly GitHub Actions update proposals through Dependabot, and trusted-context OpenSSF Scorecard publication; pull-request workflows remain read-only and `pull_request_target` is prohibited by repository validation.
+- Added reproducible maintainer Python coverage with subprocess measurement, a 95% statement floor, and focused behavioral failure-path fixtures for release, template-contract, Wiki, initializer, closeout, and reusable-workflow tooling.
+- Added a read-only post-release closeout workflow that binds the annotated tag, tag-triggered CI, GitHub Release state, candidate-bound asset policy, comparison range, actual milestone membership, Wiki read-back, and provider-generated source archive observations to one certified SHA; uploaded assets remain distinct from GitHub source archives.
 - Defined changelog release dates as the reviewed release-section cut/freeze date rather than tag or publication timestamps. Release-semantic evidence now names that meaning explicitly, accepts same-day releases, and rejects backward cut/freeze-date ordering without relying on wall-clock or provider timestamps.
 - Made provenance-record signature mode an explicit release-policy selector. Contract 1.2.0 candidates now fail closed when the selector is missing or unsupported, or when the committed provenance trust policy attempts to use a different mode; Git-tag signing remains a separate control.
+- Added a reproducible local validation environment for template maintainers: `tools/requirements-dev.txt` pins the Python tooling to the versions hosted CI installs, and `tools/dev_check.sh` runs the locally reproducible gates in the hosted order. It fails when a pin no longer mirrors the workflow that owns it or when an installed version does not match the pin, and it reports coverage, Excel evidence, live GitHub state and — unless `actionlint` is on `PATH` — workflow validation as skipped rather than passed.
+- Replaced the disposable per-task workflow pattern with `.github/workflows/maintenance.yml`, one permanent dispatch-only home for maintenance tasks that must run in the pinned environment and commit their result. The task list is a closed `choice` passed to the shell through `env`, write scope is granted on the job rather than the workflow, the result is validated before it is committed, and a task that changes nothing exits without an empty commit. Both files are template-only and are removed from generated projects by initialization.
 - Added canonical-template release-history validation from the previous release tag to the candidate SHA. Unapproved merge commits and duplicate commit subjects now block release semantics; base-tag/SHA-scoped reviewed exceptions remain auditable, while v1.2.0 merge ancestry is preserved as historical evidence and generated projects do not inherit this policy.
+
+### Fixed
+
+- Harden workflow-policy recognition so scalar and simple flow-mapping pull-request triggers and flow-mapping write permissions cannot bypass the documented read-only and prohibited-trigger controls.
+- Apply external-link URL policy before historical or pending-publication classifications, and render the same five aggregate outcome counts in JSON and Markdown, including access-restricted links.
+- Report active release-history exceptions whose base tag no longer matches the candidate's current previous-release tag, while preserving durable prior-release ancestry only as descriptive historical evidence.
 
 ## [1.2.0] - 2026-09-10
 

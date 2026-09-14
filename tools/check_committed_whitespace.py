@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from typing import Any
-from _gatelib import git_text as git, run_gate
+
+from _gatelib import git_text as git
+from _gatelib import run_gate
 
 EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 TOOL_NAME = "Committed whitespace"

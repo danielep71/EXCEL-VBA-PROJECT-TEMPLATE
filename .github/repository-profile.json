@@ -237,7 +237,9 @@
       "repeatable": "template:repeatable:{token}"
     },
     "template_only_paths": [
+      ".github/release-history-policy.json",
       ".github/workflows/checker-development.yml",
+      ".github/workflows/maintenance.yml",
       ".github/workflows/portfolio-drift.yml",
       ".github/workflows/wiki-checks.yml",
       ".github/workflows/wiki-drift.yml",
@@ -271,6 +273,7 @@
       "tools/checker_development.py",
       "tools/collect_portfolio_snapshot.py",
       "tools/create_reusable_workflow_fixture.py",
+      "tools/dev_check.sh",
       "tools/policy_coverage_cases_config.py",
       "tools/policy_coverage_cases_quality.py",
       "tools/policy_coverage_cases_repo.py",
@@ -278,6 +281,7 @@
       "tools/policy_coverage_runner.py",
       "tools/provision_repository.py",
       "tools/report_portfolio_quality.py",
+      "tools/requirements-dev.txt",
       "tools/test_portfolio_drift.py",
       "tools/test_portfolio_quality.py",
       "tools/test_provision_repository.py",

@@ -13,15 +13,14 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
 import re
 import shutil
 import stat
 import subprocess
 import sys
 import tempfile
+from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
-
 
 CONFIG_PATH = ".github/repository-profile.json"
 RECORD_PATH = ".github/initialization.json"

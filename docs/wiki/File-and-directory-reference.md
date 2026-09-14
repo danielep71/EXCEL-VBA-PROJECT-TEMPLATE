@@ -37,21 +37,26 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/ISSUE_TEMPLATE/documentation.yml` / policy | Documentation defect intake identifying the authority and proposed correction. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `.github/ISSUE_TEMPLATE/feature.yml` / policy | Feature/change intake with scope, compatibility and acceptance criteria. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/PULL_REQUEST_TEMPLATE.md` / document | PR review/evidence checklist, including dependency-update information. | R / R / R | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
+| `.github/dependabot.yml` / policy | Weekly proposal-only GitHub Actions dependency discovery. | R / R / R | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `.github/documentation-policy.json` / policy | Registered documentation references, HTTP bounds, allowed domains and expiring exceptions. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `.github/excel-evidence-policy.json` / policy | Starter entry point, case registry, assertion count and expected-error case. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `.github/labels.json` / policy | Canonical core/profile/domain label definitions and reconciliation policy. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/provisioning-policy.json` / policy | Reviewed metadata/features/merge/required-check goals and exception rationale. | R / R / R | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
-| `.github/release-history-policy.json` / policy | Canonical-template merge-history rules, exact-SHA reviewed exceptions and preserved historical records. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
+| `.github/release-history-policy.json` / policy | Canonical-template merge-history rules, exact-SHA reviewed exceptions and preserved historical records. | X / X / X | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
 | `.github/release-policy.json` / policy | Required candidate checks, allowed profile assets and construction-history exclusions. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `.github/release-provenance.json` / policy | Expected source/workflow identity and optional committed SSH signing trust. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `.github/repository-profile.json` / policy | Mode, profile, identity, roles, paths, placeholder schema and adopted control version. | T / T / T | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
 | `.github/scripts/labels-drift.mjs` / script | Read-only label diff with planner cross-check and offline self-tests. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/scripts/labels-sync.mjs` / script | Validate label schema, resolve overlays, reconcile on trusted events and verify result. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/workflows/checker-development.yml` / workflow | Template-only independent checker contract and coverage execution. | X / X / X | [.github/workflows/checker-development.yml](../../.github/workflows/checker-development.yml) |
+| `.github/workflows/codeql.yml` / workflow | Trusted-context CodeQL analysis for maintained Python and JavaScript source. | R / R / R | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
 | `.github/workflows/external-links.yml` / workflow | Separate weekly/manual anonymous external-link observation with retained reports. | R / R / R | [.github/workflows/external-links.yml](../../.github/workflows/external-links.yml) |
 | `.github/workflows/labels-drift.yml` / workflow | PR label fixtures and separate daily/manual read-only live drift detection. | R / R / R | [.github/workflows/labels-drift.yml](../../.github/workflows/labels-drift.yml) |
 | `.github/workflows/labels-sync.yml` / workflow | Read-only PR validation and trusted main/manual label reconciliation. | R / R / R | [.github/workflows/labels-sync.yml](../../.github/workflows/labels-sync.yml) |
+| `.github/workflows/maintenance.yml` / workflow | Template-only dispatch-only home for registered maintenance tasks that commit their result. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `.github/workflows/portfolio-drift.yml` / workflow | Template-only synthetic drift, quality and provisioner acceptance fixtures. | X / X / X | [.github/workflows/portfolio-drift.yml](../../.github/workflows/portfolio-drift.yml) |
+| `.github/workflows/release-closeout.yml` / workflow | Manual read-only capture and deterministic post-release closeout evidence. | R / R / R | [docs/RELEASE_CLOSEOUT.md](../../docs/RELEASE_CLOSEOUT.md) |
+| `.github/workflows/scorecard.yml` / workflow | Trusted-context OpenSSF Scorecard publication and retained SARIF evidence. | R / R / R | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
 | `.github/workflows/static-checks.yml` / workflow | Canonical/focused gates, quality tools, self-tests, artifacts and reusable interface. | R / R / R | [.github/workflows/static-checks.yml](../../.github/workflows/static-checks.yml) |
 | `.github/workflows/wiki-checks.yml` / workflow | Template-only offline wiki checks, publication fixtures and exact-source export artifact. | X / X / X | [.github/workflows/wiki-checks.yml](../../.github/workflows/wiki-checks.yml) |
 | `.github/workflows/wiki-drift.yml` / workflow | Separate weekly/manual anonymous wiki fetch and deterministic publication comparison. | X / X / X | [.github/workflows/wiki-drift.yml](../../.github/workflows/wiki-drift.yml) |
@@ -80,11 +85,13 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `docs/PROVISIONING.md` / document | Guarded setup planner, approved-digest apply and durable journal contract. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `docs/PUBLIC_API.txt` / document | Complete public declaration inventory with normalized signature records. | R / R / R | [docs/PUBLIC_API.txt](../../docs/PUBLIC_API.txt) |
 | `docs/README.md` / document | Documentation hub and single-authority mapping. | T / T / T | [docs/README.md](../../docs/README.md) |
+| `docs/RELEASE_CLOSEOUT.md` / document | Canonical post-publication release closeout procedure and evidence boundaries. | R / R / R | [docs/RELEASE_CLOSEOUT.md](../../docs/RELEASE_CLOSEOUT.md) |
 | `docs/RELEASE_EVIDENCE.md` / document | Candidate-bound release JSON and profile/asset evidence schemas. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `docs/RELEASE_PROVENANCE.md` / document | Complete payload inventory, build records and optional SSH trust/signatures. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `docs/RELEASE_SEMANTICS.md` / document | Strict SemVer, changelog ordering and comparison-link rules. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
 | `docs/REPOSITORY_STRUCTURE.md` / document | Source layout, component roles, exports and distribution ownership. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `docs/REUSABLE_WORKFLOWS.md` / document | Immutable workflow interface pin, caller contract and adoption procedure. | T / T / T | [docs/REUSABLE_WORKFLOWS.md](../../docs/REUSABLE_WORKFLOWS.md) |
+| `docs/SUPPLY_CHAIN_ASSURANCE.md` / document | Canonical CodeQL, Dependabot and Scorecard permission/evidence boundaries. | R / R / R | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
 | `docs/TEMPLATE_CONTRACT.md` / document | Independent adopted control versions and migration classification. | R / R / R | [docs/TEMPLATE_CONTRACT.md](../../docs/TEMPLATE_CONTRACT.md) |
 | `docs/VBA_HOUSE_STYLE.md` / document | Procedure contracts, declaration annotations and explanatory body comments. | R / R / R | [docs/VBA_HOUSE_STYLE.md](../../docs/VBA_HOUSE_STYLE.md) |
 | `docs/WIKI_PUBLICATION.md` / document | Reviewed wiki source, complete inventory, exact-SHA publication and drift. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
@@ -115,6 +122,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/LOCAL_ACTIONS.md` / document | Repository-local composite/Node/Docker action validation boundaries. | R / R / R | [tools/LOCAL_ACTIONS.md](../../tools/LOCAL_ACTIONS.md) |
 | `tools/README.md` / document | Operational tool commands, reports and focused-gate responsibilities. | T / T / T | [tools/README.md](../../tools/README.md) |
 | `tools/_gatelib.py` / script | Shared Git, tracked-file, report and focused CLI orchestration primitives; imported helper. | R / R / R | [tools/README.md](../../tools/README.md) |
+| `tools/_release_closeout.py` / script | Private deterministic validator for retained post-release provider snapshots. | R / R / R | [docs/RELEASE_CLOSEOUT.md](../../docs/RELEASE_CLOSEOUT.md) |
 | `tools/check_committed_whitespace.py` / script | Validate staged/unstaged feedback or an explicit committed Git range. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/check_documentation.py` / script | Parse literal documented Python commands and registered contract references. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `tools/check_excel_evidence.py` / script | Validate exact-source host records, stage outcomes and retained-log hashes. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
@@ -133,6 +141,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/checker_development.py` / script | Independent canonical-checker architecture, self-test and shared-runner contract. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/collect_portfolio_snapshot.py` / script | GET-only capture of explicit repositories and source/live observations. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |
 | `tools/create_reusable_workflow_fixture.py` / script | Create a disposable initialized caller pinned to an explicit provider commit. | X / X / X | [docs/REUSABLE_WORKFLOWS.md](../../docs/REUSABLE_WORKFLOWS.md) |
+| `tools/dev_check.sh` / script | Run the locally reproducible part of hosted CI with the pinned tool versions. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/initialize_repository.py` / script | Validate values, preview transformations, apply once and verify identical-input no-op. | R / R / R | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
 | `tools/policy_coverage_cases_config.py` / script | Synthetic configuration and policy-validation branch cases; imported helper. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/policy_coverage_cases_quality.py` / script | Synthetic content/source quality branch cases; imported helper. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
@@ -140,14 +149,17 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/policy_coverage_core.py` / script | Coverage fixture data model and shared branch-observation primitives; imported helper. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/policy_coverage_runner.py` / script | Aggregate semantic branch observations into reproducible policy-coverage reports. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/provision_repository.py` / script | Plan live new-repository settings or apply a reviewed digest with a durable journal. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
+| `tools/release_certification.py` / script | Build or verify deterministic, candidate-bound release certification bundles. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/release_provenance.py` / script | Release helper for complete payloads, build identity and optional SSH verification. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `tools/report_portfolio_quality.py` / script | Produce freshness-aware quality/conformance reports from captured observations. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
+| `tools/requirements-dev.txt` / policy | Local development pins mirroring the versions hosted CI installs. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/test_documentation.py` / script | Offline command/reference and HTTP failure fixtures; no live website certification. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `tools/test_excel_evidence.py` / script | Synthetic host-record and stage-failure fixtures; does not execute Excel. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `tools/test_portfolio_drift.py` / script | Synthetic structural/adoption drift fixtures for all supported profiles. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |
 | `tools/test_portfolio_quality.py` / script | Synthetic quality, missing-evidence and freshness-boundary fixtures. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
 | `tools/test_provision_repository.py` / script | Stateful simulated API fixtures for planning, guarded writes and partial failure. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `tools/test_release_provenance.py` / script | Release-payload fixtures and ephemeral SSH signing/verification controls. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
+| `tools/test_verification_depth.py` / script | Focused behavioral failure-path coverage for release, contract, Wiki, initializer and closeout tooling. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/test_wiki.py` / script | Offline publication link, source identity, missing/extra/modified page and safe-export fixtures. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `tools/test_workflow_validation.py` / script | Authoritative pinned-actionlint validation of workflows and invalid fixtures. | R / R / R | [tools/README.md](../../tools/README.md) |
 

@@ -5,8 +5,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path, PurePosixPath
 import re
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from _gatelib import git_text, run_gate, tracked_files

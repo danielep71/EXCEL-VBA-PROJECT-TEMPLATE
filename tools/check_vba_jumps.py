@@ -3,13 +3,16 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from typing import Any
-from _gatelib import git_bytes as git, parse_report_args as parse_args, run_gate
+
+from _gatelib import git_bytes as git
+from _gatelib import parse_report_args as parse_args
+from _gatelib import run_gate
 
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
 TOOL_NAME = "Procedure-scoped VBA jumps"

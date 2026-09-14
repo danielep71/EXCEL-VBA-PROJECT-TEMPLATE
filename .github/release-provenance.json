@@ -7,5 +7,15 @@
   },
   "signature": {
     "mode": "none"
+  },
+  "tag_signature": {
+    "generated": {
+      "mode": "none"
+    },
+    "template": {
+      "mode": "ssh-github",
+      "principal": "danielep71",
+      "github_user": "danielep71"
+    }
   }
 }

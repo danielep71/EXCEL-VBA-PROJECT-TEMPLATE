@@ -4,16 +4,16 @@
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
-from datetime import date
 import hashlib
 import http.client
 import ipaddress
-from pathlib import Path
 import re
 import socket
 import ssl
 import time
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urljoin, urlsplit
 
@@ -27,6 +27,13 @@ CLASSIFICATION_STATUSES = {
     "pending-publication": "PENDING_PUBLICATION",
 }
 PASSING_STATUSES = frozenset({"OK", "NOT_APPLICABLE", "EXCEPTED"})
+COUNT_LABELS = {
+    "deterministic_public_defects": "Deterministic public defects",
+    "restricted_historical": "restricted historical",
+    "pending_publication": "pending publication",
+    "access_restricted": "access restricted",
+    "transient_failures": "transient",
+}
 
 
 def _validate_expiring_id(item: Any, expected: set[str], as_of: date, seen: set[str]) -> None:
@@ -271,7 +278,18 @@ def build_report(
         except ValueError:
             domain = "<invalid>"
         classification = classifications.get(digest)
-        if classification is not None:
+        policy_status = url_status(url, policy)
+        if classification is not None and policy_status in {
+            "POLICY_BLOCKED",
+            "ACCESS_RESTRICTED",
+        }:
+            result = {
+                "status": policy_status,
+                "attempts": 0,
+                "http_codes": [],
+                "classification": classification["kind"],
+            }
+        elif classification is not None:
             result = {
                 "status": CLASSIFICATION_STATUSES[classification["kind"]],
                 "attempts": 0,
@@ -317,19 +335,16 @@ def build_report(
 
 def markdown(report: dict[str, Any]) -> str:
     counts = report["counts"]
+    rendered_counts = "; ".join(
+        f"{COUNT_LABELS[key]}: {value}" for key, value in counts.items()
+    )
     lines = [
         "# External documentation links",
         "",
         f"Result: {report['status'].upper()}",
         "",
         f"Discovered: {report['discovered']}; limit exceeded: {report['limit_exceeded']}",
-        (
-            "Deterministic public defects: "
-            f"{counts['deterministic_public_defects']}; "
-            f"restricted historical: {counts['restricted_historical']}; "
-            f"pending publication: {counts['pending_publication']}; "
-            f"transient: {counts['transient_failures']}"
-        ),
+        rendered_counts,
         "",
         "| Location | Domain | Outcome | Attempts | ID |",
         "| --- | --- | --- | --- | --- |",

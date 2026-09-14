@@ -16,15 +16,16 @@ is unchanged.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import re
 import sys
 import tempfile
+from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _gatelib import parse_report_args as parse_arguments, run_gate, write_text
+from _gatelib import parse_report_args as parse_arguments
+from _gatelib import run_gate, write_text
 
 CONFIG_PATH = ".github/repository-profile.json"
 RECORD_PATH = ".github/initialization.json"

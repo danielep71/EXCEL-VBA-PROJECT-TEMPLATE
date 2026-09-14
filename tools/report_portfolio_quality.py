@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
-from pathlib import Path
 import re
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from _gatelib import run_gate
 import check_portfolio_drift as drift
+from _gatelib import run_gate
 
 
 def instant(value: Any) -> datetime:

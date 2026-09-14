@@ -16,15 +16,14 @@ import argparse
 import fnmatch
 import hashlib
 import json
-from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
+from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Iterable
 from urllib.parse import unquote, urlsplit
-import xml.etree.ElementTree as ET
-
 
 SCHEMA_VERSION = 1
 CONFIG_PATH = ".github/repository-profile.json"
@@ -1713,17 +1712,262 @@ def check_issue_forms(
     )
 
 
+WORKFLOW_PERMISSION_SCOPE = (
+    r"(?:actions|attestations|checks|contents|deployments|discussions|id-token|issues|"
+    r"models|packages|pages|pull-requests|repository-projects|security-events|statuses)"
+)
+WORKFLOW_PERMISSION_KEY = (
+    rf"(?:{WORKFLOW_PERMISSION_SCOPE}|'(?:{WORKFLOW_PERMISSION_SCOPE})'|"
+    rf'"(?:{WORKFLOW_PERMISSION_SCOPE})")'
+)
+WORKFLOW_WRITE_VALUE = r"(?:write|'write'|\"write\")"
+WORKFLOW_WRITE_PERMISSION_RE = re.compile(
+    rf"{WORKFLOW_PERMISSION_KEY}:\s*{WORKFLOW_WRITE_VALUE}(?:\s*#.*)?"
+)
+WORKFLOW_FLOW_WRITE_PERMISSION_RE = re.compile(
+    rf"(?:^|,)\s*{WORKFLOW_PERMISSION_KEY}\s*:\s*"
+    rf"{WORKFLOW_WRITE_VALUE}\s*(?=,|$)"
+)
+
+
+def _workflow_line_has_event(line: str, event: str) -> bool:
+    escaped = re.escape(event)
+    key = rf"(?:{escaped}|'{escaped}'|\"{escaped}\")"
+    if re.fullmatch(rf"  {key}:\s*(?:#.*)?", line):
+        return True
+    stripped = _strip_yaml_comment(line).strip()
+    if re.fullmatch(rf"on:\s*{key}\s*", stripped):
+        return True
+    sequence = re.fullmatch(r"on:\s*\[(.*)\]\s*", stripped)
+    if sequence is not None:
+        return re.search(
+            rf"(?:^|,)\s*{key}\s*(?=,|$)", sequence.group(1)
+        ) is not None
+    mapping = re.fullmatch(r"on:\s*\{(.*)\}\s*", stripped)
+    if mapping is not None:
+        return re.search(rf"(?:^|,)\s*{key}\s*:", mapping.group(1)) is not None
+    return False
+
+
+def _workflow_has_event(lines: list[str], event: str) -> bool:
+    return any(_workflow_line_has_event(line, event) for line in lines)
+
+
+def _flow_permissions_request_write(stripped: str) -> bool:
+    normalized = _strip_yaml_comment(stripped).strip()
+    mapping = re.fullmatch(r"permissions:\s*\{(.*)\}\s*", normalized)
+    return (
+        mapping is not None
+        and WORKFLOW_FLOW_WRITE_PERMISSION_RE.search(mapping.group(1)) is not None
+    )
+
+
+def _check_pull_request_target(
+    path: str,
+    lines: list[str],
+    failures: list[dict[str, Any]],
+) -> None:
+    for number, line in enumerate(lines, start=1):
+        if _workflow_line_has_event(line, "pull_request_target"):
+            failures.append(
+                finding(
+                    path,
+                    "pull_request_target is prohibited; untrusted pull requests must not execute privileged repository code.",
+                    number,
+                )
+            )
+
+
+def _check_workflow_level_pr_permissions(
+    path: str,
+    lines: list[str],
+    failures: list[dict[str, Any]],
+) -> None:
+    in_permissions = False
+    for number, line in enumerate(lines, start=1):
+        indent = len(line) - len(line.lstrip(" "))
+        stripped = line.strip()
+        if indent == 0 and re.fullmatch(
+            r"permissions:\s*write-all(?:\s*#.*)?", stripped
+        ):
+            failures.append(
+                finding(
+                    path,
+                    "Workflow triggered by pull_request must not request write-capable token permissions.",
+                    number,
+                )
+            )
+        if indent == 0 and _flow_permissions_request_write(stripped):
+            failures.append(
+                finding(
+                    path,
+                    "Workflow triggered by pull_request must not request workflow-level write permissions.",
+                    number,
+                )
+            )
+        if indent == 0 and re.fullmatch(r"permissions:\s*(?:#.*)?", stripped):
+            in_permissions = True
+            continue
+        if in_permissions and stripped and not stripped.startswith("#") and indent == 0:
+            in_permissions = False
+        if in_permissions and WORKFLOW_WRITE_PERMISSION_RE.fullmatch(stripped):
+            failures.append(
+                finding(
+                    path,
+                    "Workflow triggered by pull_request must not request workflow-level write permissions.",
+                    number,
+                )
+            )
+
+
+def _workflow_job_blocks(lines: list[str]) -> list[tuple[int, list[str]]]:
+    jobs_index = next(
+        (
+            index
+            for index, line in enumerate(lines)
+            if re.fullmatch(r"jobs:\s*(?:#.*)?", line.strip())
+            and not line.startswith(" ")
+        ),
+        None,
+    )
+    if jobs_index is None:
+        return []
+    starts = [
+        index
+        for index in range(jobs_index + 1, len(lines))
+        if re.match(r"^  [A-Za-z0-9_-]+:\s*(?:#.*)?$", lines[index])
+    ]
+    return [
+        (
+            start,
+            lines[
+                start : starts[position + 1]
+                if position + 1 < len(starts)
+                else len(lines)
+            ],
+        )
+        for position, start in enumerate(starts)
+    ]
+
+
+def _job_excludes_pull_request(block: list[str]) -> bool:
+    exclusion = re.compile(
+        r"^    if:\s*github\.event_name\s*!=\s*(['\"])pull_request\1\s*(?:#.*)?$"
+    )
+    return any(exclusion.match(line) for line in block)
+
+
+def _check_job_pr_permissions(
+    path: str,
+    lines: list[str],
+    failures: list[dict[str, Any]],
+) -> None:
+    for start, block in _workflow_job_blocks(lines):
+        if _job_excludes_pull_request(block):
+            continue
+        in_permissions = False
+        for offset, item in enumerate(block):
+            number = start + offset + 1
+            indent = len(item) - len(item.lstrip(" "))
+            stripped = item.strip()
+            if indent == 4 and re.fullmatch(
+                r"permissions:\s*write-all(?:\s*#.*)?", stripped
+            ):
+                failures.append(
+                    finding(
+                        path,
+                        "Job reachable from pull_request must not request write-all permissions.",
+                        number,
+                    )
+                )
+            if indent == 4 and _flow_permissions_request_write(stripped):
+                failures.append(
+                    finding(
+                        path,
+                        "Job reachable from pull_request must not request write-capable token permissions.",
+                        number,
+                    )
+                )
+            if indent == 4 and re.fullmatch(r"permissions:\s*(?:#.*)?", stripped):
+                in_permissions = True
+                continue
+            if in_permissions and stripped and not stripped.startswith("#") and indent <= 4:
+                in_permissions = False
+            if in_permissions and WORKFLOW_WRITE_PERMISSION_RE.fullmatch(stripped):
+                failures.append(
+                    finding(
+                        path,
+                        "Job reachable from pull_request must not request write-capable token permissions.",
+                        number,
+                    )
+                )
+
+
+def _check_pr_workflow_permissions(
+    path: str,
+    lines: list[str],
+    failures: list[dict[str, Any]],
+) -> None:
+    _check_pull_request_target(path, lines, failures)
+    if not _workflow_has_event(lines, "pull_request"):
+        return
+    _check_workflow_level_pr_permissions(path, lines, failures)
+    _check_job_pr_permissions(path, lines, failures)
+
+
+def _check_external_action_references(
+    path: str,
+    lines: list[str],
+    failures: list[dict[str, Any]],
+) -> int:
+    uses_line = re.compile(
+        r"^\s*(?:-\s*)?uses:\s*([^\s#]+)(?:\s+#\s*(.+?))?\s*$"
+    )
+    full_sha = re.compile(r"^[0-9a-f]{40}$")
+    version_comment = re.compile(r"^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
+    checked = 0
+    for number, line in enumerate(lines, start=1):
+        if "uses:" not in line:
+            continue
+        match = uses_line.match(line)
+        if not match:
+            failures.append(finding(path, "Action reference cannot be parsed.", number))
+            continue
+        reference, comment = match.groups()
+        if reference.startswith("./"):
+            continue
+        checked += 1
+        if "@" not in reference:
+            failures.append(
+                finding(path, "External action must include a revision.", number)
+            )
+            continue
+        action, revision = reference.rsplit("@", 1)
+        if action.startswith("docker://") or not full_sha.fullmatch(revision):
+            failures.append(
+                finding(
+                    path,
+                    "External action must be pinned to a full lowercase 40-character commit SHA.",
+                    number,
+                )
+            )
+        if not comment or not version_comment.fullmatch(comment.strip()):
+            failures.append(
+                finding(
+                    path,
+                    "Pinned action must include an audited semantic-version comment.",
+                    number,
+                )
+            )
+    return checked
+
+
 def check_workflow_actions(
     repo: Repository, config: dict[str, Any]
 ) -> dict[str, Any]:
     del config
     failures: list[dict[str, Any]] = []
     checked = 0
-    uses_line = re.compile(
-        r"^\s*(?:-\s*)?uses:\s*([^\s#]+)(?:\s+#\s*(.+?))?\s*$"
-    )
-    full_sha = re.compile(r"^[0-9a-f]{40}$")
-    version_comment = re.compile(r"^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
     for path in repo.files:
         pure = PurePosixPath(path)
         if (
@@ -1732,44 +1976,11 @@ def check_workflow_actions(
         ):
             continue
         try:
-            text = repo.text(path)
+            lines = repo.text(path).splitlines()
         except (OSError, UnicodeError):
             continue
-        for number, line in enumerate(text.splitlines(), start=1):
-            if "uses:" not in line:
-                continue
-            match = uses_line.match(line)
-            if not match:
-                failures.append(
-                    finding(path, "Action reference cannot be parsed.", number)
-                )
-                continue
-            reference, comment = match.groups()
-            if reference.startswith("./"):
-                continue
-            checked += 1
-            if "@" not in reference:
-                failures.append(
-                    finding(path, "External action must include a revision.", number)
-                )
-                continue
-            action, revision = reference.rsplit("@", 1)
-            if action.startswith("docker://") or not full_sha.fullmatch(revision):
-                failures.append(
-                    finding(
-                        path,
-                        "External action must be pinned to a full lowercase 40-character commit SHA.",
-                        number,
-                    )
-                )
-            if not comment or not version_comment.fullmatch(comment.strip()):
-                failures.append(
-                    finding(
-                        path,
-                        "Pinned action must include an audited semantic-version comment.",
-                        number,
-                    )
-                )
+        _check_pr_workflow_permissions(path, lines, failures)
+        checked += _check_external_action_references(path, lines, failures)
     return rule_result(
         "workflow-actions",
         "Immutable workflow actions",
@@ -2971,6 +3182,69 @@ def _degrade_workflow_actions(root: Path) -> None:
     _write_fixture(path, text)
 
 
+def _degrade_workflow_pull_request_target(root: Path) -> None:
+    path = root / ".github/workflows/static-checks.yml"
+    text = path.read_text(encoding="utf-8")
+    _write_fixture(path, text.replace("on:\n", "on:\n  pull_request_target:\n", 1))
+
+
+def _degrade_workflow_pull_request_target_scalar(root: Path) -> None:
+    path = root / ".github/workflows/static-checks.yml"
+    text = path.read_text(encoding="utf-8")
+    _write_fixture(
+        path,
+        text.replace("on:\n  pull_request:\n", "on: pull_request_target\n", 1),
+    )
+
+
+def _degrade_workflow_pull_request_target_flow_map(root: Path) -> None:
+    path = root / ".github/workflows/static-checks.yml"
+    text = path.read_text(encoding="utf-8")
+    _write_fixture(
+        path,
+        text.replace(
+            "on:\n  pull_request:\n", "on: {pull_request_target: null}\n", 1
+        ),
+    )
+
+
+def _degrade_workflow_pr_write(root: Path) -> None:
+    path = root / ".github/workflows/static-checks.yml"
+    text = path.read_text(encoding="utf-8")
+    _write_fixture(
+        path,
+        text.replace("permissions:\n  contents: read", "permissions:\n  contents: write", 1),
+    )
+
+
+def _degrade_workflow_pr_scalar_flow_write(root: Path) -> None:
+    path = root / ".github/workflows/static-checks.yml"
+    text = path.read_text(encoding="utf-8")
+    text = text.replace("on:\n  pull_request:\n", "on: pull_request\n", 1)
+    _write_fixture(
+        path,
+        text.replace(
+            "permissions:\n  contents: read", "permissions: {contents: write}", 1
+        ),
+    )
+
+
+def _degrade_workflow_pr_flow_map_job_write(root: Path) -> None:
+    path = root / ".github/workflows/static-checks.yml"
+    text = path.read_text(encoding="utf-8")
+    text = text.replace(
+        "on:\n  pull_request:\n", "on: {pull_request: null}\n", 1
+    )
+    _write_fixture(
+        path,
+        text.replace(
+            "  quality:\n    runs-on: ubuntu-latest",
+            "  quality:\n    permissions: {contents: write}\n    runs-on: ubuntu-latest",
+            1,
+        ),
+    )
+
+
 def _degrade_version_changelog(root: Path) -> None:
     _write_fixture(root / "VERSION", "version-one\n")
 
@@ -3061,6 +3335,28 @@ BRANCH_SELF_TEST_CASES: tuple[
     ("structured-xml-encoding", "structured-data", _degrade_structured_xml_encoding),
     ("structured-xml-doctype", "structured-data", _degrade_structured_xml_doctype),
     ("structured-xml-oversize", "structured-data", _degrade_structured_xml_oversize),
+    ("workflow-pull-request-target", "workflow-actions", _degrade_workflow_pull_request_target),
+    (
+        "workflow-pull-request-target-scalar",
+        "workflow-actions",
+        _degrade_workflow_pull_request_target_scalar,
+    ),
+    (
+        "workflow-pull-request-target-flow-map",
+        "workflow-actions",
+        _degrade_workflow_pull_request_target_flow_map,
+    ),
+    ("workflow-pr-write", "workflow-actions", _degrade_workflow_pr_write),
+    (
+        "workflow-pr-scalar-flow-write",
+        "workflow-actions",
+        _degrade_workflow_pr_scalar_flow_write,
+    ),
+    (
+        "workflow-pr-flow-map-job-write",
+        "workflow-actions",
+        _degrade_workflow_pr_flow_map_job_write,
+    ),
 )
 
 
@@ -3156,7 +3452,7 @@ def run_self_test() -> int:
     print(
         f"SELF-TEST PASS: {len(SELF_TEST_CASES)} rules, one positive fixture, "
         f"{len(SELF_TEST_CASES)} degraded fixtures, deterministic JSON/Markdown, "
-        f"{len(BRANCH_SELF_TEST_CASES)} structured-data branch fixtures, and read-only execution."
+        f"{len(BRANCH_SELF_TEST_CASES)} branch fixtures, and read-only execution."
     )
     return 0
 

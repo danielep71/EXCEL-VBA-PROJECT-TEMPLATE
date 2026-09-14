@@ -10,13 +10,15 @@ import hashlib
 import importlib.util
 import io
 import json
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from types import ModuleType
 from typing import Any
-from _gatelib import parse_report_args as parse_arguments, run_gate
+
+from _gatelib import parse_report_args as parse_arguments
+from _gatelib import run_gate
 
 TOOL_NAME = "Checker development contract"
 CHECKER_PATH = Path("tools/check_repo.py")
@@ -73,10 +75,18 @@ GATE_RUNNER_CONSUMERS = frozenset(
     }
 )
 GATE_RUNNER_EXCLUSIONS = {
+    "_release_closeout.py": (
+        "private post-release provider-snapshot validator with a dedicated self-test; "
+        "not a focused run_gate report CLI"
+    ),
     "collect_portfolio_snapshot.py": "GET-only evidence capture, not a report gate",
     "create_reusable_workflow_fixture.py": "disposable consumer provisioning, not a report gate",
     "check_release.py": (
         "atomic evidence writes and a console rendering distinct from its Markdown summary"
+    ),
+    "release_certification.py": (
+        "mutually exclusive build/verify bundle modes emitting JSON to stdout; "
+        "not a focused run_gate report CLI"
     ),
     "test_workflow_validation.py": "text-only report with no JSON evidence output",
     "initialize_repository.py": "repository provisioning CLI, not a focused report gate",
@@ -90,6 +100,7 @@ SELF_TEST_EXCLUSIONS = {
     "test_portfolio_quality.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_provision_repository.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_release_provenance.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_verification_depth.py": "Unittest CLI; focused release-critical failure-path coverage",
     "test_wiki.py": "Unittest CLI; normal invocation runs its fixture suite",
     "check_documentation.py": "Offline fixtures: python tools/test_documentation.py -v",
     "check_wiki.py": "Offline fixtures: python tools/test_wiki.py -v",
@@ -101,7 +112,7 @@ SELF_TEST_EXCLUSIONS = {
     "provision_repository.py": "Simulated provisioning: python tools/test_provision_repository.py -v",
     "test_workflow_validation.py": "Normal invocation runs authoritative actionlint fixtures",
     "create_reusable_workflow_fixture.py": (
-        "Provisioning utility with no dedicated offline suite; live consumer pilot evidence is separate"
+        "Offline cases: python tools/test_workflow_validation.py; live consumer pilot evidence is separate"
     ),
 }
 
