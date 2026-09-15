@@ -543,6 +543,77 @@ def fixture_git(root: Path, *args: str) -> str:
     return completed.stdout.strip()
 
 
+def exercise_manifest_verification_controls(
+    first_bundle: Path,
+    manifest_path: Path,
+    digest_path: Path,
+    base: Path,
+    failures: list[str],
+) -> None:
+    with zipfile.ZipFile(first_bundle, "r") as original_archive:
+        original_payloads = {
+            name: original_archive.read(name)
+            for name in original_archive.namelist()
+            if name != "certification-manifest.json"
+        }
+
+    def assert_manifest_mutation_rejected(name: str, mutate: Any) -> None:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        mutate(manifest)
+        manifest_bytes = canonical_json(manifest)
+        entries = {"certification-manifest.json": manifest_bytes}
+        raw_manifest_records = manifest.get("records")
+        if isinstance(raw_manifest_records, list):
+            for row in raw_manifest_records:
+                if not isinstance(row, dict) or row.get("visibility") != "public-file":
+                    continue
+                archive_path = row.get("archive_path")
+                if isinstance(archive_path, str) and archive_path in original_payloads:
+                    entries[archive_path] = original_payloads[archive_path]
+        mutated_dir = base / ("manifest-" + name)
+        mutated_dir.mkdir()
+        mutated_bundle = mutated_dir / first_bundle.name
+        mutated_manifest = mutated_dir / manifest_path.name
+        mutated_digest = mutated_dir / digest_path.name
+        bundle_bytes = zip_bytes(entries)
+        mutated_bundle.write_bytes(bundle_bytes)
+        mutated_manifest.write_bytes(manifest_bytes)
+        mutated_digest.write_text(
+            f"{sha256_bytes(bundle_bytes)}  {first_bundle.name}\n",
+            encoding="ascii",
+        )
+        try:
+            verify_bundle(mutated_bundle, mutated_manifest, mutated_digest)
+            failures.append(f"{name} manifest was accepted")
+        except CertificationError:
+            pass
+
+    assert_manifest_mutation_rejected(
+        "empty-required-roles",
+        lambda manifest: manifest.__setitem__("records", []),
+    )
+
+    def duplicate_role(manifest: dict[str, Any]) -> None:
+        duplicate = dict(manifest["records"][0])
+        duplicate["id"] = "duplicate-record"
+        manifest["records"].append(duplicate)
+
+    assert_manifest_mutation_rejected("duplicate-role", duplicate_role)
+
+    def invalid_visibility(manifest: dict[str, Any]) -> None:
+        manifest["records"][-1]["visibility"] = "unknown"
+
+    assert_manifest_mutation_rejected("invalid-visibility", invalid_visibility)
+
+    def invalid_restricted_structure(manifest: dict[str, Any]) -> None:
+        manifest["records"][-1].pop("sha256", None)
+
+    assert_manifest_mutation_rejected(
+        "invalid-restricted-structure",
+        invalid_restricted_structure,
+    )
+
+
 def run_self_test() -> int:
     failures: list[str] = []
     try:
@@ -617,68 +688,12 @@ def run_self_test() -> int:
                 Path(result_one["digest"]),
             )
             require(verified["candidate_sha"] == candidate, "verification lost candidate binding")
-
-            with zipfile.ZipFile(first_bundle, "r") as original_archive:
-                original_payloads = {
-                    name: original_archive.read(name)
-                    for name in original_archive.namelist()
-                    if name != "certification-manifest.json"
-                }
-
-            def assert_manifest_mutation_rejected(name: str, mutate: Any) -> None:
-                manifest = json.loads(Path(result_one["manifest"]).read_text(encoding="utf-8"))
-                mutate(manifest)
-                manifest_bytes = canonical_json(manifest)
-                entries = {"certification-manifest.json": manifest_bytes}
-                raw_manifest_records = manifest.get("records")
-                if isinstance(raw_manifest_records, list):
-                    for row in raw_manifest_records:
-                        if not isinstance(row, dict) or row.get("visibility") != "public-file":
-                            continue
-                        archive_path = row.get("archive_path")
-                        if isinstance(archive_path, str) and archive_path in original_payloads:
-                            entries[archive_path] = original_payloads[archive_path]
-                mutated_dir = base / ("manifest-" + name)
-                mutated_dir.mkdir()
-                mutated_bundle = mutated_dir / first_bundle.name
-                mutated_manifest = mutated_dir / Path(result_one["manifest"]).name
-                mutated_digest = mutated_dir / Path(result_one["digest"]).name
-                bundle_bytes = zip_bytes(entries)
-                mutated_bundle.write_bytes(bundle_bytes)
-                mutated_manifest.write_bytes(manifest_bytes)
-                mutated_digest.write_text(
-                    f"{sha256_bytes(bundle_bytes)}  {first_bundle.name}\n",
-                    encoding="ascii",
-                )
-                try:
-                    verify_bundle(mutated_bundle, mutated_manifest, mutated_digest)
-                    failures.append(f"{name} manifest was accepted")
-                except CertificationError:
-                    pass
-
-            assert_manifest_mutation_rejected(
-                "empty-required-roles",
-                lambda manifest: manifest.__setitem__("records", []),
-            )
-
-            def duplicate_role(manifest: dict[str, Any]) -> None:
-                duplicate = dict(manifest["records"][0])
-                duplicate["id"] = "duplicate-record"
-                manifest["records"].append(duplicate)
-
-            assert_manifest_mutation_rejected("duplicate-role", duplicate_role)
-
-            def invalid_visibility(manifest: dict[str, Any]) -> None:
-                manifest["records"][-1]["visibility"] = "unknown"
-
-            assert_manifest_mutation_rejected("invalid-visibility", invalid_visibility)
-
-            def invalid_restricted_structure(manifest: dict[str, Any]) -> None:
-                manifest["records"][-1].pop("sha256", None)
-
-            assert_manifest_mutation_rejected(
-                "invalid-restricted-structure",
-                invalid_restricted_structure,
+            exercise_manifest_verification_controls(
+                first_bundle,
+                Path(result_one["manifest"]),
+                Path(result_one["digest"]),
+                base,
+                failures,
             )
 
             same_name_tamper = base / "tampered" / first_bundle.name
