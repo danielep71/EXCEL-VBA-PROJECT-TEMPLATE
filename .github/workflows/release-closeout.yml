@@ -68,6 +68,8 @@ jobs:
 
       - name: Capture GitHub provider facts
         id: capture
+        env:
+          ALLOW_NOT_LATEST: ${{ inputs.allow_not_latest }}
         run: |
           set -euo pipefail
           evidence="$RUNNER_TEMP/release-closeout"
@@ -102,7 +104,13 @@ jobs:
             "repos/$GITHUB_REPOSITORY/actions/runs?event=push&head_sha=$CANDIDATE_SHA&per_page=100" \
             > "$evidence/workflow-runs.json"
           gh api "repos/$GITHUB_REPOSITORY/releases/tags/$CLOSEOUT_TAG" > "$evidence/release.json"
-          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > "$evidence/latest-release.json"
+          if ! gh api "repos/$GITHUB_REPOSITORY/releases/latest" > "$evidence/latest-release.json"; then
+            if [[ "$ALLOW_NOT_LATEST" == "true" ]]; then
+              printf 'null\n' > "$evidence/latest-release.json"
+            else
+              exit 1
+            fi
+          fi
           gh api "repos/$GITHUB_REPOSITORY/milestones/$MILESTONE_NUMBER" > "$evidence/milestone.json"
           gh api --paginate --slurp \
             "repos/$GITHUB_REPOSITORY/issues?milestone=$MILESTONE_NUMBER&state=all&per_page=100" \
@@ -126,7 +134,8 @@ jobs:
           print(match.group("base"))
           PY
           )"
-          gh api "repos/$GITHUB_REPOSITORY/compare/$previous...$CLOSEOUT_TAG" \
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/compare/$previous...$CLOSEOUT_TAG" \
             > "$evidence/compare.json"
 
           echo "evidence=$evidence" >> "$GITHUB_OUTPUT"
