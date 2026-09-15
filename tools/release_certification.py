@@ -16,7 +16,7 @@ from typing import Any
 
 from _gatelib import git_text
 
-TOOL_VERSION = "1.1.0"
+TOOL_VERSION = "1.1.1"
 SCHEMA_VERSION = 1
 REQUIRED_ROLES = {
     "excel-evidence",
@@ -220,6 +220,95 @@ def validate_records(
     return manifest_records, payloads
 
 
+def validate_manifest_records(raw_records: Any) -> list[dict[str, Any]]:
+    """Validate the durable manifest independently from the build specification."""
+    if not isinstance(raw_records, list) or not raw_records:
+        raise CertificationError("manifest records must be a non-empty array")
+    seen_ids: set[str] = set()
+    seen_roles: set[str] = set()
+    seen_archive_paths: set[str] = set()
+    records: list[dict[str, Any]] = []
+
+    for index, raw in enumerate(raw_records):
+        require(isinstance(raw, dict), f"manifest records[{index}] must be an object")
+        record_id = raw.get("id")
+        role = raw.get("role")
+        visibility = raw.get("visibility")
+        require(
+            isinstance(record_id, str) and SAFE_ID_RE.fullmatch(record_id) is not None,
+            f"manifest records[{index}].id must be kebab-case",
+        )
+        require(record_id not in seen_ids, f"duplicate manifest record id: {record_id}")
+        require(
+            isinstance(role, str) and SAFE_ID_RE.fullmatch(role) is not None,
+            f"manifest records[{index}].role must be kebab-case",
+        )
+        require(role not in seen_roles, f"duplicate manifest record role: {role}")
+        require(
+            visibility in {"public-file", "restricted-reference"},
+            f"unsupported manifest visibility for {record_id}",
+        )
+        seen_ids.add(record_id)
+        seen_roles.add(role)
+
+        digest = raw.get("sha256")
+        require(
+            isinstance(digest, str) and SHA256_RE.fullmatch(digest) is not None,
+            f"manifest record {record_id} requires a lowercase SHA-256",
+        )
+        if visibility == "public-file":
+            archive_path_value = raw.get("archive_path")
+            require(
+                isinstance(archive_path_value, str),
+                f"public manifest record {record_id} requires archive_path",
+            )
+            archive_path = safe_relative(
+                archive_path_value,
+                f"manifest record {record_id}.archive_path",
+            )
+            require(
+                archive_path.startswith("evidence/"),
+                f"public manifest record {record_id} must be stored under evidence/",
+            )
+            require(
+                archive_path not in seen_archive_paths,
+                f"duplicate manifest archive path: {archive_path}",
+            )
+            seen_archive_paths.add(archive_path)
+            size = raw.get("size")
+            require(
+                isinstance(size, int) and not isinstance(size, bool) and size >= 0,
+                f"public manifest record {record_id} requires a non-negative size",
+            )
+        else:
+            reference = raw.get("reference")
+            reason = raw.get("reason")
+            require(
+                isinstance(reference, str) and reference.strip(),
+                f"restricted manifest record {record_id} requires a reference",
+            )
+            require(
+                isinstance(reason, str) and reason.strip(),
+                f"restricted manifest record {record_id} requires a reason",
+            )
+            require(
+                "\n" not in reference and "\r" not in reference,
+                f"restricted manifest record {record_id} reference must be single-line",
+            )
+            require(
+                "\n" not in reason and "\r" not in reason,
+                f"restricted manifest record {record_id} reason must be single-line",
+            )
+        records.append(raw)
+
+    missing = sorted(REQUIRED_ROLES - seen_roles)
+    require(
+        not missing,
+        "required certification roles are missing from manifest: " + ", ".join(missing),
+    )
+    return records
+
+
 def zip_bytes(entries: dict[str, bytes]) -> bytes:
     import io
 
@@ -310,17 +399,13 @@ def verify_bundle(bundle: Path, manifest_path: Path, digest_path: Path) -> dict[
     actual_digest = sha256_bytes(bundle.read_bytes())
     require(match.group(1) == actual_digest, "bundle SHA-256 mismatch")
 
-    records = manifest.get("records")
-    if not isinstance(records, list):
-        raise CertificationError("manifest records must be an array")
+    records = validate_manifest_records(manifest.get("records"))
     expected_entries = {"certification-manifest.json": canonical_json(manifest)}
     for raw in records:
-        require(isinstance(raw, dict), "manifest record must be an object")
         if raw.get("visibility") != "public-file":
             continue
-        archive_path = raw.get("archive_path")
-        require(isinstance(archive_path, str), "public manifest record requires archive_path")
-        expected_entries[archive_path] = b""
+        archive_path = raw["archive_path"]
+        expected_entries[str(archive_path)] = b""
 
     with zipfile.ZipFile(bundle, "r") as archive:
         names = archive.namelist()
@@ -330,7 +415,7 @@ def verify_bundle(bundle: Path, manifest_path: Path, digest_path: Path) -> dict[
         public_by_path = {
             str(raw["archive_path"]): raw
             for raw in records
-            if isinstance(raw, dict) and raw.get("visibility") == "public-file"
+            if raw.get("visibility") == "public-file"
         }
         for name, raw in public_by_path.items():
             data = archive.read(name)
@@ -533,6 +618,69 @@ def run_self_test() -> int:
             )
             require(verified["candidate_sha"] == candidate, "verification lost candidate binding")
 
+            with zipfile.ZipFile(first_bundle, "r") as original_archive:
+                original_payloads = {
+                    name: original_archive.read(name)
+                    for name in original_archive.namelist()
+                    if name != "certification-manifest.json"
+                }
+
+            def assert_manifest_mutation_rejected(name: str, mutate: Any) -> None:
+                manifest = json.loads(Path(result_one["manifest"]).read_text(encoding="utf-8"))
+                mutate(manifest)
+                manifest_bytes = canonical_json(manifest)
+                entries = {"certification-manifest.json": manifest_bytes}
+                raw_manifest_records = manifest.get("records")
+                if isinstance(raw_manifest_records, list):
+                    for row in raw_manifest_records:
+                        if not isinstance(row, dict) or row.get("visibility") != "public-file":
+                            continue
+                        archive_path = row.get("archive_path")
+                        if isinstance(archive_path, str) and archive_path in original_payloads:
+                            entries[archive_path] = original_payloads[archive_path]
+                mutated_dir = base / ("manifest-" + name)
+                mutated_dir.mkdir()
+                mutated_bundle = mutated_dir / first_bundle.name
+                mutated_manifest = mutated_dir / Path(result_one["manifest"]).name
+                mutated_digest = mutated_dir / Path(result_one["digest"]).name
+                bundle_bytes = zip_bytes(entries)
+                mutated_bundle.write_bytes(bundle_bytes)
+                mutated_manifest.write_bytes(manifest_bytes)
+                mutated_digest.write_text(
+                    f"{sha256_bytes(bundle_bytes)}  {first_bundle.name}\n",
+                    encoding="ascii",
+                )
+                try:
+                    verify_bundle(mutated_bundle, mutated_manifest, mutated_digest)
+                    failures.append(f"{name} manifest was accepted")
+                except CertificationError:
+                    pass
+
+            assert_manifest_mutation_rejected(
+                "empty-required-roles",
+                lambda manifest: manifest.__setitem__("records", []),
+            )
+
+            def duplicate_role(manifest: dict[str, Any]) -> None:
+                duplicate = dict(manifest["records"][0])
+                duplicate["id"] = "duplicate-record"
+                manifest["records"].append(duplicate)
+
+            assert_manifest_mutation_rejected("duplicate-role", duplicate_role)
+
+            def invalid_visibility(manifest: dict[str, Any]) -> None:
+                manifest["records"][-1]["visibility"] = "unknown"
+
+            assert_manifest_mutation_rejected("invalid-visibility", invalid_visibility)
+
+            def invalid_restricted_structure(manifest: dict[str, Any]) -> None:
+                manifest["records"][-1].pop("sha256", None)
+
+            assert_manifest_mutation_rejected(
+                "invalid-restricted-structure",
+                invalid_restricted_structure,
+            )
+
             same_name_tamper = base / "tampered" / first_bundle.name
             same_name_tamper.parent.mkdir()
             same_name_tamper.write_bytes(first_bundle.read_bytes() + b"x")
@@ -656,9 +804,10 @@ def run_self_test() -> int:
         print(f"SELF-TEST FAIL: {len(failures)} failure(s).")
         return 1
     print(
-        "SELF-TEST PASS: deterministic build, exact-SHA binding, same-filename tamper, "
-        "required-role, restricted-reference, secret-leakage, GitHub Release asset planning, "
-        "product/evidence separation, retained-download verification and missing/stale asset controls passed."
+        "SELF-TEST PASS: deterministic build, exact-SHA binding, independent manifest schema/role "
+        "verification, same-filename tamper, restricted-reference, secret-leakage, GitHub Release "
+        "asset planning, product/evidence separation, retained-download verification and "
+        "missing/stale asset controls passed."
     )
     return 0
 
