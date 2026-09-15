@@ -332,7 +332,15 @@ def check_release(
     findings: list[dict[str, str]],
 ) -> dict[str, Any]:
     release = as_object(snapshot.get("release"), "snapshot.release")
-    latest = as_object(snapshot.get("latest_release"), "snapshot.latest_release")
+    latest_value = snapshot.get("latest_release")
+    if latest_value is None:
+        require(
+            not expect_latest,
+            "snapshot.latest_release is required when latest status is expected",
+        )
+        latest: dict[str, Any] = {}
+    else:
+        latest = as_object(latest_value, "snapshot.latest_release")
     tag = f"v{identity['version']}"
     if release.get("tag_name") != tag:
         findings.append(finding("deterministic", "release", "GitHub Release uses another tag"))
@@ -416,6 +424,7 @@ def check_release(
         "published_at": release.get("published_at"),
         "draft": release.get("draft"),
         "prerelease": prerelease,
+        "latest_expected": expect_latest,
         "latest_matches": latest_matches,
         "asset_mode": "source-only" if not allowed else "binary-capable",
         "uploaded_assets": sorted(names),
@@ -432,7 +441,10 @@ def check_compare(
     findings: list[dict[str, str]],
 ) -> dict[str, Any]:
     previous = identity.get("previous_tag")
-    compare = as_object(snapshot.get("compare"), "snapshot.compare")
+    raw_compare = snapshot.get("compare")
+    pages = raw_compare if isinstance(raw_compare, list) else [raw_compare]
+    require(bool(pages), "snapshot.compare must contain at least one page")
+    compare = as_object(pages[0], "snapshot.compare page 1")
     if previous is None:
         return {"previous_tag": None, "status": None, "candidate_seen": False}
     previous_tag = as_string(previous, "candidate previous tag")
@@ -447,10 +459,23 @@ def check_compare(
         findings.append(
             finding("deterministic", "comparison-link", f"provider comparison status is {status!r}")
         )
-    commits = as_list(compare.get("commits"), "snapshot.compare.commits")
-    candidate_seen = any(
-        isinstance(row, dict) and row.get("sha") == candidate for row in commits
-    )
+    commits: list[dict[str, Any]] = []
+    metadata_consistent = True
+    for index, raw_page in enumerate(pages, start=1):
+        page = as_object(raw_page, f"snapshot.compare page {index}")
+        if page.get("html_url") != html_url or page.get("status") != status:
+            metadata_consistent = False
+        page_commits = as_list(page.get("commits"), f"snapshot.compare page {index}.commits")
+        commits.extend(row for row in page_commits if isinstance(row, dict))
+    if not metadata_consistent:
+        findings.append(
+            finding(
+                "deterministic",
+                "comparison-link",
+                "paginated provider comparison metadata is inconsistent",
+            )
+        )
+    candidate_seen = any(row.get("sha") == candidate for row in commits)
     if status == "ahead" and not candidate_seen:
         findings.append(
             finding(
@@ -638,8 +663,13 @@ def markdown_report(report: dict[str, Any]) -> str:
         ),
         (
             "GitHub Release/latest",
-            not report["release"]["draft"] and report["release"]["latest_matches"],
-            f"id {report['release']['release_id']}",
+            not report["release"]["draft"]
+            and report["release"]["latest_matches"] == report["release"]["latest_expected"],
+            (
+                f"id {report['release']['release_id']}; "
+                f"expected latest={report['release']['latest_expected']}; "
+                f"observed={report['release']['latest_matches']}"
+            ),
         ),
         (
             "Uploaded assets",
@@ -829,6 +859,45 @@ def fixture_options(root: Path, snapshot: Path, candidate: str) -> Options:
     )
 
 
+def exercise_review_regressions(failures: list[str]) -> None:
+    with tempfile.TemporaryDirectory(prefix="release-closeout-optional-latest-") as raw:
+        root, snapshot_path, candidate = fixture(Path(raw))
+        value = as_object(load_json(snapshot_path), "fixture snapshot")
+        value["release"]["prerelease"] = True
+        value["latest_release"] = None
+        write_json(snapshot_path, value)
+        base_options = fixture_options(root, snapshot_path, candidate)
+        options = Options(
+            root=base_options.root,
+            snapshot=base_options.snapshot,
+            tag=base_options.tag,
+            candidate_sha=base_options.candidate_sha,
+            milestone_number=base_options.milestone_number,
+            workflow_path=base_options.workflow_path,
+            expect_prerelease=True,
+            expect_latest=False,
+        )
+        report = build_report(options)
+        summary = markdown_report(report)
+        if report["status"] != "pass" or "| GitHub Release/latest | PASS |" not in summary:
+            failures.append(
+                "optional-latest: absent /releases/latest was not accepted and rendered consistently"
+            )
+
+    with tempfile.TemporaryDirectory(prefix="release-closeout-compare-pages-") as raw:
+        root, snapshot_path, candidate = fixture(Path(raw))
+        value = as_object(load_json(snapshot_path), "fixture snapshot")
+        page_one = dict(value["compare"])
+        page_two = dict(value["compare"])
+        page_one["commits"] = [{"sha": "a" * 40}]
+        page_two["commits"] = [{"sha": candidate}]
+        value["compare"] = [page_one, page_two]
+        write_json(snapshot_path, value)
+        report = build_report(fixture_options(root, snapshot_path, candidate))
+        if report["status"] != "pass" or not report["comparison"]["candidate_seen"]:
+            failures.append("paginated-compare: candidate on a later page was not accepted")
+
+
 def run_self_test() -> int:
     failures: list[str] = []
 
@@ -880,6 +949,7 @@ def run_self_test() -> int:
         value["latest_release"]["id"] = 99
 
     run_case("not-latest", latest, "release")
+    exercise_review_regressions(failures)
 
     def asset(value: dict[str, Any], _candidate: str) -> None:
         value["release"]["assets"] = [{"name": "dist/unexpected.zip"}]
@@ -948,8 +1018,8 @@ def run_self_test() -> int:
         return 1
     print(
         "SELF-TEST PASS: VERSION/tag binding, annotated/lightweight/moved tags, tag CI, "
-        "release state, asset policy, comparison resolution, milestone state/membership/counters, "
-        "Wiki binding and source-archive observations passed."
+        "release state including optional latest, paginated comparison resolution, asset policy, "
+        "milestone state/membership/counters, Wiki binding and source-archive observations passed."
     )
     return 0
 

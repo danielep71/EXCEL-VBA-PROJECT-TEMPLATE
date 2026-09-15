@@ -917,6 +917,7 @@ class ExtendedReleaseAndCloseoutDepthTests(unittest.TestCase):
             "tag_workflow": {"conclusion": "success", "run_id": 11},
             "release": {
                 "draft": False,
+                "latest_expected": True,
                 "latest_matches": True,
                 "release_id": 22,
                 "unexpected_assets": [],

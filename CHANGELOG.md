@@ -100,7 +100,7 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
-## [1.2.1] - 2026-09-14
+## [1.2.1] - 2026-09-15
 
 ### Changed
 
@@ -119,6 +119,8 @@ Use only the categories needed by a release.
 - Apply external-link URL policy before historical or pending-publication classifications, and render the same five aggregate outcome counts in JSON and Markdown, including access-restricted links.
 - Report active release-history exceptions whose base tag no longer matches the candidate's current previous-release tag, while preserving durable prior-release ancestry only as descriptive historical evidence.
 - Removed the obsolete development-only duplicate-history exception after the v1.2.1 release branch was squash-integrated, so release semantics evaluate only commits that remain in the canonical mainline release range.
+- Revalidate required certification evidence roles and manifest record structure during independent bundle verification, so a self-consistent but incomplete durable bundle cannot pass post-publication closeout.
+- Make release closeout expectation-aware for deliberately non-latest releases and first prereleases, capture every page of GitHub comparison commits, and render the latest-release control consistently with the configured expectation.
 
 ## [1.2.0] - 2026-09-10
 
