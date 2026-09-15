@@ -104,13 +104,34 @@ jobs:
             "repos/$GITHUB_REPOSITORY/actions/runs?event=push&head_sha=$CANDIDATE_SHA&per_page=100" \
             > "$evidence/workflow-runs.json"
           gh api "repos/$GITHUB_REPOSITORY/releases/tags/$CLOSEOUT_TAG" > "$evidence/release.json"
-          if ! gh api "repos/$GITHUB_REPOSITORY/releases/latest" > "$evidence/latest-release.json"; then
-            if [[ "$ALLOW_NOT_LATEST" == "true" ]]; then
-              printf 'null\n' > "$evidence/latest-release.json"
-            else
-              exit 1
-            fi
+
+          latest_response="$evidence/latest-release-response.json"
+          set +e
+          latest_status="$(
+            curl --silent --show-error --location \
+              --output "$latest_response" \
+              --write-out '%{http_code}' \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest"
+          )"
+          latest_curl_rc=$?
+          set -e
+          if [[ "$latest_curl_rc" -ne 0 ]]; then
+            echo "::error::Unable to query the latest GitHub Release (curl exit $latest_curl_rc)."
+            exit "$latest_curl_rc"
           fi
+          if [[ "$latest_status" == "200" ]]; then
+            mv "$latest_response" "$evidence/latest-release.json"
+          elif [[ "$latest_status" == "404" && "$ALLOW_NOT_LATEST" == "true" ]]; then
+            printf 'null\n' > "$evidence/latest-release.json"
+            rm -f "$latest_response"
+          else
+            echo "::error::Latest-release query returned HTTP $latest_status."
+            exit 1
+          fi
+
           gh api "repos/$GITHUB_REPOSITORY/milestones/$MILESTONE_NUMBER" > "$evidence/milestone.json"
           gh api --paginate --slurp \
             "repos/$GITHUB_REPOSITORY/issues?milestone=$MILESTONE_NUMBER&state=all&per_page=100" \
