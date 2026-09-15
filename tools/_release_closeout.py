@@ -859,6 +859,45 @@ def fixture_options(root: Path, snapshot: Path, candidate: str) -> Options:
     )
 
 
+def exercise_review_regressions(failures: list[str]) -> None:
+    with tempfile.TemporaryDirectory(prefix="release-closeout-optional-latest-") as raw:
+        root, snapshot_path, candidate = fixture(Path(raw))
+        value = as_object(load_json(snapshot_path), "fixture snapshot")
+        value["release"]["prerelease"] = True
+        value["latest_release"] = None
+        write_json(snapshot_path, value)
+        base_options = fixture_options(root, snapshot_path, candidate)
+        options = Options(
+            root=base_options.root,
+            snapshot=base_options.snapshot,
+            tag=base_options.tag,
+            candidate_sha=base_options.candidate_sha,
+            milestone_number=base_options.milestone_number,
+            workflow_path=base_options.workflow_path,
+            expect_prerelease=True,
+            expect_latest=False,
+        )
+        report = build_report(options)
+        summary = markdown_report(report)
+        if report["status"] != "pass" or "| GitHub Release/latest | PASS |" not in summary:
+            failures.append(
+                "optional-latest: absent /releases/latest was not accepted and rendered consistently"
+            )
+
+    with tempfile.TemporaryDirectory(prefix="release-closeout-compare-pages-") as raw:
+        root, snapshot_path, candidate = fixture(Path(raw))
+        value = as_object(load_json(snapshot_path), "fixture snapshot")
+        page_one = dict(value["compare"])
+        page_two = dict(value["compare"])
+        page_one["commits"] = [{"sha": "a" * 40}]
+        page_two["commits"] = [{"sha": candidate}]
+        value["compare"] = [page_one, page_two]
+        write_json(snapshot_path, value)
+        report = build_report(fixture_options(root, snapshot_path, candidate))
+        if report["status"] != "pass" or not report["comparison"]["candidate_seen"]:
+            failures.append("paginated-compare: candidate on a later page was not accepted")
+
+
 def run_self_test() -> int:
     failures: list[str] = []
 
@@ -910,43 +949,7 @@ def run_self_test() -> int:
         value["latest_release"]["id"] = 99
 
     run_case("not-latest", latest, "release")
-
-    with tempfile.TemporaryDirectory(prefix="release-closeout-optional-latest-") as raw:
-        root, snapshot_path, candidate = fixture(Path(raw))
-        value = as_object(load_json(snapshot_path), "fixture snapshot")
-        value["release"]["prerelease"] = True
-        value["latest_release"] = None
-        write_json(snapshot_path, value)
-        base_options = fixture_options(root, snapshot_path, candidate)
-        options = Options(
-            root=base_options.root,
-            snapshot=base_options.snapshot,
-            tag=base_options.tag,
-            candidate_sha=base_options.candidate_sha,
-            milestone_number=base_options.milestone_number,
-            workflow_path=base_options.workflow_path,
-            expect_prerelease=True,
-            expect_latest=False,
-        )
-        report = build_report(options)
-        summary = markdown_report(report)
-        if report["status"] != "pass" or "| GitHub Release/latest | PASS |" not in summary:
-            failures.append(
-                "optional-latest: absent /releases/latest was not accepted and rendered consistently"
-            )
-
-    with tempfile.TemporaryDirectory(prefix="release-closeout-compare-pages-") as raw:
-        root, snapshot_path, candidate = fixture(Path(raw))
-        value = as_object(load_json(snapshot_path), "fixture snapshot")
-        page_one = dict(value["compare"])
-        page_two = dict(value["compare"])
-        page_one["commits"] = [{"sha": "a" * 40}]
-        page_two["commits"] = [{"sha": candidate}]
-        value["compare"] = [page_one, page_two]
-        write_json(snapshot_path, value)
-        report = build_report(fixture_options(root, snapshot_path, candidate))
-        if report["status"] != "pass" or not report["comparison"]["candidate_seen"]:
-            failures.append("paginated-compare: candidate on a later page was not accepted")
+    exercise_review_regressions(failures)
 
     def asset(value: dict[str, Any], _candidate: str) -> None:
         value["release"]["assets"] = [{"name": "dist/unexpected.zip"}]
