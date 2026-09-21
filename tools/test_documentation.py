@@ -52,11 +52,17 @@ class DocumentationTests(unittest.TestCase):
         preview_token = "{" + "{SOCIAL_PREVIEW_PATH}" + "}"
         self.assertNotIn(f"https://github.com/{repository_token}", readme)
         self.assertNotIn(
-            f"https://api.securityscorecards.dev/projects/github.com/{repository_token}",
+            f"https://api.scorecard.dev/projects/github.com/{repository_token}",
             readme,
         )
         self.assertNotIn(
-            f"https://securityscorecards.dev/viewer/?uri=github.com/{repository_token}",
+            f"https://scorecard.dev/viewer/?uri=github.com/{repository_token}",
+            readme,
+        )
+        self.assertNotIn("securityscorecards.dev", readme)
+        canonical_repository = "danielep71/" + "EXCEL-VBA-" + "PROJECT-TEMPLATE"
+        self.assertIn(
+            f"https://api.scorecard.dev/projects/github.com/{canonical_repository}/badge",
             readme,
         )
         self.assertIn('src="assets/social-preview.png"', readme)

@@ -179,8 +179,8 @@ class InitializerDepthTests(unittest.TestCase):
             "https://github.com/owner/template/actions "
             "https://img.shields.io/github/v/release/owner/template?x "
             "https://img.shields.io/github/issues/owner/template/P2?x "
-            "https://api.securityscorecards.dev/projects/github.com/owner/template/badge "
-            "https://securityscorecards.dev/viewer/?uri=github.com/owner/template "
+            "https://api.scorecard.dev/projects/github.com/owner/template/badge "
+            "https://scorecard.dev/viewer/?uri=github.com/owner/template "
             '<img src="assets/social-preview.png">\n'
             "<!-- generated-social-preview: assets/custom-preview.png -->\n"
         )
