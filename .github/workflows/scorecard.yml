@@ -156,8 +156,9 @@ jobs:
         run: |
           set -euo pipefail
           url="https://api.scorecard.dev/projects/github.com/${GITHUB_REPOSITORY}?commit=${GITHUB_SHA}"
+          badge_url="https://api.scorecard.dev/projects/github.com/${GITHUB_REPOSITORY}/badge"
           for attempt in 1 2 3 4 5 6; do
-            rm -f public-scorecard.json
+            rm -f public-scorecard.json public-scorecard-badge.svg
             if curl \
               --fail \
               --location \
@@ -187,21 +188,47 @@ jobs:
               )
           PY
               then
-                exit 0
+                if curl \
+                  --fail \
+                  --location \
+                  --proto '=https' \
+                  --show-error \
+                  --silent \
+                  --tlsv1.2 \
+                  --header 'Cache-Control: no-cache' \
+                  --output public-scorecard-badge.svg \
+                  "$badge_url"; then
+                  if python3 - <<'PY'
+          from pathlib import Path
+
+          badge = Path("public-scorecard-badge.svg").read_text(encoding="utf-8")
+          lowered = badge.casefold()
+          if "<svg" not in lowered:
+              raise SystemExit("public Scorecard badge response is not SVG")
+          for marker in ("invalid repo path", "invalid repository", "not found"):
+              if marker in lowered:
+                  raise SystemExit(f"public Scorecard badge contains error marker: {marker}")
+          PY
+                  then
+                    exit 0
+                  fi
+                fi
               fi
             fi
             if [[ "$attempt" -lt 6 ]]; then
               sleep "$((attempt * 2))"
             fi
           done
-          echo "::error::Public Scorecard result was not retrievable for exact SHA ${GITHUB_SHA}."
+          echo "::error::Public Scorecard JSON/badge surface was not valid for exact SHA ${GITHUB_SHA}."
           exit 1
 
       - name: Retain verified public Scorecard evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: scorecard-public-${{ github.run_id }}-${{ github.run_attempt }}
-          path: public-scorecard.json
+          path: |
+            public-scorecard.json
+            public-scorecard-badge.svg
           if-no-files-found: error
           retention-days: 30
           compression-level: 9
