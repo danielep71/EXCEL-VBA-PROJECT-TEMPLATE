@@ -60,9 +60,9 @@ class DocumentationTests(unittest.TestCase):
             readme,
         )
         self.assertNotIn("securityscorecards.dev", readme)
+        canonical_repository = "danielep71/" + "EXCEL-VBA-" + "PROJECT-TEMPLATE"
         self.assertIn(
-            "https://api.scorecard.dev/projects/github.com/"
-            "danielep71/EXCEL-VBA-PROJECT-TEMPLATE/badge",
+            f"https://api.scorecard.dev/projects/github.com/{canonical_repository}/badge",
             readme,
         )
         self.assertIn('src="assets/social-preview.png"', readme)
