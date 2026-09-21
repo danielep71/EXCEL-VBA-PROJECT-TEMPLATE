@@ -46,6 +46,23 @@ class DocumentationTests(unittest.TestCase):
             self.assertEqual(docs.build_report(self.root)["status"], "pass")
             self.assertTrue(all(call.args[0][0] == "git" for call in popen.call_args_list))
 
+    def test_template_readme_presentation_uses_live_canonical_assets(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertNotIn("https://github.com/{{REPOSITORY_PATH}}", readme)
+        self.assertNotIn(
+            "https://api.securityscorecards.dev/projects/github.com/{{REPOSITORY_PATH}}",
+            readme,
+        )
+        self.assertNotIn(
+            "https://securityscorecards.dev/viewer/?uri=github.com/{{REPOSITORY_PATH}}",
+            readme,
+        )
+        self.assertIn('src="assets/social-preview.png"', readme)
+        self.assertIn(
+            "<!-- generated-social-preview: {{SOCIAL_PREVIEW_PATH}} -->",
+            readme,
+        )
+
     def test_utf8_repository_reads_do_not_depend_on_locale(self):
         workflow = self.root / ".github/workflows/fixture.yml"
         workflow.write_text(

@@ -16,8 +16,8 @@
 <br>
 
 [![Static checks](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/static-checks.yml/badge.svg?branch=main)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/static-checks.yml)
-[![CodeQL](https://github.com/{{REPOSITORY_PATH}}/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/{{REPOSITORY_PATH}}/actions/workflows/codeql.yml)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/{{REPOSITORY_PATH}}/badge)](https://securityscorecards.dev/viewer/?uri=github.com/{{REPOSITORY_PATH}})
+[![CodeQL](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/badge)](https://securityscorecards.dev/viewer/?uri=github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE)
 [![Release](https://img.shields.io/github/v/release/danielep71/EXCEL-VBA-PROJECT-TEMPLATE?style=flat-square&label=release&color=217346)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases)
 [![Issues](https://img.shields.io/github/issues/danielep71/EXCEL-VBA-PROJECT-TEMPLATE?style=flat-square&color=d73a49)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues)
 
@@ -51,9 +51,10 @@ The guide identifies its source edition; confirm that edition before generation.
 
 <!-- template:optional:SOCIAL_PREVIEW_PATH:start -->
 <p align="center">
-  <img src="{{SOCIAL_PREVIEW_PATH}}"
+  <img src="assets/social-preview.png"
        alt="{{PROJECT_NAME}} — {{PROJECT_TAGLINE}}"
        width="100%">
+  <!-- generated-social-preview: {{SOCIAL_PREVIEW_PATH}} -->
 </p>
 
 ---
