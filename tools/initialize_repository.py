@@ -902,16 +902,24 @@ def _make_evolved_generated_fixture(source: Path, destination: Path) -> None:
         r"^\[!\[Release\].*\n", "", readme_text, flags=re.MULTILINE
     )
     readme_text, replaced = re.subn(
-        r"^\[!\[Issues\].*\n", "[Project issues](https://example.org/project/issues)\n", readme_text,
+        r"^\[!\[P1 issues\].*\n",
+        "[Project issues](https://example.org/project/issues)\n",
+        readme_text,
+        count=1,
         flags=re.MULTILINE,
+    )
+    readme_text, removed_priorities = re.subn(
+        r"^\[!\[P[23] issues\].*\n", "", readme_text, flags=re.MULTILINE
     )
     readme_text, retargeted = re.subn(
         r"^\[!\[Static checks\].*\n",
         "[CI status](https://example.org/project/ci)\n", readme_text,
         flags=re.MULTILINE,
     )
-    if (removed, replaced, retargeted) != (1, 1, 1):
-        raise AssertionError("Generated evolution fixture did not customize all three badges.")
+    if (removed, replaced, removed_priorities, retargeted) != (1, 1, 2, 1):
+        raise AssertionError(
+            "Generated evolution fixture did not customize release, priority, and CI badges."
+        )
     readme.write_text(
         readme_text
         + "\n## Generated-project evolution fixture\n\n"
