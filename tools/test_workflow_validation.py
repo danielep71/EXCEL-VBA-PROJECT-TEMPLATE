@@ -342,6 +342,12 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
     )
     if expected_url not in text:
         failures.append("Scorecard public verification must bind to the exact GitHub SHA")
+    badge_url = (
+        "https://api.scorecard.dev/projects/github.com/"
+        + "${GITHUB_REPOSITORY}/badge"
+    )
+    if badge_url not in text or "invalid repo path" not in text:
+        failures.append("Scorecard public verification must validate the rendered badge surface")
 
     return ("PASS" if not failures else "FAIL"), failures
 
