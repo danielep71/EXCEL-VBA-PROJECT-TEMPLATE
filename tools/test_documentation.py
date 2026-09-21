@@ -48,18 +48,20 @@ class DocumentationTests(unittest.TestCase):
 
     def test_template_readme_presentation_uses_live_canonical_assets(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertNotIn("https://github.com/{{REPOSITORY_PATH}}", readme)
+        repository_token = "{" + "{REPOSITORY_PATH}" + "}"
+        preview_token = "{" + "{SOCIAL_PREVIEW_PATH}" + "}"
+        self.assertNotIn(f"https://github.com/{repository_token}", readme)
         self.assertNotIn(
-            "https://api.securityscorecards.dev/projects/github.com/{{REPOSITORY_PATH}}",
+            f"https://api.securityscorecards.dev/projects/github.com/{repository_token}",
             readme,
         )
         self.assertNotIn(
-            "https://securityscorecards.dev/viewer/?uri=github.com/{{REPOSITORY_PATH}}",
+            f"https://securityscorecards.dev/viewer/?uri=github.com/{repository_token}",
             readme,
         )
         self.assertIn('src="assets/social-preview.png"', readme)
         self.assertIn(
-            "<!-- generated-social-preview: {{SOCIAL_PREVIEW_PATH}} -->",
+            f"<!-- generated-social-preview: {preview_token} -->",
             readme,
         )
 
