@@ -828,8 +828,12 @@ def _assert_fresh_generated_content(root: Path, profile: str) -> None:
         f"https://github.com/{repository}/actions/workflows/static-checks.yml)",
         f"https://img.shields.io/github/v/release/{repository}?",
         f"https://github.com/{repository}/releases)",
-        f"https://img.shields.io/github/issues/{repository}?",
-        f"https://github.com/{repository}/issues)",
+        f"https://img.shields.io/github/issues/{repository}/P1?",
+        f"https://img.shields.io/github/issues/{repository}/P2?",
+        f"https://img.shields.io/github/issues/{repository}/P3?",
+        f"https://github.com/{repository}/issues?q=is%3Aissue%20is%3Aopen%20label%3AP1)",
+        f"https://github.com/{repository}/issues?q=is%3Aissue%20is%3Aopen%20label%3AP2)",
+        f"https://github.com/{repository}/issues?q=is%3Aissue%20is%3Aopen%20label%3AP3)",
     )
     if any(url not in readme for url in expected_badge_urls):
         raise AssertionError(f"{profile} did not retarget all README badges and links.")
@@ -898,16 +902,24 @@ def _make_evolved_generated_fixture(source: Path, destination: Path) -> None:
         r"^\[!\[Release\].*\n", "", readme_text, flags=re.MULTILINE
     )
     readme_text, replaced = re.subn(
-        r"^\[!\[Issues\].*\n", "[Project issues](https://example.org/project/issues)\n", readme_text,
+        r"^\[!\[P1 issues\].*\n",
+        "[Project issues](https://example.org/project/issues)\n",
+        readme_text,
+        count=1,
         flags=re.MULTILINE,
+    )
+    readme_text, removed_priorities = re.subn(
+        r"^\[!\[P[23] issues\].*\n", "", readme_text, flags=re.MULTILINE
     )
     readme_text, retargeted = re.subn(
         r"^\[!\[Static checks\].*\n",
         "[CI status](https://example.org/project/ci)\n", readme_text,
         flags=re.MULTILINE,
     )
-    if (removed, replaced, retargeted) != (1, 1, 1):
-        raise AssertionError("Generated evolution fixture did not customize all three badges.")
+    if (removed, replaced, removed_priorities, retargeted) != (1, 1, 2, 1):
+        raise AssertionError(
+            "Generated evolution fixture did not customize release, priority, and CI badges."
+        )
     readme.write_text(
         readme_text
         + "\n## Generated-project evolution fixture\n\n"

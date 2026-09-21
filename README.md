@@ -19,7 +19,9 @@
 [![CodeQL](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/badge)](https://securityscorecards.dev/viewer/?uri=github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE)
 [![Release](https://img.shields.io/github/v/release/danielep71/EXCEL-VBA-PROJECT-TEMPLATE?style=flat-square&label=release&color=217346)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases)
-[![Issues](https://img.shields.io/github/issues/danielep71/EXCEL-VBA-PROJECT-TEMPLATE?style=flat-square&color=d73a49)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues)
+[![P1 issues](https://img.shields.io/github/issues/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/P1?style=flat-square&label=P1&color=B60205)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues?q=is%3Aissue%20is%3Aopen%20label%3AP1)
+[![P2 issues](https://img.shields.io/github/issues/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/P2?style=flat-square&label=P2&color=D93F0B)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues?q=is%3Aissue%20is%3Aopen%20label%3AP2)
+[![P3 issues](https://img.shields.io/github/issues/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/P3?style=flat-square&label=P3&color=FBCA04)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues?q=is%3Aissue%20is%3Aopen%20label%3AP3)
 
 <br>
 
