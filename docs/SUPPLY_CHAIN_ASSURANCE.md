@@ -24,8 +24,10 @@ top-level `env` or `defaults`, the publishing job may not define job-level
 `env` or `defaults`, and that job may use only OpenSSF-approved Actions.
 The release-candidate CLI version/digest are therefore scoped only to the
 non-publishing job. After the publishing Action completes, a separate read-only
-job retrieves the public `api.scorecard.dev` record for the exact GitHub SHA;
-missing, stale, or mismatched public data makes the workflow non-green.
+job retrieves the public `api.scorecard.dev` record for the exact GitHub SHA
+and then retrieves the badge SVG itself. Missing, stale, mismatched, non-SVG, or
+error-bearing badge data (including `invalid repo path`) makes the workflow
+non-green.
 
 OpenSSF also restricts Action publication on `push` and `schedule` to the
 repository default branch. Release candidates therefore use the official
