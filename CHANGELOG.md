@@ -124,6 +124,7 @@ Use only the categories needed by a release.
 - Keep the canonical template README presentation live by using real CodeQL, OpenSSF Scorecard and social-preview URLs while preserving deterministic repository and preview retargeting during initialization.
 - Split the README's aggregate open-issue badge into live P1, P2 and P3 issue badges that link directly to the corresponding open-priority queues.
 - Update the OpenSSF Scorecard badge and viewer links to the current official `api.scorecard.dev` and `scorecard.dev` endpoints.
+- Make Scorecard publication fail closed: keep OpenSSF-forbidden global/job environment settings out of the publishing path and verify the exact-SHA public API record after the Action completes.
 
 ## [1.2.0] - 2026-09-10
 
