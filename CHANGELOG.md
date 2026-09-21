@@ -123,6 +123,7 @@ Use only the categories needed by a release.
 - Make release closeout expectation-aware for deliberately non-latest releases and first prereleases, capture every page of GitHub comparison commits, and render the latest-release control consistently with the configured expectation.
 - Keep the canonical template README presentation live by using real CodeQL, OpenSSF Scorecard and social-preview URLs while preserving deterministic repository and preview retargeting during initialization.
 - Split the README's aggregate open-issue badge into live P1, P2 and P3 issue badges that link directly to the corresponding open-priority queues.
+- Update the OpenSSF Scorecard badge and viewer links to the current official `api.scorecard.dev` and `scorecard.dev` endpoints.
 
 ## [1.2.0] - 2026-09-10
 
