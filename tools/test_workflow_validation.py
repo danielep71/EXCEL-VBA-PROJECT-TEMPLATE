@@ -24,6 +24,14 @@ import create_reusable_workflow_fixture as reusable_fixture
 
 EXPECTED_ACTIONLINT_VERSION = "1.7.12"
 WORKFLOW_SHA = "a" * 40
+SCORECARD_WORKFLOW = ".github/workflows/scorecard.yml"
+SCORECARD_APPROVED_ACTIONS = {
+    "actions/checkout",
+    "actions/upload-artifact",
+    "github/codeql-action/upload-sarif",
+    "ossf/scorecard-action",
+    "step-security/harden-runner",
+}
 
 
 @dataclass(frozen=True)
@@ -285,6 +293,59 @@ def write_fixture_text(root: Path, relative: str, content: str) -> Path:
     return path
 
 
+def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
+    path = root / SCORECARD_WORKFLOW
+    if not path.is_file():
+        return "N/A", []
+    text = path.read_text(encoding="utf-8")
+    if "publish_results: true" not in text:
+        return "N/A", []
+
+    failures: list[str] = []
+    if re.search(r"(?m)^env:\s*(?:#.*)?$", text):
+        failures.append("Scorecard publication workflow must not define top-level env")
+    if re.search(r"(?m)^defaults:\s*(?:#.*)?$", text):
+        failures.append("Scorecard publication workflow must not define top-level defaults")
+
+    match = re.search(
+        r"(?ms)^  published:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+        text,
+    )
+    if match is None:
+        failures.append("Scorecard publication workflow has no published job")
+        return "FAIL", failures
+
+    published = match.group("body")
+    if re.search(r"(?m)^    env:\s*(?:#.*)?$", published):
+        failures.append("Scorecard published job must not define job-level env")
+    if re.search(r"(?m)^    defaults:\s*(?:#.*)?$", published):
+        failures.append("Scorecard published job must not define job-level defaults")
+    if re.search(r"(?m)^        run:", published):
+        failures.append("Scorecard published job may use only OpenSSF-approved actions")
+
+    for action in re.findall(r"(?m)^        uses:\s*([^\s#]+)", published):
+        owner_action = action.split("@", 1)[0]
+        if owner_action not in SCORECARD_APPROVED_ACTIONS:
+            failures.append(
+                f"Scorecard published job uses unsupported action {owner_action}"
+            )
+
+    if text.count("id-token: write") != 1 or "id-token: write" not in published:
+        failures.append(
+            "Scorecard publication must grant id-token: write only to the published job"
+        )
+    if "verify-publication:" not in text:
+        failures.append("Scorecard workflow must verify the public result after publication")
+    expected_url = (
+        "https://api.scorecard.dev/projects/github.com/"
+        + "${GITHUB_REPOSITORY}?commit=${GITHUB_SHA}"
+    )
+    if expected_url not in text:
+        failures.append("Scorecard public verification must bind to the exact GitHub SHA")
+
+    return ("PASS" if not failures else "FAIL"), failures
+
+
 def build_report(root: Path, executable: Path) -> tuple[str, list[str]]:
     failures: list[str] = []
     version = subprocess.run(
@@ -310,6 +371,9 @@ def build_report(root: Path, executable: Path) -> tuple[str, list[str]]:
     current = run_actionlint(executable, root, workflows)
     if current.returncode != 0:
         failures.append("tracked workflows failed authoritative validation:\n" + current.stdout.strip())
+
+    scorecard_status, scorecard_failures = scorecard_publication_contract(root)
+    failures.extend(scorecard_failures)
 
     fixture_rows: list[tuple[str, str, str]] = []
     with tempfile.TemporaryDirectory(prefix="workflow-validation-") as temporary:
@@ -368,6 +432,7 @@ def build_report(root: Path, executable: Path) -> tuple[str, list[str]]:
             f"| Current tracked workflows | accepted | "
             f"{'PASS' if current.returncode == 0 else 'FAIL'} |"
         ),
+        f"| Scorecard publication contract | accepted | {scorecard_status} |",
     ]
     lines.extend(
         f"| {name} | {expectation} | {result} |" for name, expectation, result in fixture_rows
