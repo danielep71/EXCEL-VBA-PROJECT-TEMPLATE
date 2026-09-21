@@ -169,23 +169,23 @@ jobs:
               --output public-scorecard.json \
               "$url"; then
               if python3 - <<'PY'
-import json
-import os
-from pathlib import Path
+          import json
+          import os
+          from pathlib import Path
 
-result = json.loads(Path("public-scorecard.json").read_text(encoding="utf-8"))
-repo = result.get("repo", {})
-expected_name = f"github.com/{os.environ['GITHUB_REPOSITORY']}"
-expected_commit = os.environ["GITHUB_SHA"]
-if repo.get("name") != expected_name:
-    raise SystemExit(
-        f"public Scorecard repository mismatch: {repo.get('name')!r} != {expected_name!r}"
-    )
-if repo.get("commit") != expected_commit:
-    raise SystemExit(
-        f"public Scorecard commit mismatch: {repo.get('commit')!r} != {expected_commit!r}"
-    )
-PY
+          result = json.loads(Path("public-scorecard.json").read_text(encoding="utf-8"))
+          repo = result.get("repo", {})
+          expected_name = f"github.com/{os.environ['GITHUB_REPOSITORY']}"
+          expected_commit = os.environ["GITHUB_SHA"]
+          if repo.get("name") != expected_name:
+              raise SystemExit(
+                  f"public Scorecard repository mismatch: {repo.get('name')!r} != {expected_name!r}"
+              )
+          if repo.get("commit") != expected_commit:
+              raise SystemExit(
+                  f"public Scorecard commit mismatch: {repo.get('commit')!r} != {expected_commit!r}"
+              )
+          PY
               then
                 exit 0
               fi
