@@ -303,19 +303,33 @@ def _replacement_values(
 def _render_readme_badges(
     path: str, text: str, template_repository: str, repository: str
 ) -> str:
-    """Retarget the template's live README badge images and links for an adopter."""
+    """Retarget the template's live README presentation URLs for an adopter."""
     if path != "README.md":
         return text
     for prefix in (
         "https://github.com/",
         "https://img.shields.io/github/v/release/",
         "https://img.shields.io/github/issues/",
+        "https://api.securityscorecards.dev/projects/github.com/",
+        "https://securityscorecards.dev/viewer/?uri=github.com/",
     ):
         # Match a repository boundary, so similarly named repositories stay untouched.
         text = re.sub(
-            re.escape(prefix + template_repository) + r"(?=[/?#)]|$)",
+            re.escape(prefix + template_repository) + r"(?=[/?#)\s]|$)",
             lambda match: prefix + repository,
             text,
+        )
+    preview = re.search(
+        r"(?m)^[ \t]*<!-- generated-social-preview: ([^<>\r\n]+) -->[ \t]*\r?\n?",
+        text,
+    )
+    if preview is not None:
+        selected_preview = preview.group(1).strip()
+        text = text[: preview.start()] + text[preview.end() :]
+        text = text.replace(
+            f'src="{CANONICAL_SOCIAL_PREVIEW_PATH}"',
+            f'src="{selected_preview}"',
+            1,
         )
     return text
 
