@@ -315,7 +315,7 @@ def _render_readme_badges(
     ):
         # Match a repository boundary, so similarly named repositories stay untouched.
         text = re.sub(
-            re.escape(prefix + template_repository) + r"(?=[/?#)]|$)",
+            re.escape(prefix + template_repository) + r"(?=[/?#)\s]|$)",
             lambda match: prefix + repository,
             text,
         )
