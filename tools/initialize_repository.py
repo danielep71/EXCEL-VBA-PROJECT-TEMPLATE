@@ -320,7 +320,7 @@ def _render_readme_badges(
             text,
         )
     preview = re.search(
-        r"(?m)^[ \\t]*<!-- generated-social-preview: ([^<>\\r\\n]+) -->[ \\t]*\\r?\\n?",
+        r"(?m)^[ \t]*<!-- generated-social-preview: ([^<>\r\n]+) -->[ \t]*\r?\n?",
         text,
     )
     if preview is not None:

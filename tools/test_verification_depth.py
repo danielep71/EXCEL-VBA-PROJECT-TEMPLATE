@@ -181,8 +181,8 @@ class InitializerDepthTests(unittest.TestCase):
             "https://img.shields.io/github/issues/owner/template?x "
             "https://api.securityscorecards.dev/projects/github.com/owner/template/badge "
             "https://securityscorecards.dev/viewer/?uri=github.com/owner/template "
-            '<img src="assets/social-preview.png">\\n'
-            "<!-- generated-social-preview: assets/custom-preview.png -->\\n"
+            '<img src="assets/social-preview.png">\n'
+            "<!-- generated-social-preview: assets/custom-preview.png -->\n"
         )
         retargeted = initializer._render_readme_badges(
             "README.md", readme, "owner/template", "owner/product"
