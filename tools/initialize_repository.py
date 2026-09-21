@@ -310,8 +310,8 @@ def _render_readme_badges(
         "https://github.com/",
         "https://img.shields.io/github/v/release/",
         "https://img.shields.io/github/issues/",
-        "https://api.securityscorecards.dev/projects/github.com/",
-        "https://securityscorecards.dev/viewer/?uri=github.com/",
+        "https://api.scorecard.dev/projects/github.com/",
+        "https://scorecard.dev/viewer/?uri=github.com/",
     ):
         # Match a repository boundary, so similarly named repositories stay untouched.
         text = re.sub(
