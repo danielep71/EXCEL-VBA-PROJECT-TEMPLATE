@@ -828,8 +828,12 @@ def _assert_fresh_generated_content(root: Path, profile: str) -> None:
         f"https://github.com/{repository}/actions/workflows/static-checks.yml)",
         f"https://img.shields.io/github/v/release/{repository}?",
         f"https://github.com/{repository}/releases)",
-        f"https://img.shields.io/github/issues/{repository}?",
-        f"https://github.com/{repository}/issues)",
+        f"https://img.shields.io/github/issues/{repository}/P1?",
+        f"https://img.shields.io/github/issues/{repository}/P2?",
+        f"https://img.shields.io/github/issues/{repository}/P3?",
+        f"https://github.com/{repository}/issues?q=is%3Aissue%20is%3Aopen%20label%3AP1)",
+        f"https://github.com/{repository}/issues?q=is%3Aissue%20is%3Aopen%20label%3AP2)",
+        f"https://github.com/{repository}/issues?q=is%3Aissue%20is%3Aopen%20label%3AP3)",
     )
     if any(url not in readme for url in expected_badge_urls):
         raise AssertionError(f"{profile} did not retarget all README badges and links.")
