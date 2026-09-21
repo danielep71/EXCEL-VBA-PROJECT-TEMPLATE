@@ -21,10 +21,6 @@ concurrency:
   group: scorecard-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  SCORECARD_CLI_VERSION: "5.5.0"
-  SCORECARD_CLI_LINUX_AMD64_SHA256: "83b90a05c1540ef1390db1cd5711e5fd04be9c1d8537fb84d39d02092d6a8dff"
-
 jobs:
   release-candidate:
     name: Exact-SHA release-candidate scan
@@ -35,6 +31,9 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      SCORECARD_CLI_VERSION: "5.5.0"
+      SCORECARD_CLI_LINUX_AMD64_SHA256: "83b90a05c1540ef1390db1cd5711e5fd04be9c1d8537fb84d39d02092d6a8dff"
 
     steps:
       - name: Check out the exact SHA under analysis
@@ -141,3 +140,68 @@ jobs:
         uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
         with:
           sarif_file: results.sarif
+
+  verify-publication:
+    name: Verify public Scorecard publication
+    needs: published
+    if: ${{ needs.published.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Verify exact-SHA public Scorecard result
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://api.scorecard.dev/projects/github.com/${GITHUB_REPOSITORY}?commit=${GITHUB_SHA}"
+          for attempt in 1 2 3 4 5 6; do
+            rm -f public-scorecard.json
+            if curl \
+              --fail \
+              --location \
+              --proto '=https' \
+              --show-error \
+              --silent \
+              --tlsv1.2 \
+              --header 'Cache-Control: no-cache' \
+              --output public-scorecard.json \
+              "$url"; then
+              if python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+result = json.loads(Path("public-scorecard.json").read_text(encoding="utf-8"))
+repo = result.get("repo", {})
+expected_name = f"github.com/{os.environ['GITHUB_REPOSITORY']}"
+expected_commit = os.environ["GITHUB_SHA"]
+if repo.get("name") != expected_name:
+    raise SystemExit(
+        f"public Scorecard repository mismatch: {repo.get('name')!r} != {expected_name!r}"
+    )
+if repo.get("commit") != expected_commit:
+    raise SystemExit(
+        f"public Scorecard commit mismatch: {repo.get('commit')!r} != {expected_commit!r}"
+    )
+PY
+              then
+                exit 0
+              fi
+            fi
+            if [[ "$attempt" -lt 6 ]]; then
+              sleep "$((attempt * 2))"
+            fi
+          done
+          echo "::error::Public Scorecard result was not retrievable for exact SHA ${GITHUB_SHA}."
+          exit 1
+
+      - name: Retain verified public Scorecard evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scorecard-public-${{ github.run_id }}-${{ github.run_attempt }}
+          path: public-scorecard.json
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 9
