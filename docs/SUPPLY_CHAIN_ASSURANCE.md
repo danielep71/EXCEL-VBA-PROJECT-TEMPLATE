@@ -19,8 +19,16 @@ reviewed under [DEPENDENCY_UPDATES.md](DEPENDENCY_UPDATES.md), the resulting
 workflow must retain immutable pins, and merge remains manual.
 
 The published Scorecard path uses `ossf/scorecard-action` v2.4.4, resolved to its
-reviewed commit. OpenSSF restricts Action publication on `push` and `schedule`
-to the repository default branch. Release candidates therefore use the official
+reviewed commit. OpenSSF restricts published workflows: they may not define
+top-level `env` or `defaults`, the publishing job may not define job-level
+`env` or `defaults`, and that job may use only OpenSSF-approved Actions.
+The release-candidate CLI version/digest are therefore scoped only to the
+non-publishing job. After the publishing Action completes, a separate read-only
+job retrieves the public `api.scorecard.dev` record for the exact GitHub SHA;
+missing, stale, or mismatched public data makes the workflow non-green.
+
+OpenSSF also restricts Action publication on `push` and `schedule` to the
+repository default branch. Release candidates therefore use the official
 Scorecard CLI v5.5.0 with `--commit` bound to the exact candidate SHA. The Linux
 amd64 release archive is verified against its recorded SHA-256 before execution;
 the resulting JSON and CLI version are retained as workflow evidence.
@@ -50,10 +58,12 @@ A successful CodeQL run means the configured CodeQL queries completed against
 the exact checked source. A successful release-candidate Scorecard CLI run means
 the official scanner completed against the requested commit and its retained
 JSON is candidate-bound; some Scorecard checks necessarily observe current
-repository settings rather than historical settings. A successful default-branch
-Scorecard Action run additionally means the configured SARIF/public result was
-published. A Dependabot proposal means only that GitHub detected a candidate
-dependency update.
+repository settings rather than historical settings. The Scorecard Action can
+complete while reporting publication rejection as a warning, so its job result
+alone does **not** prove public publication. Public publication is claimed only
+when the separate verification job retrieves an exact-SHA record from
+`api.scorecard.dev`. A Dependabot proposal means only that GitHub detected a
+candidate dependency update.
 
 None of those outcomes proves VBA compilation, Excel runtime behavior,
 numerical accuracy, UI cleanup, packaging integrity, or release certification.
@@ -80,8 +90,8 @@ Before merging a CodeQL, Scorecard, or dependency-workflow change:
 4. preserve manual dependency approval and rollback under
    [DEPENDENCY_UPDATES.md](DEPENDENCY_UPDATES.md);
 5. retain successful CodeQL and release-candidate Scorecard runs for the exact
-   reviewed revision, and after default-branch integration retain the successful
-   published Scorecard Action run separately.
+   reviewed revision, and after default-branch integration retain both the
+   publishing Action run and the exact-SHA public Scorecard verification result.
 
 If a required security analyzer is unavailable, misconfigured, or denied its
 required permissions, its workflow is non-green. Do not convert an unavailable
