@@ -27,7 +27,7 @@ explicit maintainer review cadence.
 | Security analyzers | `.github/workflows/codeql.yml`, `.github/workflows/scorecard.yml`, and [SUPPLY_CHAIN_ASSURANCE.md](SUPPLY_CHAIN_ASSURANCE.md) | Reviewed Action pin, query/analyzer behavior, permissions, triggers, and publication boundary |
 | Reusable workflows | Caller job-level `uses:`, [published interface pin](REUSABLE_WORKFLOWS.md), template source and its compatibility notes | Full provider SHA plus interface revision; review coupled caller-local scripts separately |
 | actionlint | `ACTIONLINT_VERSION` and archive digest in the static workflow; `EXPECTED_ACTIONLINT_VERSION` in `tools/test_workflow_validation.py`; official `rhysd/actionlint` releases | Version, platform-specific archive SHA-256 and expected validator version together |
-| Python quality tools | `RUFF_VERSION` and `MYPY_VERSION` in the static workflow; official Astral Ruff and mypy release notes, PyPI distribution metadata | Exact package versions; review transitive/runtime compatibility and installation output |
+| Python quality tools | `RUFF_VERSION` and `MYPY_VERSION` in the static workflow; `tools/requirements-*-ci.txt`; official PyPI distribution metadata and upstream release notes | Exact direct/transitive versions plus reviewed wheel SHA-256 hashes for hosted CPython 3.10/Ubuntu x64; local cross-platform pins must mirror the CI locks |
 <!-- template:remove:start -->
 | Template snapshot parser | PyYAML pin in `portfolio-drift.yml` and `check_portfolio_drift.py`; [parser review](PORTFOLIO_DRIFT.md) and official PyPI/upstream metadata | Keep installer and runtime version assertion synchronized; template maintenance only |
 <!-- template:remove:end -->
@@ -40,10 +40,15 @@ occurrences and historical evidence. Never rewrite published provenance to make
 an old release appear to use the new dependency.
 
 Python `3.10` selects a runtime series, and `ubuntu-24.04` selects a hosted image
-family; neither freezes every patch or preinstalled utility. Exact Ruff/mypy
-versions do not lock every transitive distribution or provide hash-locked pip
-installation. Capture actual versions in hosted evidence and do not claim a
-hermetic build. This policy adds no package manager to VBA runtime code.
+family; neither freezes every patch or preinstalled utility. Hosted Python tool
+installs are additionally constrained by reviewed CPython-3.10/Linux-x64 wheel
+hashes in `tools/requirements-*-ci.txt`, installed with
+`--only-binary=:all: --require-hashes`. That materially narrows package
+substitution risk but still does not make the runner image or network path
+hermetic. Capture actual versions in hosted evidence. The cross-platform
+`tools/requirements-dev.txt` remains version-pinned for local use and is
+checked against the CI locks. This policy adds no package manager to VBA runtime
+code.
 
 <a id="provenance-review"></a>
 
