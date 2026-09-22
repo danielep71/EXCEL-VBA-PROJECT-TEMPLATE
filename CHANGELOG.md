@@ -100,7 +100,7 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
-## [1.2.1] - 2026-09-21
+## [1.2.1] - 2026-09-22
 
 ### Changed
 
@@ -122,6 +122,7 @@ Use only the categories needed by a release.
 - Report active release-history exceptions whose base tag no longer matches the candidate's current previous-release tag, while preserving durable prior-release ancestry only as descriptive historical evidence.
 - Removed the obsolete development-only duplicate-history exception after the v1.2.1 release branch was squash-integrated, so release semantics evaluate only commits that remain in the canonical mainline release range.
 - Revalidate required certification evidence roles and manifest record structure during independent bundle verification, so a self-consistent but incomplete durable bundle cannot pass post-publication closeout.
+- Sign the canonical durable certification ZIP with a detached OpenSSH signature bound to the current trusted GitHub signing-key registry and verify that signature again from downloaded GitHub Release assets.
 - Make release closeout expectation-aware for deliberately non-latest releases and first prereleases, capture every page of GitHub comparison commits, and render the latest-release control consistently with the configured expectation.
 - Keep the canonical template README presentation live by using real CodeQL, OpenSSF Scorecard and social-preview URLs while preserving deterministic repository and preview retargeting during initialization.
 - Split the README's aggregate open-issue badge into live P1, P2 and P3 issue badges that link directly to the corresponding open-priority queues.
