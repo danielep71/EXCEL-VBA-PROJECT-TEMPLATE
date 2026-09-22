@@ -780,6 +780,47 @@ def run_self_test() -> int:
                 Path(result_one["digest"]),
             )
             require(verified["candidate_sha"] == candidate, "verification lost candidate binding")
+
+            signing_key = base / "certification-signing-key"
+            subprocess.run(
+                ["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(signing_key)],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            subprocess.run(
+                [
+                    "ssh-keygen", "-Y", "sign",
+                    "-f", str(signing_key),
+                    "-n", CERTIFICATION_SIGNATURE_NAMESPACE,
+                    str(first_bundle),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            signature_path = Path(str(first_bundle) + ".sig")
+            public_parts = signing_key.with_suffix(".pub").read_text(
+                encoding="utf-8"
+            ).strip().split()
+            fixture_public_key = " ".join(public_parts[:2])
+            verify_ssh_signature(
+                first_bundle.read_bytes(),
+                signature_path,
+                "fixture",
+                [fixture_public_key],
+            )
+            try:
+                verify_ssh_signature(
+                    first_bundle.read_bytes() + b"x",
+                    signature_path,
+                    "fixture",
+                    [fixture_public_key],
+                )
+                failures.append("certification signature accepted tampered bundle bytes")
+            except CertificationError:
+                pass
+
             exercise_manifest_verification_controls(
                 first_bundle,
                 Path(result_one["manifest"]),
@@ -827,9 +868,16 @@ def run_self_test() -> int:
                     },
                     {
                         "id": 4,
-                        "name": "dist/example.xlsm",
+                        "name": certification_asset_names("v1.2.3")["signature"],
                         "url": "https://api.github.example/assets/4",
                         "browser_download_url": "https://github.example/download/4",
+                        "size": signature_path.stat().st_size,
+                    },
+                    {
+                        "id": 5,
+                        "name": "dist/example.xlsm",
+                        "url": "https://api.github.example/assets/5",
+                        "browser_download_url": "https://github.example/download/5",
                         "size": 123,
                     },
                 ],
@@ -837,7 +885,7 @@ def run_self_test() -> int:
             release_path = base / "release.json"
             release_path.write_text(json.dumps(release) + "\n", encoding="utf-8")
             plan = plan_release_assets(release_path, "v1.2.3")
-            require(len(plan["certification_assets"]) == 3, "release plan lost certification assets")
+            require(len(plan["certification_assets"]) == 4, "release plan lost certification assets")
             require(len(plan["product_assets"]) == 1, "release plan did not separate product assets")
             plan_path = base / "release-plan.json"
             plan_path.write_bytes(canonical_json(plan))
@@ -846,12 +894,15 @@ def run_self_test() -> int:
             for key in ("bundle", "manifest", "digest"):
                 source = Path(result_one[key])
                 (downloaded / source.name).write_bytes(source.read_bytes())
-            retained = verify_release_plan(plan_path, downloaded, candidate)
+            (downloaded / certification_asset_names("v1.2.3")["signature"]).write_bytes(
+                signature_path.read_bytes()
+            )
+            retained = verify_release_plan(root, plan_path, downloaded, candidate)
             require(retained["bundle_sha256"] == result_one["bundle_sha256"], "retained verification lost bundle digest")
 
             (downloaded / first_bundle.name).write_bytes(first_bundle.read_bytes() + b"x")
             try:
-                verify_release_plan(plan_path, downloaded, candidate)
+                verify_release_plan(root, plan_path, downloaded, candidate)
                 failures.append("tampered downloaded release asset was accepted")
             except CertificationError:
                 pass
@@ -864,6 +915,23 @@ def run_self_test() -> int:
             try:
                 plan_release_assets(missing_release_path, "v1.2.3")
                 failures.append("missing published certification asset was accepted")
+            except CertificationError:
+                pass
+
+            missing_signature_release = json.loads(release_path.read_text(encoding="utf-8"))
+            signature_name = certification_asset_names("v1.2.3")["signature"]
+            missing_signature_release["assets"] = [
+                asset for asset in missing_signature_release["assets"]
+                if asset["name"] != signature_name
+            ]
+            missing_signature_path = base / "release-missing-signature.json"
+            missing_signature_path.write_text(
+                json.dumps(missing_signature_release) + "\n",
+                encoding="utf-8",
+            )
+            try:
+                plan_release_assets(missing_signature_path, "v1.2.3")
+                failures.append("missing certification signature asset was accepted")
             except CertificationError:
                 pass
 
