@@ -42,8 +42,11 @@ A release is valid only when:
 6. external evidence and optional asset hashes bind to the candidate;
 7. the annotated lower-case `v*` tag targets the certified commit; for the
    canonical template, that tag also carries a verified SSH signature from the
-   signer trust policy committed in the candidate; and
-8. post-publication retrieval/installation checks pass.
+   signer trust policy committed in the candidate;
+8. the canonical template's durable certification ZIP is signed in the dedicated
+   certification namespace and verified against the same committed/current
+   GitHub SSH signing trust before publication; and
+9. post-publication retrieval/installation checks pass.
 
 If source changes after certification, the affected evidence is stale and must be
 rerun. Never compensate by manually editing an already-tested artifact.
@@ -404,14 +407,26 @@ release evidence. Do not generate authoritative notes from raw commit subjects:
 an approved ancestry-preserving exception can legitimately make Git history
 contain subjects that are unsuitable or duplicated as user-facing release text.
 
-Upload the already-tested, already-hashed artifacts. Do not rebuild between
-certification/tagging and publication.
+Before creating the canonical template's GitHub Release, build and verify the
+durable certification set using
+[the release-evidence procedure](docs/RELEASE_EVIDENCE.md), sign the exact
+certification ZIP with the externally held canonical SSH signing key in the
+`excel-vba-release-certification` namespace, and verify that detached signature
+against the candidate's committed/current GitHub signing trust. Upload the
+resulting ZIP, `.zip.sig`, manifest, and SHA-256 file unchanged. This detached
+signature authenticates the durable certification ZIP; it is separate from the
+SSH-signed Git tag and from any optional provenance-record signature.
+
+Upload the already-tested, already-hashed and, where required, already-signed
+artifacts. Do not rebuild or re-sign between certification/tagging and
+publication.
 
 ## 11. Verify after publication
 
 - [ ] Tag resolves to the certified SHA.
 <!-- template:remove:start -->
 - [ ] Canonical-template tag signature still verifies against the current trusted GitHub SSH signing-key registry.
+- [ ] Canonical-template certification ZIP signature still verifies against the same current trusted GitHub SSH signing-key registry.
 <!-- template:remove:end -->
 - [ ] `VERSION` and changelog agree with the tag.
 - [ ] Published assets download and hashes match.
