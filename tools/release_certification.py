@@ -15,8 +15,9 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from _gatelib import git_text
+from release_provenance import github_signing_keys, policy_for
 
-TOOL_VERSION = "1.1.1"
+TOOL_VERSION = "1.2.0"
 SCHEMA_VERSION = 1
 REQUIRED_ROLES = {
     "excel-evidence",
@@ -31,7 +32,10 @@ SHA40_RE = re.compile(r"[0-9a-f]{40}$")
 VERSION_RE = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 TAG_RE = re.compile(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 SAFE_ID_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*$")
-CERTIFICATION_NAMESPACE_RE = re.compile(r"certification-v[^/]+(?:\.zip|\.manifest\.json|\.sha256)$")
+CERTIFICATION_NAMESPACE_RE = re.compile(
+    r"certification-v[^/]+(?:\.zip(?:\.sig)?|\.manifest\.json|\.sha256)$"
+)
+CERTIFICATION_SIGNATURE_NAMESPACE = "excel-vba-release-certification"
 SECRET_PATTERNS = (
     re.compile(rb"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
     re.compile(rb"\b" + b"gh" + rb"p_[A-Za-z0-9]{20,}\b"),
@@ -431,6 +435,79 @@ def verify_bundle(bundle: Path, manifest_path: Path, digest_path: Path) -> dict[
     }
 
 
+def verify_ssh_signature(
+    data: bytes,
+    signature_path: Path,
+    principal: str,
+    public_keys: list[str],
+) -> None:
+    require(signature_path.is_file() and not signature_path.is_symlink(),
+            "certification signature is unavailable or symlinked")
+    require(principal.strip(), "certification signature principal must be nonempty")
+    require(public_keys, "certification signature requires at least one trusted public key")
+    with tempfile.TemporaryDirectory(prefix="certification-signature-") as directory:
+        signers = Path(directory) / "allowed_signers"
+        signers.write_text(
+            "".join(f"{principal} {key.strip()}\n" for key in sorted(set(public_keys))),
+            encoding="utf-8",
+            newline="\n",
+        )
+        completed = subprocess.run(
+            [
+                "ssh-keygen", "-Y", "verify",
+                "-f", str(signers),
+                "-I", principal,
+                "-n", CERTIFICATION_SIGNATURE_NAMESPACE,
+                "-s", str(signature_path),
+            ],
+            input=data,
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+        require(completed.returncode == 0, "certification SSH signature verification failed")
+
+
+def verify_certification_signature(
+    root: Path,
+    candidate_sha: str,
+    bundle: Path,
+    signature_path: Path,
+) -> dict[str, Any]:
+    require(SHA40_RE.fullmatch(candidate_sha) is not None,
+            "candidate_sha must be full lowercase hex")
+    root = root.resolve()
+    require(git_output(root, "rev-parse", "HEAD") == candidate_sha,
+            "signature verification root does not equal candidate_sha")
+    configuration = load_json(root / ".github/repository-profile.json")
+    if configuration.get("mode") != "template":
+        return {
+            "status": "not-applicable",
+            "detail": "durable certification signing is required only for the canonical template",
+        }
+    try:
+        policy = policy_for(root, candidate_sha, configuration)
+        trust = policy["tag_signature"]["template"]
+        require(trust.get("mode") == "ssh-github",
+                "canonical certification signing requires ssh-github tag trust")
+        principal = require_str(trust.get("principal"),
+                                "canonical certification signing requires a principal")
+        github_user = require_str(trust.get("github_user"),
+                                  "canonical certification signing requires a GitHub user")
+        public_keys = github_signing_keys(github_user)
+    except (ValueError, KeyError, TypeError) as error:
+        raise CertificationError(f"cannot resolve certification signing trust: {error}") from error
+
+    verify_ssh_signature(bundle.read_bytes(), signature_path, principal, public_keys)
+    return {
+        "status": "pass",
+        "namespace": CERTIFICATION_SIGNATURE_NAMESPACE,
+        "principal": principal,
+        "github_user": github_user,
+        "signature": signature_path.name,
+    }
+
+
 def certification_asset_names(tag: str) -> dict[str, str]:
     require(TAG_RE.fullmatch(tag) is not None, "release tag must be v + SemVer core")
     base = f"certification-{tag}"
@@ -438,6 +515,7 @@ def certification_asset_names(tag: str) -> dict[str, str]:
         "bundle": base + ".zip",
         "manifest": base + ".manifest.json",
         "digest": base + ".sha256",
+        "signature": base + ".zip.sig",
     }
 
 
@@ -480,9 +558,10 @@ def plan_release_assets(release_path: Path, tag: str) -> dict[str, Any]:
         else:
             product_assets.append(raw)
 
-    missing = [expected[kind] for kind in ("bundle", "manifest", "digest") if kind not in certification]
+    kinds = ("bundle", "manifest", "digest", "signature")
+    missing = [expected[kind] for kind in kinds if kind not in certification]
     require(not missing, "required certification evidence assets are missing: " + ", ".join(missing))
-    ordered = [certification[kind] for kind in ("bundle", "manifest", "digest")]
+    ordered = [certification[kind] for kind in kinds]
     return {
         "schema_version": SCHEMA_VERSION,
         "status": "ready",
@@ -494,7 +573,12 @@ def plan_release_assets(release_path: Path, tag: str) -> dict[str, Any]:
     }
 
 
-def verify_release_plan(plan_path: Path, download_dir: Path, candidate_sha: str) -> dict[str, Any]:
+def verify_release_plan(
+    root: Path,
+    plan_path: Path,
+    download_dir: Path,
+    candidate_sha: str,
+) -> dict[str, Any]:
     plan = load_json(plan_path)
     require(plan.get("schema_version") == SCHEMA_VERSION, "unsupported release-asset plan schema")
     require(plan.get("status") == "ready", "release-asset plan is not ready")
@@ -502,8 +586,8 @@ def verify_release_plan(plan_path: Path, download_dir: Path, candidate_sha: str)
     require(SHA40_RE.fullmatch(candidate_sha) is not None, "candidate_sha must be full lowercase hex")
     require(plan.get("retention_surface") == "github-release-assets", "unsupported retention surface")
     assets = plan.get("certification_assets")
-    if not isinstance(assets, list) or len(assets) != 3:
-        raise CertificationError("release-asset plan must contain three certification assets")
+    if not isinstance(assets, list) or len(assets) != 4:
+        raise CertificationError("release-asset plan must contain four certification assets")
     by_name: dict[str, dict[str, Any]] = {}
     for raw in assets:
         require(isinstance(raw, dict), "certification asset plan entry must be an object")
@@ -516,11 +600,19 @@ def verify_release_plan(plan_path: Path, download_dir: Path, candidate_sha: str)
     bundle = download_dir / names["bundle"]
     manifest = download_dir / names["manifest"]
     digest = download_dir / names["digest"]
+    signature = download_dir / names["signature"]
     verified = verify_bundle(bundle, manifest, digest)
     require(verified.get("candidate_sha") == candidate_sha, "published bundle candidate SHA mismatch")
     require(verified.get("tag") == tag, "published bundle tag mismatch")
+    signature_result = verify_certification_signature(
+        root,
+        candidate_sha,
+        bundle,
+        signature,
+    )
     return {
         **verified,
+        "signature_verification": signature_result,
         "retention_surface": plan["retention_surface"],
         "retention_lifetime": plan.get("retention_lifetime"),
         "assets": [
@@ -688,6 +780,47 @@ def run_self_test() -> int:
                 Path(result_one["digest"]),
             )
             require(verified["candidate_sha"] == candidate, "verification lost candidate binding")
+
+            signing_key = base / "certification-signing-key"
+            subprocess.run(
+                ["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(signing_key)],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            subprocess.run(
+                [
+                    "ssh-keygen", "-Y", "sign",
+                    "-f", str(signing_key),
+                    "-n", CERTIFICATION_SIGNATURE_NAMESPACE,
+                    str(first_bundle),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            signature_path = Path(str(first_bundle) + ".sig")
+            public_parts = signing_key.with_suffix(".pub").read_text(
+                encoding="utf-8"
+            ).strip().split()
+            fixture_public_key = " ".join(public_parts[:2])
+            verify_ssh_signature(
+                first_bundle.read_bytes(),
+                signature_path,
+                "fixture",
+                [fixture_public_key],
+            )
+            try:
+                verify_ssh_signature(
+                    first_bundle.read_bytes() + b"x",
+                    signature_path,
+                    "fixture",
+                    [fixture_public_key],
+                )
+                failures.append("certification signature accepted tampered bundle bytes")
+            except CertificationError:
+                pass
+
             exercise_manifest_verification_controls(
                 first_bundle,
                 Path(result_one["manifest"]),
@@ -735,9 +868,16 @@ def run_self_test() -> int:
                     },
                     {
                         "id": 4,
-                        "name": "dist/example.xlsm",
+                        "name": certification_asset_names("v1.2.3")["signature"],
                         "url": "https://api.github.example/assets/4",
                         "browser_download_url": "https://github.example/download/4",
+                        "size": signature_path.stat().st_size,
+                    },
+                    {
+                        "id": 5,
+                        "name": "dist/example.xlsm",
+                        "url": "https://api.github.example/assets/5",
+                        "browser_download_url": "https://github.example/download/5",
                         "size": 123,
                     },
                 ],
@@ -745,7 +885,7 @@ def run_self_test() -> int:
             release_path = base / "release.json"
             release_path.write_text(json.dumps(release) + "\n", encoding="utf-8")
             plan = plan_release_assets(release_path, "v1.2.3")
-            require(len(plan["certification_assets"]) == 3, "release plan lost certification assets")
+            require(len(plan["certification_assets"]) == 4, "release plan lost certification assets")
             require(len(plan["product_assets"]) == 1, "release plan did not separate product assets")
             plan_path = base / "release-plan.json"
             plan_path.write_bytes(canonical_json(plan))
@@ -754,12 +894,15 @@ def run_self_test() -> int:
             for key in ("bundle", "manifest", "digest"):
                 source = Path(result_one[key])
                 (downloaded / source.name).write_bytes(source.read_bytes())
-            retained = verify_release_plan(plan_path, downloaded, candidate)
+            (downloaded / certification_asset_names("v1.2.3")["signature"]).write_bytes(
+                signature_path.read_bytes()
+            )
+            retained = verify_release_plan(root, plan_path, downloaded, candidate)
             require(retained["bundle_sha256"] == result_one["bundle_sha256"], "retained verification lost bundle digest")
 
             (downloaded / first_bundle.name).write_bytes(first_bundle.read_bytes() + b"x")
             try:
-                verify_release_plan(plan_path, downloaded, candidate)
+                verify_release_plan(root, plan_path, downloaded, candidate)
                 failures.append("tampered downloaded release asset was accepted")
             except CertificationError:
                 pass
@@ -772,6 +915,23 @@ def run_self_test() -> int:
             try:
                 plan_release_assets(missing_release_path, "v1.2.3")
                 failures.append("missing published certification asset was accepted")
+            except CertificationError:
+                pass
+
+            missing_signature_release = json.loads(release_path.read_text(encoding="utf-8"))
+            signature_name = certification_asset_names("v1.2.3")["signature"]
+            missing_signature_release["assets"] = [
+                asset for asset in missing_signature_release["assets"]
+                if asset["name"] != signature_name
+            ]
+            missing_signature_path = base / "release-missing-signature.json"
+            missing_signature_path.write_text(
+                json.dumps(missing_signature_release) + "\n",
+                encoding="utf-8",
+            )
+            try:
+                plan_release_assets(missing_signature_path, "v1.2.3")
+                failures.append("missing certification signature asset was accepted")
             except CertificationError:
                 pass
 
@@ -837,6 +997,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--verify-bundle", type=Path)
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--digest", type=Path)
+    parser.add_argument("--verify-signature", type=Path, metavar="SIGNATURE")
+    parser.add_argument("--bundle", type=Path)
     parser.add_argument("--plan-release-assets", type=Path, metavar="RELEASE_JSON")
     parser.add_argument("--release-tag")
     parser.add_argument("--verify-release-plan", type=Path, metavar="PLAN_JSON")
@@ -855,6 +1017,7 @@ def main(argv: list[str] | None = None) -> int:
             for item in (
                 options.build,
                 options.verify_bundle,
+                options.verify_signature,
                 options.plan_release_assets,
                 options.verify_release_plan,
             )
@@ -868,6 +1031,15 @@ def main(argv: list[str] | None = None) -> int:
             require(options.manifest is not None and options.digest is not None, "--verify-bundle requires --manifest and --digest")
             require(options.evidence_dir is None and options.output_dir is None, "verify mode does not accept build directories")
             result = verify_bundle(options.verify_bundle, options.manifest, options.digest)
+        elif options.verify_signature is not None:
+            require(options.bundle is not None, "--verify-signature requires --bundle")
+            require(options.candidate_sha is not None, "--verify-signature requires --candidate-sha")
+            result = verify_certification_signature(
+                options.root,
+                options.candidate_sha,
+                options.bundle,
+                options.verify_signature,
+            )
         elif options.plan_release_assets is not None:
             require(options.release_tag is not None, "--plan-release-assets requires --release-tag")
             result = plan_release_assets(options.plan_release_assets, options.release_tag)
@@ -876,6 +1048,7 @@ def main(argv: list[str] | None = None) -> int:
             require(options.download_dir is not None, "--verify-release-plan requires --download-dir")
             require(options.candidate_sha is not None, "--verify-release-plan requires --candidate-sha")
             result = verify_release_plan(
+                options.root,
                 options.verify_release_plan,
                 options.download_dir,
                 options.candidate_sha,

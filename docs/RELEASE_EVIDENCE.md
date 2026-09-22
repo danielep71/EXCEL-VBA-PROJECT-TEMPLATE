@@ -22,9 +22,9 @@ the final evidence outside the candidate source tree.
 
 For canonical-template releases, the authoritative durable retention surface is
 the **published GitHub Release asset set**, not a short-lived Actions artifact.
-The deterministic certification ZIP, its standalone manifest, and its SHA-256
-file are uploaded to the Release and are expected to remain available for the
-lifetime of that published release. The release closeout workflow downloads
+The deterministic certification ZIP, its standalone manifest, its SHA-256
+file, and a detached SSH signature over the ZIP are uploaded to the Release and
+are expected to remain available for the lifetime of that published release. The release closeout workflow downloads
 those published bytes again and verifies them independently. Actions artifacts
 may retain additional operational evidence, but their expiry is not the public
 retention contract.
@@ -105,7 +105,7 @@ A library or template release is source-only by default. Set `distribution` to
 binary asset manifest. UI-component and application profiles may do the same.
 
 Canonical-template certification attachments are not runtime/product assets.
-The three `certification-vX.Y.Z.*` files described below are retained evidence
+The four `certification-vX.Y.Z.*` files described below are retained evidence
 and therefore do **not** turn a source-only template release into a binary
 distribution. The post-release closeout partitions those files from product
 assets before applying `allowed_asset_globs`.
@@ -206,6 +206,7 @@ output set. The canonical names are derived from the release tag:
 
 ```text
 certification-v1.2.1.zip
+certification-v1.2.1.zip.sig
 certification-v1.2.1.manifest.json
 certification-v1.2.1.sha256
 ```
@@ -228,7 +229,26 @@ python3 tools/release_certification.py \
   --verify-bundle "../certification-output/certification-${release_tag}.zip" \
   --manifest "../certification-output/certification-${release_tag}.manifest.json" \
   --digest "../certification-output/certification-${release_tag}.sha256"
+
+: "${RELEASE_SIGNING_KEY:?set RELEASE_SIGNING_KEY to the canonical SSH signing private key}"
+ssh-keygen -Y sign \
+  -f "$RELEASE_SIGNING_KEY" \
+  -n excel-vba-release-certification \
+  "../certification-output/certification-${release_tag}.zip"
+
+python3 tools/release_certification.py \
+  --root . \
+  --verify-signature "../certification-output/certification-${release_tag}.zip.sig" \
+  --bundle "../certification-output/certification-${release_tag}.zip" \
+  --candidate-sha "$candidate_sha"
 ```
+
+The signing key is the same externally held SSH identity trusted for the
+canonical release tag; the private key never enters the repository or
+certification ZIP. Signature verification resolves the candidate's committed
+`ssh-github` trust policy and the configured GitHub user's current public SSH
+signing-key registry, then verifies the exact ZIP bytes in the dedicated
+`excel-vba-release-certification` namespace.
 
 The bundle contains its own canonical manifest; the same manifest is published
 as a standalone Release asset. The `.sha256` file contains one canonical line
@@ -240,11 +260,11 @@ to agree.
 
 For each canonical-template GitHub Release:
 
-1. upload the three certification files above **unchanged** as GitHub Release
+1. upload the four certification files above **unchanged** as GitHub Release
    assets, in addition to any separately allowed product/runtime assets;
-2. do not rebuild, rename, replace, or silently delete them after publication;
+2. do not rebuild, re-sign, rename, replace, or silently delete them after publication;
 3. include the ZIP filename and SHA-256 in the release notes, plus a statement
-   that the manifest and digest are attached to the same Release;
+   that the manifest, digest, and detached SSH signature are attached to the same Release;
 4. treat the GitHub Release page and each asset's browser download URL as the
    stable public reference; and
 5. retain those assets for the lifetime of the published release. Short-lived
@@ -259,12 +279,13 @@ corrected patch release where necessary.
 
 The dispatch-only `Release closeout` workflow is the mandatory canonical
 post-publication retrieval check. It reads the published Release asset metadata,
-requires exactly the three certification names for the tag, separates them from
+requires exactly the four certification names for the tag, separates them from
 product/runtime assets, downloads each through the GitHub Release asset API, and
 runs `release_certification.py` against the downloaded bytes. The closeout is
 non-green if an asset is missing/duplicated/stale, the downloaded bytes differ
-from the published digest/manifest, or the embedded tag/candidate differs from
-the certified release.
+from the published digest/manifest, the detached signature does not verify
+against the candidate's current trusted GitHub SSH signing-key registry, or the
+embedded tag/candidate differs from the certified release.
 
 The workflow retains the closeout snapshot and verification report as
 short-lived operational evidence; the Release assets themselves are the durable
@@ -310,10 +331,13 @@ public SSH signing key currently registered to the explicitly trusted GitHub
 account. Generated profiles retain annotation/target verification only unless
 they deliberately adopt a stronger local policy.
 
-The canonical tag signature is **not** the optional detached signature on an
-external provenance record. The two controls have separate policy objects,
-verification mechanisms, and failure modes; neither can silently satisfy the
-other. Any non-zero post-tag result blocks publication.
+The canonical tag signature, the detached certification-ZIP signature, and the
+optional detached signature on an external provenance record are separate
+controls. The tag authenticates the Git ref; the certification signature
+authenticates the exact durable evidence ZIP; the optional provenance-record
+signature authenticates assertions in that external record. They use dedicated
+signature namespaces/purposes and none can silently satisfy another. Any
+non-zero required verification blocks publication.
 
 After the GitHub Release is published with the certification assets, run the
 `Release closeout` workflow for that exact tag, candidate SHA, and milestone.
@@ -340,8 +364,9 @@ rejects:
 The certification-bundle self-test additionally rejects missing required roles,
 secret-like public evidence, non-deterministic output, a same-filename bundle
 whose bytes no longer match the digest, incomplete/stale GitHub Release
-certification asset sets, and downloaded Release bytes whose candidate/tag or
-manifest/digest contract disagrees.
+certification asset sets, invalid/tampered detached certification signatures,
+and downloaded Release bytes whose candidate/tag or manifest/digest contract
+disagrees.
 
 The provenance integration suite adds the canonical-template trust negatives:
 an unsigned annotated tag, signature from the wrong public key, corrupted SSH

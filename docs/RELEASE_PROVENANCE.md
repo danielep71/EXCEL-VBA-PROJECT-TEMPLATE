@@ -77,7 +77,8 @@ registered signing keys is non-green.
 
 ## 🔏 Signature Policy
 
-Two independent signature controls exist. They must not be conflated.
+Three independent SSH signature controls may exist in the canonical release
+process. They must not be conflated.
 
 ### Git-tag signature
 
@@ -93,6 +94,18 @@ signature check begins only once `refs/tags/<release-tag>` exists. The
 post-tag `check_release.py --require-tag-ref` invocation is therefore the
 publication boundary. Existing published v1.2.0 history remains immutable and
 is not retrofitted.
+
+### Durable certification-bundle signature
+
+The canonical template additionally signs the deterministic durable
+certification ZIP described in [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md).
+That signature uses the same externally held signing identity and current
+GitHub signing-key trust source as the canonical Git tag, but a distinct
+`excel-vba-release-certification` SSH namespace. The exact ZIP and its detached
+`.zip.sig` file are retained together as GitHub Release evidence and are
+re-verified after publication. This authenticates the certification ZIP bytes;
+it does not authenticate the Git ref and does not replace either the tag
+signature or an enabled provenance-record signature.
 
 ### Provenance-record signature
 
@@ -235,7 +248,8 @@ python3 tools/check_release.py --root . --tag v1.0.0 \
    exact bytes.
 
 Checksums prove byte identity. A verified tag signature authenticates the trusted
-signer's Git tag; a verified provenance-record signature authenticates the
+signer's Git tag; a verified certification signature authenticates the durable
+certification ZIP; a verified provenance-record signature authenticates the
 approved signer's assertions in that separate record. Neither independently
 proves that Excel imported the recorded source, that an environment description
 is truthful, or that a named workflow ran successfully. Review exact source,
