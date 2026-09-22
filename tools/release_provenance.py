@@ -226,7 +226,7 @@ def _extract_ssh_key(value: Any) -> str | None:
     return None
 
 
-def _github_signing_keys(username: str) -> list[str]:
+def github_signing_keys(username: str) -> list[str]:
     url = f"https://api.github.com/users/{username}/ssh_signing_keys?per_page=100"
     request = urllib.request.Request(
         url,
@@ -280,7 +280,7 @@ def verify_tag_signature(root: Path, sha: str, configuration: dict[str, Any],
     )
     require(target.returncode == 0 and target.stdout.strip() == sha,
             "signed release tag does not target the certified candidate")
-    keys = _github_signing_keys(tag_policy["github_user"])
+    keys = github_signing_keys(tag_policy["github_user"])
     with tempfile.TemporaryDirectory(prefix="release-tag-signature-") as directory:
         signers = Path(directory) / "allowed_signers"
         signers.write_text(
