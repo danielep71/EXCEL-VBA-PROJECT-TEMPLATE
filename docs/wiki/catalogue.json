@@ -724,6 +724,21 @@
       "kind": "policy",
       "authority": "docs/CHECKER_DEVELOPMENT.md"
     },
+    "tools/requirements-quality-ci.txt": {
+      "purpose": "Hash-locked CPython 3.10/Linux x64 wheels for hosted Ruff and mypy quality checks.",
+      "kind": "policy",
+      "authority": "docs/DEPENDENCY_UPDATES.md"
+    },
+    "tools/requirements-coverage-ci.txt": {
+      "purpose": "Hash-locked CPython 3.10/Linux x64 wheels for hosted coverage and PyYAML checks.",
+      "kind": "policy",
+      "authority": "docs/DEPENDENCY_UPDATES.md"
+    },
+    "tools/requirements-portfolio-ci.txt": {
+      "purpose": "Hash-locked CPython 3.10/Linux x64 PyYAML wheel for portfolio fixtures.",
+      "kind": "policy",
+      "authority": "docs/DEPENDENCY_UPDATES.md"
+    },
     "tools/test_documentation.py": {
       "purpose": "Offline command/reference and HTTP failure fixtures; no live website certification.",
       "kind": "script",
