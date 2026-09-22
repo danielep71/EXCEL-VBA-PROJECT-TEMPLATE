@@ -6,8 +6,15 @@
 # mismatch.
 #
 # Sources of truth this file mirrors:
-#   ruff, mypy      -> .github/workflows/static-checks.yml (RUFF_VERSION, MYPY_VERSION)
-#   coverage, PyYAML -> .github/workflows/checker-development.yml
+#   ruff, mypy       -> .github/workflows/static-checks.yml (RUFF_VERSION, MYPY_VERSION)
+#                       and tools/requirements-quality-ci.txt
+#   coverage, PyYAML -> tools/requirements-coverage-ci.txt
+#   PyYAML            -> tools/requirements-portfolio-ci.txt
+#
+# Hosted Ubuntu/Python 3.10 jobs install from the platform-specific hash locks
+# above using --only-binary=:all: --require-hashes. This cross-platform local
+# file stays version-pinned but intentionally does not duplicate every wheel
+# hash; tools/dev_check.sh proves its versions still mirror the CI locks.
 #
 # actionlint is a Go binary, not a Python package. static-checks.yml installs
 # 1.7.12 and accepts it only after matching a pinned SHA-256. dev_check.sh uses
