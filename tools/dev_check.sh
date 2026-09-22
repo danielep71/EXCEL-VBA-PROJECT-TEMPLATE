@@ -62,8 +62,8 @@ workflow_env() { # workflow_env <name> <workflow>
   grep -E "^[[:space:]]+$1:[[:space:]]" "$2" | head -1 |
     sed -E 's/^[^:]*:[[:space:]]*"?([^"]*)"?[[:space:]]*$/\1/'
 }
-workflow_pin() { # workflow_pin <requirement name> <workflow>
-  grep -oE "$1==[0-9A-Za-z.]+" "$2" | head -1 | sed 's/.*==//'
+lock_pin() { # lock_pin <requirement name> <lock file>
+  grep -E "^$1==" "$2" | head -1 | sed -E 's/.*==([^[:space:]\\]+).*/\1/'
 }
 comment_value() { # comment_value <key>
   grep -E "^#[[:space:]]+$1=" tools/requirements-dev.txt | head -1 | sed "s/.*$1=//"
@@ -79,11 +79,21 @@ mirror() { # mirror <label> <declared here> <declared in CI> <workflow>
   fi
 }
 
-mirror ruff     "$(pin ruff)"  "$(workflow_env RUFF_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
-mirror mypy     "$(pin mypy)"  "$(workflow_env MYPY_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
+QUALITY_LOCK=tools/requirements-quality-ci.txt
+COVERAGE_LOCK=tools/requirements-coverage-ci.txt
+PORTFOLIO_LOCK=tools/requirements-portfolio-ci.txt
+
+mirror ruff     "$(pin ruff)" "$(workflow_env RUFF_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
+mirror mypy     "$(pin mypy)" "$(workflow_env MYPY_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
+mirror "ruff CI lock" "$(lock_pin ruff "$QUALITY_LOCK")" \
+  "$(workflow_env RUFF_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
+mirror "mypy CI lock" "$(lock_pin mypy "$QUALITY_LOCK")" \
+  "$(workflow_env MYPY_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
 mirror coverage "$(pin 'coverage\[toml\]')" \
-  "$(workflow_pin 'coverage\[toml\]' "$CHECKER_DEV")" "$CHECKER_DEV"
-mirror PyYAML   "$(pin PyYAML)" "$(workflow_pin PyYAML "$CHECKER_DEV")" "$CHECKER_DEV"
+  "$(lock_pin 'coverage\[toml\]' "$COVERAGE_LOCK")" "$COVERAGE_LOCK"
+mirror PyYAML "$(pin PyYAML)" "$(lock_pin PyYAML "$COVERAGE_LOCK")" "$COVERAGE_LOCK"
+mirror "PyYAML portfolio lock" "$(pin PyYAML)" \
+  "$(lock_pin PyYAML "$PORTFOLIO_LOCK")" "$PORTFOLIO_LOCK"
 # The actionlint install recipe in requirements-dev.txt carries a version and a
 # digest; a stale digest there would send a maintainer to the wrong binary.
 mirror "actionlint" "$(comment_value v)" \
