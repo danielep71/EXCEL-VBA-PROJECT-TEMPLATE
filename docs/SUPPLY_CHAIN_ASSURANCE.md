@@ -23,9 +23,13 @@ reviewed commit. OpenSSF restricts published workflows: they may not define
 top-level `env` or `defaults`, the publishing job may not define job-level
 `env` or `defaults`, and that job may use only OpenSSF-approved Actions.
 The release-candidate CLI version/digest are therefore scoped only to the
-non-publishing job. After the publishing Action completes, a separate read-only
-job retrieves the public `api.scorecard.dev` record for the exact GitHub SHA
-and then retrieves the badge SVG itself. Missing, stale, mismatched, non-SVG, or
+non-publishing job. The published Action uses `file_mode: git` so file-based
+checks enumerate the reviewed repository rather than depending on the provider
+source-tarball path; this is important because an empty archive view can otherwise
+make workflows, Dependabot and SAST appear absent while API-based checks still
+succeed. After the publishing Action completes, a separate read-only job
+retrieves the public `api.scorecard.dev` record for the exact GitHub SHA and
+then retrieves the badge SVG itself. Missing, stale, mismatched, non-SVG, or
 error-bearing badge data (including `invalid repo path`) makes the workflow
 non-green.
 
