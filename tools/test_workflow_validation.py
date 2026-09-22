@@ -334,6 +334,10 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         failures.append(
             "Scorecard publication must grant id-token: write only to the published job"
         )
+    if "file_mode: git" not in published:
+        failures.append(
+            "Scorecard published job must enumerate the checked repository through git"
+        )
     if "verify-publication:" not in text:
         failures.append("Scorecard workflow must verify the public result after publication")
     expected_url = (
