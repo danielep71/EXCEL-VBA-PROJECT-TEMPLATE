@@ -159,7 +159,7 @@ class ProvenanceTests(unittest.TestCase):
         )
 
     def report(self, include=True):
-        with patch.object(provenance, "_github_signing_keys", return_value=self.tag_registry_keys):
+        with patch.object(provenance, "github_signing_keys", return_value=self.tag_registry_keys):
             return gate.build_report(
                 self.root,
                 "v1.0.0",
