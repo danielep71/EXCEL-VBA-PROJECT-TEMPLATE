@@ -41,10 +41,14 @@ the resulting JSON and CLI version are retained as workflow evidence.
 
 ## Permission model
 
-The CodeQL and Scorecard workflows do not use `pull_request` or
-`pull_request_target`. Their credentials are therefore unavailable to untrusted
-pull-request code. CodeQL receives only `contents: read` plus
-`security-events: write` for analysis publication. The Scorecard release-candidate
+The Scorecard workflow does not use `pull_request` or
+`pull_request_target`. CodeQL uses two distinct trust paths: trusted
+push/schedule/manual runs receive `contents: read` plus
+`security-events: write` for Code Scanning publication, while
+`pull_request` runs use a separate read-only job with `contents: read` only,
+set `upload: never`, and retain SARIF as an Actions artifact. No
+`pull_request_target` path exists and untrusted pull-request code receives no
+write-capable token or secrets. The Scorecard release-candidate
 CLI job receives only `contents: read`. The default-branch publication job
 receives `contents: read`, `security-events: write`, and `id-token: write`; the
 last permission is used only for authenticated Scorecard result publication.
@@ -60,8 +64,11 @@ release, label, issue, branch, or repository mutation step.
 
 ## Evidence boundary
 
-A successful CodeQL run means the configured CodeQL queries completed against
-the exact checked source. A successful release-candidate Scorecard CLI run means
+A successful trusted CodeQL run means the configured CodeQL queries completed
+against the exact checked source and were eligible for Code Scanning publication.
+A successful pull-request CodeQL run means the same query set analyzed the
+GitHub pull-request merge commit under a read-only token and retained SARIF
+without privileged publication. A successful release-candidate Scorecard CLI run means
 the official scanner completed against the requested commit and its retained
 JSON is candidate-bound; some Scorecard checks necessarily observe current
 repository settings rather than historical settings. The Scorecard Action can
