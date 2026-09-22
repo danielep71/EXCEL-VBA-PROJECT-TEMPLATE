@@ -142,7 +142,8 @@ jobs:
       - name: Install pinned coverage dependencies
         run: >-
           python -m pip install --disable-pip-version-check
-          "coverage[toml]==7.10.6" "PyYAML==6.0.3"
+          --only-binary=:all: --require-hashes
+          -r tools/requirements-coverage-ci.txt
 
       - name: Exercise maintained Python tooling under coverage
         id: coverage

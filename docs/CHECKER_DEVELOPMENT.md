@@ -155,12 +155,16 @@ rejection and duplicate-subject rejection using temporary Git repositories.
 Hosted CI is authoritative, but a maintainer should be able to reach the same
 verdict before pushing. Two files make that reproducible.
 
-`tools/requirements-dev.txt` pins the Python tooling to the exact versions the
-hosted workflows install. It mirrors `RUFF_VERSION` and `MYPY_VERSION` from
-`static-checks.yml` and the `coverage` and `PyYAML` pins from
-`checker-development.yml`; those workflows remain the sources of truth and this
-file follows them. `actionlint` is a Go binary rather than a Python package, so
-it is documented there but not installable from it.
+`tools/requirements-dev.txt` pins the cross-platform local Python tooling to
+the exact direct versions used by hosted CI. The hosted CPython 3.10 / Ubuntu
+x64 installs are additionally locked by `tools/requirements-quality-ci.txt`,
+`tools/requirements-coverage-ci.txt`, and
+`tools/requirements-portfolio-ci.txt`, which carry the reviewed wheel hashes
+consumed by `static-checks.yml`, `checker-development.yml`, and
+`portfolio-drift.yml` respectively. `tools/dev_check.sh` verifies the local
+version pins still mirror those hosted lock files and the workflow-declared
+Ruff/mypy versions. `actionlint` is a Go binary rather than a Python package,
+so it is documented in `tools/requirements-dev.txt` but not installable from it.
 
 `tools/dev_check.sh` runs the locally reproducible gates in the hosted order and
 prints a pass/fail/skip verdict:
@@ -172,11 +176,13 @@ FAST=1 tools/dev_check.sh       # skip the initializer and policy-coverage gates
 ```
 
 The script guards its own premise in two steps before running any gate. It first
-checks that each pin still mirrors the workflow that owns it — `RUFF_VERSION`,
-`MYPY_VERSION`, the `actionlint` version and digest from `static-checks.yml`,
-and the `coverage`/`PyYAML` pins from `checker-development.yml` — so a workflow
-pin that moves without this file cannot turn a clean local run into a false
-negative. It then checks that every installed version matches the pin. Both are
+checks that the local direct pins still match the hosted lock files, that the
+Ruff/mypy lock entries still match `RUFF_VERSION` and `MYPY_VERSION` in
+`static-checks.yml`, that both hosted PyYAML lock files agree with the local
+pin, and that the `actionlint` version/digest still match
+`static-checks.yml`. A lock or workflow pin that moves without the other
+surfaces therefore cannot turn a clean local run into a false negative. It then
+checks that every installed local tool version matches the pin. Both are
 failures rather than warnings, because a local run on different versions can
 disagree with CI in both directions. A mismatched PyYAML is the clearest case:
 `check_portfolio_drift.py` refuses to run on any other version, and the

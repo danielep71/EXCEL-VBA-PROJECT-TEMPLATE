@@ -100,8 +100,9 @@ jobs:
           mkdir -p test-results
           python -m pip install \
             --disable-pip-version-check \
-            "ruff==${RUFF_VERSION}" \
-            "mypy==${MYPY_VERSION}"
+            --only-binary=:all: \
+            --require-hashes \
+            -r tools/requirements-quality-ci.txt
           {
             python --version
             ruff --version

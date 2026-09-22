@@ -152,7 +152,10 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/release_certification.py` / script | Build or verify deterministic, candidate-bound release certification bundles. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/release_provenance.py` / script | Release helper for complete payloads, build identity and optional SSH verification. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `tools/report_portfolio_quality.py` / script | Produce freshness-aware quality/conformance reports from captured observations. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
+| `tools/requirements-coverage-ci.txt` / policy | Hash-locked CPython 3.10/Linux x64 wheels for hosted coverage and PyYAML checks. | R / R / R | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `tools/requirements-dev.txt` / policy | Local development pins mirroring the versions hosted CI installs. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
+| `tools/requirements-portfolio-ci.txt` / policy | Hash-locked CPython 3.10/Linux x64 PyYAML wheel for portfolio fixtures. | R / R / R | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
+| `tools/requirements-quality-ci.txt` / policy | Hash-locked CPython 3.10/Linux x64 wheels for hosted Ruff and mypy quality checks. | R / R / R | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `tools/test_documentation.py` / script | Offline command/reference and HTTP failure fixtures; no live website certification. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `tools/test_excel_evidence.py` / script | Synthetic host-record and stage-failure fixtures; does not execute Excel. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `tools/test_portfolio_drift.py` / script | Synthetic structural/adoption drift fixtures for all supported profiles. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |
