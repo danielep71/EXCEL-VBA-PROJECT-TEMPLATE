@@ -204,7 +204,21 @@ jobs:
 
           badge = Path("public-scorecard-badge.svg").read_text(encoding="utf-8")
           lowered = badge.casefold()
-          if "<svg" not in lowered:
+          from xml.parsers import expat
+
+          roots = []
+          parser = expat.ParserCreate(namespace_separator="}")
+          parser.StartElementHandler = lambda name, attrs: roots.append(name) if not roots else None
+
+          def reject_doctype(*args):
+              raise ValueError("DOCTYPE is not allowed in badge evidence")
+
+          parser.StartDoctypeDeclHandler = reject_doctype
+          try:
+              parser.Parse(badge, True)
+          except (expat.ExpatError, ValueError) as exc:
+              raise SystemExit(f"public Scorecard badge is not safe XML: {exc}") from exc
+          if not roots or roots[0].rsplit("}", 1)[-1] != "svg":
               raise SystemExit("public Scorecard badge response is not SVG")
           for marker in ("invalid repo path", "invalid repository", "not found"):
               if marker in lowered:
