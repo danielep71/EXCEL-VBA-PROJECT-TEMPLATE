@@ -292,7 +292,10 @@ class ScorecardReviewRegressionTests(unittest.TestCase):
         self.assertEqual(self.check_contract(self.workflow), ("PASS", []))
 
     def test_flow_environment_and_defaults_are_rejected(self) -> None:
-        for key in ("env", "'env'", '"env"', "defaults", "'defaults'", '"defaults"'):
+        for key in (
+            "env", "'env'", '"env"', "defaults", "'defaults'", '"defaults"',
+            r'"e\u006ev"', r'"defa\u0075lts"', r'"\x65nv"',
+        ):
             for indent, boundary in (("", "jobs:\n"), ("    ", "  published:\n")):
                 with self.subTest(key=key, indent=indent):
                     entry = f"{indent}{key}: {{FOO: bar}}\n"
@@ -392,6 +395,12 @@ def scorecard_git_input(published: str) -> bool:
     ) is not None
 
 
+def escaped_mapping_key(text: str, indent: str) -> bool:
+    """Reject escaped quoted keys rather than guessing at YAML decoding."""
+    pattern = rf'(?m)^{indent}"((?:[^"\\\n]|\\[^\n])*)"[ \t]*:'
+    return any("\\" in key for key in re.findall(pattern, text))
+
+
 def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
     path = root / SCORECARD_WORKFLOW
     if not path.is_file():
@@ -401,6 +410,8 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         return "N/A", []
 
     failures: list[str] = []
+    if escaped_mapping_key(text, ""):
+        failures.append("Scorecard publication does not support escaped top-level mapping keys")
     if re.search(r"(?m)^(?:env|'env'|\"env\")[ \t]*:", text):
         failures.append("Scorecard publication workflow must not define top-level env")
     if re.search(r"(?m)^(?:defaults|'defaults'|\"defaults\")[ \t]*:", text):
@@ -415,6 +426,8 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         return "FAIL", failures
 
     published = match.group("body")
+    if escaped_mapping_key(published, "    "):
+        failures.append("Scorecard publication does not support escaped published-job mapping keys")
     if re.search(r"(?m)^    (?:env|'env'|\"env\")[ \t]*:", published):
         failures.append("Scorecard published job must not define job-level env")
     if re.search(r"(?m)^    (?:defaults|'defaults'|\"defaults\")[ \t]*:", published):
