@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
@@ -273,6 +274,79 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
             )
 
 
+class ScorecardReviewRegressionTests(unittest.TestCase):
+    """Exercise the three late review findings against actual retained policy."""
+
+    def setUp(self) -> None:
+        self.workflow = (Path(__file__).resolve().parents[1] / SCORECARD_WORKFLOW).read_text(
+            encoding="utf-8"
+        )
+
+    def check_contract(self, workflow: str) -> tuple[str, list[str]]:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_fixture_text(root, SCORECARD_WORKFLOW, workflow)
+            return scorecard_publication_contract(root)
+
+    def test_current_workflow(self) -> None:
+        self.assertEqual(self.check_contract(self.workflow), ("PASS", []))
+
+    def test_flow_environment_and_defaults_are_rejected(self) -> None:
+        for key in (
+            "env", "'env'", '"env"', "defaults", "'defaults'", '"defaults"',
+            r'"e\u006ev"', r'"defa\u0075lts"', r'"\x65nv"',
+        ):
+            for indent, boundary in (("", "jobs:\n"), ("    ", "  published:\n")):
+                with self.subTest(key=key, indent=indent):
+                    entry = f"{indent}{key}: {{FOO: bar}}\n"
+                    changed = self.workflow.replace(
+                        boundary, entry + boundary if not indent else boundary + entry, 1
+                    )
+                    self.assertEqual(self.check_contract(changed)[0], "FAIL")
+
+    def test_file_mode_is_bound_to_scorecard_input(self) -> None:
+        for replacement in (
+            "          file_mode: archive # file_mode: git",
+            "          # file_mode: git",
+            "          other: git # file_mode: git",
+            "        env:\n          file_mode: git",
+        ):
+            with self.subTest(replacement=replacement):
+                changed = self.workflow.replace("          file_mode: git", replacement)
+                self.assertEqual(self.check_contract(changed)[0], "FAIL")
+        changed = self.workflow.replace("          file_mode: git", "          file_mode: archive")
+        changed = changed.replace("          fetch-depth: 0", "          fetch-depth: 0\n          file_mode: git")
+        self.assertEqual(self.check_contract(changed)[0], "FAIL")
+        for value in ("git # documented", "'git'", '"git"'):
+            with self.subTest(value=value):
+                changed = self.workflow.replace("file_mode: git", f"file_mode: {value}")
+                self.assertEqual(self.check_contract(changed), ("PASS", []))
+
+    def test_actual_badge_script_requires_safe_svg_document(self) -> None:
+        scripts = self.workflow.split("if python3 - <<'PY'\n")[1:]
+        script = next(part.split("\n          PY", 1)[0] for part in scripts
+                      if 'badge = Path("public-scorecard-badge.svg")' in part)
+        code = textwrap.dedent(script)
+        cases = (
+            ('<svg xmlns="http://www.w3.org/2000/svg"><text>8.0</text></svg>', True),
+            ('<?xml version="1.0"?><svg/>', True),
+            ('<html><body><svg/></body></html>', False),
+            ('<svg>', False),
+            ('', False),
+            ('<!DOCTYPE svg [<!ENTITY x "test">]><svg>&x;</svg>', False),
+            ('<svg><text>invalid repo path</text></svg>', False),
+        )
+        for badge, expected in cases:
+            with self.subTest(badge=badge), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                (root / "public-scorecard-badge.svg").write_text(badge, encoding="utf-8")
+                result = subprocess.run(
+                    [sys.executable, "-c", code], cwd=root,
+                    capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(result.returncode == 0, expected, result.stderr)
+
+
 def run_actionlint(
     executable: Path, root: Path, workflows: list[Path]
 ) -> subprocess.CompletedProcess[str]:
@@ -293,6 +367,40 @@ def write_fixture_text(root: Path, relative: str, content: str) -> Path:
     return path
 
 
+def scorecard_git_input(published: str) -> bool:
+    """Bind the input to the Scorecard step's block-style with mapping.
+
+    Unsupported layouts fail closed; actionlint remains the YAML syntax owner.
+    Comments and inputs on other steps cannot satisfy this policy.
+    """
+    steps = re.split(r"(?m)^      - ", published)
+    scorecard_steps = [
+        step for step in steps
+        if re.search(r"(?m)^        uses: ossf/scorecard-action@[^\s]+(?:\s+#.*)?$", step)
+    ]
+    if len(scorecard_steps) != 1:
+        return False
+    mappings = re.findall(
+        r"(?ms)^        with:[ \t]*(?:#[^\n]*)?\n(.*?)(?=^        \S|\Z)",
+        scorecard_steps[0],
+    )
+    if len(mappings) != 1:
+        return False
+    values = re.findall(
+        r"(?m)^          (?:file_mode|'file_mode'|\"file_mode\"):[ \t]*([^\n]*)$",
+        mappings[0],
+    )
+    return len(values) == 1 and re.fullmatch(
+        r"(?:git|'git'|\"git\")[ \t]*(?:#.*)?", values[0]
+    ) is not None
+
+
+def escaped_mapping_key(text: str, indent: str) -> bool:
+    """Reject escaped quoted keys rather than guessing at YAML decoding."""
+    pattern = rf'(?m)^{indent}"((?:[^"\\\n]|\\[^\n])*)"[ \t]*:'
+    return any("\\" in key for key in re.findall(pattern, text))
+
+
 def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
     path = root / SCORECARD_WORKFLOW
     if not path.is_file():
@@ -302,9 +410,11 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         return "N/A", []
 
     failures: list[str] = []
-    if re.search(r"(?m)^env:\s*(?:#.*)?$", text):
+    if escaped_mapping_key(text, ""):
+        failures.append("Scorecard publication does not support escaped top-level mapping keys")
+    if re.search(r"(?m)^(?:env|'env'|\"env\")[ \t]*:", text):
         failures.append("Scorecard publication workflow must not define top-level env")
-    if re.search(r"(?m)^defaults:\s*(?:#.*)?$", text):
+    if re.search(r"(?m)^(?:defaults|'defaults'|\"defaults\")[ \t]*:", text):
         failures.append("Scorecard publication workflow must not define top-level defaults")
 
     match = re.search(
@@ -316,9 +426,11 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         return "FAIL", failures
 
     published = match.group("body")
-    if re.search(r"(?m)^    env:\s*(?:#.*)?$", published):
+    if escaped_mapping_key(published, "    "):
+        failures.append("Scorecard publication does not support escaped published-job mapping keys")
+    if re.search(r"(?m)^    (?:env|'env'|\"env\")[ \t]*:", published):
         failures.append("Scorecard published job must not define job-level env")
-    if re.search(r"(?m)^    defaults:\s*(?:#.*)?$", published):
+    if re.search(r"(?m)^    (?:defaults|'defaults'|\"defaults\")[ \t]*:", published):
         failures.append("Scorecard published job must not define job-level defaults")
     if re.search(r"(?m)^        run:", published):
         failures.append("Scorecard published job may use only OpenSSF-approved actions")
@@ -334,7 +446,7 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         failures.append(
             "Scorecard publication must grant id-token: write only to the published job"
         )
-    if "file_mode: git" not in published:
+    if not scorecard_git_input(published):
         failures.append(
             "Scorecard published job must enumerate the checked repository through git"
         )

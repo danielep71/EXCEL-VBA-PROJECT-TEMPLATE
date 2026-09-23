@@ -100,6 +100,14 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+### Fixed
+
+- Reject flow-style environment/default declarations in Scorecard publication
+  policy and bind `file_mode: git` to the actual Scorecard step input, not comments
+  or other steps. Unsupported input layouts fail closed.
+- Parse public badge evidence as an SVG-rooted XML document and reject malformed
+  XML, HTML containing SVG, and DOCTYPE declarations before accepting publication.
+
 ## [1.2.1] - 2026-09-22
 
 ### Changed
