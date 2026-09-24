@@ -242,10 +242,7 @@ class DocumentationTests(unittest.TestCase):
         if preview:
             (fixture / "assets").mkdir()
             (fixture / "assets/social-preview.png").write_bytes(b"fixture")
-            readme += (
-                '\n<img src="assets/social-preview.png" alt="preview">\n'
-                "<!-- generated-social-preview: assets/social-preview.png -->\n"
-            )
+            readme += '\n<img src="assets/social-preview.png" alt="preview">\n'
         (fixture / "README.md").write_text(readme, encoding="utf-8")
         return fixture
 
