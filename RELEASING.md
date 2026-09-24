@@ -53,8 +53,14 @@ rerun. Never compensate by manually editing an already-tested artifact.
 
 ## 1. Freeze and identify the candidate
 
-Start from the repository's protected release path, freeze scope, and record the
-exact base/candidate revisions.
+Before a functional release, verify the required branch/tag protection and
+repository capabilities through live settings/read-back evidence. Treat any
+unavailable or unverified control as an explicit release prerequisite or
+limitation; files in the repository do not prove that server-side protection is
+active.
+
+Then start from the reviewed release path, freeze scope, and record the exact
+base/candidate revisions.
 
 ```bash
 git fetch --tags --prune
@@ -398,7 +404,7 @@ its `excel-host-evidence` check and `--excel-evidence` in both pre-tag and
 post-tag validations. A manual run remains explicitly manual; an unavailable
 runner is not compile or regression evidence.
 
-Create the release from the protected annotated tag. Include:
+After verifying the required protection controls, create the release from the certified annotated tag. Include:
 
 - user-facing summary/highlights;
 - upgrade or migration notes;
