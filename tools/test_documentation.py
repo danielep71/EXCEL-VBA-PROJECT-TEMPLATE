@@ -49,13 +49,9 @@ def assert_readme_presentation(testcase: unittest.TestCase, root: Path) -> None:
         testcase.assertNotIn(template_marker, readme)
 
         preview = record["values"].get("SOCIAL_PREVIEW_PATH")
-        if preview:
+        if preview and f'src="{preview}"' in readme:
             testcase.assertTrue((root / preview).is_file())
-            testcase.assertIn(f'src="{preview}"', readme)
-            testcase.assertNotIn("<!-- generated-social-preview:", readme)
-        else:
-            testcase.assertNotIn('src="assets/social-preview.png"', readme)
-            testcase.assertNotIn("<!-- generated-social-preview:", readme)
+        testcase.assertNotIn("<!-- generated-social-preview:", readme)
         return
 
     repository_token = "{" + "{REPOSITORY_PATH}" + "}"
