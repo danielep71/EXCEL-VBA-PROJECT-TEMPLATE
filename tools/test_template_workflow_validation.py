@@ -274,6 +274,64 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
             )
 
 
+
+class SupplyChainEligibilityTests(unittest.TestCase):
+    """Keep private/public analyzer eligibility explicit and least-privileged."""
+
+    def setUp(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        self.codeql = (root / ".github/workflows/codeql.yml").read_text(encoding="utf-8")
+        self.scorecard = (root / ".github/workflows/scorecard.yml").read_text(encoding="utf-8")
+
+    @staticmethod
+    def scorecard_private_guarded(text: str) -> bool:
+        return (
+            text.count("github.event.repository.private == false") >= 2
+            and "publish_results: true" in text
+            and "verify-publication:" in text
+            and "needs: published" in text
+            and "pull_request:" not in text
+        )
+
+    @staticmethod
+    def codeql_eligibility_guarded(text: str) -> bool:
+        return (
+            "github.event.repository.private == false || vars.ENABLE_PRIVATE_CODEQL == 'true'" in text
+            and "needs: eligibility" in text
+            and "upload: never" in text
+            and "upload-database: false" in text
+            and "pull_request_target:" not in text
+        )
+
+    def test_current_visibility_and_capability_contract(self) -> None:
+        self.assertTrue(self.scorecard_private_guarded(self.scorecard))
+        self.assertTrue(self.codeql_eligibility_guarded(self.codeql))
+
+    def test_private_scorecard_publication_guard_removal_is_detected(self) -> None:
+        changed = self.scorecard.replace(
+            "      github.event.repository.private == false &&\n",
+            "",
+            1,
+        )
+        self.assertFalse(self.scorecard_private_guarded(changed))
+
+    def test_private_codeql_opt_in_guard_removal_is_detected(self) -> None:
+        changed = self.codeql.replace(
+            "    if: github.event.repository.private == false || vars.ENABLE_PRIVATE_CODEQL == 'true'\n",
+            "    if: always()\n",
+            1,
+        )
+        self.assertFalse(self.codeql_eligibility_guarded(changed))
+
+    def test_pr_codeql_privilege_expansion_is_detected(self) -> None:
+        changed = self.codeql.replace(
+            "      contents: read\n",
+            "      contents: read\n      security-events: write\n",
+            1,
+        ).replace("          upload: never", "          upload: always", 1)
+        self.assertFalse(self.codeql_eligibility_guarded(changed))
+
+
 class ScorecardReviewRegressionTests(unittest.TestCase):
     """Exercise the three late review findings against actual retained policy."""
 
