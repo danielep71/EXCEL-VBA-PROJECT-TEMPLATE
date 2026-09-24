@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -78,6 +79,108 @@ def assert_readme_presentation(testcase: unittest.TestCase, root: Path) -> None:
         f"<!-- generated-social-preview: {preview_token} -->",
         readme,
     )
+
+
+@unittest.skipUnless(shutil.which("bash"), "Bash required for release command fixture")
+class ReleaseCommandTests(unittest.TestCase):
+    """Execute documented tag-publication blocks with offline command stubs."""
+
+    def release_block(self, heading: str) -> str | None:
+        text = (ROOT / "RELEASING.md").read_text(encoding="utf-8")
+        if heading not in text:
+            return None
+        section = text.split(heading, 1)[1]
+        return section.split("```bash\n", 1)[1].split("```", 1)[0]
+
+    def exercise(self, heading: str, *, signed: bool) -> None:
+        block = self.release_block(heading)
+        if block is None:
+            self.skipTest(f"{heading} is not applicable in this generated repository")
+        stages = ["switch", "pull", "rev-parse", "version", "precheck", "tag", "postcheck", "push"]
+        stubs = r'''
+record() { printf '%s\n' "$1" >> calls.log; [ "$1" != "$fail_at" ]; }
+git() {
+  stage=""
+  for arg in "$@"; do
+    case "$arg" in
+      switch|pull|rev-parse|tag|push) stage="$arg"; break ;;
+    esac
+  done
+  record "$stage" || return 23
+  case "$stage" in
+    rev-parse) printf '%040d\n' 1 ;;
+    tag)
+      case " $* " in
+        *" 0000000000000000000000000000000000000001 "*) ;;
+        *) return 24 ;;
+      esac
+      ;;
+    push)
+      case " $* " in
+        *" refs/tags/v1.0.0:refs/tags/v1.0.0 "*) ;;
+        *) return 25 ;;
+      esac
+      ;;
+  esac
+}
+tr() { record version || return 23; printf '1.0.0'; }
+python3() {
+  case " $* " in
+    *" --require-tag-ref "*) record postcheck ;;
+    *) record precheck ;;
+  esac
+}
+'''
+        for fail_at in ["none", *stages]:
+            with self.subTest(heading=heading, fail_at=fail_at), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+                env_prefix = "RELEASE_SIGNING_KEY=/tmp/offline-fixture-key\n" if signed else ""
+                result = subprocess.run(
+                    ["bash", "-c", env_prefix + f"fail_at={fail_at}\n" + stubs + block],
+                    cwd=root,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                expected = stages if fail_at == "none" else stages[: stages.index(fail_at) + 1]
+                self.assertEqual((root / "calls.log").read_text().splitlines(), expected)
+                self.assertEqual(result.returncode == 0, fail_at == "none", result.stderr)
+
+    def test_generated_release_sequence_stops_at_every_failure(self) -> None:
+        self.exercise("### Initialized generated project", signed=False)
+
+    def test_canonical_signed_release_sequence_stops_at_every_failure(self) -> None:
+        self.exercise("### Canonical-template SSH-signed tag", signed=True)
+
+    def test_canonical_signing_key_is_required_before_validation(self) -> None:
+        block = self.release_block("### Canonical-template SSH-signed tag")
+        if block is None:
+            self.skipTest("Canonical signed-tag block is not applicable in generated mode")
+        stubs = r'''
+git() {
+  case "$1" in
+    rev-parse) printf '%040d\n' 1 ;;
+    *) return 0 ;;
+  esac
+}
+tr() { printf '1.0.0'; }
+python3() { printf 'unexpected validation\n' >> unexpected.log; return 0; }
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+            result = subprocess.run(
+                ["bash", "-c", stubs + block],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+                env={},
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse((root / "unexpected.log").exists())
+
 
 
 class DocumentationTests(unittest.TestCase):
