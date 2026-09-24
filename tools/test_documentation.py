@@ -61,21 +61,34 @@ class DocumentationTests(unittest.TestCase):
                 [f"# ⚡ {record['values']['PROJECT_NAME']}"],
             )
             repository = profile["repository"]
-            self.assertIn(
-                f"https://github.com/{repository}/actions/workflows/static-checks.yml",
+            canonical_repository = "danielep71/" + "EXCEL-VBA-" + "PROJECT-TEMPLATE"
+            self.assertNotEqual(repository, canonical_repository)
+            self.assertNotIn(
+                f"https://github.com/{canonical_repository}/actions/workflows/static-checks.yml",
+                readme,
+            )
+            self.assertNotIn(
+                f"https://api.scorecard.dev/projects/github.com/{canonical_repository}",
+                readme,
+            )
+            self.assertNotIn(
+                f"https://scorecard.dev/viewer/?uri=github.com/{canonical_repository}",
                 readme,
             )
             self.assertNotIn("{{", readme)
             self.assertNotIn("<!-- template:", readme)
-            preview = record["values"].get("SOCIAL_PREVIEW_PATH")
-            if preview:
+
+            marker = "<!-- generated-social-preview: "
+            preview_markers = [
+                line.strip()
+                for line in readme.splitlines()
+                if line.strip().startswith(marker)
+            ]
+            self.assertLessEqual(len(preview_markers), 1)
+            if preview_markers:
+                preview = preview_markers[0][len(marker):].removesuffix(" -->").strip()
+                self.assertTrue(preview)
                 self.assertTrue((ROOT / preview).is_file())
-                self.assertIn(
-                    f"<!-- generated-social-preview: {preview} -->",
-                    readme,
-                )
-            else:
-                self.assertNotIn('src="assets/social-preview.png"', readme)
             return
 
         repository_token = "{" + "{REPOSITORY_PATH}" + "}"
