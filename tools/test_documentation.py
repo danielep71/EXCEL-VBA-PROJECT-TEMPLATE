@@ -297,6 +297,43 @@ class DocumentationTests(unittest.TestCase):
         self.assertNotIn('src="assets/social-preview.png"', readme)
 
 
+    def test_retained_documentation_semantics_match_repository_mode(self):
+        profile = json.loads(
+            (ROOT / ".github/repository-profile.json").read_text(encoding="utf-8")
+        )
+        tools_readme = (ROOT / "tools/README.md").read_text(encoding="utf-8")
+        initialization = (ROOT / "docs/INITIALIZATION.md").read_text(encoding="utf-8")
+        house_style = (ROOT / "docs/VBA_HOUSE_STYLE.md").read_text(encoding="utf-8")
+        contract = (ROOT / "docs/TEMPLATE_CONTRACT.md").read_text(encoding="utf-8")
+        docs_index = (ROOT / "docs/README.md").read_text(encoding="utf-8")
+        releasing = (ROOT / "RELEASING.md").read_text(encoding="utf-8")
+
+        self.assertNotIn("Exercise all three profile fixtures with:", tools_readme)
+        self.assertNotIn("initializer self-test for all three profiles", house_style)
+        self.assertNotIn("pending 1.2.0 contract", contract)
+        self.assertIn("External provenance-record SSH signatures", contract)
+        self.assertIn("canonical Git-tag and certification-bundle signatures", contract)
+        self.assertIn("SUPPLY_CHAIN_ASSURANCE.md", docs_index)
+        self.assertIn("RELEASE_CLOSEOUT.md", docs_index)
+        self.assertNotIn("protected release path", releasing)
+        self.assertNotIn("protected annotated tag", releasing)
+        self.assertIn("verify the required branch/tag protection", releasing)
+
+        if profile.get("mode") == "generated":
+            self.assertIn(
+                "In an initialized generated repository it\nvalidates only the recorded selected profile",
+                tools_readme,
+            )
+            self.assertIn(
+                "In an initialized\ngenerated repository, the same command validates only the recorded selected",
+                initialization,
+            )
+            for text in (tools_readme, initialization, house_style):
+                self.assertNotRegex(
+                    text,
+                    r"(?m)^\s*python3 tools/(?:checker_development|check_policy_coverage)\.py",
+                )
+
     def test_utf8_repository_reads_do_not_depend_on_locale(self):
         workflow = self.root / ".github/workflows/fixture.yml"
         workflow.write_text(
