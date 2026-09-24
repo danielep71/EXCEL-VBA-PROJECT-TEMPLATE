@@ -41,7 +41,8 @@ def assert_readme_presentation(testcase: unittest.TestCase, root: Path) -> None:
             readme,
         )
         testcase.assertNotIn("{" + "{", readme)
-        testcase.assertNotIn("<!-- template:", readme)
+        template_marker = "<!-- " + "template:"
+        testcase.assertNotIn(template_marker, readme)
 
         preview = record["values"].get("SOCIAL_PREVIEW_PATH")
         if preview:
