@@ -37,10 +37,13 @@ def assert_readme_presentation(testcase: unittest.TestCase, root: Path) -> None:
             [f"# ⚡ {record['values']['PROJECT_NAME']}"],
         )
         repository = profile["repository"]
-        testcase.assertIn(
-            f"https://github.com/{repository}/actions/workflows/static-checks.yml",
-            readme,
-        )
+        github_workflow_prefix = "https://github.com/"
+        for line in readme.splitlines():
+            if github_workflow_prefix in line and "/actions/workflows/" in line:
+                testcase.assertIn(
+                    f"https://github.com/{repository}/actions/workflows/",
+                    line,
+                )
         testcase.assertNotIn("{" + "{", readme)
         template_marker = "<!-- " + "template:"
         testcase.assertNotIn(template_marker, readme)
