@@ -845,6 +845,44 @@ def _assert_fresh_generated_content(root: Path, profile: str) -> None:
     for candidate, heading in headings.items():
         if (heading in readme) != (candidate == profile):
             raise AssertionError(f"{profile} retained an incorrect profile block: {candidate}.")
+    pr_template = (root / ".github/PULL_REQUEST_TEMPLATE.md").read_text(encoding="utf-8")
+    expected_identity = f"# 🔀 Matrix {profile} Pull Request"
+    expected_profile = {
+        "application": "### application ·",
+        "library": "### library ·",
+        "ui-component": "### UI component ·",
+    }[profile]
+    if expected_identity not in pr_template or expected_profile not in pr_template:
+        raise AssertionError(f"{profile} did not render PR-template identity/profile.")
+    required_pr_content = (
+        "`python3 tools/check_repo.py --root .`",
+        "`ProjectTests.RunProjectTests`",
+        "docs/REPOSITORY_STRUCTURE.md",
+        "docs/PUBLIC_API.txt",
+    )
+    if any(item not in pr_template for item in required_pr_content):
+        raise AssertionError(f"{profile} PR template lacks maintained validation/source defaults.")
+    legacy_pr_fields = (
+        "[PROJECT_NAME]",
+        "[PROJECT PROFILE]",
+        "[STATIC CHECK COMMAND]",
+        "[AUTHORITATIVE PRODUCTION SOURCE MANIFEST OR LINK]",
+        "[PUBLIC API OR USER SURFACE]",
+        "[INTERNAL OR CORE ENGINE]",
+        "[EXCEL HOST OR UI INTEGRATION]",
+        "[TEST OR EVIDENCE SYSTEM]",
+        "[COMPLETE REGRESSION OR CERTIFICATION ENTRY POINT]",
+        "[OPTIONAL UI OR MANUAL SMOKE ENTRY POINT]",
+        "[PROJECT-SPECIFIC HOST OR TOOL VERSION]",
+    )
+    retained_legacy = [field for field in legacy_pr_fields if field in pr_template]
+    if retained_legacy:
+        raise AssertionError(
+            f"{profile} retained legacy PR-template setup fields: {', '.join(retained_legacy)}"
+        )
+    if "[Unreleased]" not in pr_template or "- [ ] Defect correction" not in pr_template:
+        raise AssertionError(f"{profile} rejected legitimate PR-template Markdown syntax.")
+
     changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     if "No unreleased changes recorded." not in changelog:
         raise AssertionError(f"{profile} did not reset generated changelog history.")
