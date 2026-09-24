@@ -82,7 +82,8 @@ jobs:
         run: |
           fixture="${RUNNER_TEMP}/generated-${PROFILE}-${PREVIEW}"
           mkdir -p "$fixture"
-          git archive "$CANDIDATE_SHA" | tar -x -C "$fixture"
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          tar --exclude=.git --exclude=test-results -cf - . | tar -xf - -C "$fixture"
           git -C "$fixture" init -b main
           git -C "$fixture" config user.name "Generated Matrix"
           git -C "$fixture" config user.email "matrix@example.invalid"
