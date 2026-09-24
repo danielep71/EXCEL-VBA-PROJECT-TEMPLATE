@@ -846,7 +846,8 @@ def _assert_fresh_generated_content(root: Path, profile: str) -> None:
         if (heading in readme) != (candidate == profile):
             raise AssertionError(f"{profile} retained an incorrect profile block: {candidate}.")
     pr_template = (root / ".github/PULL_REQUEST_TEMPLATE.md").read_text(encoding="utf-8")
-    expected_identity = f"# 🔀 Matrix {profile} Pull Request"
+    initialization = json.loads((root / RECORD_PATH).read_text(encoding="utf-8"))
+    expected_identity = f"# 🔀 {initialization['values']['PROJECT_NAME']} Pull Request"
     expected_profile = {
         "application": "### application ·",
         "library": "### library ·",
