@@ -124,6 +124,50 @@ jobs:
           test ! -e "$GENERATED_ROOT/tools/test_template_workflow_validation.py"
           test ! -e "$GENERATED_ROOT/tools/test_template_verification_depth.py"
 
+      - name: Inspect rendered pull-request template
+        run: |
+          cd "$GENERATED_ROOT"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          record = json.loads(Path(".github/initialization.json").read_text(encoding="utf-8"))
+          text = Path(".github/PULL_REQUEST_TEMPLATE.md").read_text(encoding="utf-8")
+          expected_profile = {
+              "application": "### application ·",
+              "library": "### library ·",
+              "ui-component": "### UI component ·",
+          }[record["profile"]]
+          expected_title = f"# 🔀 {record['values']['PROJECT_NAME']} Pull Request"
+          required = (
+              expected_title,
+              expected_profile,
+              "`python3 tools/check_repo.py --root .`",
+              "`ProjectTests.RunProjectTests`",
+              "[Unreleased]",
+              "- [ ] Defect correction",
+          )
+          missing = [item for item in required if item not in text]
+          if missing:
+              raise SystemExit("generated PR template missing: " + ", ".join(missing))
+          legacy = (
+              "[PROJECT_NAME]",
+              "[PROJECT PROFILE]",
+              "[STATIC CHECK COMMAND]",
+              "[AUTHORITATIVE PRODUCTION SOURCE MANIFEST OR LINK]",
+              "[PUBLIC API OR USER SURFACE]",
+              "[INTERNAL OR CORE ENGINE]",
+              "[EXCEL HOST OR UI INTEGRATION]",
+              "[TEST OR EVIDENCE SYSTEM]",
+              "[COMPLETE REGRESSION OR CERTIFICATION ENTRY POINT]",
+              "[OPTIONAL UI OR MANUAL SMOKE ENTRY POINT]",
+              "[PROJECT-SPECIFIC HOST OR TOOL VERSION]",
+          )
+          retained = [item for item in legacy if item in text]
+          if retained:
+              raise SystemExit("generated PR template retained setup fields: " + ", ".join(retained))
+          PY
+
       - name: Run retained generated-project tests
         env:
           ACTIONLINT_PATH: ${{ steps.actionlint.outputs.path }}
