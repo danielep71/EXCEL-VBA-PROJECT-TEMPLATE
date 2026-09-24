@@ -1,8 +1,28 @@
 # 🔐 Supply-Chain Assurance
 
-This document owns the repository's public supply-chain analysis layer.
+This document owns the repository's supply-chain analysis layer.
 It complements the deterministic repository gates and the controlled dependency
 update policy; it does not replace either one.
+
+## Visibility and analyzer eligibility
+
+The canonical template is public, so CodeQL and Scorecard are eligible under
+their committed public-repository paths. Initialized projects do not inherit that
+eligibility merely by inheriting the workflow files.
+
+Scorecard publication and exact-SHA Scorecard scanning are public-repository
+paths. Private repositories skip those jobs and must not present the skip as a
+successful scan or public Scorecard result.
+
+CodeQL is enabled automatically for public repositories. A private repository
+may opt into the workflow with repository variable `ENABLE_PRIVATE_CODEQL=true`
+only after the maintainer has separately confirmed that the repository/account
+is eligible for private CodeQL. The variable is an execution switch, not
+evidence of entitlement. If the eligibility job is skipped, downstream CodeQL
+analysis is unavailable and that is an assurance limitation.
+
+Neither path changes repository visibility. Visibility and platform capability
+must be verified independently during repository setup and release review.
 
 ## Controls
 
@@ -98,14 +118,17 @@ Before merging a CodeQL, Scorecard, or dependency-workflow change:
    release digests;
 2. review permissions, triggers, checkout behavior, new network activity, and
    publication surfaces;
-3. run repository integrity, authoritative workflow validation, checker
-   development, and the dedicated supply-chain workflow fixtures;
+3. run repository integrity, authoritative workflow validation and the retained
+   supply-chain fixtures; checker-development tooling applies only to canonical
+   template maintenance and is removed from initialized projects;
 4. preserve manual dependency approval and rollback under
    [DEPENDENCY_UPDATES.md](DEPENDENCY_UPDATES.md);
-5. retain successful CodeQL and release-candidate Scorecard runs for the exact
-   reviewed revision, and after default-branch integration retain both the
-   publishing Action run and the exact-SHA public Scorecard verification result.
+5. retain successful exact-revision CodeQL results, Scorecard analysis and
+   exact-SHA publication verification only for the workflow paths that are
+   actually eligible and executed.
 
-If a required security analyzer is unavailable, misconfigured, or denied its
-required permissions, its workflow is non-green. Do not convert an unavailable
-result into a pass or weaken deterministic gates to recover a public score.
+If a required security analyzer is unavailable, misconfigured, skipped by the
+visibility/eligibility policy, or denied its required permissions, record that
+as missing assurance. A skip is not a completed scan, does not satisfy release
+evidence, and must not be converted into a pass by weakening deterministic
+gates or implicitly changing repository visibility.
