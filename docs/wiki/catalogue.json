@@ -235,9 +235,9 @@
       "authority": ".github/workflows/external-links.yml"
     },
     ".github/workflows/generated-profile-matrix.yml": {
-      "purpose": "Template-only six-cell generated-project CI matrix across all profiles and preview selection states.",
+      "purpose": "Template-only matrix that generates all supported profiles and executes their retained CI surface.",
       "kind": "workflow",
-      "authority": ".github/workflows/generated-profile-matrix.yml"
+      "authority": "tools/README.md"
     },
     ".github/workflows/labels-drift.yml": {
       "purpose": "PR label fixtures and separate daily/manual read-only live drift detection.",
@@ -790,12 +790,12 @@
       "authority": "docs/RELEASE_PROVENANCE.md"
     },
     "tools/test_template_verification_depth.py": {
-      "purpose": "Template-only deep verification coverage for canonical maintainer tooling removed from generated projects.",
+      "purpose": "Template-only verification-depth fixtures for maintainer tools removed during project generation.",
       "kind": "script",
       "authority": "tools/README.md"
     },
     "tools/test_template_workflow_validation.py": {
-      "purpose": "Template-only workflow-maintenance regression coverage that depends on canonical maintainer tooling.",
+      "purpose": "Template-only reusable-workflow fixture tests separated from generated-project workflow validation.",
       "kind": "script",
       "authority": "tools/README.md"
     },
