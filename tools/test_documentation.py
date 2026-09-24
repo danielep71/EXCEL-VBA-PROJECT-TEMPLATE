@@ -40,7 +40,7 @@ def assert_readme_presentation(testcase: unittest.TestCase, root: Path) -> None:
             f"https://github.com/{repository}/actions/workflows/static-checks.yml",
             readme,
         )
-        testcase.assertNotIn("{{", readme)
+        testcase.assertNotIn("{" + "{", readme)
         testcase.assertNotIn("<!-- template:", readme)
 
         preview = record["values"].get("SOCIAL_PREVIEW_PATH")
@@ -172,7 +172,7 @@ class DocumentationTests(unittest.TestCase):
     def test_generated_readme_rejects_residual_template_markers(self):
         fixture = self._generated_readme_fixture(preview=False)
         with (fixture / "README.md").open("a", encoding="utf-8") as handle:
-            handle.write("\n<!-- template:optional:SOCIAL_PREVIEW_PATH -->\n{{PROJECT_NAME}}\n")
+            handle.write("\n<!-- template:optional:SOCIAL_PREVIEW_PATH -->\n" + "{" + "{PROJECT_NAME}" + "}\n")
         with self.assertRaises(AssertionError):
             assert_readme_presentation(self, fixture)
 
