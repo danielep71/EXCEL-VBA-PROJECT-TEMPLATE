@@ -539,6 +539,11 @@ def _build_changes(
     generated_config["mode"] = "generated"
     generated_config["profile"] = profile
     generated_config["repository"] = scalars["REPOSITORY_PATH"]
+    generated_config["required_paths"] = [
+        path
+        for path in generated_config["required_paths"]
+        if path not in template_only
+    ]
     changes[CONFIG_PATH] = (
         json.dumps(generated_config, indent=2, ensure_ascii=False) + "\n"
     ).encode("utf-8")
@@ -845,6 +850,45 @@ def _assert_fresh_generated_content(root: Path, profile: str) -> None:
     for candidate, heading in headings.items():
         if (heading in readme) != (candidate == profile):
             raise AssertionError(f"{profile} retained an incorrect profile block: {candidate}.")
+    pr_template = (root / ".github/PULL_REQUEST_TEMPLATE.md").read_text(encoding="utf-8")
+    initialization = json.loads((root / RECORD_PATH).read_text(encoding="utf-8"))
+    expected_identity = f"# 🔀 {initialization['values']['PROJECT_NAME']} Pull Request"
+    expected_profile = {
+        "application": "### application ·",
+        "library": "### library ·",
+        "ui-component": "### UI component ·",
+    }[profile]
+    if expected_identity not in pr_template or expected_profile not in pr_template:
+        raise AssertionError(f"{profile} did not render PR-template identity/profile.")
+    required_pr_content = (
+        "`python3 tools/check_repo.py --root .`",
+        "`ProjectTests.RunProjectTests`",
+        "docs/REPOSITORY_STRUCTURE.md",
+        "docs/PUBLIC_API.txt",
+    )
+    if any(item not in pr_template for item in required_pr_content):
+        raise AssertionError(f"{profile} PR template lacks maintained validation/source defaults.")
+    legacy_pr_fields = (
+        "[PROJECT_NAME]",
+        "[PROJECT PROFILE]",
+        "[STATIC CHECK COMMAND]",
+        "[AUTHORITATIVE PRODUCTION SOURCE MANIFEST OR LINK]",
+        "[PUBLIC API OR USER SURFACE]",
+        "[INTERNAL OR CORE ENGINE]",
+        "[EXCEL HOST OR UI INTEGRATION]",
+        "[TEST OR EVIDENCE SYSTEM]",
+        "[COMPLETE REGRESSION OR CERTIFICATION ENTRY POINT]",
+        "[OPTIONAL UI OR MANUAL SMOKE ENTRY POINT]",
+        "[PROJECT-SPECIFIC HOST OR TOOL VERSION]",
+    )
+    retained_legacy = [field for field in legacy_pr_fields if field in pr_template]
+    if retained_legacy:
+        raise AssertionError(
+            f"{profile} retained legacy PR-template setup fields: {', '.join(retained_legacy)}"
+        )
+    if "[Unreleased]" not in pr_template or "- [ ] Defect correction" not in pr_template:
+        raise AssertionError(f"{profile} rejected legitimate PR-template Markdown syntax.")
+
     changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     if "No unreleased changes recorded." not in changelog:
         raise AssertionError(f"{profile} did not reset generated changelog history.")
@@ -990,6 +1034,21 @@ def _assert_adopted_contract(source: Path, config: dict[str, Any]) -> None:
             f"{completed.stdout}{completed.stderr}"
         )
 
+def _assert_retained_documentation_tests(source: Path) -> None:
+    completed = subprocess.run(
+        [sys.executable, str(source / "tools" / "test_documentation.py"), "-v"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=source,
+    )
+    if completed.returncode != 0:
+        raise AssertionError(
+            "Generated repository failed retained documentation tests:\n"
+            f"{completed.stdout}{completed.stderr}"
+        )
+
+
 def _generated_self_test(source: Path) -> None:
     config = _load_config(source)
     profile, scalars, repeatable = _record_arguments(source)
@@ -1132,6 +1191,7 @@ def self_test(source: Path) -> None:
             _assert_generated_cleanup(fixture, profile)
             _assert_fresh_generated_content(fixture, profile)
             _generated_self_test(fixture)
+            _assert_retained_documentation_tests(fixture)
 
             evolved = base / f"{profile}-evolved"
             _make_evolved_generated_fixture(fixture, evolved)
@@ -1149,6 +1209,7 @@ def self_test(source: Path) -> None:
                     f"{profile} evolved generated-project rerun was not idempotent."
                 )
             _generated_self_test(evolved)
+            _assert_retained_documentation_tests(evolved)
 
             completed, report = _quality_report(fixture)
             if completed.returncode != 0:

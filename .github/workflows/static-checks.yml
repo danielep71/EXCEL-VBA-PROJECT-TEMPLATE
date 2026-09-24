@@ -159,6 +159,19 @@ jobs:
           --actionlint "$ACTIONLINT_PATH"
           --summary test-results/workflow-validation.md
 
+      - name: Exercise template-maintainer validation suites when present
+        id: template-maintainer-suites
+        continue-on-error: true
+        env:
+          ACTIONLINT_PATH: ${{ steps.validator-install.outputs.path }}
+        run: |
+          if [[ -f tools/test_template_workflow_validation.py ]]; then
+            python3 tools/test_template_workflow_validation.py               --root .               --actionlint "$ACTIONLINT_PATH"               --summary test-results/template-workflow-validation.md
+          fi
+          if [[ -f tools/test_template_verification_depth.py ]]; then
+            python3 tools/test_template_verification_depth.py -v               2>&1 | tee test-results/template-verification-depth.txt
+          fi
+
       - name: Exercise release-integrity candidates and failures
         id: release-self-test
         continue-on-error: true
@@ -374,6 +387,7 @@ jobs:
           INITIALIZER_SELF_TEST_OUTCOME: ${{ steps.initializer-self-test.outcome }}
           VALIDATOR_INSTALL_OUTCOME: ${{ steps.validator-install.outcome }}
           AUTHORITATIVE_WORKFLOWS_OUTCOME: ${{ steps.authoritative-workflows.outcome }}
+          TEMPLATE_MAINTAINER_SUITES_OUTCOME: ${{ steps.template-maintainer-suites.outcome }}
           RELEASE_SELF_TEST_OUTCOME: ${{ steps.release-self-test.outcome }}
           RELEASE_SEMANTICS_SELF_TEST_OUTCOME: ${{ steps.release-semantics-self-test.outcome }}
           RELEASE_SEMANTICS_OUTCOME: ${{ steps.release-semantics.outcome }}
@@ -403,6 +417,7 @@ jobs:
             "mypy type check:$MYPY_OUTCOME" \
             "Authoritative-validator installation:$VALIDATOR_INSTALL_OUTCOME" \
             "Authoritative workflow-validation:$AUTHORITATIVE_WORKFLOWS_OUTCOME" \
+            "Template-maintainer validation suites:$TEMPLATE_MAINTAINER_SUITES_OUTCOME" \
             "Release-integrity self-test:$RELEASE_SELF_TEST_OUTCOME" \
             "Release-semantics self-test:$RELEASE_SEMANTICS_SELF_TEST_OUTCOME" \
             "Release semantics:$RELEASE_SEMANTICS_OUTCOME" \

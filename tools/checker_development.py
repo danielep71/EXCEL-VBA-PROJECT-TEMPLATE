@@ -89,6 +89,10 @@ GATE_RUNNER_EXCLUSIONS = {
         "not a focused run_gate report CLI"
     ),
     "test_workflow_validation.py": "text-only report with no JSON evidence output",
+    "test_template_workflow_validation.py": (
+        "template-only unittest wrapper for reusable-workflow maintenance fixtures; "
+        "not a focused run_gate report CLI"
+    ),
     "initialize_repository.py": "repository provisioning CLI, not a focused report gate",
 }
 # These CLIs deliberately keep their fixtures separate from operational arguments.
@@ -101,6 +105,12 @@ SELF_TEST_EXCLUSIONS = {
     "test_provision_repository.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_release_provenance.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_verification_depth.py": "Unittest CLI; focused release-critical failure-path coverage",
+    "test_template_verification_depth.py": (
+        "Template-only unittest CLI; maintainer-tool failure-path coverage"
+    ),
+    "test_template_workflow_validation.py": (
+        "Template-only unittest CLI; reusable-workflow maintenance fixtures"
+    ),
     "test_wiki.py": "Unittest CLI; normal invocation runs its fixture suite",
     "check_documentation.py": "Offline fixtures: python tools/test_documentation.py -v",
     "check_wiki.py": "Offline fixtures: python tools/test_wiki.py -v",

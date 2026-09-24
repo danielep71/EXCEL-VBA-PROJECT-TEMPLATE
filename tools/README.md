@@ -409,7 +409,11 @@ second run.
 
 See [`docs/INITIALIZATION.md`](../docs/INITIALIZATION.md) for the token catalogue,
 profile commands, optional and repeatable values, and the transparent manual
-fallback. Exercise all three profile fixtures with:
+fallback. In canonical template mode the self-test constructs and validates all
+three supported profile fixtures. In an initialized generated repository it
+validates only the recorded selected profile, identity, cleanup, quality checks,
+and repeat-run safety; it does not restore or require removed maintainer-only
+tooling. Run:
 
 ```bash
 python3 tools/initialize_repository.py --root . --self-test

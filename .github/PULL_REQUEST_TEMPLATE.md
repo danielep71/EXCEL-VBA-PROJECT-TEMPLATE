@@ -9,9 +9,9 @@
 
 <div align="center">
 
-# 🔀 [PROJECT_NAME] Pull Request
+# 🔀 {{PROJECT_NAME}} Pull Request
 
-### [PROJECT PROFILE] · Exact evidence · Reviewable change · Honest boundaries
+### {{PROFILE_NAME}} · Exact evidence · Reviewable change · Honest boundaries
 
 [![Contributing](https://img.shields.io/badge/guide-CONTRIBUTING-217346?style=flat-square)](../CONTRIBUTING.md)
 [![Security](https://img.shields.io/badge/security-private%20reporting-d73a49?style=flat-square)](../SECURITY.md)
@@ -23,7 +23,7 @@
 ---
 
 > [!IMPORTANT]
-> Replace every square-bracket field and delete every profile block that the project cannot exercise before the first pull request.
+> Complete the per-PR response fields below and delete optional review blocks that do not apply to this change. Generated project identity and profile are already resolved by initialization.
 
 ## 📌 Summary
 
@@ -50,14 +50,13 @@ Use a closing keyword only when this pull request satisfies the issue's complete
 - [ ] Documentation-only change
 - [ ] Repository tooling, workflow, or governance change
 - [ ] Packaging or release preparation
-- [ ] [PROJECT-SPECIFIC CHANGE TYPE]
 
 ## 🎚️ Affected surface
 
-- [ ] [PUBLIC API OR USER SURFACE]
-- [ ] [INTERNAL OR CORE ENGINE]
-- [ ] [EXCEL HOST OR UI INTEGRATION]
-- [ ] [TEST OR EVIDENCE SYSTEM]
+- [ ] Public VBA API or user-facing behavior
+- [ ] Internal or core implementation
+- [ ] Excel host or UI integration
+- [ ] Test or evidence system
 - [ ] No runtime or supported surface — documentation/repository-only
 
 ---
@@ -90,7 +89,9 @@ Assess compatibility against documented behavior, not merely the VBA `Public` ke
 
 ### Production source and package
 
-[AUTHORITATIVE PRODUCTION SOURCE MANIFEST OR LINK]
+Profile source contract: {{PROFILE_SOURCE_CONTRACT}}.
+
+Authorities: [`docs/REPOSITORY_STRUCTURE.md`](../docs/REPOSITORY_STRUCTURE.md) and [`docs/PUBLIC_API.txt`](../docs/PUBLIC_API.txt).
 
 - [ ] Required source files and import order are unchanged.
 - [ ] Required source files or order changed and `INSTALLATION.md` was updated.
@@ -153,7 +154,7 @@ Evidence from another commit does not certify this candidate.
 
 ### Static and repository checks
 
-- [STATIC CHECK COMMAND]
+- `python3 tools/check_repo.py --root .`
 - `git diff --check`
 
 | Check | Result / evidence |
@@ -171,8 +172,8 @@ Evidence from another commit does not certify this candidate.
 
 Relevant entry points:
 
-- [COMPLETE REGRESSION OR CERTIFICATION ENTRY POINT]
-- [OPTIONAL UI OR MANUAL SMOKE ENTRY POINT]
+- `ProjectTests.RunProjectTests`
+- Additional focused/UI/manual entry point, if applicable: <!-- procedure or NOT APPLICABLE + reason -->
 
 | Evidence | Result |
 | --- | --- |
@@ -193,7 +194,7 @@ Office bitness:                    32-bit / 64-bit
 Windows version/build:
 Workbook or add-in host:
 Deployment model:
-[PROJECT-SPECIFIC HOST OR TOOL VERSION]
+Additional host or tool version, if applicable:
 ```
 
 Record only tested environments. Source inspection does not constitute host execution, and one Office bitness does not execute the other conditional branch.

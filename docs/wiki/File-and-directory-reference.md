@@ -36,7 +36,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/ISSUE_TEMPLATE/config.yml` / policy | Disable blank issues and route vulnerabilities to the project security policy. | T / T / T | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/ISSUE_TEMPLATE/documentation.yml` / policy | Documentation defect intake identifying the authority and proposed correction. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `.github/ISSUE_TEMPLATE/feature.yml` / policy | Feature/change intake with scope, compatibility and acceptance criteria. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
-| `.github/PULL_REQUEST_TEMPLATE.md` / document | PR review/evidence checklist, including dependency-update information. | R / R / R | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
+| `.github/PULL_REQUEST_TEMPLATE.md` / document | PR review/evidence checklist, including dependency-update information. | T / T / T | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
 | `.github/dependabot.yml` / policy | Weekly proposal-only GitHub Actions dependency discovery. | R / R / R | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `.github/documentation-policy.json` / policy | Registered documentation references, HTTP bounds, allowed domains and expiring exceptions. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `.github/excel-evidence-policy.json` / policy | Starter entry point, case registry, assertion count and expected-error case. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
@@ -51,6 +51,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/workflows/checker-development.yml` / workflow | Template-only independent checker contract and coverage execution. | X / X / X | [.github/workflows/checker-development.yml](../../.github/workflows/checker-development.yml) |
 | `.github/workflows/codeql.yml` / workflow | Trusted-context CodeQL analysis for maintained Python and JavaScript source. | R / R / R | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
 | `.github/workflows/external-links.yml` / workflow | Separate weekly/manual anonymous external-link observation with retained reports. | R / R / R | [.github/workflows/external-links.yml](../../.github/workflows/external-links.yml) |
+| `.github/workflows/generated-profile-matrix.yml` / workflow | Template-only matrix that generates all supported profiles and executes their retained CI surface. | X / X / X | [tools/README.md](../../tools/README.md) |
 | `.github/workflows/labels-drift.yml` / workflow | PR label fixtures and separate daily/manual read-only live drift detection. | R / R / R | [.github/workflows/labels-drift.yml](../../.github/workflows/labels-drift.yml) |
 | `.github/workflows/labels-sync.yml` / workflow | Read-only PR validation and trusted main/manual label reconciliation. | R / R / R | [.github/workflows/labels-sync.yml](../../.github/workflows/labels-sync.yml) |
 | `.github/workflows/maintenance.yml` / workflow | Template-only dispatch-only home for registered maintenance tasks that commit their result. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
@@ -162,6 +163,8 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/test_portfolio_quality.py` / script | Synthetic quality, missing-evidence and freshness-boundary fixtures. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
 | `tools/test_provision_repository.py` / script | Stateful simulated API fixtures for planning, guarded writes and partial failure. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `tools/test_release_provenance.py` / script | Release-payload fixtures and ephemeral SSH signing/verification controls. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
+| `tools/test_template_verification_depth.py` / script | Template-only verification-depth fixtures for maintainer tools removed during project generation. | X / X / X | [tools/README.md](../../tools/README.md) |
+| `tools/test_template_workflow_validation.py` / script | Template-only reusable-workflow fixture tests separated from generated-project workflow validation. | X / X / X | [tools/README.md](../../tools/README.md) |
 | `tools/test_verification_depth.py` / script | Focused behavioral failure-path coverage for release, contract, Wiki, initializer and closeout tooling. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/test_wiki.py` / script | Offline publication link, source identity, missing/extra/modified page and safe-export fixtures. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `tools/test_workflow_validation.py` / script | Authoritative pinned-actionlint validation of workflows and invalid fixtures. | R / R / R | [tools/README.md](../../tools/README.md) |

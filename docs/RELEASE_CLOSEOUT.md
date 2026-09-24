@@ -13,7 +13,7 @@ After the annotated tag, tag-triggered static checks, GitHub Release, release mi
 - `expect_prerelease`: normally `false`; set it only for an intentionally prerelease publication;
 - `allow_not_latest`: normally `false`; set it only when the release is intentionally not expected to be GitHub's current latest release.
 
-The workflow checks out the exact candidate, captures GitHub REST facts, performs the existing Wiki read-back comparison, tests GitHub-generated source archive retrieval, builds one retained snapshot, and evaluates that snapshot with `tools/_release_closeout.py`. The terminal workflow verdict is green only when the closeout report, readable summary, and retained evidence are all produced successfully.
+The workflow checks out the exact candidate, captures GitHub REST facts, partitions and independently verifies canonical certification evidence when applicable, performs the existing template-mode Wiki read-back comparison, tests GitHub-generated source archive retrieval, builds one retained snapshot, and evaluates that snapshot with `tools/_release_closeout.py`. The terminal workflow verdict is green only when applicable certification verification, closeout validation, readable summary, and retained evidence all succeed.
 
 ## Deterministic provider controls
 
@@ -22,46 +22,56 @@ The closeout validator binds all deterministic checks to the same candidate SHA.
 1. the remote tag ref is an **annotated tag object**, the tag object has the expected name, and it resolves to the certified commit rather than a moved or lightweight tag;
 2. the canonical static-check workflow has a completed successful `push` run whose `head_branch` is the release tag and whose `head_sha` is the candidate;
 3. the GitHub Release exists for that tag, is published rather than draft, has the expected prerelease flag, and matches the expected latest-release state;
-4. actual **uploaded Release assets** are compared with the selected candidate profile's `allowed_asset_globs` from `.github/release-policy.json`;
-5. a source-only profile has no uploaded assets; binary-capable profiles may contain only names allowed by their candidate-bound patterns;
+4. the raw GitHub Release asset list is partitioned before closeout validation into **certification-evidence attachments** and filtered **product/runtime assets**; the latter are compared with the selected candidate profile's `allowed_asset_globs` from `.github/release-policy.json`;
+5. a source-only profile has no product/runtime assets; binary-capable profiles may contain only product names allowed by their candidate-bound patterns. Canonical template releases separately require the durable certification attachments defined by [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md);
 6. `VERSION`, the released CHANGELOG heading, the released comparison link, and the `Unreleased` comparison link remain coherent with the tag;
 7. the provider comparison range resolves to the release range and contains the certified candidate when the range is ahead;
 8. milestone closure is evaluated from the actual captured milestone membership and item states, with the provider's open/closed counters reconciled to those items rather than trusted as a UI percentage.
 
 An unexpected uploaded asset, lightweight or moved tag, failed/missing tag CI, draft or incorrectly classified Release, wrong VERSION/tag relationship, unresolved comparison, open milestone, or stale milestone counters is non-green.
 
-## Uploaded assets are not source archives
+## Release asset partitioning and source archives
 
-GitHub's generated `zipball_url` and `tarball_url` are provider-generated source archives. They are **not** entries in the Release API `assets` array and are never interpreted as runtime binaries or uploaded release payloads.
+Three distinct provider surfaces must not be conflated:
 
-The closeout report therefore records these separately:
+- **raw uploaded Release assets**: every entry returned by the GitHub Release API;
+- **certification-evidence attachments**: for a canonical template release, the four durable files required by [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md) — the certification ZIP, detached ZIP signature, manifest and SHA-256 file;
+- **product/runtime assets**: the remaining uploaded assets after certification evidence is partitioned out, governed by the selected profile's candidate-bound `allowed_asset_globs`;
+- **provider-generated source archives**: GitHub's `zipball_url` and `tarball_url`, which are not entries in the Release API `assets` array.
 
-- `uploaded_assets`: files explicitly uploaded to the GitHub Release and governed by `allowed_asset_globs`;
-- source ZIP/tar exposure and retrieval: provider observations confirming that GitHub's generated source archives are available.
+The closeout workflow plans this partition from the raw Release response before invoking the deterministic closeout helper. For the canonical template's source-only profile, the four certification attachments are required while the filtered product/runtime asset list must be empty. Generated projects record certification as not applicable unless they deliberately adopt an equivalent local certification policy; their uploaded assets remain product assets and are checked normally.
 
-For the canonical template's source-only profile, `uploaded_assets` must remain empty even though GitHub-generated source ZIP and tar archives are expected to exist.
+Canonical certification verification is independent of the product-asset check. The workflow downloads the planned certification attachments, verifies their hashes, detached signature, candidate identity and committed/current signer trust through `tools/release_certification.py`, and writes `certification-verification.json`. A missing, tampered, incorrectly signed or candidate-mismatched certification set is non-green even when the filtered product-asset check passes.
+
+GitHub-generated ZIP/tar archive availability and retrieval remain separate network observations and never substitute for either durable certification evidence or product assets.
 
 ## Wiki and UI observations
 
-Wiki publication remains owned by `tools/check_wiki.py`; the closeout helper does not implement a second Wiki policy. For template-mode releases, the workflow clones the published Wiki, invokes the existing checker against the exact candidate source, and includes that checker's result in the closeout snapshot.
+Wiki publication remains owned by `tools/check_wiki.py`; the closeout helper does not implement a second Wiki policy. For **template-mode** releases, the workflow clones the published Wiki, invokes the existing checker against the exact candidate source, and includes that checker's result in the closeout snapshot. The human `wiki_browser_reviewed` confirmation is likewise a template-only release requirement.
+
+For **generated-project** releases, Wiki verification is not inherited automatically. The workflow records the Wiki check as `not-applicable`; a generated project that deliberately adopts a Wiki must define and evidence its own publication contract rather than treating the canonical template requirement as passed.
 
 Some evidence is necessarily an **observation**, not a repository fact. The report labels these separately from deterministic provider controls:
 
 - successful retrieval of GitHub-generated ZIP/tar source archives;
-- the explicit browser review of the Wiki Home/sidebar/navigation.
+- for template mode only, the explicit browser review of the Wiki Home/sidebar/navigation.
 
-A missing or failed observation remains non-green, but its category is preserved so the report does not imply that a browser review or network retrieval was derived from Git history.
+A missing or failed applicable observation remains non-green, but its category is preserved so the report does not imply that a browser review or network retrieval was derived from Git history.
 
 ## Evidence retained
 
-The workflow retains, for 90 days:
+The workflow retains its diagnostic reports as Actions artifacts for 90 days, including:
 
-- `snapshot.json`: the normalized input facts used by the validator;
-- the authoritative Wiki comparison JSON/Markdown when applicable;
+- `certification-plan.json`: the raw-asset partition into certification evidence and product/runtime assets, or explicit generated-mode not-applicable certification scope;
+- `certification-verification.json`: the independent certification verification result, or explicit not-applicable scope;
+- `snapshot.json`: the normalized input facts used by the closeout validator;
+- the authoritative Wiki comparison JSON/Markdown when applicable, or the explicit generated-mode Wiki record;
 - `release-closeout.json`: machine-readable closeout result;
 - `release-closeout.md`: concise human-readable closeout result.
 
-`release-closeout.json` records the SHA-256 of `snapshot.json`, the candidate/tag/profile identity, deterministic and observation status, tag/CI/Release/asset/comparison/milestone/Wiki state, and categorized findings. Retaining the snapshot makes the conclusion replayable without relying on a maintainer workstation.
+`release-closeout.json` records the SHA-256 of `snapshot.json`, the candidate/tag/profile identity, deterministic and observation status, tag/CI/Release/product-asset/comparison/milestone/Wiki state, certification status and categorized findings. Retaining the snapshot makes the conclusion replayable without relying on a maintainer workstation.
+
+The 90-day Actions retention is **not** the durability contract for canonical certification. The certification plan records that durable policy as `retention_lifetime: published-release-lifetime`: the four certification attachments must remain attached unchanged to the GitHub Release for the lifetime of that release as required by [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md). An expiring workflow artifact does not replace that durable record.
 
 ## Offline fixture contract
 

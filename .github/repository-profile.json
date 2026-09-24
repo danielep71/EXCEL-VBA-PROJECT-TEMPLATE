@@ -25,6 +25,7 @@
     ".github/scripts/labels-drift.mjs",
     ".github/scripts/labels-sync.mjs",
     ".github/workflows/external-links.yml",
+    ".github/workflows/generated-profile-matrix.yml",
     ".github/workflows/labels-drift.yml",
     ".github/workflows/labels-sync.yml",
     ".github/workflows/static-checks.yml",
@@ -65,6 +66,8 @@
     "tools/test_documentation.py",
     "tools/test_excel_evidence.py",
     "tools/test_release_provenance.py",
+    "tools/test_template_verification_depth.py",
+    "tools/test_template_workflow_validation.py",
     "tools/test_workflow_validation.py",
     "VERSION"
   ],
@@ -239,6 +242,7 @@
     "template_only_paths": [
       ".github/release-history-policy.json",
       ".github/workflows/checker-development.yml",
+      ".github/workflows/generated-profile-matrix.yml",
       ".github/workflows/maintenance.yml",
       ".github/workflows/portfolio-drift.yml",
       ".github/workflows/wiki-checks.yml",
@@ -285,6 +289,8 @@
       "tools/test_portfolio_drift.py",
       "tools/test_portfolio_quality.py",
       "tools/test_provision_repository.py",
+      "tools/test_template_verification_depth.py",
+      "tools/test_template_workflow_validation.py",
       "tools/test_wiki.py"
     ],
     "exclude_paths": [

@@ -1,8 +1,9 @@
 name: CodeQL security analysis
 run-name: CodeQL — ${{ github.ref_name }} @ ${{ github.sha }}
 
-# Template-maintainer supply-chain evidence. This analyzes maintained Python and
-# JavaScript source; it does not execute Excel or certify a release candidate.
+# Private runs require confirmed eligibility and ENABLE_PRIVATE_CODEQL=true.
+# This analyzes maintained Python and JavaScript source; it does not execute
+# Excel or certify a release candidate.
 
 on:
   push:
@@ -25,8 +26,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  eligibility:
+    name: Check CodeQL eligibility
+    if: github.event.repository.private == false || vars.ENABLE_PRIVATE_CODEQL == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Record eligible analysis
+        run: echo 'CodeQL is enabled for this repository visibility and eligibility policy.'
+
   analyze:
     name: Analyze ${{ matrix.language }}
+    needs: eligibility
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -61,6 +73,7 @@ jobs:
 
   analyze-pr:
     name: Analyze PR ${{ matrix.language }} (read-only)
+    needs: eligibility
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 20

@@ -53,8 +53,14 @@ rerun. Never compensate by manually editing an already-tested artifact.
 
 ## 1. Freeze and identify the candidate
 
-Start from the repository's protected release path, freeze scope, and record the
-exact base/candidate revisions.
+Before a functional release, verify the required branch/tag protection and
+repository capabilities through live settings/read-back evidence. Treat any
+unavailable or unverified control as an explicit release prerequisite or
+limitation; files in the repository do not prove that server-side protection is
+active.
+
+Then start from the reviewed release path, freeze scope, and record the exact
+base/candidate revisions.
 
 ```bash
 git fetch --tags --prune
@@ -274,13 +280,15 @@ requirement unless they explicitly adopt an equivalent local policy.
 ### Initialized generated project
 
 Use this sequence for an initialized generated project under the default tag
-policy:
+policy. Run the entire subshell block; each failure stops subsequent commands
+and returns a nonzero status without exiting an interactive parent shell:
 
 ```bash
-git switch main
-git pull --ff-only
-candidate_sha="$(git rev-parse HEAD)"
-release_version="$(tr -d '\r\n' < VERSION)"
+(
+git switch main || exit $?
+git pull --ff-only || exit $?
+candidate_sha="$(git rev-parse HEAD)" || exit $?
+release_version="$(tr -d '\r\n' < VERSION)" || exit $?
 release_tag="v${release_version}"
 
 python3 tools/check_release.py \
@@ -289,18 +297,19 @@ python3 tools/check_release.py \
   --candidate-sha "$candidate_sha" \
   --evidence ../release-evidence.json \
   --output test-results/release-integrity.json \
-  --summary test-results/release-integrity.md
+  --summary test-results/release-integrity.md || exit $?
 
-git tag -a "$release_tag" -m "{{PROJECT_NAME}} ${release_version}"
+git tag -a "$release_tag" "$candidate_sha" -m "{{PROJECT_NAME}} ${release_version}" || exit $?
 
 python3 tools/check_release.py \
   --root . \
   --tag "$release_tag" \
   --candidate-sha "$candidate_sha" \
   --evidence ../release-evidence.json \
-  --require-tag-ref
+  --require-tag-ref || exit $?
 
-git push origin "$release_tag"
+git push origin "refs/tags/$release_tag:refs/tags/$release_tag" || exit $?
+)
 ```
 
 <!-- template:remove:start -->
@@ -314,15 +323,18 @@ remains outside the repository and whose public half is registered on GitHub
 and verification principal are both `danielep71`.
 
 Set `RELEASE_SIGNING_KEY` to the local private-key path. Do not commit the private
-key, a copy of it, an agent socket, or signing credentials. Then run:
+key, a copy of it, an agent socket, or signing credentials. Run the complete
+subshell block so any failed prerequisite, validation, signing or post-tag check
+prevents publication:
 
 ```bash
-git switch main
-git pull --ff-only
-candidate_sha="$(git rev-parse HEAD)"
-release_version="$(tr -d '\r\n' < VERSION)"
+(
+git switch main || exit $?
+git pull --ff-only || exit $?
+candidate_sha="$(git rev-parse HEAD)" || exit $?
+release_version="$(tr -d '\r\n' < VERSION)" || exit $?
 release_tag="v${release_version}"
-: "${RELEASE_SIGNING_KEY:?set RELEASE_SIGNING_KEY to the canonical SSH signing private key}"
+: "${RELEASE_SIGNING_KEY:?set RELEASE_SIGNING_KEY to the canonical SSH signing private key}" || exit $?
 
 python3 tools/check_release.py \
   --root . \
@@ -330,19 +342,20 @@ python3 tools/check_release.py \
   --candidate-sha "$candidate_sha" \
   --evidence ../release-evidence.json \
   --output test-results/release-integrity.json \
-  --summary test-results/release-integrity.md
+  --summary test-results/release-integrity.md || exit $?
 
 git -c gpg.format=ssh -c user.signingkey="$RELEASE_SIGNING_KEY" \
-  tag -s "$release_tag" -m "{{PROJECT_NAME}} ${release_version}"
+  tag -s "$release_tag" "$candidate_sha" -m "{{PROJECT_NAME}} ${release_version}" || exit $?
 
 python3 tools/check_release.py \
   --root . \
   --tag "$release_tag" \
   --candidate-sha "$candidate_sha" \
   --evidence ../release-evidence.json \
-  --require-tag-ref
+  --require-tag-ref || exit $?
 
-git push origin "$release_tag"
+git push origin "refs/tags/$release_tag:refs/tags/$release_tag" || exit $?
+)
 ```
 
 The authoritative post-tag gate retrieves only the configured GitHub account's
@@ -391,7 +404,7 @@ its `excel-host-evidence` check and `--excel-evidence` in both pre-tag and
 post-tag validations. A manual run remains explicitly manual; an unavailable
 runner is not compile or regression evidence.
 
-Create the release from the protected annotated tag. Include:
+After verifying the required protection controls, create the release from the certified annotated tag. Include:
 
 - user-facing summary/highlights;
 - upgrade or migration notes;
