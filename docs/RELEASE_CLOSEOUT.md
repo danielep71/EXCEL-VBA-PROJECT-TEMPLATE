@@ -71,7 +71,7 @@ The workflow retains its diagnostic reports as Actions artifacts for 90 days, in
 
 `release-closeout.json` records the SHA-256 of `snapshot.json`, the candidate/tag/profile identity, deterministic and observation status, tag/CI/Release/product-asset/comparison/milestone/Wiki state, certification status and categorized findings. Retaining the snapshot makes the conclusion replayable without relying on a maintainer workstation.
 
-The 90-day Actions retention is **not** the durability contract for canonical certification. The four certification attachments must remain attached unchanged to the GitHub Release for the lifetime of that release as required by [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md). An expiring workflow artifact does not replace that durable record.
+The 90-day Actions retention is **not** the durability contract for canonical certification. The certification plan records that durable policy as `retention_lifetime: published-release-lifetime`: the four certification attachments must remain attached unchanged to the GitHub Release for the lifetime of that release as required by [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md). An expiring workflow artifact does not replace that durable record.
 
 ## Offline fixture contract
 
