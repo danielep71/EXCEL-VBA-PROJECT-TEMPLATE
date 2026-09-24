@@ -20,6 +20,65 @@ ROOT = Path(__file__).resolve().parents[1]
 TODAY = date(2026, 9, 9)
 
 
+def assert_readme_presentation(testcase: unittest.TestCase, root: Path) -> None:
+    """Validate canonical-template or generated-project README ownership boundaries."""
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    profile = json.loads(
+        (root / ".github/repository-profile.json").read_text(encoding="utf-8")
+    )
+
+    if profile.get("mode") == "generated":
+        record = json.loads(
+            (root / ".github/initialization.json").read_text(encoding="utf-8")
+        )
+        testcase.assertEqual(
+            [line for line in readme.splitlines() if line.startswith("# ")],
+            [f"# ⚡ {record['values']['PROJECT_NAME']}"],
+        )
+        repository = profile["repository"]
+        testcase.assertIn(
+            f"https://github.com/{repository}/actions/workflows/static-checks.yml",
+            readme,
+        )
+        testcase.assertNotIn("{{", readme)
+        testcase.assertNotIn("<!-- template:", readme)
+
+        preview = record["values"].get("SOCIAL_PREVIEW_PATH")
+        if preview:
+            testcase.assertTrue((root / preview).is_file())
+            testcase.assertIn(
+                f"<!-- generated-social-preview: {preview} -->",
+                readme,
+            )
+        else:
+            testcase.assertNotIn('src="assets/social-preview.png"', readme)
+            testcase.assertNotIn("<!-- generated-social-preview:", readme)
+        return
+
+    repository_token = "{" + "{REPOSITORY_PATH}" + "}"
+    preview_token = "{" + "{SOCIAL_PREVIEW_PATH}" + "}"
+    testcase.assertNotIn(f"https://github.com/{repository_token}", readme)
+    testcase.assertNotIn(
+        f"https://api.scorecard.dev/projects/github.com/{repository_token}",
+        readme,
+    )
+    testcase.assertNotIn(
+        f"https://scorecard.dev/viewer/?uri=github.com/{repository_token}",
+        readme,
+    )
+    testcase.assertNotIn("securityscorecards.dev", readme)
+    canonical_repository = "danielep71/" + "EXCEL-VBA-" + "PROJECT-TEMPLATE"
+    testcase.assertIn(
+        f"https://api.scorecard.dev/projects/github.com/{canonical_repository}/badge",
+        readme,
+    )
+    testcase.assertIn('src="assets/social-preview.png"', readme)
+    testcase.assertIn(
+        f"<!-- generated-social-preview: {preview_token} -->",
+        readme,
+    )
+
+
 class DocumentationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -47,72 +106,92 @@ class DocumentationTests(unittest.TestCase):
             self.assertTrue(all(call.args[0][0] == "git" for call in popen.call_args_list))
 
     def test_readme_presentation_uses_repository_identity_and_selected_assets(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        profile = json.loads(
-            (ROOT / ".github/repository-profile.json").read_text(encoding="utf-8")
-        )
+        assert_readme_presentation(self, ROOT)
 
-        if profile.get("mode") == "generated":
-            record = json.loads(
-                (ROOT / ".github/initialization.json").read_text(encoding="utf-8")
-            )
-            self.assertEqual(
-                [line for line in readme.splitlines() if line.startswith("# ")],
-                [f"# ⚡ {record['values']['PROJECT_NAME']}"],
-            )
-            repository = profile["repository"]
-            canonical_repository = "danielep71/" + "EXCEL-VBA-" + "PROJECT-TEMPLATE"
-            self.assertNotEqual(repository, canonical_repository)
-            self.assertNotIn(
-                f"https://github.com/{canonical_repository}/actions/workflows/static-checks.yml",
-                readme,
-            )
-            self.assertNotIn(
-                f"https://api.scorecard.dev/projects/github.com/{canonical_repository}",
-                readme,
-            )
-            self.assertNotIn(
-                f"https://scorecard.dev/viewer/?uri=github.com/{canonical_repository}",
-                readme,
-            )
-            self.assertNotIn("{{", readme)
-            self.assertNotIn("<!-- template:", readme)
-
-            marker = "<!-- generated-social-preview: "
-            preview_markers = [
-                line.strip()
-                for line in readme.splitlines()
-                if line.strip().startswith(marker)
-            ]
-            self.assertLessEqual(len(preview_markers), 1)
-            if preview_markers:
-                preview = preview_markers[0][len(marker):].removesuffix(" -->").strip()
-                self.assertTrue(preview)
-                self.assertTrue((ROOT / preview).is_file())
-            return
-
-        repository_token = "{" + "{REPOSITORY_PATH}" + "}"
-        preview_token = "{" + "{SOCIAL_PREVIEW_PATH}" + "}"
-        self.assertNotIn(f"https://github.com/{repository_token}", readme)
-        self.assertNotIn(
-            f"https://api.scorecard.dev/projects/github.com/{repository_token}",
-            readme,
+    def _generated_readme_fixture(
+        self,
+        *,
+        preview: bool,
+        badge: str = "status",
+        repository: str = "example/generated-project",
+    ) -> Path:
+        fixture = self.root / f"generated-{'preview' if preview else 'no-preview'}-{badge}"
+        (fixture / ".github").mkdir(parents=True)
+        values = {
+            "PROJECT_NAME": "Generated Project",
+            "SOCIAL_PREVIEW_PATH": "assets/social-preview.png" if preview else None,
+        }
+        (fixture / ".github/repository-profile.json").write_text(
+            json.dumps({
+                "mode": "generated",
+                "profile": "library",
+                "repository": repository,
+            }),
+            encoding="utf-8",
         )
-        self.assertNotIn(
-            f"https://scorecard.dev/viewer/?uri=github.com/{repository_token}",
-            readme,
+        (fixture / ".github/initialization.json").write_text(
+            json.dumps({"values": values}),
+            encoding="utf-8",
         )
-        self.assertNotIn("securityscorecards.dev", readme)
+        readme = (
+            "# ⚡ Generated Project\n\n"
+            f"[{badge}](https://github.com/{repository}/actions/workflows/static-checks.yml)\n"
+        )
+        if preview:
+            (fixture / "assets").mkdir()
+            (fixture / "assets/social-preview.png").write_bytes(b"fixture")
+            readme += (
+                '\n<img src="assets/social-preview.png" alt="preview">\n'
+                "<!-- generated-social-preview: assets/social-preview.png -->\n"
+            )
+        (fixture / "README.md").write_text(readme, encoding="utf-8")
+        return fixture
+
+    def test_generated_readme_accepts_preview_present_and_absent(self):
+        for preview in (True, False):
+            with self.subTest(preview=preview):
+                fixture = self._generated_readme_fixture(preview=preview)
+                assert_readme_presentation(self, fixture)
+
+    def test_generated_readme_allows_project_owned_badge_text(self):
+        for badge in ("status", "build", "quality-gate"):
+            with self.subTest(badge=badge):
+                fixture = self._generated_readme_fixture(preview=False, badge=badge)
+                assert_readme_presentation(self, fixture)
+
+    def test_generated_readme_rejects_wrong_repository_identity(self):
+        fixture = self._generated_readme_fixture(preview=False)
+        readme = (fixture / "README.md").read_text(encoding="utf-8")
+        (fixture / "README.md").write_text(
+            readme.replace("example/generated-project", "example/wrong-project"),
+            encoding="utf-8",
+        )
+        with self.assertRaises(AssertionError):
+            assert_readme_presentation(self, fixture)
+
+    def test_generated_readme_rejects_residual_template_markers(self):
+        fixture = self._generated_readme_fixture(preview=False)
+        with (fixture / "README.md").open("a", encoding="utf-8") as handle:
+            handle.write("\n<!-- template:optional:SOCIAL_PREVIEW_PATH -->\n{{PROJECT_NAME}}\n")
+        with self.assertRaises(AssertionError):
+            assert_readme_presentation(self, fixture)
+
+    def test_generated_readme_rejects_missing_selected_preview(self):
+        fixture = self._generated_readme_fixture(preview=True)
+        (fixture / "assets/social-preview.png").unlink()
+        with self.assertRaises(AssertionError):
+            assert_readme_presentation(self, fixture)
+
+    def test_generated_readme_rejects_canonical_only_presentation_assertion(self):
+        fixture = self._generated_readme_fixture(preview=False)
+        readme = (fixture / "README.md").read_text(encoding="utf-8")
         canonical_repository = "danielep71/" + "EXCEL-VBA-" + "PROJECT-TEMPLATE"
-        self.assertIn(
+        self.assertNotIn(
             f"https://api.scorecard.dev/projects/github.com/{canonical_repository}/badge",
             readme,
         )
-        self.assertIn('src="assets/social-preview.png"', readme)
-        self.assertIn(
-            f"<!-- generated-social-preview: {preview_token} -->",
-            readme,
-        )
+        self.assertNotIn('src="assets/social-preview.png"', readme)
+
 
     def test_utf8_repository_reads_do_not_depend_on_locale(self):
         workflow = self.root / ".github/workflows/fixture.yml"
