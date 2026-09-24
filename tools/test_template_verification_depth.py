@@ -27,7 +27,92 @@ import collect_portfolio_snapshot as snapshot
 import initialize_repository as initializer
 import policy_coverage_runner as coverage_runner
 import provision_repository as provision
+import release_certification as certification
 
+
+class CertificationCloseoutDocumentationTests(unittest.TestCase):
+    """Keep certification evidence distinct from product/runtime release assets."""
+
+    def release_asset(self, name: str, asset_id: int) -> dict[str, object]:
+        return {
+            "id": asset_id,
+            "name": name,
+            "url": f"https://api.example.invalid/assets/{asset_id}",
+            "browser_download_url": f"https://example.invalid/{name}",
+            "size": 1,
+            "digest": "sha256:" + "0" * 64,
+        }
+
+    def test_canonical_source_only_partition_and_closeout_semantics(self) -> None:
+        tag = "v1.2.1"
+        names = certification.certification_asset_names(tag)
+        with tempfile.TemporaryDirectory() as temporary:
+            release_path = Path(temporary) / "release.json"
+            assets = [
+                self.release_asset(names[kind], index)
+                for index, kind in enumerate(("bundle", "manifest", "digest", "signature"), start=1)
+            ]
+            release_path.write_text(
+                json.dumps({"tag_name": tag, "assets": assets}),
+                encoding="utf-8",
+            )
+            plan = certification.plan_release_assets(release_path, tag)
+            self.assertEqual(len(plan["certification_assets"]), 4)
+            self.assertEqual(plan["product_assets"], [])
+            self.assertEqual(plan["retention_lifetime"], "published-release-lifetime")
+
+            extra = self.release_asset("product.bin", 99)
+            release_path.write_text(
+                json.dumps({"tag_name": tag, "assets": [*assets, extra]}),
+                encoding="utf-8",
+            )
+            plan_with_product = certification.plan_release_assets(release_path, tag)
+            self.assertEqual(
+                [row["name"] for row in plan_with_product["product_assets"]],
+                ["product.bin"],
+            )
+
+        findings: list[dict[str, str]] = []
+        closeout.check_release(
+            {
+                "release": {
+                    "id": 1,
+                    "tag_name": tag,
+                    "draft": False,
+                    "published_at": "2026-09-24T00:00:00Z",
+                    "prerelease": False,
+                    "assets": plan_with_product["product_assets"],
+                    "zipball_url": "https://example.invalid/source.zip",
+                    "tarball_url": "https://example.invalid/source.tar",
+                },
+                "latest_release": {"id": 1},
+                "source_archives": {"zip": "pass", "tar": "pass"},
+            },
+            {"version": "1.2.1", "allowed_asset_globs": []},
+            False,
+            True,
+            findings,
+        )
+        self.assertTrue(
+            any(
+                row.get("control") == "assets"
+                and "source-only release profile contains uploaded assets" in row.get("message", "")
+                for row in findings
+            )
+        )
+
+        guide = (Path(__file__).resolve().parents[1] / "docs/RELEASE_CLOSEOUT.md").read_text(
+            encoding="utf-8"
+        )
+        for phrase in (
+            "certification-evidence attachments",
+            "product/runtime assets",
+            "provider-generated source archives",
+            "four certification attachments",
+            "published-release-lifetime",
+        ):
+            self.assertIn(phrase, guide)
+        self.assertNotIn("uploaded_assets" + "` must remain empty", guide)
 
 class InitializerDepthTests(unittest.TestCase):
     def test_load_config_failure_shapes(self) -> None:
