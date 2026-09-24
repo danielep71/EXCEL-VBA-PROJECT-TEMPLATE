@@ -990,6 +990,21 @@ def _assert_adopted_contract(source: Path, config: dict[str, Any]) -> None:
             f"{completed.stdout}{completed.stderr}"
         )
 
+def _assert_retained_documentation_tests(source: Path) -> None:
+    completed = subprocess.run(
+        [sys.executable, str(source / "tools" / "test_documentation.py"), "-v"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=source,
+    )
+    if completed.returncode != 0:
+        raise AssertionError(
+            "Generated repository failed retained documentation tests:\n"
+            f"{completed.stdout}{completed.stderr}"
+        )
+
+
 def _generated_self_test(source: Path) -> None:
     config = _load_config(source)
     profile, scalars, repeatable = _record_arguments(source)
@@ -1132,6 +1147,7 @@ def self_test(source: Path) -> None:
             _assert_generated_cleanup(fixture, profile)
             _assert_fresh_generated_content(fixture, profile)
             _generated_self_test(fixture)
+            _assert_retained_documentation_tests(fixture)
 
             evolved = base / f"{profile}-evolved"
             _make_evolved_generated_fixture(fixture, evolved)
@@ -1149,6 +1165,7 @@ def self_test(source: Path) -> None:
                     f"{profile} evolved generated-project rerun was not idempotent."
                 )
             _generated_self_test(evolved)
+            _assert_retained_documentation_tests(evolved)
 
             completed, report = _quality_report(fixture)
             if completed.returncode != 0:
