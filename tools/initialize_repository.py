@@ -539,6 +539,11 @@ def _build_changes(
     generated_config["mode"] = "generated"
     generated_config["profile"] = profile
     generated_config["repository"] = scalars["REPOSITORY_PATH"]
+    generated_config["required_paths"] = [
+        path
+        for path in generated_config["required_paths"]
+        if path not in template_only
+    ]
     changes[CONFIG_PATH] = (
         json.dumps(generated_config, indent=2, ensure_ascii=False) + "\n"
     ).encode("utf-8")
