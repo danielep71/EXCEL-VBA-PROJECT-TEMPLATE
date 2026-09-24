@@ -48,10 +48,8 @@ def assert_readme_presentation(testcase: unittest.TestCase, root: Path) -> None:
         preview = record["values"].get("SOCIAL_PREVIEW_PATH")
         if preview:
             testcase.assertTrue((root / preview).is_file())
-            testcase.assertIn(
-                f"<!-- generated-social-preview: {preview} -->",
-                readme,
-            )
+            testcase.assertIn(f'src="{preview}"', readme)
+            testcase.assertNotIn("<!-- generated-social-preview:", readme)
         else:
             testcase.assertNotIn('src="assets/social-preview.png"', readme)
             testcase.assertNotIn("<!-- generated-social-preview:", readme)
