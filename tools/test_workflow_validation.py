@@ -172,6 +172,34 @@ def write_fixture_text(root: Path, relative: str, content: str) -> Path:
     return path
 
 
+def scorecard_git_input(published: str) -> bool:
+    """Bind the input to the Scorecard step's block-style with mapping.
+
+    Unsupported layouts fail closed; actionlint remains the YAML syntax owner.
+    Comments and inputs on other steps cannot satisfy this policy.
+    """
+    steps = re.split(r"(?m)^      - ", published)
+    scorecard_steps = [
+        step for step in steps
+        if re.search(r"(?m)^        uses: ossf/scorecard-action@[^\s]+(?:\s+#.*)?$", step)
+    ]
+    if len(scorecard_steps) != 1:
+        return False
+    mappings = re.findall(
+        r"(?ms)^        with:[ \t]*(?:#[^\n]*)?\n(.*?)(?=^        \S|\Z)",
+        scorecard_steps[0],
+    )
+    if len(mappings) != 1:
+        return False
+    values = re.findall(
+        r"(?m)^          (?:file_mode|'file_mode'|\"file_mode\"):[ \t]*([^\n]*)$",
+        mappings[0],
+    )
+    return len(values) == 1 and re.fullmatch(
+        r"(?:git|'git'|\"git\")[ \t]*(?:#.*)?", values[0]
+    ) is not None
+
+
 def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
     path = root / SCORECARD_WORKFLOW
     if not path.is_file():
@@ -213,9 +241,9 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         failures.append(
             "Scorecard publication must grant id-token: write only to the published job"
         )
-    if "file_mode: git" not in published:
+    if not scorecard_git_input(published):
         failures.append(
-            "Scorecard published job must enumerate the checked repository through git"
+            "Scorecard published job must bind file_mode: git to the Scorecard action"
         )
     if "verify-publication:" not in text:
         failures.append("Scorecard workflow must verify the public result after publication")
