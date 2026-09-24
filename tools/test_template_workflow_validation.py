@@ -22,6 +22,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import create_reusable_workflow_fixture as reusable_fixture
+import test_workflow_validation as retained_workflow
 
 EXPECTED_ACTIONLINT_VERSION = "1.7.12"
 WORKFLOW_SHA = "a" * 40
@@ -379,6 +380,35 @@ class ScorecardReviewRegressionTests(unittest.TestCase):
             with self.subTest(value=value):
                 changed = self.workflow.replace("file_mode: git", f"file_mode: {value}")
                 self.assertEqual(self.check_contract(changed), ("PASS", []))
+
+    def test_retained_file_mode_binding_rejects_comment_and_other_step_bypasses(self) -> None:
+        def retained_contract(workflow: str) -> tuple[str, list[str]]:
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                write_fixture_text(root, SCORECARD_WORKFLOW, workflow)
+                return retained_workflow.scorecard_publication_contract(root)
+
+        for replacement in (
+            "          file_mode: archive # file_mode: git",
+            "          # file_mode: git",
+            "          other: git # file_mode: git",
+            "        env:\n          file_mode: git",
+        ):
+            with self.subTest(replacement=replacement):
+                changed = self.workflow.replace("          file_mode: git", replacement)
+                self.assertEqual(retained_contract(changed)[0], "FAIL")
+
+        changed = self.workflow.replace("          file_mode: git", "          file_mode: archive")
+        changed = changed.replace(
+            "          fetch-depth: 0",
+            "          fetch-depth: 0\n          file_mode: git",
+        )
+        self.assertEqual(retained_contract(changed)[0], "FAIL")
+
+        for value in ("git # documented", "'git'", '"git"'):
+            with self.subTest(value=value):
+                changed = self.workflow.replace("file_mode: git", f"file_mode: {value}")
+                self.assertEqual(retained_contract(changed), ("PASS", []))
 
     def test_actual_badge_script_requires_safe_svg_document(self) -> None:
         scripts = self.workflow.split("if python3 - <<'PY'\n")[1:]
