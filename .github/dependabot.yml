@@ -13,3 +13,15 @@ updates:
     labels:
       - "ci"
       - "tests"
+    groups:
+      # github/codeql-action publishes init, analyze and upload-sarif as
+      # separate action paths within one release, and Dependabot proposes one
+      # pull request per path. The action itself refuses a mixed release:
+      # init writes a configuration stamped with its own version and analyze
+      # rejects it with "Loaded a configuration file for version 'X', but
+      # running version 'Y'". Split proposals therefore cannot go green
+      # individually, only together. Grouping them keeps one reviewed pull
+      # request that moves every call site to the same SHA at once.
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
