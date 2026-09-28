@@ -102,6 +102,10 @@ Use only the categories needed by a release.
 
 ## [1.2.1] - 2026-09-28
 
+### Added
+
+- Added a generated-profile CI matrix that creates a fresh library, UI-component and application repository, each with and without the preview, and in each one proves the generated tree is self-contained, inspects the rendered pull-request template, and runs the retained tests and quality gates. A generated repository that passes initialization and the repository gate but fails its own inherited CI is now caught in the template.
+
 ### Changed
 
 - Added pinned CodeQL analysis for maintained Python/JavaScript, weekly GitHub Actions update proposals through Dependabot, and trusted-context OpenSSF Scorecard publication; pull-request CodeQL now runs as a separate read-only, non-publishing analysis path and `pull_request_target` remains prohibited by repository validation.
@@ -114,6 +118,8 @@ Use only the categories needed by a release.
 - Added a reproducible local validation environment for template maintainers: `tools/requirements-dev.txt` pins the Python tooling to the versions hosted CI installs, and `tools/dev_check.sh` runs the locally reproducible gates in the hosted order. It fails when a pin no longer mirrors the workflow that owns it or when an installed version does not match the pin, and it reports coverage, Excel evidence, live GitHub state and — unless `actionlint` is on `PATH` — workflow validation as skipped rather than passed.
 - Replaced the disposable per-task workflow pattern with `.github/workflows/maintenance.yml`, one permanent dispatch-only home for maintenance tasks that must run in the pinned environment and commit their result. The task list is a closed `choice` passed to the shell through `env`, write scope is granted on the job rather than the workflow, the result is validated before it is committed, and a task that changes nothing exits without an empty commit. Both files are template-only and are removed from generated projects by initialization.
 - Added canonical-template release-history validation from the previous release tag to the candidate SHA. Unapproved merge commits and duplicate commit subjects now block release semantics; base-tag/SHA-scoped reviewed exceptions remain auditable, while v1.2.0 merge ancestry is preserved as historical evidence and generated projects do not inherit this policy.
+- Made inherited CodeQL and OpenSSF Scorecard workflows visibility-aware. CodeQL runs on public repositories, and on private ones only after a recorded eligibility job when `ENABLE_PRIVATE_CODEQL` is `true`; every Scorecard job requires a public repository, so a private generated project never attempts publication.
+- Separated restricted-historical and pending-publication external-link observations from deterministic public-page defects. Each classification is scoped to the SHA-256 of one exact URL, carries a reason and an expiry, is redacted in reports, is never probed with credentials, and remains explicitly non-green.
 
 ### Fixed
 
@@ -130,6 +136,12 @@ Use only the categories needed by a release.
 - Make Scorecard publication fail closed: keep OpenSSF-forbidden global/job environment settings out of the publishing path, verify the exact-SHA public API record after the Action completes, validate the actual badge SVG so error badges such as `invalid repo path` cannot pass silently, and use Git file enumeration so file-based Scorecard checks see the reviewed repository tree.
 - Reject flow-style environment/default declarations in Scorecard publication policy and bind `file_mode: git` to the actual Scorecard step input, not comments or other steps. Unsupported input layouts fail closed.
 - Parse public badge evidence as an SVG-rooted XML document and reject malformed XML, HTML containing SVG, and DOCTYPE declarations before accepting publication.
+- Make retained README presentation tests pass in generated repositories instead of assuming the canonical template's presentation.
+- Stop generated projects inheriting test modules that import template-maintainer tools initialization deletes; template-only variants are now stripped, so the generated tree is self-contained.
+- Render the pull-request template's project identity and profile during initialization and reject retained legacy setup fields, so a generated repository no longer ships a template that asks to be customized before its first pull request.
+- Make the documented generated-project and canonical SSH-signed tag-publication command blocks stop at the first failed step, so a failed pre-tag validation can no longer be followed by tag creation and push.
+- Correct retained documentation for initialized projects: separate template-mode from generated-mode self-test behavior, qualify instructions that name deleted maintainer tools or absent workflows, replace pending-contract wording with the published baseline, name the provenance-record, Git-tag and certification-bundle signature scopes, and describe server-side protection as a verified prerequisite rather than an enforced control.
+- Align release-closeout documentation with the partitioning of certification assets from product assets.
 
 ## [1.2.0] - 2026-09-10
 
