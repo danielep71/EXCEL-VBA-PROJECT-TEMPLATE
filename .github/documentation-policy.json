@@ -47,6 +47,7 @@
     "redirects": 3,
     "max_links": 200,
     "domains": {
+      "api.scorecard.dev": "OpenSSF Scorecard public API badge",
       "docs.github.com": "Official GitHub documentation",
       "github.com": "Repository, release and workflow references",
       "img.shields.io": "Documentation badges",
@@ -54,6 +55,7 @@
       "man.openbsd.org": "OpenSSH reference manual",
       "pypi.org": "Python dependency metadata",
       "pyyaml.org": "YAML parser project documentation",
+      "scorecard.dev": "OpenSSF Scorecard public result viewer",
       "semver.org": "Versioning specification",
       "support.microsoft.com": "Office support documentation",
       "www.contributor-covenant.org": "Code of conduct authority"
@@ -185,6 +187,18 @@
         "kind": "restricted-historical",
         "reason": "Authenticated v1.0.0 pilot evidence retained for historical audit; anonymous GitHub access is not expected.",
         "expires": "2027-09-12"
+      },
+      {
+        "id": "29915e085fbd8eafe91817e97699cf228d565032c9cf5c24e4b7ed550e2bef13",
+        "kind": "pending-publication",
+        "reason": "v1.2.1 CHANGELOG comparison link; resolves only after the v1.2.1 tag is pushed. Remove after publication and require the normal anonymous check.",
+        "expires": "2026-10-31"
+      },
+      {
+        "id": "45e802e1833d71ea6ec65f5b8ce07ec0f2ced522522063300ab13a49109a5d3c",
+        "kind": "pending-publication",
+        "reason": "v1.2.1 CHANGELOG comparison link; resolves only after the v1.2.1 tag is pushed. Remove after publication and require the normal anonymous check.",
+        "expires": "2026-10-31"
       }
     ]
   }

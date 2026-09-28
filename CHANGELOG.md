@@ -126,7 +126,7 @@ Use only the categories needed by a release.
 - Make release closeout expectation-aware for deliberately non-latest releases and first prereleases, capture every page of GitHub comparison commits, and render the latest-release control consistently with the configured expectation.
 - Keep the canonical template README presentation live by using real CodeQL, OpenSSF Scorecard and social-preview URLs while preserving deterministic repository and preview retargeting during initialization.
 - Split the README's aggregate open-issue badge into live P1, P2 and P3 issue badges that link directly to the corresponding open-priority queues.
-- Update the OpenSSF Scorecard badge and viewer links to the current official `api.scorecard.dev` and `scorecard.dev` endpoints.
+- Update the OpenSSF Scorecard badge and viewer links to the current official `api.scorecard.dev` and `scorecard.dev` endpoints, and approve both domains in the external-link policy so the badge is observed rather than policy-blocked.
 - Make Scorecard publication fail closed: keep OpenSSF-forbidden global/job environment settings out of the publishing path, verify the exact-SHA public API record after the Action completes, validate the actual badge SVG so error badges such as `invalid repo path` cannot pass silently, and use Git file enumeration so file-based Scorecard checks see the reviewed repository tree.
 - Reject flow-style environment/default declarations in Scorecard publication policy and bind `file_mode: git` to the actual Scorecard step input, not comments or other steps. Unsupported input layouts fail closed.
 - Parse public badge evidence as an SVG-rooted XML document and reject malformed XML, HTML containing SVG, and DOCTYPE declarations before accepting publication.
