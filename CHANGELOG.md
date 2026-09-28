@@ -100,6 +100,14 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+### Changed
+
+- Moved every `github/codeql-action` call site (`init`, `analyze` and
+  `upload-sarif`) to v4.38.2 in one update and grouped CodeQL Action proposals in
+  Dependabot. The action rejects a mixed release, so per-path proposals could not
+  pass individually; a release now arrives as one proposal. Generated projects
+  inherit the grouping.
+
 ### Fixed
 
 - Reject flow-style environment/default declarations in Scorecard publication
