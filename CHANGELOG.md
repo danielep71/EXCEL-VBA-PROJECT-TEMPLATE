@@ -100,29 +100,13 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
-### Changed
-
-- Moved every `github/codeql-action` call site (`init`, `analyze` and
-  `upload-sarif`) to v4.38.2 in one update and grouped CodeQL Action proposals in
-  Dependabot. The action rejects a mixed release, so per-path proposals could not
-  pass individually; a release now arrives as one proposal. Generated projects
-  inherit the grouping.
-
-### Fixed
-
-- Reject flow-style environment/default declarations in Scorecard publication
-  policy and bind `file_mode: git` to the actual Scorecard step input, not comments
-  or other steps. Unsupported input layouts fail closed.
-- Parse public badge evidence as an SVG-rooted XML document and reject malformed
-  XML, HTML containing SVG, and DOCTYPE declarations before accepting publication.
-
-## [1.2.1] - 2026-09-22
+## [1.2.1] - 2026-09-28
 
 ### Changed
 
 - Added pinned CodeQL analysis for maintained Python/JavaScript, weekly GitHub Actions update proposals through Dependabot, and trusted-context OpenSSF Scorecard publication; pull-request CodeQL now runs as a separate read-only, non-publishing analysis path and `pull_request_target` remains prohibited by repository validation.
 - Hash-locked the hosted CPython 3.10 quality/coverage/portfolio installs to reviewed wheel SHA-256 digests with `--only-binary=:all: --require-hashes`, while retaining cross-platform local version pins and mirror checks.
-- Refreshed all canonical `github/codeql-action` occurrences together from v4.38.0 to the official v4.38.1 commit `1c5b675653bb5c22dbe9b12b556ec555138e09fd`; the release adds experimental per-language bundle support without changing this repository's CodeQL permissions, triggers, query set, or analysis categories.
+- Refreshed all canonical `github/codeql-action` occurrences (`init`, `analyze` and `upload-sarif`) together from v4.38.0 to the official v4.38.2 commit `2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2`, which adds experimental per-language bundle support and the CodeQL 2.27.1 bundle without changing this repository's CodeQL permissions, triggers, query set, or analysis categories. CodeQL Action proposals are grouped in Dependabot because the action rejects a mixed release, so per-path proposals could not pass individually; generated projects inherit the grouping.
 - Added reproducible maintainer Python coverage with subprocess measurement, a 95% statement floor, and focused behavioral failure-path fixtures for release, template-contract, Wiki, initializer, closeout, and reusable-workflow tooling.
 - Added a read-only post-release closeout workflow that binds the annotated tag, tag-triggered CI, GitHub Release state, candidate-bound asset policy, comparison range, actual milestone membership, Wiki read-back, and provider-generated source archive observations to one certified SHA; uploaded assets remain distinct from GitHub source archives.
 - Defined changelog release dates as the reviewed release-section cut/freeze date rather than tag or publication timestamps. Release-semantic evidence now names that meaning explicitly, accepts same-day releases, and rejects backward cut/freeze-date ordering without relying on wall-clock or provider timestamps.
@@ -144,6 +128,8 @@ Use only the categories needed by a release.
 - Split the README's aggregate open-issue badge into live P1, P2 and P3 issue badges that link directly to the corresponding open-priority queues.
 - Update the OpenSSF Scorecard badge and viewer links to the current official `api.scorecard.dev` and `scorecard.dev` endpoints.
 - Make Scorecard publication fail closed: keep OpenSSF-forbidden global/job environment settings out of the publishing path, verify the exact-SHA public API record after the Action completes, validate the actual badge SVG so error badges such as `invalid repo path` cannot pass silently, and use Git file enumeration so file-based Scorecard checks see the reviewed repository tree.
+- Reject flow-style environment/default declarations in Scorecard publication policy and bind `file_mode: git` to the actual Scorecard step input, not comments or other steps. Unsupported input layouts fail closed.
+- Parse public badge evidence as an SVG-rooted XML document and reject malformed XML, HTML containing SVG, and DOCTYPE declarations before accepting publication.
 
 ## [1.2.0] - 2026-09-10
 
