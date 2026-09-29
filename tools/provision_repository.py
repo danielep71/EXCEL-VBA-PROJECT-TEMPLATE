@@ -201,7 +201,8 @@ def make_plan(before: dict[str, Any], profile: str, version: str) -> dict[str, A
         if key in METHODS and old is False and value is True:
             kept.append(f"Narrower existing merge method retained: {key}")
         elif key in {"has_wiki", "has_projects", "has_discussions", "is_template"} and old is True and value is False and "feature:" + key not in exceptions:
-            blocked.append(f"Disabling {key} needs a recorded feature:{key} exception")
+            blocked.append(f"Disabling {key} needs a recorded feature:{key} exception; "
+                           "on a new repository, turn it off in Settings first")
         else:
             metadata[key] = value
     if metadata:

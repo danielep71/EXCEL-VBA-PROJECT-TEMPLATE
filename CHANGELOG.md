@@ -115,6 +115,23 @@ Use only the categories needed by a release.
   v1.2.1 comparison links now that the tag is published; both links again
   receive the normal anonymous external-link check.
 
+### Fixed
+
+- The guarded provisioner's first plan for a repository created with **Use this
+  template** no longer stops without explanation: GitHub enables Wikis and
+  Projects on every new repository while the baseline policy disables both. The
+  *Configure GitHub* guide and `docs/PROVISIONING.md` now tell maintainers to
+  turn both off in Settings before planning, and the blocker names that remedy.
+  A fixture now starts from GitHub's real new-repository defaults. Found by the
+  v1.2.1 clean-room maintainer journey (#140).
+
+### Documentation
+
+- The *Create the repository* guide and `docs/INITIALIZATION.md` now say that
+  the first *Static repository checks* run of a new repository fails at
+  *Release semantics* on the uninitialized template copy, and that the
+  initialized setup branch is the first meaningful result (#141).
+
 ## [1.2.1] - 2026-09-28
 
 ### Added

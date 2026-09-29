@@ -47,7 +47,15 @@ python --version
 ```
 
 Expected: the remote is your new repository, the default branch is as intended,
-and status prints nothing. Keep the starting SHA in your setup record outside
+and status prints nothing.
+
+The **Actions** tab shows a failed *Static repository checks* run. GitHub
+ran the copied workflows on the initial commit, which is still the uninitialized
+template copy. *Release semantics* fails because the copy still carries the
+template's own release-history policy, whose commits do not exist in the new
+single-commit history. This failure is expected; do not fix it by hand.
+Initialization removes that template-only file, and the first meaningful result
+is the run on your setup pull request. Keep the starting SHA in your setup record outside
 the checkout. Do not create a notes file inside the repository before the
 initializer's clean-tree check.
 
