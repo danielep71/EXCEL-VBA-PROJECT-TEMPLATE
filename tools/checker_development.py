@@ -922,7 +922,7 @@ def self_test_registry_tests() -> list[dict[str, Any]]:
 
 
 def _toml_table(text: str, name: str) -> str:
-    match = re.search(rf"(?ms)^\[{re.escape(name)}\][ \t]*\n(.*?)(?=^\[|\Z)", text)
+    match = re.search(rf"(?ms)^[ \t]*\[{re.escape(name)}\][ \t]*\n(.*?)(?=^[ \t]*\[|\Z)", text)
     return "" if match is None else match.group(1)
 
 
@@ -1012,23 +1012,38 @@ STRICT_FLAGS = (
 
 
 def _mypy_sections(pyproject: str) -> str:
-    return "".join(re.findall(r"(?ms)^\[\[?tool\.mypy[^\]]*\]\]?[ \t]*\n.*?(?=^\[|\Z)", pyproject))
+    return "".join(re.findall(
+        r"(?ms)^[ \t]*\[\[?tool\.mypy[^\]]*\]\]?[ \t]*\n.*?(?=^[ \t]*\[|\Z)", pyproject))
+
+
+def _toml_options(section: str) -> list[tuple[str, str]]:
+    """``(raw line, "key = value")`` per option; TOML allows indented and quoted keys."""
+    options = []
+    for raw in section.splitlines():
+        match = re.match(r"""[ \t]*(["']?)([A-Za-z0-9_-]+)\1[ \t]*=[ \t]*(.*?)[ \t]*$""", raw)
+        if match:
+            options.append((raw.strip(), f"{match.group(2)} = {match.group(3)}"))
+    return options
 
 
 def mypy_relaxations(pyproject: str) -> list[str]:
     """Every configuration line, in any mypy table, that weakens the strict bundle."""
     weakening = re.compile(
-        r"^(?:ignore_errors[ \t]*=[ \t]*true|disable_error_code[ \t]*=.*|strict[ \t]*=[ \t]*false"
-        r"|implicit_reexport[ \t]*=[ \t]*true|(?:" + "|".join(STRICT_FLAGS) + r")[ \t]*=[ \t]*false)\b.*$",
-        re.M,
+        r"(?:ignore_errors = true|disable_error_code = .*|strict = false"
+        r"|implicit_reexport = true|(?:" + "|".join(STRICT_FLAGS) + r") = false)\b.*"
     )
-    return [match.group(0).strip() for match in weakening.finditer(_mypy_sections(pyproject))]
+    return [raw for raw, option in _toml_options(_mypy_sections(pyproject)) if weakening.fullmatch(option)]
+
+
+def _strict_enabled(pyproject: str) -> bool:
+    return any(re.fullmatch(r"strict = true(?:[ \t]*#.*)?", option)
+               for _, option in _toml_options(_toml_table(pyproject, "tool.mypy")))
 
 
 def strict_typing_failures(pyproject: str, workflow: str) -> list[str]:
     """Strict mypy must be configured unweakened, run, and proven by the hosted mypy step."""
     failures: list[str] = []
-    if not re.search(r"(?m)^strict[ \t]*=[ \t]*true[ \t]*(?:#.*)?$", _toml_table(pyproject, "tool.mypy")):
+    if not _strict_enabled(pyproject):
         failures.append("pyproject.toml [tool.mypy] must set strict = true")
     failures.extend(f"pyproject.toml weakens strict mypy: `{line}`" for line in mypy_relaxations(pyproject))
     step = _workflow_step(workflow, "mypy")
@@ -1048,7 +1063,7 @@ def strict_typing_report(root: Path) -> tuple[dict[str, Any], list[str]]:
     workflow = (root / STATIC_CHECKS_PATH).read_text(encoding="utf-8")
     evidence = {
         "configuration": PYPROJECT_PATH.as_posix(),
-        "strict": bool(re.search(r"(?m)^strict[ \t]*=[ \t]*true\b", _toml_table(pyproject, "tool.mypy"))),
+        "strict": _strict_enabled(pyproject),
         "relaxations": mypy_relaxations(pyproject),
         "hosted_step": STATIC_CHECKS_PATH.as_posix() + "#mypy",
         "probe": "annotated function accepted; unannotated function rejected as no-untyped-def",
@@ -1068,6 +1083,11 @@ def strict_typing_tests(root: Path) -> list[dict[str, Any]]:
         ("error-code-disabled", 0, "strict = true\n", 'strict = true\ndisable_error_code = ["attr-defined"]\n'),
         ("flag-relaxed", 0, "strict = true\n", "strict = true\n" + override + "disallow_untyped_defs = false\n"),
         ("reexport-relaxed", 0, "strict = true\n", "strict = true\nimplicit_reexport = true\n"),
+        # TOML permits indented keys and headers, and quoted keys; mypy applies all of them.
+        ("indented-flag", 0, "strict = true\n", "strict = true\n" + override + "  disallow_untyped_defs = false\n"),
+        ("quoted-flag", 0, "strict = true\n", "strict = true\n" + override + "\"ignore_errors\" = true\n"),
+        ("indented-header", 0, "strict = true\n",
+         "strict = true\n\n  [[tool.mypy.overrides]]\n  module = \"x\"\n  ignore_errors = true\n"),
         ("mypy-not-run", 1, "mypy 2>&1", "true 2>&1"),
         ("probe-not-rejected", 1, 'grep -F "[no-untyped-def]"', "true"),
         ("outcome-unenforced", 1, '"mypy type check:$MYPY_OUTCOME" \\\n', ""),
