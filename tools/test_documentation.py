@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import ssl
 import subprocess
 import tempfile
 import threading
@@ -613,6 +614,13 @@ class DocumentationTests(unittest.TestCase):
                 client.connect()
                 connect.assert_called_once_with(("93.184.215.14", 443), 2)
                 wrap.assert_called_once_with(connect.return_value, server_hostname="example.org")
+
+    def test_tls_context_has_explicit_floor_and_full_verification(self):
+        context = links.PinnedHTTPS("example.org", "93.184.215.14", 2).tls_context
+        self.assertEqual(links.MINIMUM_TLS_VERSION, ssl.TLSVersion.TLSv1_2)
+        self.assertEqual(context.minimum_version, ssl.TLSVersion.TLSv1_2)
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.check_hostname)
 
     def test_exception_expiry_reason_and_limits(self):
         network = self.policy["network"]

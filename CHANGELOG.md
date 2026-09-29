@@ -136,6 +136,14 @@ Use only the categories needed by a release.
   the latest release tag (`STALE`). Being ahead of the published source between
   releases is reported as a notice.
 
+### Security
+
+- The external-link client sets TLS 1.2 as an explicit minimum protocol
+  version instead of relying on Python/OpenSSL defaults, keeping the default
+  context's certificate and hostname verification and the checked-IP
+  connection. Generated projects inherit the change. CodeQL
+  `security-extended` reported the implicit floor in an adopter (#131).
+
 ### Documentation
 
 - The *Create the repository* guide and `docs/INITIALIZATION.md` now say that
