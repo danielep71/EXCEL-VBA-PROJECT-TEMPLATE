@@ -25,6 +25,13 @@ rulesets, environments, or other live settings.
 Missing, unknown, duplicated, category-incompatible, and unused substitutions
 are errors. Values may not contain line breaks or reserved template syntax.
 
+Files the initializer writes follow one mode policy. A new file is created as
+`0644`. A replaced file keeps its permission bits, so an executable stays
+executable and an owner-only file stays owner-only, but group/world write and
+setuid/setgid/sticky bits are removed rather than carried over. Files the
+initializer does not write are never re-moded, and a rollback restores each
+original file's exact mode.
+
 Replacements are staged and applied per file; this is not a repository-wide
 filesystem transaction. Rollback itself can fail if the filesystem remains
 unwritable, and newly created directories may remain. After any apply failure,

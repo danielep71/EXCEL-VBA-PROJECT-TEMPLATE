@@ -143,6 +143,11 @@ Use only the categories needed by a release.
   context's certificate and hostname verification and the checked-IP
   connection. Generated projects inherit the change. CodeQL
   `security-extended` reported the implicit floor in an adopter (#131).
+- The initializer no longer carries group/world-writable or
+  setuid/setgid/sticky bits from a file it replaces into the rewritten file.
+  New files are `0644`; replaced files keep their executable and owner-only
+  bits. Files it does not write, and rollback, are unchanged. CodeQL
+  `security-extended` reported the verbatim mode copy in an adopter (#132).
 
 ### Documentation
 
