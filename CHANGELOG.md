@@ -100,29 +100,17 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
-### Changed
+## [1.2.1] - 2026-09-28
 
-- Moved every `github/codeql-action` call site (`init`, `analyze` and
-  `upload-sarif`) to v4.38.2 in one update and grouped CodeQL Action proposals in
-  Dependabot. The action rejects a mixed release, so per-path proposals could not
-  pass individually; a release now arrives as one proposal. Generated projects
-  inherit the grouping.
+### Added
 
-### Fixed
-
-- Reject flow-style environment/default declarations in Scorecard publication
-  policy and bind `file_mode: git` to the actual Scorecard step input, not comments
-  or other steps. Unsupported input layouts fail closed.
-- Parse public badge evidence as an SVG-rooted XML document and reject malformed
-  XML, HTML containing SVG, and DOCTYPE declarations before accepting publication.
-
-## [1.2.1] - 2026-09-22
+- Added a generated-profile CI matrix that creates a fresh library, UI-component and application repository, each with and without the preview, and in each one proves the generated tree is self-contained, inspects the rendered pull-request template, and runs the retained tests and quality gates. A generated repository that passes initialization and the repository gate but fails its own inherited CI is now caught in the template.
 
 ### Changed
 
 - Added pinned CodeQL analysis for maintained Python/JavaScript, weekly GitHub Actions update proposals through Dependabot, and trusted-context OpenSSF Scorecard publication; pull-request CodeQL now runs as a separate read-only, non-publishing analysis path and `pull_request_target` remains prohibited by repository validation.
 - Hash-locked the hosted CPython 3.10 quality/coverage/portfolio installs to reviewed wheel SHA-256 digests with `--only-binary=:all: --require-hashes`, while retaining cross-platform local version pins and mirror checks.
-- Refreshed all canonical `github/codeql-action` occurrences together from v4.38.0 to the official v4.38.1 commit `1c5b675653bb5c22dbe9b12b556ec555138e09fd`; the release adds experimental per-language bundle support without changing this repository's CodeQL permissions, triggers, query set, or analysis categories.
+- Refreshed all canonical `github/codeql-action` occurrences (`init`, `analyze` and `upload-sarif`) together from v4.38.0 to the official v4.38.2 commit `2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2`, which adds experimental per-language bundle support and the CodeQL 2.27.1 bundle without changing this repository's CodeQL permissions, triggers, query set, or analysis categories. CodeQL Action proposals are grouped in Dependabot because the action rejects a mixed release, so per-path proposals could not pass individually; generated projects inherit the grouping.
 - Added reproducible maintainer Python coverage with subprocess measurement, a 95% statement floor, and focused behavioral failure-path fixtures for release, template-contract, Wiki, initializer, closeout, and reusable-workflow tooling.
 - Added a read-only post-release closeout workflow that binds the annotated tag, tag-triggered CI, GitHub Release state, candidate-bound asset policy, comparison range, actual milestone membership, Wiki read-back, and provider-generated source archive observations to one certified SHA; uploaded assets remain distinct from GitHub source archives.
 - Defined changelog release dates as the reviewed release-section cut/freeze date rather than tag or publication timestamps. Release-semantic evidence now names that meaning explicitly, accepts same-day releases, and rejects backward cut/freeze-date ordering without relying on wall-clock or provider timestamps.
@@ -130,6 +118,8 @@ Use only the categories needed by a release.
 - Added a reproducible local validation environment for template maintainers: `tools/requirements-dev.txt` pins the Python tooling to the versions hosted CI installs, and `tools/dev_check.sh` runs the locally reproducible gates in the hosted order. It fails when a pin no longer mirrors the workflow that owns it or when an installed version does not match the pin, and it reports coverage, Excel evidence, live GitHub state and — unless `actionlint` is on `PATH` — workflow validation as skipped rather than passed.
 - Replaced the disposable per-task workflow pattern with `.github/workflows/maintenance.yml`, one permanent dispatch-only home for maintenance tasks that must run in the pinned environment and commit their result. The task list is a closed `choice` passed to the shell through `env`, write scope is granted on the job rather than the workflow, the result is validated before it is committed, and a task that changes nothing exits without an empty commit. Both files are template-only and are removed from generated projects by initialization.
 - Added canonical-template release-history validation from the previous release tag to the candidate SHA. Unapproved merge commits and duplicate commit subjects now block release semantics; base-tag/SHA-scoped reviewed exceptions remain auditable, while v1.2.0 merge ancestry is preserved as historical evidence and generated projects do not inherit this policy.
+- Made inherited CodeQL and OpenSSF Scorecard workflows visibility-aware. CodeQL runs on public repositories, and on private ones only after a recorded eligibility job when `ENABLE_PRIVATE_CODEQL` is `true`; every Scorecard job requires a public repository, so a private generated project never attempts publication.
+- Separated restricted-historical and pending-publication external-link observations from deterministic public-page defects. Each classification is scoped to the SHA-256 of one exact URL, carries a reason and an expiry, is redacted in reports, is never probed with credentials, and remains explicitly non-green.
 
 ### Fixed
 
@@ -142,8 +132,16 @@ Use only the categories needed by a release.
 - Make release closeout expectation-aware for deliberately non-latest releases and first prereleases, capture every page of GitHub comparison commits, and render the latest-release control consistently with the configured expectation.
 - Keep the canonical template README presentation live by using real CodeQL, OpenSSF Scorecard and social-preview URLs while preserving deterministic repository and preview retargeting during initialization.
 - Split the README's aggregate open-issue badge into live P1, P2 and P3 issue badges that link directly to the corresponding open-priority queues.
-- Update the OpenSSF Scorecard badge and viewer links to the current official `api.scorecard.dev` and `scorecard.dev` endpoints.
+- Update the OpenSSF Scorecard badge and viewer links to the current official `api.scorecard.dev` and `scorecard.dev` endpoints, and approve both domains in the external-link policy so the badge is observed rather than policy-blocked.
 - Make Scorecard publication fail closed: keep OpenSSF-forbidden global/job environment settings out of the publishing path, verify the exact-SHA public API record after the Action completes, validate the actual badge SVG so error badges such as `invalid repo path` cannot pass silently, and use Git file enumeration so file-based Scorecard checks see the reviewed repository tree.
+- Reject flow-style environment/default declarations in Scorecard publication policy and bind `file_mode: git` to the actual Scorecard step input, not comments or other steps. Unsupported input layouts fail closed.
+- Parse public badge evidence as an SVG-rooted XML document and reject malformed XML, HTML containing SVG, and DOCTYPE declarations before accepting publication.
+- Make retained README presentation tests pass in generated repositories instead of assuming the canonical template's presentation.
+- Stop generated projects inheriting test modules that import template-maintainer tools initialization deletes; template-only variants are now stripped, so the generated tree is self-contained.
+- Render the pull-request template's project identity and profile during initialization and reject retained legacy setup fields, so a generated repository no longer ships a template that asks to be customized before its first pull request.
+- Make the documented generated-project and canonical SSH-signed tag-publication command blocks stop at the first failed step, so a failed pre-tag validation can no longer be followed by tag creation and push.
+- Correct retained documentation for initialized projects: separate template-mode from generated-mode self-test behavior, qualify instructions that name deleted maintainer tools or absent workflows, replace pending-contract wording with the published baseline, name the provenance-record, Git-tag and certification-bundle signature scopes, and describe server-side protection as a verified prerequisite rather than an enforced control.
+- Align release-closeout documentation with the partitioning of certification assets from product assets.
 
 ## [1.2.0] - 2026-09-10
 
