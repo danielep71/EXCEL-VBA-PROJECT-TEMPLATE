@@ -18,22 +18,55 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
-      - name: Read public wiki and compare exact source
+      - name: Read public wiki and compare it with its recorded source
         env:
           WIKI_REPOSITORY: ${{ github.repository }}
           WIKI_READBACK: ${{ runner.temp }}/wiki-readback
+          WIKI_SOURCE_TREE: ${{ runner.temp }}/wiki-source
           GIT_TERMINAL_PROMPT: "0"
         run: |
           mkdir -p test-results
+          observe() { printf '%s\n' "$1" >test-results/wiki-observation.md; }
           if ! timeout 60s git clone --depth 1 "https://github.com/${WIKI_REPOSITORY}.wiki.git" "$WIKI_READBACK" >test-results/wiki-fetch.txt 2>&1; then
-            echo 'UNAVAILABLE: public wiki fetch failed; page correctness is unverified.' >test-results/wiki-observation.md
+            observe 'UNAVAILABLE: public wiki fetch failed; page correctness is unverified.'
             exit 1
           fi
-          if python tools/check_wiki.py --root . --published-dir "$WIKI_READBACK" --output test-results/wiki-drift.json --summary test-results/wiki-drift.md; then
-            echo 'PASS: published pages match the checked source commit.' >test-results/wiki-observation.md
-          else
-            echo 'DRIFT: fetched publication does not satisfy the checked source contract; inspect findings.' >test-results/wiki-observation.md
+          # A publication is judged against the commit it records, not against
+          # whatever the default branch has moved to since it was published.
+          if ! source_sha="$(python - "$WIKI_READBACK/Wiki-Source.json" "$WIKI_REPOSITORY" <<'PY'
+          import json, re, sys
+          record = json.load(open(sys.argv[1], encoding="utf-8"))
+          sha = record.get("source_sha", "")
+          if record.get("repository") != sys.argv[2] or not re.fullmatch(r"[0-9a-f]{40}", sha):
+              sys.exit("Wiki-Source.json does not name this repository and a full source commit")
+          print(sha)
+          PY
+          )"; then
+            observe 'DRIFT: the published wiki has no valid Wiki-Source.json source record.'
             exit 1
+          fi
+          if ! git merge-base --is-ancestor "$source_sha" HEAD 2>/dev/null; then
+            observe "DRIFT: the published wiki records source ${source_sha}, which is not on the default branch."
+            exit 1
+          fi
+          git worktree add --quiet --detach "$WIKI_SOURCE_TREE" "$source_sha"
+          if ! python "$WIKI_SOURCE_TREE/tools/check_wiki.py" --root "$WIKI_SOURCE_TREE" --published-dir "$WIKI_READBACK" \
+              --output test-results/wiki-drift.json --summary test-results/wiki-drift.md; then
+            observe "DRIFT: published pages do not match their recorded source ${source_sha}; inspect findings."
+            exit 1
+          fi
+          # Freshness: every release publishes its wiki before tagging, so a
+          # recorded source older than the latest release tag means a missed
+          # republication. Being behind the default branch is normal between releases.
+          latest_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)"
+          if [ -n "$latest_tag" ] && ! git merge-base --is-ancestor "$latest_tag^{commit}" "$source_sha"; then
+            observe "STALE: the published wiki (source ${source_sha}) predates release ${latest_tag}; republish it from the release source."
+            exit 1
+          fi
+          behind="$(git rev-list --count "${source_sha}..HEAD")"
+          observe "PASS: published pages match their recorded source ${source_sha} (latest release ${latest_tag:-none}); the default branch is ${behind} commit(s) ahead, published at the next release."
+          if [ "$behind" != 0 ]; then
+            echo "::notice title=Published wiki::source ${source_sha:0:12} matches; default branch is ${behind} commit(s) ahead until the next release publication"
           fi
       - name: Retain observation
         if: always()

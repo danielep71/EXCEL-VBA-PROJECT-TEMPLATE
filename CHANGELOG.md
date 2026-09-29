@@ -127,6 +127,14 @@ Use only the categories needed by a release.
 - The pull-request template's *Related issues* lines are no longer inside a code
   block, where GitHub ignores closing keywords; a pull request that follows the
   template now links and closes its issues on merge (#144).
+- The *Published wiki observations* workflow compares the published wiki with
+  the source commit it records in `Wiki-Source.json`, instead of with the
+  current default branch. Every commit merged after a publication was reported
+  as drift, so all scheduled runs failed. It now fails for an unavailable wiki,
+  a missing or invalid source record, a recorded source that is not on the
+  default branch, a byte mismatch with that source, or a publication older than
+  the latest release tag (`STALE`). Being ahead of the published source between
+  releases is reported as a notice.
 
 ### Documentation
 
