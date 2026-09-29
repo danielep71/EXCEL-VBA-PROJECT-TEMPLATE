@@ -105,26 +105,26 @@ def _issue_form_cases(module: ModuleType) -> list[Case]:
         text = (root / form_path).read_text(encoding="utf-8").replace(
             'name: "Bug report"', 'name: ""'
         )
-        module._write_fixture(root / form_path, text)
+        module.write_fixture(root / form_path, text)
 
     @case("issue-form-title", "issue-forms", "Top-level title")
     def _(root: Path) -> None:
         text = (root / form_path).read_text(encoding="utf-8").replace(
             'title: "[Bug]: "', 'title: "[Wrong]: "'
         )
-        module._write_fixture(root / form_path, text)
+        module.write_fixture(root / form_path, text)
 
     @case("issue-form-labels", "issue-forms", "Top-level labels")
     def _(root: Path) -> None:
         text = (root / form_path).read_text(encoding="utf-8").replace(
             'labels: ["bug"]', 'labels: ["wrong"]'
         )
-        module._write_fixture(root / form_path, text)
+        module.write_fixture(root / form_path, text)
 
     @case("issue-form-body-count", "issue-forms", "between 1 and 10")
     def _(root: Path) -> None:
         text = (root / form_path).read_text(encoding="utf-8")
-        module._write_fixture(
+        module.write_fixture(
             root / form_path, re.sub(r"(?ms)^body:\n.*\Z", "body:\n", text)
         )
 
@@ -133,35 +133,35 @@ def _issue_form_cases(module: ModuleType) -> list[Case]:
         text = (root / form_path).read_text(encoding="utf-8").replace(
             "  - type: markdown", "  - type: invalid", 1
         )
-        module._write_fixture(root / form_path, text)
+        module.write_fixture(root / form_path, text)
 
     @case("issue-form-duplicate-id", "issue-forms", "IDs must be unique")
     def _(root: Path) -> None:
         text = (root / form_path).read_text(encoding="utf-8").replace(
             "    id: summary", "    id: profile"
         )
-        module._write_fixture(root / form_path, text)
+        module.write_fixture(root / form_path, text)
 
     @case("issue-form-missing-id", "issue-forms", "element IDs are missing")
     def _(root: Path) -> None:
         text = (root / form_path).read_text(encoding="utf-8").replace(
             "    id: summary\n", ""
         )
-        module._write_fixture(root / form_path, text)
+        module.write_fixture(root / form_path, text)
 
     @case("issue-form-security-guidance", "issue-forms", "route vulnerability")
     def _(root: Path) -> None:
         text = (root / form_path).read_text(encoding="utf-8").replace(
             "SECURITY.md", "SECURITY-X.md"
         )
-        module._write_fixture(root / form_path, text)
+        module.write_fixture(root / form_path, text)
 
     @case("issue-form-required-field", "issue-forms", "must be mandatory")
     def _(root: Path) -> None:
         text = (root / form_path).read_text(encoding="utf-8").replace(
             "      required: true", "      required: false", 1
         )
-        module._write_fixture(root / form_path, text)
+        module.write_fixture(root / form_path, text)
 
     @case("issue-config-unreadable", "issue-forms", "Cannot read issue-template")
     def _(root: Path) -> None:
@@ -172,7 +172,7 @@ def _issue_form_cases(module: ModuleType) -> list[Case]:
         text = (root / form_config).read_text(encoding="utf-8").replace(
             "blank_issues_enabled: false", "blank_issues_enabled: true"
         )
-        module._write_fixture(root / form_config, text)
+        module.write_fixture(root / form_config, text)
 
     @case("issue-config-url", "issue-forms", "Private-security contact URL")
     def _(root: Path) -> None:
@@ -180,14 +180,14 @@ def _issue_form_cases(module: ModuleType) -> list[Case]:
             "https://github.com/example/fixture/security/policy",
             "https://example.invalid/security",
         )
-        module._write_fixture(root / form_config, text)
+        module.write_fixture(root / form_config, text)
 
     @case("issue-config-private", "issue-forms", "require private reporting")
     def _(root: Path) -> None:
         text = (root / form_config).read_text(encoding="utf-8").replace(
             "private", "restricted"
         )
-        module._write_fixture(root / form_config, text)
+        module.write_fixture(root / form_config, text)
 
     return cases
 
@@ -203,7 +203,7 @@ def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
         text = re.sub(
             r"(?m)^\s*- uses: actions/checkout@[^\n]+$", "      - uses:", text, count=1
         )
-        module._write_fixture(root / workflow_path, text)
+        module.write_fixture(root / workflow_path, text)
 
     @case("workflow-action-no-revision", "workflow-actions", "include a revision")
     def _(root: Path) -> None:
@@ -211,14 +211,14 @@ def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
         text = re.sub(
             r"actions/checkout@[0-9a-f]{40}", "actions/checkout", text, count=1
         )
-        module._write_fixture(root / workflow_path, text)
+        module.write_fixture(root / workflow_path, text)
 
     @case("workflow-action-comment", "workflow-actions", "audited semantic-version comment")
     def _(root: Path) -> None:
         text = (root / workflow_path).read_text(encoding="utf-8").replace(
             " # v4.2.2", "", 1
         )
-        module._write_fixture(root / workflow_path, text)
+        module.write_fixture(root / workflow_path, text)
 
     @case(
         "workflow-pr-workflow-write-all",
@@ -230,7 +230,7 @@ def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
         updated = text.replace("permissions:\n  contents: read", "permissions: write-all", 1)
         if updated == text:
             raise AssertionError("workflow-level permission mutation did not apply")
-        module._write_fixture(root / workflow_path, updated)
+        module.write_fixture(root / workflow_path, updated)
 
     @case(
         "workflow-pr-job-write-all",
@@ -248,7 +248,7 @@ def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
         )
         if count != 1:
             raise AssertionError("job-level write-all mutation did not apply")
-        module._write_fixture(root / workflow_path, prefix + "jobs:\n" + jobs)
+        module.write_fixture(root / workflow_path, prefix + "jobs:\n" + jobs)
 
     @case(
         "workflow-pr-job-write-scope",
@@ -266,7 +266,7 @@ def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
         )
         if count != 1:
             raise AssertionError("job-level scoped-write mutation did not apply")
-        module._write_fixture(root / workflow_path, prefix + "jobs:\n" + jobs)
+        module.write_fixture(root / workflow_path, prefix + "jobs:\n" + jobs)
 
     @case("version-unreadable", "version-changelog", "Cannot read version")
     def _(root: Path) -> None:
@@ -278,11 +278,11 @@ def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
 
     @case("changelog-missing-unreleased", "version-changelog", "Unreleased")
     def _(root: Path) -> None:
-        module._write_fixture(root / "CHANGELOG.md", "# Changelog\n\nFixture.\n")
+        module.write_fixture(root / "CHANGELOG.md", "# Changelog\n\nFixture.\n")
 
     @case("changelog-release-heading", "version-changelog", "no dated release heading")
     def _(root: Path) -> None:
-        module._write_fixture(root / "VERSION", "1.2.3\n")
+        module.write_fixture(root / "VERSION", "1.2.3\n")
 
     return cases
 
@@ -347,7 +347,7 @@ def _vba_export_cases(module: ModuleType) -> list[Case]:
             "src/modules/Other.bas",
             'Attribute VB_Name = "quality"\nOption Explicit\nPublic Sub Other()\nEnd Sub\n',
         )
-        module._run_git(root, "add", "src/modules/Other.bas")
+        module.run_git(root, "add", "src/modules/Other.bas")
 
     return cases
 
@@ -404,7 +404,7 @@ def _vba_visibility_cases(module: ModuleType) -> list[Case]:
             "src/modules/Extra.bas",
             'Attribute VB_Name = "Extra"\nOption Explicit\nPublic Sub X()\nEnd Sub\n',
         )
-        module._run_git(root, "add", "src/modules/Extra.bas")
+        module.run_git(root, "add", "src/modules/Extra.bas")
 
     @case("vba-configured-not-tracked", "vba-visibility", "Configured VBA component is not tracked")
     def _(root: Path) -> None:
@@ -510,7 +510,7 @@ def _vba_contract_cases(module: ModuleType) -> list[Case]:
             "src/modules/Other.bas",
             'Attribute VB_Name = "Other"\nOption Explicit\nPublic Function Echo() As String\nEnd Function\n',
         )
-        module._run_git(root, "add", "src/modules/Other.bas")
+        module.run_git(root, "add", "src/modules/Other.bas")
 
         def mutation(document: dict[str, Any]) -> None:
             document["vba"]["components"]["src/modules/Other.bas"] = "public"

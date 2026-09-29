@@ -10,7 +10,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from _gatelib import git_text, run_gate, tracked_files
-from initialize_repository import _build_changes, _fixture_arguments
+from initialize_repository import build_changes, fixture_arguments
 
 WIKI = 'docs/wiki'
 CATALOGUE = f'{WIKI}/catalogue.json'
@@ -50,8 +50,8 @@ def lifecycle(root: Path, files: set[str]) -> tuple[dict[str, list[str]], dict[s
     matrix: dict[str, list[str]] = {p: [] for p in files}
     generated: dict[str, list[str]] = {}
     for profile in ('application', 'library', 'ui-component'):
-        scalars, repeats = _fixture_arguments(profile)
-        changes, _ = _build_changes(root, profile, scalars, repeats)
+        scalars, repeats = fixture_arguments(profile)
+        changes, _ = build_changes(root, profile, scalars, repeats)
         for path in files:
             state = 'R' if path not in changes else 'X' if changes[path] is None else 'T'
             matrix[path].append(state)

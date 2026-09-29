@@ -45,7 +45,7 @@ def production_finding_sites(source_path: Path) -> dict[str, dict[str, Any]]:
     tree = ast.parse(source, filename=str(source_path))
     fixture_boundary = None
     for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "_write_fixture":
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "write_fixture":
             fixture_boundary = node.lineno
             break
     if fixture_boundary is None:
@@ -122,7 +122,7 @@ def rule_by_id(report: dict[str, Any], rule_id: str) -> dict[str, Any] | None:
 
 
 def write_json(module: ModuleType, root: Path, relative: str, document: object) -> None:
-    module._write_fixture(root / relative, json.dumps(document, indent=2, ensure_ascii=False) + "\n")
+    module.write_fixture(root / relative, json.dumps(document, indent=2, ensure_ascii=False) + "\n")
 
 
 def config_document(root: Path, module: ModuleType) -> dict[str, Any]:
@@ -143,8 +143,8 @@ def mutate_labels(module: ModuleType, root: Path, mutation: Callable[[dict[str, 
 
 
 def add_force(module: ModuleType, root: Path, relative: str) -> None:
-    module._run_git(root, "add", "-f", relative)
+    module.run_git(root, "add", "-f", relative)
 
 
 def rewrite_vba(module: ModuleType, root: Path, relative: str, text: str) -> None:
-    module._write_fixture(root / relative, text, crlf=True)
+    module.write_fixture(root / relative, text, crlf=True)
