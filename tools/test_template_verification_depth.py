@@ -1566,7 +1566,8 @@ class ExternalLinkBoundaryTests(unittest.TestCase):
                 Path("."), external_links.date(2026, 9, 12),
                 transport=lambda _u, _t: (200, None), pause=lambda _n: None,
             )
-        self.assertEqual(report["status"], "fail")
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["restricted_observations"], 1)
         self.assertEqual(report["counts"]["restricted_historical"], 1)
         self.assertEqual({row["status"] for row in report["links"]}, {"RESTRICTED_HISTORICAL", "EXCEPTED", "OK"})
         self.assertIn("RESTRICTED_HISTORICAL", external_links.markdown(report))

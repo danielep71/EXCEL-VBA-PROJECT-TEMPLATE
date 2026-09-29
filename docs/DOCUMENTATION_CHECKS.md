@@ -121,11 +121,12 @@ I/O. `POLICY_BLOCKED` and `ACCESS_RESTRICTED` therefore take precedence over
 an observed link state, but it never exempts an invalid scheme/domain/port or a
 credential/query-bearing URL from local policy. A policy-clean classified URL
 still skips the anonymous request that cannot answer the intended question, and
-the resulting classification status remains non-green.
+the resulting classification status is reported, never counted as reachable.
 
-`RESTRICTED_HISTORICAL` and `PENDING_PUBLICATION` therefore never become `PASS`
+`RESTRICTED_HISTORICAL` and `PENDING_PUBLICATION` therefore never become `OK`
 and never substitute for authenticated evidence or the later post-publication
-check.
+check. Their expiry is the backstop: an expired classification fails policy
+validation, so a forgotten entry cannot stay silent.
 
 Classifications are exact URL-hash assertions, not domain or path wildcards.
 They require a rationale and an expiry/review date; unsupported kinds, duplicate
@@ -148,8 +149,8 @@ exist.
 | `PERMANENT_FAILURE` | Repeated non-transient public HTTP errors; counted as a deterministic public-documentation defect unless a policy-clean URL is explicitly classified before observation |
 | `TRANSIENT_FAILURE` | Timeout, transport failure, rate limit or server error; retry later |
 | `ACCESS_RESTRICTED` | Authentication/access response, user information or query-bearing URL; no private login attempted; takes precedence over classification |
-| `RESTRICTED_HISTORICAL` | Exact reviewed private/restricted historical target; no anonymous probe attempted; remains non-green |
-| `PENDING_PUBLICATION` | Exact reviewed target depends on publication/tag creation; no probe attempted; remains non-green until publication |
+| `RESTRICTED_HISTORICAL` | Exact reviewed private/restricted historical target; no anonymous probe attempted; reported, not verified |
+| `PENDING_PUBLICATION` | Exact reviewed target depends on publication/tag creation; no probe attempted; reported until publication, then remove the classification |
 | `POLICY_BLOCKED` | Unapproved scheme/domain/port or non-public DNS destination; review policy and URL; local policy takes precedence over classification |
 | `REDIRECT_FAILURE` | Missing redirect target, redirect loop or redirect limit reached |
 | `EXCEPTED` | Active reviewed temporary exception; availability was not checked |
@@ -167,10 +168,16 @@ A 404 must never be inferred to mean “private” merely because GitHub can hid
 private repositories that way. Restricted status is accepted only through the
 explicit, expiring classification above.
 
-The network command exits 1 for any unresolved failure/restriction,
-`RESTRICTED_HISTORICAL`, `PENDING_PUBLICATION`, or exceeded limit, and 2 for
-invalid policy or operational failure. The workflow preserves its own non-green
-result without changing `Repository integrity`. JSON/Markdown observations
+The network command exits 1 only for an actionable outcome:
+`PERMANENT_FAILURE`, `POLICY_BLOCKED`, `REDIRECT_FAILURE`, `TRANSIENT_FAILURE`
+after bounded retries, or an exceeded limit. It exits 2 for invalid policy,
+including an expired exception or classification, or an operational failure.
+`ACCESS_RESTRICTED`, `RESTRICTED_HISTORICAL` and `PENDING_PUBLICATION` do not
+fail the command on their own: they are counted in `restricted_observations`,
+listed row by row, and raised as a workflow warning annotation, but never
+counted as reachable. A red run therefore always names something to fix, and a
+restricted observation cannot mask an actionable defect elsewhere in the same
+run. The workflow result never changes `Repository integrity`. JSON/Markdown observations
 upload even after a check fails, with 14-day retention; a job killed before
 report creation fails artifact publication rather than fabricating a report.
 

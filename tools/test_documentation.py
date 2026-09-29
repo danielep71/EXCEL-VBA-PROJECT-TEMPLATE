@@ -437,7 +437,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(report["counts"]["deterministic_public_defects"], 1)
         self.assertEqual(report["counts"]["restricted_historical"], 0)
 
-    def test_restricted_historical_is_non_green_and_not_probed(self):
+    def test_restricted_historical_is_reported_not_probed_and_not_actionable(self):
         url = "https://example.org/private-history"
         identifier = hashlib.sha256(url.encode()).hexdigest()
         (self.root / "README.md").write_text(f"[history]({url})\n")
@@ -449,13 +449,14 @@ class DocumentationTests(unittest.TestCase):
         }]
         self.save()
         report = links.build_report(self.root, TODAY, lambda *args: self.fail("classified target must not be probed"))
-        self.assertEqual(report["status"], "fail")
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["restricted_observations"], 1)
         self.assertEqual(report["links"][0]["status"], "RESTRICTED_HISTORICAL")
         self.assertEqual(report["counts"]["restricted_historical"], 1)
         self.assertEqual(report["counts"]["deterministic_public_defects"], 0)
         self.assertNotIn("private-history", json.dumps(report) + links.markdown(report))
 
-    def test_pending_publication_is_distinct_non_green_classification(self):
+    def test_pending_publication_is_distinct_reported_classification(self):
         url = "https://example.org/compare/v1.0.0...v1.1.0"
         identifier = hashlib.sha256(url.encode()).hexdigest()
         (self.root / "README.md").write_text(f"[future-tag]({url})\n")
@@ -467,17 +468,18 @@ class DocumentationTests(unittest.TestCase):
         }]
         self.save()
         report = links.build_report(self.root, TODAY, lambda *args: self.fail("pending target must not be probed"))
-        self.assertEqual(report["status"], "fail")
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["restricted_observations"], 1)
         self.assertEqual(report["links"][0]["status"], "PENDING_PUBLICATION")
         self.assertEqual(report["counts"]["pending_publication"], 1)
         self.assertEqual(report["counts"]["deterministic_public_defects"], 0)
 
     def test_classification_cannot_override_local_url_policy(self):
         cases = (
-            ("http://example.org/private-history", "POLICY_BLOCKED"),
-            ("https://example.org/private-history?token=fixture", "ACCESS_RESTRICTED"),
+            ("http://example.org/private-history", "POLICY_BLOCKED", "fail"),
+            ("https://example.org/private-history?token=fixture", "ACCESS_RESTRICTED", "pass"),
         )
-        for url, expected in cases:
+        for url, expected, verdict in cases:
             with self.subTest(url=url):
                 identifier = hashlib.sha256(url.encode()).hexdigest()
                 (self.root / "README.md").write_text(f"[classified]({url})\n")
@@ -495,7 +497,7 @@ class DocumentationTests(unittest.TestCase):
                 )
                 self.assertEqual(report["links"][0]["status"], expected)
                 self.assertEqual(report["links"][0]["attempts"], 0)
-                self.assertEqual(report["status"], "fail")
+                self.assertEqual(report["status"], verdict)
 
     def test_markdown_exposes_every_json_count_category(self):
         rows = [
@@ -511,6 +513,7 @@ class DocumentationTests(unittest.TestCase):
             "status": "fail",
             "discovered": len(rows),
             "limit_exceeded": False,
+            "restricted_observations": 3,
             "counts": counts,
             "links": [],
             "scope_note": "fixture scope",
@@ -518,6 +521,40 @@ class DocumentationTests(unittest.TestCase):
         rendered = links.markdown(report)
         for key, label in links.COUNT_LABELS.items():
             self.assertIn(f"{label}: {counts[key]}", rendered)
+        self.assertIn("Restricted observations (reported, not verified as reachable): 3", rendered)
+
+    def test_only_actionable_outcomes_fail_the_observation(self):
+        url = "https://example.org/page"
+        (self.root / "README.md").write_text(f"[page]({url})\n")
+        self.save()
+        cases = (
+            ((200, None), "OK", "pass", 0),
+            ((403, None), "ACCESS_RESTRICTED", "pass", 1),
+            ((404, None), "PERMANENT_FAILURE", "fail", 0),
+            ((503, None), "TRANSIENT_FAILURE", "fail", 0),
+            ((302, None), "REDIRECT_FAILURE", "fail", 0),
+        )
+        for response, outcome, verdict, restricted in cases:
+            with self.subTest(outcome=outcome):
+                report = links.build_report(self.root, TODAY, lambda *args: response, lambda *args: None)
+                self.assertEqual(report["links"][0]["status"], outcome)
+                self.assertEqual(report["status"], verdict)
+                self.assertEqual(report["restricted_observations"], restricted)
+
+    def test_restricted_observation_does_not_mask_an_actionable_defect(self):
+        restricted = "https://example.org/restricted"
+        missing = "https://example.org/missing"
+        (self.root / "README.md").write_text(f"[r]({restricted})\n[m]({missing})\n")
+        self.save()
+        report = links.build_report(
+            self.root,
+            TODAY,
+            lambda url, _timeout: (403, None) if url == restricted else (404, None),
+            lambda *args: None,
+        )
+        self.assertEqual(report["status"], "fail")
+        self.assertEqual(report["restricted_observations"], 1)
+        self.assertEqual(report["counts"]["deterministic_public_defects"], 1)
 
     def test_transient_then_recovery(self):
         report, calls, _ = self.probe([(503, None), (200, None)])

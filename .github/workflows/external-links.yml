@@ -26,7 +26,15 @@ jobs:
             --output test-results/external-links.json --summary test-results/external-links.md
       - name: Publish observations
         if: always()
-        run: cat test-results/external-links.md >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          cat test-results/external-links.md >> "$GITHUB_STEP_SUMMARY"
+          # Restricted observations do not fail the job; keep them visible on it.
+          python3 -c '
+          import json
+          count = json.load(open("test-results/external-links.json"))["restricted_observations"]
+          if count:
+              print(f"::warning title=External link observations::{count} restricted links reported, not verified as reachable")
+          '
       - name: Retain observations
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
