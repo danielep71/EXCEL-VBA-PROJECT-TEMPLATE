@@ -13,6 +13,7 @@ import time
 import unittest
 from datetime import date
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import check_documentation as docs
@@ -182,7 +183,7 @@ python3() { printf 'unexpected validation\n' >> unexpected.log; return 0; }
 
 
 class DocumentationTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -198,16 +199,23 @@ class DocumentationTests(unittest.TestCase):
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
         self.save()
 
-    def save(self):
+    def save(self) -> None:
         (self.root / docs.POLICY).write_text(json.dumps(self.policy))
         subprocess.run(["git", "-C", str(self.root), "add", "--all"], check=True)
 
-    def test_documented_command_passes_without_execution(self):
+    def test_policy_must_be_a_versioned_object(self) -> None:
+        documents: tuple[object, ...] = ([], {"schema_version": 2})
+        for document in documents:
+            (self.root / docs.POLICY).write_text(json.dumps(document))
+            with self.subTest(document=document), self.assertRaisesRegex(ValueError, "unsupported documentation policy"):
+                docs.load_policy(self.root)
+
+    def test_documented_command_passes_without_execution(self) -> None:
         with patch.object(subprocess, "Popen", wraps=subprocess.Popen) as popen:
             self.assertEqual(docs.build_report(self.root)["status"], "pass")
             self.assertTrue(all(call.args[0][0] == "git" for call in popen.call_args_list))
 
-    def test_readme_presentation_uses_repository_identity_and_selected_assets(self):
+    def test_readme_presentation_uses_repository_identity_and_selected_assets(self) -> None:
         assert_readme_presentation(self, ROOT)
 
     def _generated_readme_fixture(
@@ -246,19 +254,19 @@ class DocumentationTests(unittest.TestCase):
         (fixture / "README.md").write_text(readme, encoding="utf-8")
         return fixture
 
-    def test_generated_readme_accepts_preview_present_and_absent(self):
+    def test_generated_readme_accepts_preview_present_and_absent(self) -> None:
         for preview in (True, False):
             with self.subTest(preview=preview):
                 fixture = self._generated_readme_fixture(preview=preview)
                 assert_readme_presentation(self, fixture)
 
-    def test_generated_readme_allows_project_owned_badge_text(self):
+    def test_generated_readme_allows_project_owned_badge_text(self) -> None:
         for badge in ("status", "build", "quality-gate"):
             with self.subTest(badge=badge):
                 fixture = self._generated_readme_fixture(preview=False, badge=badge)
                 assert_readme_presentation(self, fixture)
 
-    def test_generated_readme_rejects_wrong_repository_identity(self):
+    def test_generated_readme_rejects_wrong_repository_identity(self) -> None:
         fixture = self._generated_readme_fixture(preview=False)
         readme = (fixture / "README.md").read_text(encoding="utf-8")
         (fixture / "README.md").write_text(
@@ -268,7 +276,7 @@ class DocumentationTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             assert_readme_presentation(self, fixture)
 
-    def test_generated_readme_rejects_residual_template_markers(self):
+    def test_generated_readme_rejects_residual_template_markers(self) -> None:
         fixture = self._generated_readme_fixture(preview=False)
         with (fixture / "README.md").open("a", encoding="utf-8") as handle:
             marker = "<!-- " + "template:optional:SOCIAL_PREVIEW_PATH -->"
@@ -276,13 +284,13 @@ class DocumentationTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             assert_readme_presentation(self, fixture)
 
-    def test_generated_readme_rejects_missing_selected_preview(self):
+    def test_generated_readme_rejects_missing_selected_preview(self) -> None:
         fixture = self._generated_readme_fixture(preview=True)
         (fixture / "assets/social-preview.png").unlink()
         with self.assertRaises(AssertionError):
             assert_readme_presentation(self, fixture)
 
-    def test_generated_readme_rejects_canonical_only_presentation_assertion(self):
+    def test_generated_readme_rejects_canonical_only_presentation_assertion(self) -> None:
         fixture = self._generated_readme_fixture(preview=False)
         readme = (fixture / "README.md").read_text(encoding="utf-8")
         canonical_repository = "danielep71/" + "EXCEL-VBA-" + "PROJECT-TEMPLATE"
@@ -293,7 +301,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertNotIn('src="assets/social-preview.png"', readme)
 
 
-    def test_retained_documentation_semantics_match_repository_mode(self):
+    def test_retained_documentation_semantics_match_repository_mode(self) -> None:
         profile = json.loads(
             (ROOT / ".github/repository-profile.json").read_text(encoding="utf-8")
         )
@@ -330,7 +338,7 @@ class DocumentationTests(unittest.TestCase):
                     r"(?m)^\s*python3 tools/(?:checker_development|check_policy_coverage)\.py",
                 )
 
-    def test_utf8_repository_reads_do_not_depend_on_locale(self):
+    def test_utf8_repository_reads_do_not_depend_on_locale(self) -> None:
         workflow = self.root / ".github/workflows/fixture.yml"
         workflow.write_text(
             "name: UTF-8 workflow 🔐\njobs:\n  check:\n    name: UTF-8 context\n    runs-on: ubuntu-24.04\n",
@@ -349,7 +357,7 @@ class DocumentationTests(unittest.TestCase):
         self.save()
         original = Path.read_text
 
-        def require_explicit_utf8(path, *args, **kwargs):
+        def require_explicit_utf8(path: Path, *args: Any, **kwargs: Any) -> str:
             encoding = kwargs.get("encoding")
             if encoding is None and args:
                 encoding = args[0]
@@ -363,27 +371,27 @@ class DocumentationTests(unittest.TestCase):
         with patch.object(Path, "read_text", require_explicit_utf8):
             self.assertEqual(docs.build_report(self.root)["status"], "pass")
 
-    def test_renamed_command_detected(self):
+    def test_renamed_command_detected(self) -> None:
         (self.root / "tools/fixture.py").rename(self.root / "tools/renamed.py")
         self.save()
         self.assertEqual(docs.build_report(self.root)["status"], "fail")
 
-    def test_removed_cli_option_detected(self):
+    def test_removed_cli_option_detected(self) -> None:
         (self.root / "tools/fixture.py").write_text("import argparse\n")
         self.assertEqual(docs.build_report(self.root)["status"], "fail")
 
-    def test_shared_runner_does_not_grant_parser_flags(self):
+    def test_shared_runner_does_not_grant_parser_flags(self) -> None:
         (self.root / "tools/fixture.py").write_text("from _gatelib import run_gate\n")
         (self.root / "tools/_gatelib.py").write_text("p.add_argument('--self-test')\n")
         self.assertNotIn("--self-test", docs.command_flags(self.root, "tools/fixture.py"))
         (self.root / "tools/fixture.py").write_text("from _gatelib import parse_report_args\n")
         self.assertIn("--self-test", docs.command_flags(self.root, "tools/fixture.py"))
 
-    def test_multiline_and_inline_commands(self):
+    def test_multiline_and_inline_commands(self) -> None:
         text = "`python3 tools/a.py --root .`\npython3 tools/b.py \\\n  --output out.json\n"
         self.assertEqual(docs.commands(text), [("tools/a.py", {"--root"}), ("tools/b.py", {"--output"})])
 
-    def test_workflow_and_context_renames_detected(self):
+    def test_workflow_and_context_renames_detected(self) -> None:
         workflow = self.root / ".github/workflows/fixture.yml"
         workflow.write_text("name: Example workflow\njobs:\n  check:\n    name: Example context\n    runs-on: ubuntu-24.04\n")
         (self.root / "README.md").write_text("Example workflow; Example context\n")
@@ -397,7 +405,7 @@ class DocumentationTests(unittest.TestCase):
         workflow.write_text(workflow.read_text().replace("Example workflow", "Changed workflow"))
         self.assertEqual(len(docs.build_report(self.root)["findings"]), 2)
 
-    def test_filename_and_policy_value_drift(self):
+    def test_filename_and_policy_value_drift(self) -> None:
         (self.root / "value.json").write_text('{"required": true}')
         (self.root / "README.md").write_text("Required value.json\n")
         self.policy["references"] = [{"document": "README.md", "target": "value.json", "token": "Required",
@@ -410,10 +418,12 @@ class DocumentationTests(unittest.TestCase):
         self.save()
         self.assertEqual(docs.build_report(self.root)["status"], "fail")
 
-    def probe(self, responses):
-        calls = []
-        sleeps = []
-        def transport(url, timeout):
+    def probe(
+        self, responses: list[tuple[int, str | None] | Exception]
+    ) -> tuple[dict[str, Any], list[tuple[str, int]], list[int]]:
+        calls: list[tuple[str, int]] = []
+        sleeps: list[int] = []
+        def transport(url: str, timeout: int) -> tuple[int, str | None]:
             calls.append((url, timeout))
             value = responses[len(calls) - 1]
             if isinstance(value, Exception):
@@ -422,13 +432,13 @@ class DocumentationTests(unittest.TestCase):
         report = links.probe("https://example.org/page", self.policy["network"], transport, sleeps.append)
         return report, calls, sleeps
 
-    def test_consistent_404_retried_and_reported(self):
+    def test_consistent_404_retried_and_reported(self) -> None:
         report, calls, sleeps = self.probe([(404, None)] * 3)
         self.assertEqual(report["status"], "PERMANENT_FAILURE")
         self.assertEqual(len(calls), 3)
         self.assertEqual(sleeps, [1, 2])
 
-    def test_public_404_remains_deterministic_public_defect(self):
+    def test_public_404_remains_deterministic_public_defect(self) -> None:
         url = "https://example.org/missing"
         (self.root / "README.md").write_text(f"[missing]({url})\n")
         self.save()
@@ -438,7 +448,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(report["counts"]["deterministic_public_defects"], 1)
         self.assertEqual(report["counts"]["restricted_historical"], 0)
 
-    def test_restricted_historical_is_reported_not_probed_and_not_actionable(self):
+    def test_restricted_historical_is_reported_not_probed_and_not_actionable(self) -> None:
         url = "https://example.org/private-history"
         identifier = hashlib.sha256(url.encode()).hexdigest()
         (self.root / "README.md").write_text(f"[history]({url})\n")
@@ -457,7 +467,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(report["counts"]["deterministic_public_defects"], 0)
         self.assertNotIn("private-history", json.dumps(report) + links.markdown(report))
 
-    def test_pending_publication_is_distinct_reported_classification(self):
+    def test_pending_publication_is_distinct_reported_classification(self) -> None:
         url = "https://example.org/compare/v1.0.0...v1.1.0"
         identifier = hashlib.sha256(url.encode()).hexdigest()
         (self.root / "README.md").write_text(f"[future-tag]({url})\n")
@@ -475,7 +485,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(report["counts"]["pending_publication"], 1)
         self.assertEqual(report["counts"]["deterministic_public_defects"], 0)
 
-    def test_classification_cannot_override_local_url_policy(self):
+    def test_classification_cannot_override_local_url_policy(self) -> None:
         cases = (
             ("http://example.org/private-history", "POLICY_BLOCKED", "fail"),
             ("https://example.org/private-history?token=fixture", "ACCESS_RESTRICTED", "pass"),
@@ -500,7 +510,7 @@ class DocumentationTests(unittest.TestCase):
                 self.assertEqual(report["links"][0]["attempts"], 0)
                 self.assertEqual(report["status"], verdict)
 
-    def test_markdown_exposes_every_json_count_category(self):
+    def test_markdown_exposes_every_json_count_category(self) -> None:
         rows = [
             {"status": "PERMANENT_FAILURE"},
             {"status": "RESTRICTED_HISTORICAL"},
@@ -524,7 +534,7 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn(f"{label}: {counts[key]}", rendered)
         self.assertIn("Restricted observations (reported, not verified as reachable): 3", rendered)
 
-    def test_only_actionable_outcomes_fail_the_observation(self):
+    def test_only_actionable_outcomes_fail_the_observation(self) -> None:
         url = "https://example.org/page"
         (self.root / "README.md").write_text(f"[page]({url})\n")
         self.save()
@@ -542,7 +552,7 @@ class DocumentationTests(unittest.TestCase):
                 self.assertEqual(report["status"], verdict)
                 self.assertEqual(report["restricted_observations"], restricted)
 
-    def test_restricted_observation_does_not_mask_an_actionable_defect(self):
+    def test_restricted_observation_does_not_mask_an_actionable_defect(self) -> None:
         restricted = "https://example.org/restricted"
         missing = "https://example.org/missing"
         (self.root / "README.md").write_text(f"[r]({restricted})\n[m]({missing})\n")
@@ -557,24 +567,24 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(report["restricted_observations"], 1)
         self.assertEqual(report["counts"]["deterministic_public_defects"], 1)
 
-    def test_transient_then_recovery(self):
+    def test_transient_then_recovery(self) -> None:
         report, calls, _ = self.probe([(503, None), (200, None)])
         self.assertEqual(report["status"], "OK")
         self.assertEqual(len(calls), 2)
 
-    def test_mixed_missing_transient_not_permanent(self):
+    def test_mixed_missing_transient_not_permanent(self) -> None:
         report, _, _ = self.probe([(404, None), TimeoutError("secret URL"), (404, None)])
         self.assertEqual(report["status"], "TRANSIENT_FAILURE")
         self.assertNotIn("secret", json.dumps(report))
 
-    def test_access_denied_not_retried(self):
+    def test_access_denied_not_retried(self) -> None:
         report, calls, _ = self.probe([(403, None)])
         self.assertEqual(report["status"], "ACCESS_RESTRICTED")
         self.assertEqual(len(calls), 1)
 
-    def test_redirect_checked_and_loop_bounded(self):
-        calls = []
-        def redirect(url, timeout):
+    def test_redirect_checked_and_loop_bounded(self) -> None:
+        calls: list[str] = []
+        def redirect(url: str, timeout: int) -> tuple[int, str | None]:
             calls.append(url)
             return 302, "https://127.0.0.1/private"
         self.assertEqual(links.probe("https://example.org", self.policy["network"], redirect)["status"], "POLICY_BLOCKED")
@@ -582,9 +592,9 @@ class DocumentationTests(unittest.TestCase):
         report = links.probe("https://example.org/page", self.policy["network"], lambda *args: (302, "/page"))
         self.assertEqual(report["status"], "REDIRECT_FAILURE")
 
-    def test_redirect_queries_not_transmitted(self):
-        calls = []
-        def transport(url, timeout):
+    def test_redirect_queries_not_transmitted(self) -> None:
+        calls: list[str] = []
+        def transport(url: str, timeout: int) -> tuple[int, str | None]:
             calls.append(url)
             return 302, "/login?token=secret"
         report = links.probe("https://example.org", self.policy["network"], transport)
@@ -592,7 +602,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertNotIn("secret", json.dumps(report))
 
-    def test_query_credentials_scheme_domain_not_requested(self):
+    def test_query_credentials_scheme_domain_not_requested(self) -> None:
         for url in ("https://example.org/?token=secret", "https://user:secret@example.org/",
                     "http://example.org", "https://other.example/page", "ftp://example.org"):
             with self.subTest(url=url), patch.object(links, "request") as transport:
@@ -600,29 +610,29 @@ class DocumentationTests(unittest.TestCase):
                 transport.assert_not_called()
                 self.assertNotEqual(report["status"], "OK")
 
-    def test_private_dns_never_connects(self):
-        with patch.object(links.socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("127.0.0.1", 443))]), \
+    def test_private_dns_never_connects(self) -> None:
+        with patch("check_external_links.socket.getaddrinfo", return_value=[(2, 1, 6, "", ("127.0.0.1", 443))]), \
                 patch.object(links, "PinnedHTTPS") as connection:
             with self.assertRaises(ValueError):
                 links.request("https://example.org", 2)
             connection.assert_not_called()
 
-    def test_tls_connect_uses_checked_ip(self):
-        with patch.object(links.socket, "create_connection") as connect:
+    def test_tls_connect_uses_checked_ip(self) -> None:
+        with patch("check_external_links.socket.create_connection") as connect:
             client = links.PinnedHTTPS("example.org", "93.184.215.14", 2)
             with patch.object(client.tls_context, "wrap_socket") as wrap:
                 client.connect()
                 connect.assert_called_once_with(("93.184.215.14", 443), 2)
                 wrap.assert_called_once_with(connect.return_value, server_hostname="example.org")
 
-    def test_tls_context_has_explicit_floor_and_full_verification(self):
+    def test_tls_context_has_explicit_floor_and_full_verification(self) -> None:
         context = links.PinnedHTTPS("example.org", "93.184.215.14", 2).tls_context
         self.assertEqual(links.MINIMUM_TLS_VERSION, ssl.TLSVersion.TLSv1_2)
         self.assertEqual(context.minimum_version, ssl.TLSVersion.TLSv1_2)
         self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
         self.assertTrue(context.check_hostname)
 
-    def test_exception_expiry_reason_and_limits(self):
+    def test_exception_expiry_reason_and_limits(self) -> None:
         network = self.policy["network"]
         network["exceptions"] = [{"id": "a" * 64, "reason": "Temporary service outage", "expires": "2026-09-10"}]
         links.validate_policy(network, TODAY)
@@ -633,7 +643,7 @@ class DocumentationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             links.validate_policy(network, TODAY)
 
-    def test_classification_expiry_kind_and_identity_fail_closed(self):
+    def test_classification_expiry_kind_and_identity_fail_closed(self) -> None:
         network = self.policy["network"]
         network["classifications"] = [{
             "id": "b" * 64,
@@ -656,7 +666,7 @@ class DocumentationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             links.validate_policy(network, TODAY)
 
-    def test_reports_redact_urls_and_deduplicate(self):
+    def test_reports_redact_urls_and_deduplicate(self) -> None:
         url = "https://example.org/private?token=TOP_SECRET"
         (self.root / "README.md").write_text(f"[one]({url})\n[two]({url})\n")
         report = links.build_report(self.root, TODAY, lambda *args: self.fail("must not request"))
@@ -666,7 +676,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertNotIn("TOP_SECRET", rendered)
         self.assertNotIn("/private", rendered)
 
-    def test_active_exception_is_explicit(self):
+    def test_active_exception_is_explicit(self) -> None:
         url = "https://example.org/page"
         (self.root / "README.md").write_text(f"[page]({url})")
         self.policy["network"]["exceptions"] = [{"id": hashlib.sha256(url.encode()).hexdigest(), "reason": "Reviewed temporary gap", "expires": "2026-09-10"}]
@@ -674,7 +684,7 @@ class DocumentationTests(unittest.TestCase):
         report = links.build_report(self.root, TODAY, lambda *args: self.fail("excepted"))
         self.assertEqual(report["links"][0]["status"], "EXCEPTED")
 
-    def test_total_limit_cannot_claim_complete(self):
+    def test_total_limit_cannot_claim_complete(self) -> None:
         (self.root / "README.md").write_text("[a](https://example.org/a)\n[b](https://example.org/b)")
         self.policy["network"]["max_links"] = 1
         self.save()
@@ -682,13 +692,13 @@ class DocumentationTests(unittest.TestCase):
         self.assertTrue(report["limit_exceeded"])
         self.assertEqual(report["status"], "fail")
 
-    def test_worker_concurrency_bounded(self):
+    def test_worker_concurrency_bounded(self) -> None:
         (self.root / "README.md").write_text("\n".join(f"[page](https://example.org/{i})" for i in range(12)))
         self.policy["network"]["concurrency"] = 2
         self.save()
         active = peak = 0
         lock = threading.Lock()
-        def transport(*args):
+        def transport(*args: object) -> tuple[int, str | None]:
             nonlocal active, peak
             with lock:
                 active += 1

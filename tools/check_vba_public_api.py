@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -161,198 +162,112 @@ def record(
         )
 
 
+@dataclass
+class _ComponentScan:
+    """Declarations and findings collected while scanning one active component source."""
+
+    path: str
+    supported: bool
+    declarations: list[dict[str, Any]] = field(default_factory=list)
+    findings: list[dict[str, Any]] = field(default_factory=list)
+
+    def declare(self, kind: str, name: str, signature: str, line: int) -> None:
+        record(self.declarations, self.supported, Path(self.path).stem, kind, name, signature, self.path, line)
+
+    def reject(self, line: int, message: str) -> None:
+        self.findings.append({"path": self.path, "line": line, "message": message})
+
+
+def _procedure_header(scan: _ComponentScan, match: re.Match[str], code: str, line: int) -> None:
+    """A procedure must state its visibility; public procedures are recorded."""
+    visibility = (match.group("vis") or "").casefold()
+    if not visibility:
+        scan.reject(line, f"Implicit public procedure is prohibited: {match.group('name')}.")
+    if visibility == "public":
+        kind = " ".join(item.capitalize() for item in match.group("kind").split())
+        scan.declare(kind, match.group("name"), norm(code), line)
+
+
+def _public_block(
+    scan: _ComponentScan, match: re.Match[str], statements: list[tuple[int, int, str]], index: int, line: int
+) -> int:
+    """Record a public Type/Enum block with its body; return the index after it."""
+    kind = match.group("kind").capitalize()
+    name = match.group("name")
+    body = [norm(statements[index][2])]
+    close = END_BLOCK[kind.casefold()]
+    end_index = index + 1
+    while end_index < len(statements) and not close.match(statements[end_index][2]):
+        if statements[end_index][2].strip():
+            body.append(norm(statements[end_index][2]))
+        end_index += 1
+    if end_index >= len(statements):
+        scan.reject(line, f"Public {kind} {name} is not closed.")
+        return index + 1
+    body.append(norm(statements[end_index][2]))
+    scan.declare(kind, name, " | ".join(body), line)
+    return end_index + 1
+
+
+def _module_declaration(code: str) -> tuple[str, str] | str | None:
+    """Classify a single-statement module-level public declaration.
+
+    Returns ``(kind, name)`` to record, a message for a prohibited form, or ``None``.
+    """
+    match = DECLARE.match(code)
+    if match:
+        kind = "Declare Function" if match.group("kind").casefold() == "function" else "Declare Sub"
+        return kind, match.group("name")
+    match = EVENT.match(code)
+    if match:
+        return "Event", match.group("name")
+    match = CONST.match(code)
+    if match:
+        if top_comma(match.group("rest")):
+            return "Public Const declarations must contain one identifier per statement."
+        return "Const", match.group("name")
+    match = VARIABLE.match(code)
+    if match:
+        if top_comma(match.group("rest")):
+            return "Public variable declarations must contain one identifier per statement."
+        return ("WithEvents Variable" if match.group("withevents") else "Variable"), match.group("name")
+    return None
+
+
 def _parse_active_component(
     path: str, text: str, supported: bool
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    component = Path(path).stem
-    declarations: list[dict[str, Any]] = []
-    findings: list[dict[str, Any]] = []
+    scan = _ComponentScan(path, supported)
     statements = logical(text.splitlines())
     inside_procedure = False
     index = 0
     while index < len(statements):
         line, _, code = statements[index]
         stripped = code.strip()
+        next_index = index + 1
+        procedure = PROC.match(code)
+        block = BLOCK.match(code)
         if not stripped or stripped.startswith(("Attribute ", "Option ", "#")):
-            index += 1
-            continue
-
-        match = PROC.match(code)
-        if match and " declare " not in f" {code.casefold()} ":
-            visibility = (match.group("vis") or "").casefold()
-            if not visibility:
-                findings.append(
-                    {
-                        "path": path,
-                        "line": line,
-                        "message": (
-                            "Implicit public procedure is prohibited: "
-                            f"{match.group('name')}."
-                        ),
-                    }
-                )
-            if visibility == "public":
-                kind = " ".join(item.capitalize() for item in match.group("kind").split())
-                record(
-                    declarations,
-                    supported,
-                    component,
-                    kind,
-                    match.group("name"),
-                    norm(code),
-                    path,
-                    line,
-                )
+            pass
+        elif procedure and " declare " not in f" {code.casefold()} ":
+            _procedure_header(scan, procedure, code, line)
             inside_procedure = True
-            index += 1
-            continue
-        if END_PROC.match(code):
+        elif END_PROC.match(code):
             inside_procedure = False
-            index += 1
-            continue
-        if inside_procedure:
-            index += 1
-            continue
-
-        if IMPLICIT.match(code):
-            findings.append(
-                {
-                    "path": path,
-                    "line": line,
-                    "message": (
-                        "Implicit public module-level declaration is prohibited: "
-                        f"{norm(code)}"
-                    ),
-                }
-            )
-            index += 1
-            continue
-
-        match = BLOCK.match(code)
-        if match:
-            kind = match.group("kind").capitalize()
-            name = match.group("name")
-            body = [norm(code)]
-            close = END_BLOCK[kind.casefold()]
-            end_index = index + 1
-            while end_index < len(statements) and not close.match(statements[end_index][2]):
-                if statements[end_index][2].strip():
-                    body.append(norm(statements[end_index][2]))
-                end_index += 1
-            if end_index >= len(statements):
-                findings.append(
-                    {
-                        "path": path,
-                        "line": line,
-                        "message": f"Public {kind} {name} is not closed.",
-                    }
-                )
-                index += 1
-                continue
-            body.append(norm(statements[end_index][2]))
-            record(
-                declarations,
-                supported,
-                component,
-                kind,
-                name,
-                " | ".join(body),
-                path,
-                line,
-            )
-            index = end_index + 1
-            continue
-
-        match = DECLARE.match(code)
-        if match:
-            kind = (
-                "Declare Function"
-                if match.group("kind").casefold() == "function"
-                else "Declare Sub"
-            )
-            record(
-                declarations,
-                supported,
-                component,
-                kind,
-                match.group("name"),
-                norm(code),
-                path,
-                line,
-            )
-            index += 1
-            continue
-
-        match = EVENT.match(code)
-        if match:
-            record(
-                declarations,
-                supported,
-                component,
-                "Event",
-                match.group("name"),
-                norm(code),
-                path,
-                line,
-            )
-            index += 1
-            continue
-
-        match = CONST.match(code)
-        if match:
-            if top_comma(match.group("rest")):
-                findings.append(
-                    {
-                        "path": path,
-                        "line": line,
-                        "message": (
-                            "Public Const declarations must contain one identifier per statement."
-                        ),
-                    }
-                )
-            else:
-                record(
-                    declarations,
-                    supported,
-                    component,
-                    "Const",
-                    match.group("name"),
-                    norm(code),
-                    path,
-                    line,
-                )
-            index += 1
-            continue
-
-        match = VARIABLE.match(code)
-        if match:
-            if top_comma(match.group("rest")):
-                findings.append(
-                    {
-                        "path": path,
-                        "line": line,
-                        "message": (
-                            "Public variable declarations must contain one identifier per statement."
-                        ),
-                    }
-                )
-            else:
-                kind = "WithEvents Variable" if match.group("withevents") else "Variable"
-                record(
-                    declarations,
-                    supported,
-                    component,
-                    kind,
-                    match.group("name"),
-                    norm(code),
-                    path,
-                    line,
-                )
-            index += 1
-            continue
-
-        index += 1
-    return declarations, findings
+        elif inside_procedure:
+            pass
+        elif IMPLICIT.match(code):
+            scan.reject(line, f"Implicit public module-level declaration is prohibited: {norm(code)}")
+        elif block:
+            next_index = _public_block(scan, block, statements, index, line)
+        else:
+            outcome = _module_declaration(code)
+            if isinstance(outcome, str):
+                scan.reject(line, outcome)
+            elif outcome is not None:
+                scan.declare(outcome[0], outcome[1], norm(code), line)
+        index = next_index
+    return scan.declarations, scan.findings
 
 
 def parse_component(
@@ -443,13 +358,9 @@ def property_pair(first: dict[str, Any], second: dict[str, Any]) -> bool:
     )
 
 
-def run_check(root: Path) -> dict[str, Any]:
-    config = json.loads((root / CONFIG_PATH).read_text(encoding="utf-8"))
-    vba = config["vba"]
-    components: dict[str, str] = vba["components"]
-    manifest = vba["public_api_manifest"]
+def _configuration_findings(config: dict[str, Any], manifest: str) -> list[dict[str, Any]]:
+    """The manifest is globally required and every profile requires a public component."""
     findings: list[dict[str, Any]] = []
-
     if manifest not in config["required_paths"]:
         findings.append(
             {
@@ -469,8 +380,15 @@ def run_check(root: Path) -> dict[str, Any]:
                     ),
                 }
             )
+    return findings
 
+
+def _parse_components(
+    root: Path, components: dict[str, str]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Parse every tracked configured component; only public-role ones contribute declarations."""
     declarations: list[dict[str, Any]] = []
+    findings: list[dict[str, Any]] = []
     tracked = set(tracked_vba(root))
     for path, role in sorted(components.items()):
         if path not in tracked or not (root / path).is_file():
@@ -482,9 +400,41 @@ def run_check(root: Path) -> dict[str, Any]:
         )
         declarations.extend(parsed)
         findings.extend(errors)
+    return declarations, findings
 
+
+def _standard_module_collisions(
+    declaration: dict[str, Any], names: dict[str, list[dict[str, Any]]]
+) -> list[dict[str, Any]]:
+    """A public name in a standard module may not collide with another in an overlapping environment."""
+    findings: list[dict[str, Any]] = []
+    prior = names.setdefault(str(declaration["name"]).casefold(), [])
+    for previous in prior:
+        if (set(previous["environments"]) & set(declaration["environments"])
+                and not property_pair(previous, declaration)):
+            findings.append(
+                {
+                    "path": declaration["path"],
+                    "line": declaration["line"],
+                    "message": (
+                        "Public standard-module name "
+                        f"{declaration['name']!r} collides with "
+                        f"{previous['component']}.{previous['name']} "
+                        f"({previous['kind']})."
+                    ),
+                }
+            )
+    prior.append(declaration)
+    return findings
+
+
+def _index_declarations(
+    declarations: list[dict[str, Any]],
+) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
+    """Group declarations by case-insensitive key; report duplicates and standard-module collisions."""
     keys: dict[str, list[dict[str, Any]]] = {}
     names: dict[str, list[dict[str, Any]]] = {}
+    findings: list[dict[str, Any]] = []
     for declaration in declarations:
         declaration_key = key(
             str(declaration["component"]),
@@ -502,27 +452,18 @@ def run_check(root: Path) -> dict[str, Any]:
             })
         variants.append(declaration)
         if Path(str(declaration["path"])).suffix.casefold() == ".bas":
-            name_key = str(declaration["name"]).casefold()
-            prior = names.setdefault(name_key, [])
-            for previous in prior:
-                if (set(previous["environments"]) & set(declaration["environments"])
-                        and not property_pair(previous, declaration)):
-                    findings.append(
-                        {
-                            "path": declaration["path"],
-                            "line": declaration["line"],
-                            "message": (
-                                "Public standard-module name "
-                                f"{declaration['name']!r} collides with "
-                                f"{previous['component']}.{previous['name']} "
-                                f"({previous['kind']})."
-                            ),
-                        }
-                    )
-            prior.append(declaration)
+            findings.extend(_standard_module_collisions(declaration, names))
+    return keys, findings
 
-    rows, signatures, errors = read_manifest(root, manifest)
-    findings.extend(errors)
+
+def _manifest_findings(
+    manifest: str,
+    keys: dict[str, list[dict[str, Any]]],
+    rows: set[str],
+    signatures: dict[str, set[str]],
+) -> list[dict[str, Any]]:
+    """Source declarations, manifest rows and signature records must match one to one."""
+    findings: list[dict[str, Any]] = []
     actual = {item.casefold(): item for item in keys}
     row_map = {item.casefold(): item for item in rows}
     signature_map = {item.casefold(): item for item in signatures}
@@ -575,6 +516,22 @@ def run_check(root: Path) -> dict[str, Any]:
                     "message": f"Stale signature record: {declaration_key}",
                 }
             )
+    return findings
+
+
+def run_check(root: Path) -> dict[str, Any]:
+    config = json.loads((root / CONFIG_PATH).read_text(encoding="utf-8"))
+    vba = config["vba"]
+    components: dict[str, str] = vba["components"]
+    manifest = vba["public_api_manifest"]
+    findings = _configuration_findings(config, manifest)
+    declarations, parse_errors = _parse_components(root, components)
+    findings.extend(parse_errors)
+    keys, index_errors = _index_declarations(declarations)
+    findings.extend(index_errors)
+    rows, signatures, errors = read_manifest(root, manifest)
+    findings.extend(errors)
+    findings.extend(_manifest_findings(manifest, keys, rows, signatures))
 
     evidence = sorted(
         declarations,

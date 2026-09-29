@@ -10,10 +10,12 @@ import os
 import stat
 import tempfile
 import unittest
+from datetime import date
 from email.message import Message
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 import _gatelib as gatelib
 import _release_closeout as closeout
@@ -30,6 +32,7 @@ import initialize_repository as initializer
 import policy_coverage_runner as coverage_runner
 import provision_repository as provision
 import release_certification as certification
+from check_portfolio_drift import CONFIG as PORTFOLIO_CONFIG
 
 
 class CertificationCloseoutDocumentationTests(unittest.TestCase):
@@ -44,6 +47,13 @@ class CertificationCloseoutDocumentationTests(unittest.TestCase):
             "size": 1,
             "digest": "sha256:" + "0" * 64,
         }
+
+    def test_certification_json_root_must_be_an_object(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "evidence.json"
+            path.write_text("[]", encoding="utf-8")
+            with self.assertRaisesRegex(certification.CertificationError, "must contain one JSON object"):
+                certification.load_json(path)
 
     def test_canonical_source_only_partition_and_closeout_semantics(self) -> None:
         tag = "v1.2.1"
@@ -346,7 +356,7 @@ class InitializerDepthTests(unittest.TestCase):
             self.assertEqual((root / "old.txt").read_bytes(), b"new")
             self.assertEqual((root / "new.txt").read_bytes(), b"x")
             before = (root / "old.txt").read_bytes()
-            with patch.object(initializer.os, "replace", side_effect=OSError("boom")):
+            with patch("initialize_repository.os.replace", side_effect=OSError("boom")):
                 with self.assertRaisesRegex(initializer.InitializationError, "original files were restored"):
                     initializer._apply_changes(root, {"old.txt": b"broken"})
             self.assertEqual((root / "old.txt").read_bytes(), before)
@@ -386,14 +396,14 @@ class InitializerDepthTests(unittest.TestCase):
             )
             # Rollback restores the exact original mode: only written files are normalized.
             os.chmod(root / "plain.txt", world_writable)
-            with patch.object(initializer.os, "replace", side_effect=OSError("boom")):
+            with patch("initialize_repository.os.replace", side_effect=OSError("boom")):
                 with self.assertRaises(initializer.InitializationError):
                     initializer._apply_changes(root, {"plain.txt": b"broken"})
             self.assertEqual(stat.S_IMODE((root / "plain.txt").stat().st_mode), world_writable)
 
 
 class ReleaseDepthTests(unittest.TestCase):
-    def base_policy(self) -> dict:
+    def base_policy(self) -> dict[str, Any]:
         profile = {"required_checks": ["vba-compile", "regression"], "allowed_asset_globs": []}
         return {
             "schema_version": 1,
@@ -477,7 +487,7 @@ class ReleaseDepthTests(unittest.TestCase):
             ("a\\b", False), ("a\0b", False), (1, False),
         ):
             self.assertEqual(release._safe_relative(value), expected)
-        with patch.object(release.subprocess, "run", side_effect=FileNotFoundError()):
+        with patch("check_release.subprocess.run", side_effect=FileNotFoundError()):
             with self.assertRaises(release.OperationalError):
                 release._git(Path("."), "status")
         with patch.object(release, "_git_output", return_value=None):
@@ -1394,7 +1404,7 @@ class SnapshotCollectorDepthTests(unittest.TestCase):
         tree = {"tree": [], "truncated": True}
         with (
             patch.object(snapshot, "get", side_effect=[metadata, {"sha": "a" * 40}, tree]),
-            patch.object(snapshot, "pages", side_effect=snapshot.urllib.error.HTTPError("u", 403, "no", Message(), None)),
+            patch.object(snapshot, "pages", side_effect=HTTPError("u", 403, "no", Message(), None)),
         ):
             collected = snapshot.collect("owner/repo")
         self.assertIsNone(collected["paths"])
@@ -1402,12 +1412,12 @@ class SnapshotCollectorDepthTests(unittest.TestCase):
         self.assertIn("labels", collected["unavailable"])
         self.assertIn("rulesets", collected["unavailable"])
 
-        with patch.object(snapshot.sys, "argv", ["collector", "owner/repo", "owner/repo", "--contract-commit", "a" * 40]):
+        with patch("collect_portfolio_snapshot.sys.argv", ["collector", "owner/repo", "owner/repo", "--contract-commit", "a" * 40]):
             self.assertEqual(snapshot.main(), 2)
-        with patch.object(snapshot.sys, "argv", ["collector", "owner/repo", "--contract-commit", "bad"]):
+        with patch("collect_portfolio_snapshot.sys.argv", ["collector", "owner/repo", "--contract-commit", "bad"]):
             self.assertEqual(snapshot.main(), 2)
         with (
-            patch.object(snapshot.sys, "argv", ["collector", "owner/repo", "--contract-commit", "a" * 40, "--quality"]),
+            patch("collect_portfolio_snapshot.sys.argv", ["collector", "owner/repo", "--contract-commit", "a" * 40, "--quality"]),
             patch.object(snapshot, "collect", return_value=dict(repo)),
             patch.object(snapshot, "quality_evidence", return_value={"workflows": [], "releases": []}),
         ):
@@ -1540,7 +1550,7 @@ class ExternalLinkBoundaryTests(unittest.TestCase):
         raw = Raw()
         connection = external_links.PinnedHTTPS("example.com", "8.8.8.8", 1)
         setattr(connection, "tls_context", TLS())
-        with patch.object(external_links.socket, "create_connection", return_value=raw):
+        with patch("check_external_links.socket.create_connection", return_value=raw):
             with self.assertRaisesRegex(RuntimeError, "tls"):
                 connection.connect()
         self.assertTrue(raw.closed)
@@ -1567,12 +1577,12 @@ class ExternalLinkBoundaryTests(unittest.TestCase):
 
         fake = Connection()
         with (
-            patch.object(external_links.socket, "getaddrinfo", return_value=[(None, None, None, None, ("8.8.8.8", 443))]),
+            patch("check_external_links.socket.getaddrinfo", return_value=[(None, None, None, None, ("8.8.8.8", 443))]),
             patch.object(external_links, "PinnedHTTPS", return_value=fake),
         ):
             self.assertEqual(external_links.request("https://example.com/a b", 1), (200, None))
         self.assertTrue(fake.closed)
-        with patch.object(external_links.socket, "getaddrinfo", return_value=[(None, None, None, None, ("127.0.0.1", 443))]):
+        with patch("check_external_links.socket.getaddrinfo", return_value=[(None, None, None, None, ("127.0.0.1", 443))]):
             with self.assertRaises(ValueError):
                 external_links.request("https://example.com/a", 1)
 
@@ -1605,7 +1615,7 @@ class ExternalLinkBoundaryTests(unittest.TestCase):
             patch.object(external_links, "collect", return_value=links),
         ):
             report = external_links.build_report(
-                Path("."), external_links.date(2026, 9, 12),
+                Path("."), date(2026, 9, 12),
                 transport=lambda _u, _t: (200, None), pause=lambda _n: None,
             )
         self.assertEqual(report["status"], "pass")
@@ -1621,7 +1631,7 @@ class ExternalLinkBoundaryTests(unittest.TestCase):
             patch.object(external_links, "collect", return_value=links),
         ):
             limited = external_links.build_report(
-                Path("."), external_links.date(2026, 9, 12),
+                Path("."), date(2026, 9, 12),
                 transport=lambda _u, _t: (200, None), pause=lambda _n: None,
             )
         self.assertTrue(limited["limit_exceeded"])
@@ -1685,7 +1695,7 @@ class SnapshotCollectorAdditionalDepthTests(unittest.TestCase):
             def open(*_args: Any, **_kwargs: Any) -> Response:
                 return Response()
 
-        with patch.object(snapshot.urllib.request, "build_opener", return_value=Opener()):
+        with patch("collect_portfolio_snapshot.urllib.request.build_opener", return_value=Opener()):
             with self.assertRaisesRegex(ValueError, "size limit"):
                 snapshot.get("owner/repo")
 
@@ -1724,7 +1734,7 @@ class SnapshotCollectorAdditionalDepthTests(unittest.TestCase):
         self.assertEqual(quality["releases"][0]["resolved_commit"], "a" * 40)
 
     def test_collect_blob_failure_is_explicit(self) -> None:
-        config_path = snapshot.CONFIG
+        config_path = PORTFOLIO_CONFIG
         metadata = {
             "default_branch": "main", "description": "x", "has_issues": True,
             "allow_auto_merge": False,
@@ -1739,7 +1749,7 @@ class SnapshotCollectorAdditionalDepthTests(unittest.TestCase):
             if "/git/trees/" in path:
                 return tree
             if "/git/blobs/" in path:
-                raise snapshot.urllib.error.HTTPError("u", 403, "no", Message(), None)
+                raise HTTPError("u", 403, "no", Message(), None)
             raise AssertionError(path)
 
         with (
@@ -1812,7 +1822,7 @@ class ProvisioningPrimitiveDepthTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "Expected source JSON"):
             provision.source_json(Source({"encoding": "utf-8", "type": "file"}), "x.json", "a" * 40)
-        encoded = provision.base64.b64encode(b'{"x": 1}').decode("ascii")
+        encoded = base64.b64encode(b'{"x": 1}').decode("ascii")
         parsed = provision.source_json(
             Source({"encoding": "base64", "type": "file", "content": encoded}),
             "x.json", "a" * 40,
@@ -1897,7 +1907,7 @@ class RemainingCoverageDepthTests(unittest.TestCase):
             self.assertEqual(semantics.run_self_test(), 1)
 
     def test_checker_development_ast_failure_boundaries(self) -> None:
-        with patch.object(checker_dev.importlib.util, "spec_from_file_location", return_value=None):
+        with patch("checker_development.importlib.util.spec_from_file_location", return_value=None):
             with self.assertRaises(checker_dev.ContractError):
                 checker_dev.load_checker(Path("missing.py"))
         with self.assertRaises(checker_dev.ContractError):
@@ -2043,7 +2053,7 @@ class RemainingCoverageDepthTests(unittest.TestCase):
             "allow_auto_merge": False,
         }
         tree = {
-            "tree": [{"path": snapshot.CONFIG, "sha": "blob", "type": "blob"}],
+            "tree": [{"path": PORTFOLIO_CONFIG, "sha": "blob", "type": "blob"}],
             "truncated": False,
         }
 
@@ -2063,7 +2073,7 @@ class RemainingCoverageDepthTests(unittest.TestCase):
             patch.object(snapshot, "pages", return_value=[]),
         ):
             collected = snapshot.collect("owner/repo")
-        self.assertIn(snapshot.CONFIG, collected["files"])
+        self.assertIn(PORTFOLIO_CONFIG, collected["files"])
         self.assertEqual(collected["labels"], [])
         self.assertEqual(collected["rulesets"], [])
 
@@ -2084,8 +2094,8 @@ class RemainingCoverageDepthTests(unittest.TestCase):
                 return Response()
 
         with (
-            patch.dict(snapshot.os.environ, {"GH_TOKEN": "token"}, clear=True),
-            patch.object(snapshot.urllib.request, "build_opener", return_value=Opener()),
+            patch.dict(os.environ, {"GH_TOKEN": "token"}, clear=True),
+            patch("collect_portfolio_snapshot.urllib.request.build_opener", return_value=Opener()),
         ):
             self.assertEqual(snapshot.get("owner/repo"), {})
 

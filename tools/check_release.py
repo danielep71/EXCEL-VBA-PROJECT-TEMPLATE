@@ -22,7 +22,7 @@ import sys
 import tempfile
 from datetime import date
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Callable
 
 from check_excel_evidence import release_findings as excel_release_findings
 from release_provenance import validate as validate_provenance
@@ -104,62 +104,93 @@ def _load_configuration(root: Path) -> tuple[dict[str, Any] | None, list[dict[st
     return value, []
 
 
+POLICY_KEYS = frozenset({
+    "schema_version", "evidence_schema_version", "provenance_signature_mode",
+    "core_checks", "profiles", "source_scan_exclude_paths",
+    "template_construction_markers",
+})
+
+
+def _canonical_check_list(value: object) -> bool:
+    return isinstance(value, list) and bool(value) and all(
+        isinstance(item, str) and CHECK_ID_PATTERN.fullmatch(item) for item in value
+    )
+
+
+def _policy_key_problem(value: dict[str, Any]) -> str | None:
+    if set(value) == POLICY_KEYS:
+        return None
+    missing = sorted(POLICY_KEYS - set(value))
+    extra = sorted(set(value) - POLICY_KEYS)
+    detail = []
+    if missing:
+        detail.append("missing " + ", ".join(missing))
+    if extra:
+        detail.append("unknown " + ", ".join(extra))
+    return "; ".join(detail)
+
+
+def _policy_header_problem(value: dict[str, Any]) -> str | None:
+    if value.get("schema_version") != SCHEMA_VERSION or value.get("evidence_schema_version") != SCHEMA_VERSION:
+        return "unsupported schema version"
+    signature_mode = value.get("provenance_signature_mode")
+    if not isinstance(signature_mode, str) or signature_mode not in {"none", "ssh"}:
+        return "provenance_signature_mode must be none or ssh"
+    return None
+
+
+def _core_checks_problem(core: object) -> str | None:
+    if not _canonical_check_list(core):
+        return "core_checks must be a non-empty list of canonical identifiers"
+    assert isinstance(core, list)
+    if len(core) != len(set(core)):
+        return "core_checks contains duplicates"
+    return None
+
+
+def _profiles_problem(profiles: object, core: list[str]) -> str | None:
+    if not isinstance(profiles, dict) or set(profiles) != set(SUPPORTED_PROFILES):
+        return "profiles must define exactly application, library, template, and ui-component"
+    for profile, specification in profiles.items():
+        if not isinstance(specification, dict) or set(specification) != {"required_checks", "allowed_asset_globs"}:
+            return f"{profile} has an invalid policy shape"
+        checks = specification["required_checks"]
+        globs = specification["allowed_asset_globs"]
+        if not _canonical_check_list(checks):
+            return f"{profile}.required_checks is invalid"
+        if len(checks) != len(set(checks)) or set(checks) & set(core):
+            return f"{profile}.required_checks contains duplicates or core checks"
+        if not isinstance(globs, list) or not all(_safe_relative(item) for item in globs):
+            return f"{profile}.allowed_asset_globs is invalid"
+    return None
+
+
+def _scan_settings_problem(excludes: object, markers: object) -> str | None:
+    if not isinstance(excludes, list) or not all(_safe_relative(item) for item in excludes):
+        return "source_scan_exclude_paths is invalid"
+    if not isinstance(markers, list) or not markers or not all(isinstance(item, str) and item.strip() for item in markers):
+        return "template_construction_markers is invalid"
+    return None
+
+
 def _load_policy(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
     value, findings = _read_json(root / POLICY_PATH, "release-policy")
     if findings:
         return None, findings
     if not isinstance(value, dict):
         return None, [_finding("invalid-release-policy", POLICY_PATH, "root must be an object")]
-    required = {
-        "schema_version", "evidence_schema_version", "provenance_signature_mode",
-        "core_checks", "profiles", "source_scan_exclude_paths",
-        "template_construction_markers",
-    }
-    if set(value) != required:
-        missing = sorted(required - set(value))
-        extra = sorted(set(value) - required)
-        detail = []
-        if missing:
-            detail.append("missing " + ", ".join(missing))
-        if extra:
-            detail.append("unknown " + ", ".join(extra))
-        return None, [_finding("invalid-release-policy", POLICY_PATH, "; ".join(detail))]
-    if value.get("schema_version") != SCHEMA_VERSION or value.get("evidence_schema_version") != SCHEMA_VERSION:
-        return None, [_finding("invalid-release-policy", POLICY_PATH, "unsupported schema version")]
-    signature_mode = value.get("provenance_signature_mode")
-    if not isinstance(signature_mode, str) or signature_mode not in {"none", "ssh"}:
-        return None, [_finding(
-            "invalid-release-policy", POLICY_PATH,
-            "provenance_signature_mode must be none or ssh",
-        )]
-    core = value.get("core_checks")
-    profiles = value.get("profiles")
-    excludes = value.get("source_scan_exclude_paths")
-    markers = value.get("template_construction_markers")
-    if not isinstance(core, list) or not core or not all(isinstance(item, str) and CHECK_ID_PATTERN.fullmatch(item) for item in core):
-        return None, [_finding("invalid-release-policy", POLICY_PATH, "core_checks must be a non-empty list of canonical identifiers")]
-    if len(core) != len(set(core)):
-        return None, [_finding("invalid-release-policy", POLICY_PATH, "core_checks contains duplicates")]
-    if not isinstance(profiles, dict) or set(profiles) != set(SUPPORTED_PROFILES):
-        return None, [_finding(
-            "invalid-release-policy", POLICY_PATH,
-            "profiles must define exactly application, library, template, and ui-component",
-        )]
-    for profile, specification in profiles.items():
-        if not isinstance(specification, dict) or set(specification) != {"required_checks", "allowed_asset_globs"}:
-            return None, [_finding("invalid-release-policy", POLICY_PATH, f"{profile} has an invalid policy shape")]
-        checks = specification["required_checks"]
-        globs = specification["allowed_asset_globs"]
-        if not isinstance(checks, list) or not checks or not all(isinstance(item, str) and CHECK_ID_PATTERN.fullmatch(item) for item in checks):
-            return None, [_finding("invalid-release-policy", POLICY_PATH, f"{profile}.required_checks is invalid")]
-        if len(checks) != len(set(checks)) or set(checks) & set(core):
-            return None, [_finding("invalid-release-policy", POLICY_PATH, f"{profile}.required_checks contains duplicates or core checks")]
-        if not isinstance(globs, list) or not all(_safe_relative(item) for item in globs):
-            return None, [_finding("invalid-release-policy", POLICY_PATH, f"{profile}.allowed_asset_globs is invalid")]
-    if not isinstance(excludes, list) or not all(_safe_relative(item) for item in excludes):
-        return None, [_finding("invalid-release-policy", POLICY_PATH, "source_scan_exclude_paths is invalid")]
-    if not isinstance(markers, list) or not markers or not all(isinstance(item, str) and item.strip() for item in markers):
-        return None, [_finding("invalid-release-policy", POLICY_PATH, "template_construction_markers is invalid")]
+    # Stages run in order; the first problem is the single reported finding.
+    stages: tuple[Callable[[], str | None], ...] = (
+        lambda: _policy_key_problem(value),
+        lambda: _policy_header_problem(value),
+        lambda: _core_checks_problem(value.get("core_checks")),
+        lambda: _profiles_problem(value.get("profiles"), value["core_checks"]),
+        lambda: _scan_settings_problem(value.get("source_scan_exclude_paths"), value.get("template_construction_markers")),
+    )
+    for stage in stages:
+        problem = stage()
+        if problem is not None:
+            return None, [_finding("invalid-release-policy", POLICY_PATH, problem)]
     return value, []
 
 
@@ -386,6 +417,54 @@ def _validate_version_and_changelog(root: Path, tag: str) -> tuple[str | None, l
     return version, findings
 
 
+def _nonempty_text(value: dict[str, Any], key: str) -> bool:
+    return isinstance(value.get(key), str) and bool(value[key].strip())
+
+
+def _positive_integer(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _repository_integrity_findings(path: str, value: dict[str, Any]) -> list[dict[str, str]]:
+    run_url = value.get("run_url")
+    if not isinstance(run_url, str) or not run_url.startswith("https://"):
+        return [_finding("invalid-evidence-check", path, "run_url must be HTTPS")]
+    return []
+
+
+def _vba_compile_findings(path: str, value: dict[str, Any]) -> list[dict[str, str]]:
+    if not _nonempty_text(value, "environment"):
+        return [_finding("invalid-evidence-check", path, "environment must be non-empty")]
+    return []
+
+
+def _regression_findings(path: str, value: dict[str, Any]) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    if not _nonempty_text(value, "entry_point"):
+        findings.append(_finding("invalid-evidence-check", path, "entry_point must be non-empty"))
+    if not _nonempty_text(value, "environment"):
+        findings.append(_finding("invalid-evidence-check", path, "environment must be non-empty"))
+    if not _positive_integer(value.get("cases")):
+        findings.append(_finding("invalid-evidence-check", path, "cases must be a positive integer"))
+    if not _positive_integer(value.get("assertions")):
+        findings.append(_finding("invalid-evidence-check", path, "assertions must be a positive integer"))
+    if value.get("failures") != 0:
+        findings.append(_finding("failed-evidence-check", path, "failures must be zero"))
+    if value.get("completeness") != "COMPLETE":
+        findings.append(_finding("failed-evidence-check", path, "completeness must be COMPLETE"))
+    if value.get("cleanup") != "PASS":
+        findings.append(_finding("failed-evidence-check", path, "cleanup must be PASS"))
+    return findings
+
+
+# Extra validation for the core checks whose records carry their own fields.
+CORE_CHECK_VALIDATORS: dict[str, Callable[[str, dict[str, Any]], list[dict[str, str]]]] = {
+    "repository-integrity": _repository_integrity_findings,
+    "vba-compile": _vba_compile_findings,
+    "regression": _regression_findings,
+}
+
+
 def _validate_check(check_id: str, value: object, candidate_sha: str) -> list[dict[str, str]]:
     path = f"evidence.checks.{check_id}"
     if not isinstance(value, dict):
@@ -399,33 +478,11 @@ def _validate_check(check_id: str, value: object, candidate_sha: str) -> list[di
         findings.append(_finding("failed-evidence-check", path, "status must be PASS"))
     if value.get("candidate_sha") != candidate_sha:
         findings.append(_finding("evidence-sha-mismatch", path, "candidate_sha does not match the release candidate"))
-    if not isinstance(value.get("detail"), str) or not value["detail"].strip():
+    if not _nonempty_text(value, "detail"):
         findings.append(_finding("invalid-evidence-check", path, "detail must be non-empty"))
-    if check_id == "repository-integrity":
-        run_url = value.get("run_url")
-        if not isinstance(run_url, str) or not run_url.startswith("https://"):
-            findings.append(_finding("invalid-evidence-check", path, "run_url must be HTTPS"))
-    elif check_id == "vba-compile":
-        if not isinstance(value.get("environment"), str) or not value["environment"].strip():
-            findings.append(_finding("invalid-evidence-check", path, "environment must be non-empty"))
-    elif check_id == "regression":
-        if not isinstance(value.get("entry_point"), str) or not value["entry_point"].strip():
-            findings.append(_finding("invalid-evidence-check", path, "entry_point must be non-empty"))
-        if not isinstance(value.get("environment"), str) or not value["environment"].strip():
-            findings.append(_finding("invalid-evidence-check", path, "environment must be non-empty"))
-        cases = value.get("cases")
-        assertions = value.get("assertions")
-        failures = value.get("failures")
-        if not isinstance(cases, int) or isinstance(cases, bool) or cases <= 0:
-            findings.append(_finding("invalid-evidence-check", path, "cases must be a positive integer"))
-        if not isinstance(assertions, int) or isinstance(assertions, bool) or assertions <= 0:
-            findings.append(_finding("invalid-evidence-check", path, "assertions must be a positive integer"))
-        if failures != 0:
-            findings.append(_finding("failed-evidence-check", path, "failures must be zero"))
-        if value.get("completeness") != "COMPLETE":
-            findings.append(_finding("failed-evidence-check", path, "completeness must be COMPLETE"))
-        if value.get("cleanup") != "PASS":
-            findings.append(_finding("failed-evidence-check", path, "cleanup must be PASS"))
+    validator = CORE_CHECK_VALIDATORS.get(check_id)
+    if validator is not None:
+        findings += validator(path, value)
     return findings
 
 
@@ -900,7 +957,9 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             passed = first["status"] == "pass" and first == second and before == after
             results.append((f"valid-{profile}", "accepted", "PASS" if passed else "FAIL"))
 
-        def negative(name: str, mutate, expected_code: str, profile: str = "library") -> None:
+        def negative(
+            name: str, mutate: Callable[[dict[str, Any]], object], expected_code: str, profile: str = "library"
+        ) -> None:
             case = temporary / name
             case.mkdir()
             sha = _fixture_repository(case, profile, policy)
@@ -987,7 +1046,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             "evidence-sha-mismatch",
         )
 
-        def binary_mutation(context, *, approved: bool, digest_matches: bool) -> None:
+        def binary_mutation(context: dict[str, Any], *, approved: bool, digest_matches: bool) -> None:
             asset = context["root"] / "dist" / ("fixture.xlsm" if approved else "fixture.exe")
             asset.parent.mkdir()
             asset.write_bytes(b"synthetic release asset\n")
@@ -1013,7 +1072,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             "incorrect-digest", lambda c: binary_mutation(c, approved=True, digest_matches=False),
             "asset-digest-mismatch", profile="application",
         )
-        def missing_manifest_mutation(context) -> None:
+        def missing_manifest_mutation(context: dict[str, Any]) -> None:
             binary_mutation(context, approved=True, digest_matches=True)
             context.update(manifest_path=None)
 
@@ -1022,7 +1081,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             missing_manifest_mutation,
             "missing-asset-manifest", profile="application",
         )
-        def asset_binding_mutation(context) -> None:
+        def asset_binding_mutation(context: dict[str, Any]) -> None:
             binary_mutation(context, approved=True, digest_matches=True)
             context["evidence_data"]["assets"][0]["candidate_sha"] = "f" * 40
             context["evidence"].write_text(
@@ -1042,13 +1101,13 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             "unapproved-binary", profile="template",
         )
 
-        def lightweight_tag(context) -> None:
+        def lightweight_tag(context: dict[str, Any]) -> None:
             _git(context["root"], "tag", "-d", "v1.0.0")
             _git(context["root"], "tag", "v1.0.0")
 
         negative("lightweight-tag", lightweight_tag, "lightweight-tag")
 
-        def moved_tag(context) -> None:
+        def moved_tag(context: dict[str, Any]) -> None:
             _git(context["root"], "tag", "-d", "v1.0.0")
             _git(context["root"], "commit", "--allow-empty", "-m", "Move release target")
             _git(context["root"], "tag", "-a", "v1.0.0", "-m", "Moved release")

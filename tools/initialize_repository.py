@@ -165,22 +165,15 @@ def _parse_assignments(entries: Iterable[str], option: str) -> dict[str, list[st
     return parsed
 
 
-def _validate_values(
-    root: Path,
-    tracked: set[str],
+def _categorized_scalars(
+    scalar_lists: dict[str, list[str]],
+    repeatable: dict[str, list[str]],
     catalogue: dict[str, dict[str, Any]],
-    scalar_entries: Iterable[str],
-    repeatable_entries: Iterable[str],
-    *,
-    require_preview_file: bool = True,
-) -> tuple[dict[str, str], dict[str, list[str]]]:
-    scalar_lists = _parse_assignments(scalar_entries, "--set")
-    repeatable = _parse_assignments(repeatable_entries, "--add")
-    known = set(catalogue)
-    unknown = (set(scalar_lists) | set(repeatable)) - known
+) -> dict[str, str]:
+    """Stage 1: every name is known, used with its category's flag, once, and required ones are present."""
+    unknown = (set(scalar_lists) | set(repeatable)) - set(catalogue)
     if unknown:
         raise InitializationError("Unknown substitutions: " + ", ".join(sorted(unknown)))
-
     scalars: dict[str, str] = {}
     for name, values in scalar_lists.items():
         if len(values) != 1:
@@ -189,12 +182,10 @@ def _validate_values(
         if category not in {"required", "optional"}:
             raise InitializationError(f"{name} cannot be supplied with --set; category is {category}.")
         scalars[name] = values[0]
-
     for name in repeatable:
         category = catalogue[name].get("category")
         if category != "repeatable":
             raise InitializationError(f"{name} cannot be supplied with --add; category is {category}.")
-
     required = {
         name for name, specification in catalogue.items()
         if specification.get("category") == "required"
@@ -202,7 +193,11 @@ def _validate_values(
     missing = required - set(scalars)
     if missing:
         raise InitializationError("Missing required substitutions: " + ", ".join(sorted(missing)))
+    return scalars
 
+
+def _validate_scalar_formats(scalars: dict[str, str]) -> None:
+    """Stage 2: repository path, security contact, length limits and copyright year."""
     if not REPOSITORY_PATTERN.fullmatch(scalars.get("REPOSITORY_PATH", "")):
         raise InitializationError("REPOSITORY_PATH must use GitHub owner/name form.")
     contact = scalars.get("SUPPORT_CONTACT", "")
@@ -220,18 +215,41 @@ def _validate_values(
     if not re.fullmatch(r"20[0-9]{2}", scalars.get("COPYRIGHT_YEAR", "")):
         raise InitializationError("COPYRIGHT_YEAR must be a four-digit year from 2000 through 2099.")
 
-    preview = scalars.get("SOCIAL_PREVIEW_PATH")
-    if preview:
-        item = PurePosixPath(preview)
-        if item.is_absolute() or ".." in item.parts:
-            raise InitializationError("SOCIAL_PREVIEW_PATH must name a repository-relative file.")
-        if require_preview_file:
-            if preview not in tracked:
-                raise InitializationError(
-                    "SOCIAL_PREVIEW_PATH must name a tracked repository-relative file."
-                )
-            if not (root / item).is_file():
-                raise InitializationError("SOCIAL_PREVIEW_PATH does not exist in the working tree.")
+
+def _validate_social_preview(
+    root: Path, tracked: set[str], preview: str | None, *, require_preview_file: bool
+) -> None:
+    """Stage 3: an optional social preview is a tracked, existing, repository-relative file."""
+    if not preview:
+        return
+    item = PurePosixPath(preview)
+    if item.is_absolute() or ".." in item.parts:
+        raise InitializationError("SOCIAL_PREVIEW_PATH must name a repository-relative file.")
+    if require_preview_file:
+        if preview not in tracked:
+            raise InitializationError(
+                "SOCIAL_PREVIEW_PATH must name a tracked repository-relative file."
+            )
+        if not (root / item).is_file():
+            raise InitializationError("SOCIAL_PREVIEW_PATH does not exist in the working tree.")
+
+
+def _validate_values(
+    root: Path,
+    tracked: set[str],
+    catalogue: dict[str, dict[str, Any]],
+    scalar_entries: Iterable[str],
+    repeatable_entries: Iterable[str],
+    *,
+    require_preview_file: bool = True,
+) -> tuple[dict[str, str], dict[str, list[str]]]:
+    scalar_lists = _parse_assignments(scalar_entries, "--set")
+    repeatable = _parse_assignments(repeatable_entries, "--add")
+    scalars = _categorized_scalars(scalar_lists, repeatable, catalogue)
+    _validate_scalar_formats(scalars)
+    _validate_social_preview(
+        root, tracked, scalars.get("SOCIAL_PREVIEW_PATH"), require_preview_file=require_preview_file
+    )
     return scalars, repeatable
 
 
@@ -429,6 +447,141 @@ def _strip_template_maintenance_workflow(path: str, text: str) -> str:
     return "".join(output)
 
 
+def _template_only_paths(
+    placeholders: dict[str, Any], tracked: set[str], selected_preview: str
+) -> set[str]:
+    """Configured template-only paths to delete, keeping the canonical social preview if selected."""
+    configured_template_only = set(placeholders["template_only_paths"])
+    missing_template_paths = configured_template_only - tracked
+    if missing_template_paths:
+        raise InitializationError(
+            "Configured template-only paths are not tracked: "
+            + ", ".join(sorted(missing_template_paths))
+        )
+    if (
+        selected_preview in configured_template_only
+        and selected_preview != CANONICAL_SOCIAL_PREVIEW_PATH
+    ):
+        raise InitializationError(
+            "SOCIAL_PREVIEW_PATH may retain only "
+            f"{CANONICAL_SOCIAL_PREVIEW_PATH} from template_only_paths."
+        )
+    retained_template_only = (
+        {CANONICAL_SOCIAL_PREVIEW_PATH}
+        if selected_preview == CANONICAL_SOCIAL_PREVIEW_PATH
+        else set()
+    )
+    return configured_template_only - retained_template_only
+
+
+def _rewrite_issue_security_url(path: str, rendered: str, template_repository: str, generated_repository: str) -> str:
+    """Point the issue chooser's private-security link at the generated repository."""
+    if path != ".github/ISSUE_TEMPLATE/config.yml":
+        return rendered
+    template_security_url = f"https://github.com/{template_repository}/security/policy"
+    generated_security_url = f"https://github.com/{generated_repository}/security/policy"
+    if template_security_url not in rendered:
+        raise InitializationError(
+            f"{path}: canonical template security URL is missing."
+        )
+    return rendered.replace(template_security_url, generated_security_url)
+
+
+def _render_tracked_text(
+    path: str,
+    text: str,
+    *,
+    profile: str,
+    config: dict[str, Any],
+    scalars: dict[str, str],
+    repeatable: dict[str, list[str]],
+    values: dict[str, str],
+    token_pattern: re.Pattern[str],
+    seen: set[str],
+) -> str:
+    """Render one tracked text file; record the placeholders it uses in ``seen``."""
+    catalogue = config["placeholders"]["catalogue"]
+    _reject_executable_placeholders(path, list(token_pattern.finditer(text)))
+    rendered = _render_blocks(path, text, profile, scalars, repeatable, catalogue)
+    for match in token_pattern.finditer(rendered):
+        name = match.group(1)
+        if name not in catalogue:
+            raise InitializationError(f"{path}: unknown placeholder {name}.")
+        seen.add(name)
+    for name, value in values.items():
+        rendered = rendered.replace("{{" + name + "}}", value)
+    rendered = _strip_template_maintenance_workflow(path, rendered)
+    rendered = _render_readme_badges(
+        path, rendered, config["repository"], scalars["REPOSITORY_PATH"]
+    )
+    rendered = _rewrite_issue_security_url(path, rendered, config["repository"], scalars["REPOSITORY_PATH"])
+    unresolved = sorted({match.group(1) for match in token_pattern.finditer(rendered)})
+    if unresolved:
+        raise InitializationError(f"{path}: unresolved placeholders: {', '.join(unresolved)}")
+    if path == "CHANGELOG.md":
+        return _reset_changelog(rendered)
+    if path == "VERSION":
+        return "0.0.0\n"
+    return rendered
+
+
+def _check_placeholder_usage(
+    scalars: dict[str, str],
+    repeatable: dict[str, list[str]],
+    catalogue: dict[str, dict[str, Any]],
+    seen: set[str],
+) -> None:
+    """Every supplied value is used, and every required/profile placeholder appears somewhere."""
+    supplied = set(scalars) | set(repeatable)
+    unused = supplied - seen
+    if unused:
+        raise InitializationError("Unused substitutions: " + ", ".join(sorted(unused)))
+    expected_used = {
+        name for name, specification in catalogue.items()
+        if specification.get("category") in {"required", "profile-specific"}
+    }
+    missing_uses = expected_used - seen
+    if missing_uses:
+        raise InitializationError("Registered required/profile placeholders are unused: " + ", ".join(sorted(missing_uses)))
+
+
+def _add_generated_configuration(
+    changes: dict[str, bytes | None],
+    config: dict[str, Any],
+    profile: str,
+    scalars: dict[str, str],
+    repeatable: dict[str, list[str]],
+    template_only: set[str],
+    tracked_files: tuple[str, ...],
+) -> None:
+    """Write the generated profile, the initialization record and any missing directory READMEs."""
+    generated_config = json.loads(json.dumps(config))
+    generated_config["mode"] = "generated"
+    generated_config["profile"] = profile
+    generated_config["repository"] = scalars["REPOSITORY_PATH"]
+    generated_config["required_paths"] = [
+        path
+        for path in generated_config["required_paths"]
+        if path not in template_only
+    ]
+    changes[CONFIG_PATH] = (
+        json.dumps(generated_config, indent=2, ensure_ascii=False) + "\n"
+    ).encode("utf-8")
+    changes[RECORD_PATH] = _record(
+        profile, scalars, repeatable, generated_config.get("template_contract", {})
+    )
+
+    profile_settings = generated_config["profiles"][profile]
+    for directory in profile_settings["required_directories"]:
+        prefix = directory.rstrip("/") + "/"
+        if not any(
+            path.startswith(prefix) and changes.get(path, b"present") is not None
+            for path in tracked_files
+        ):
+            readme = prefix + "README.md"
+            changes[readme] = _directory_readme(scalars["PROJECT_NAME"], profile, directory)
+
+
 def _build_changes(
     root: Path,
     profile: str,
@@ -455,28 +608,7 @@ def _build_changes(
         raise InitializationError("Repository mode must be template or a matching prior initialization.")
 
     excluded = set(placeholders["exclude_paths"])
-    configured_template_only = set(placeholders["template_only_paths"])
-    missing_template_paths = configured_template_only - tracked
-    if missing_template_paths:
-        raise InitializationError(
-            "Configured template-only paths are not tracked: "
-            + ", ".join(sorted(missing_template_paths))
-        )
-    selected_preview = scalars.get("SOCIAL_PREVIEW_PATH", "")
-    if (
-        selected_preview in configured_template_only
-        and selected_preview != CANONICAL_SOCIAL_PREVIEW_PATH
-    ):
-        raise InitializationError(
-            "SOCIAL_PREVIEW_PATH may retain only "
-            f"{CANONICAL_SOCIAL_PREVIEW_PATH} from template_only_paths."
-        )
-    retained_template_only = (
-        {CANONICAL_SOCIAL_PREVIEW_PATH}
-        if selected_preview == CANONICAL_SOCIAL_PREVIEW_PATH
-        else set()
-    )
-    template_only = configured_template_only - retained_template_only
+    template_only = _template_only_paths(placeholders, tracked, scalars.get("SOCIAL_PREVIEW_PATH", ""))
     token_pattern = re.compile(placeholders["pattern"])
     changes: dict[str, bytes | None] = {path: None for path in sorted(template_only)}
     seen: set[str] = set()
@@ -485,81 +617,23 @@ def _build_changes(
         if path in template_only or path in excluded or not _is_text(path):
             continue
         source = (root / path).read_bytes()
-        text = _decode(path, source)
-        matches = list(token_pattern.finditer(text))
-        _reject_executable_placeholders(path, matches)
-        rendered = _render_blocks(path, text, profile, scalars, repeatable, catalogue)
-        for match in token_pattern.finditer(rendered):
-            name = match.group(1)
-            if name not in catalogue:
-                raise InitializationError(f"{path}: unknown placeholder {name}.")
-            seen.add(name)
-        for name, value in values.items():
-            rendered = rendered.replace("{{" + name + "}}", value)
-        rendered = _strip_template_maintenance_workflow(path, rendered)
-        rendered = _render_readme_badges(
-            path, rendered, config["repository"], scalars["REPOSITORY_PATH"]
+        rendered = _render_tracked_text(
+            path,
+            _decode(path, source),
+            profile=profile,
+            config=config,
+            scalars=scalars,
+            repeatable=repeatable,
+            values=values,
+            token_pattern=token_pattern,
+            seen=seen,
         )
-        if path == ".github/ISSUE_TEMPLATE/config.yml":
-            template_security_url = (
-                f"https://github.com/{config['repository']}/security/policy"
-            )
-            generated_security_url = (
-                f"https://github.com/{scalars['REPOSITORY_PATH']}/security/policy"
-            )
-            if template_security_url not in rendered:
-                raise InitializationError(
-                    f"{path}: canonical template security URL is missing."
-                )
-            rendered = rendered.replace(template_security_url, generated_security_url)
-        unresolved = sorted({match.group(1) for match in token_pattern.finditer(rendered)})
-        if unresolved:
-            raise InitializationError(f"{path}: unresolved placeholders: {', '.join(unresolved)}")
-        if path == "CHANGELOG.md":
-            rendered = _reset_changelog(rendered)
-        elif path == "VERSION":
-            rendered = "0.0.0\n"
         output = _encode(path, rendered)
         if output != source:
             changes[path] = output
 
-    supplied = set(scalars) | set(repeatable)
-    unused = supplied - seen
-    if unused:
-        raise InitializationError("Unused substitutions: " + ", ".join(sorted(unused)))
-    expected_used = {
-        name for name, specification in catalogue.items()
-        if specification.get("category") in {"required", "profile-specific"}
-    }
-    missing_uses = expected_used - seen
-    if missing_uses:
-        raise InitializationError("Registered required/profile placeholders are unused: " + ", ".join(sorted(missing_uses)))
-
-    generated_config = json.loads(json.dumps(config))
-    generated_config["mode"] = "generated"
-    generated_config["profile"] = profile
-    generated_config["repository"] = scalars["REPOSITORY_PATH"]
-    generated_config["required_paths"] = [
-        path
-        for path in generated_config["required_paths"]
-        if path not in template_only
-    ]
-    changes[CONFIG_PATH] = (
-        json.dumps(generated_config, indent=2, ensure_ascii=False) + "\n"
-    ).encode("utf-8")
-    changes[RECORD_PATH] = _record(
-        profile, scalars, repeatable, generated_config.get("template_contract", {})
-    )
-
-    profile_settings = generated_config["profiles"][profile]
-    for directory in profile_settings["required_directories"]:
-        prefix = directory.rstrip("/") + "/"
-        if not any(
-            path.startswith(prefix) and changes.get(path, b"present") is not None
-            for path in tracked_files
-        ):
-            readme = prefix + "README.md"
-            changes[readme] = _directory_readme(scalars["PROJECT_NAME"], profile, directory)
+    _check_placeholder_usage(scalars, repeatable, catalogue, seen)
+    _add_generated_configuration(changes, config, profile, scalars, repeatable, template_only, tracked_files)
     return dict(sorted(changes.items())), values
 
 

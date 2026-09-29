@@ -6,8 +6,10 @@ import copy
 import io
 import json
 import unittest
+from typing import Any
 from unittest.mock import patch
 
+import check_portfolio_drift as drift
 import collect_portfolio_snapshot as capture
 import report_portfolio_quality as quality
 from test_portfolio_drift import fixture
@@ -15,7 +17,7 @@ from test_portfolio_drift import fixture
 NOW = "2026-09-09T12:00:00Z"
 
 
-def sample() -> dict:
+def sample() -> dict[str, Any]:
     data = fixture()
     repo = data["repositories"][0]
     repo["unavailable"] = {}
@@ -31,10 +33,10 @@ class ReportTests(unittest.TestCase):
         self.data = sample()
         self.repo = self.data["repositories"][0]
 
-    def report(self, as_of: str = NOW) -> dict:
+    def report(self, as_of: str = NOW) -> dict[str, Any]:
         return quality.build_report(self.data, as_of)
 
-    def dimension(self, name: str, as_of: str = NOW) -> dict:
+    def dimension(self, name: str, as_of: str = NOW) -> dict[str, Any]:
         return next(row for row in self.report(as_of)["repositories"][0]["dimensions"] if row["dimension"] == name)
 
     def test_complete_evidence_not_certification(self) -> None:
@@ -43,8 +45,8 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(report["repositories"][0]["certification"], "NOT_ASSESSED")
 
     def test_seven_repositories_and_missing_adoption(self) -> None:
-        self.repo["files"].pop(quality.drift.CONFIG)
-        self.repo["paths"].remove(quality.drift.CONFIG)
+        self.repo["files"].pop(drift.CONFIG)
+        self.repo["paths"].remove(drift.CONFIG)
         self.data["repositories"] = []
         for index in range(7):
             repo = copy.deepcopy(self.repo)

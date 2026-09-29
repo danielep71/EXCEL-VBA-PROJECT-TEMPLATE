@@ -2,43 +2,26 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import ModuleType
-from typing import Callable
+from typing import Any
 
-from policy_coverage_core import add_force, mutate_config
-
-Case = tuple[str, str, str | None, Callable[[Path], None]]
-
-
-def _register(cases: list[Case], name: str, rule: str, pattern: str | None = None):
-    def decorator(function: Callable[[Path], None]) -> Callable[[Path], None]:
-        cases.append((name, rule, pattern, function))
-        return function
-
-    return decorator
-
-
-def _case(cases: list[Case]):
-    def register(name: str, rule: str, pattern: str | None = None):
-        return _register(cases, name, rule, pattern)
-
-    return register
+from policy_coverage_core import Case, add_force, case_registrar, mutate_config
 
 
 def _required_and_placeholder_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
 
-    def template_mode(document: dict) -> None:
+    def template_mode(document: dict[str, Any]) -> None:
         document.update(
             mode="template",
             profile=None,
             repository="example/TEMPLATE-IDENTITY",
         )
 
-    case = _case(cases)
+    case = case_registrar(cases)
 
     @case("required-file-not-tracked", "required-paths", "Required file is not tracked")
     def _(root: Path) -> None:
-        def mutation(document: dict) -> None:
+        def mutation(document: dict[str, Any]) -> None:
             document["required_paths"] = sorted(
                 [*document["required_paths"], "missing.txt"], key=str.casefold
             )
@@ -47,7 +30,7 @@ def _required_and_placeholder_cases(module: ModuleType) -> list[Case]:
 
     @case("required-directory-absent", "required-paths", "Required directory is absent")
     def _(root: Path) -> None:
-        def mutation(document: dict) -> None:
+        def mutation(document: dict[str, Any]) -> None:
             document["required_directories"] = sorted(
                 [*document["required_directories"], "missing-dir"], key=str.casefold
             )
@@ -58,7 +41,7 @@ def _required_and_placeholder_cases(module: ModuleType) -> list[Case]:
     def _(root: Path) -> None:
         (root / "empty-dir").mkdir()
 
-        def mutation(document: dict) -> None:
+        def mutation(document: dict[str, Any]) -> None:
             document["required_directories"] = sorted(
                 [*document["required_directories"], "empty-dir"], key=str.casefold
             )
@@ -85,7 +68,7 @@ def _required_and_placeholder_cases(module: ModuleType) -> list[Case]:
 
 def _dotfile_and_structured_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
 
     @case("dotfile-editor-unreadable", "dotfile-policy", "Cannot read policy")
     def _(root: Path) -> None:
@@ -155,7 +138,7 @@ def _dotfile_and_structured_cases(module: ModuleType) -> list[Case]:
 
 def _markdown_and_text_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
 
     @case("markdown-escape", "markdown-links", "escapes the repository")
     def _(root: Path) -> None:
@@ -205,7 +188,7 @@ def _markdown_and_text_cases(module: ModuleType) -> list[Case]:
 
 def _artifact_and_line_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
 
     @case("artifact-office-lock", "forbidden-artifacts", "Office lock file")
     def _(root: Path) -> None:

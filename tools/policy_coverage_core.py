@@ -16,10 +16,14 @@ import re
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable
+from typing import Any, Callable, Protocol
 
 TOOL_NAME = "Policy branch coverage"
 CORE_TOOL = "tools/check_repo.py"
+
+# A semantic case: (name, expected rule, finding pattern, fixture mutation).
+CaseFunction = Callable[[Path], None]
+Case = tuple[str, str, str | None, CaseFunction]
 
 
 class CoverageError(RuntimeError):
@@ -88,8 +92,30 @@ def production_finding_sites(source_path: Path) -> dict[str, dict[str, Any]]:
     return dict(sorted(sites.items(), key=lambda item: (item[1]["line"], item[0])))
 
 
+class CaseRegistrar(Protocol):
+    def __call__(
+        self, name: str, rule: str, pattern: str | None = None
+    ) -> Callable[[CaseFunction], CaseFunction]: ...
+
+
+def case_registrar(cases: list[Case]) -> CaseRegistrar:
+    """Return a ``@case(name, rule, pattern)`` decorator that appends to ``cases``."""
+
+    def register(
+        name: str, rule: str, pattern: str | None = None
+    ) -> Callable[[CaseFunction], CaseFunction]:
+        def decorator(function: CaseFunction) -> CaseFunction:
+            cases.append((name, rule, pattern, function))
+            return function
+
+        return decorator
+
+    return register
+
+
 def rule_by_id(report: dict[str, Any], rule_id: str) -> dict[str, Any] | None:
-    for result in report.get("rules", []):
+    rules: list[dict[str, Any]] = report.get("rules", [])
+    for result in rules:
         if result.get("id") == rule_id:
             return result
     return None
@@ -100,16 +126,17 @@ def write_json(module: ModuleType, root: Path, relative: str, document: object) 
 
 
 def config_document(root: Path, module: ModuleType) -> dict[str, Any]:
-    return json.loads((root / module.CONFIG_PATH).read_text(encoding="utf-8"))
+    document: dict[str, Any] = json.loads((root / module.CONFIG_PATH).read_text(encoding="utf-8"))
+    return document
 
 
-def mutate_config(module: ModuleType, root: Path, mutation: Callable[[dict], None]) -> None:
+def mutate_config(module: ModuleType, root: Path, mutation: Callable[[dict[str, Any]], None]) -> None:
     document = config_document(root, module)
     mutation(document)
     write_json(module, root, module.CONFIG_PATH, document)
 
 
-def mutate_labels(module: ModuleType, root: Path, mutation: Callable[[dict], None]) -> None:
+def mutate_labels(module: ModuleType, root: Path, mutation: Callable[[dict[str, Any]], None]) -> None:
     document = json.loads((root / module.LABEL_MANIFEST_PATH).read_text(encoding="utf-8"))
     mutation(document)
     write_json(module, root, module.LABEL_MANIFEST_PATH, document)

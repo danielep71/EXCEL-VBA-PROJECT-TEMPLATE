@@ -180,7 +180,7 @@ def rule_covers(actual: dict[str, Any], desired: dict[str, Any]) -> bool:
         return params.get("strict_required_status_checks_policy") is True and \
             {row["context"] for row in expected["required_status_checks"]} <= names
     if desired["type"] == "pull_request":
-        return params.get("required_approving_review_count", -1) >= expected["required_approving_review_count"]
+        return bool(params.get("required_approving_review_count", -1) >= expected["required_approving_review_count"])
     if desired["type"] == "update" and expected == {"update_allows_fetch_and_merge": False}:
         # GitHub can omit the false update parameter when reading a ruleset back.
         return params.get("update_allows_fetch_and_merge", False) is False

@@ -140,7 +140,42 @@ fi
 # --- Python quality baseline --------------------------------------------------
 bold "Python quality baseline"
 run "Ruff lint" ruff check tools
+# Same ceiling probe as the hosted Ruff step: the configured McCabe threshold
+# must accept a synthetic complexity-15 function and reject one at 16.
+complexity_probe() { # complexity_probe <complexity>
+  python3 -c 'import sys; n = int(sys.argv[1]); print("def probe(x):\n" + "".join(f"    if x == {i}:\n        return {i}\n" for i in range(n - 1)) + "    return -1")' "$1" |
+    ruff check --no-cache --select C901 --stdin-filename tools/complexity_probe.py -
+}
+ceiling_probe() {
+  complexity_probe 15 >/dev/null || { echo "a complexity-15 function was rejected"; return 1; }
+  local rejected
+  if rejected=$(complexity_probe 16 2>&1); then
+    echo "a complexity-16 function was accepted"; return 1
+  fi
+  grep -qF "is too complex (16 > 15)" <<<"$rejected" ||
+    { echo "a complexity-16 function was not rejected at 16 > 15"; return 1; }
+}
+run "Ruff complexity-ceiling probe" ceiling_probe
 run "mypy type check" python3 -m mypy
+# Same strictness probe as the hosted mypy step: the configured mypy must accept
+# an annotated function and reject the same function unannotated.
+strict_probe() {
+  local directory probe rejected
+  directory=$(mktemp -d) || return 1
+  probe="$directory/strict_probe.py"
+  printf 'def probe(value: int) -> int:\n    return value\n' > "$probe"
+  if ! python3 -m mypy --no-pretty "$probe" >/dev/null 2>&1; then
+    echo "an annotated function was rejected"; rm -rf "$directory"; return 1
+  fi
+  printf 'def probe(value):\n    return value\n' > "$probe"
+  if rejected=$(python3 -m mypy --no-pretty "$probe" 2>&1); then
+    echo "an unannotated function was accepted"; rm -rf "$directory"; return 1
+  fi
+  rm -rf "$directory"
+  grep -qF "[no-untyped-def]" <<<"$rejected" ||
+    { echo "the unannotated function was not rejected as no-untyped-def"; return 1; }
+}
+run "mypy strictness probe" strict_probe
 
 # --- Authoritative workflow validation ---------------------------------------
 bold "Workflow validation"

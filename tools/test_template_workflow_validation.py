@@ -22,6 +22,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import create_reusable_workflow_fixture as reusable_fixture
+import initialize_repository as initializer
 import test_workflow_validation as retained_workflow
 
 EXPECTED_ACTIONLINT_VERSION = "1.7.12"
@@ -163,7 +164,7 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
     def test_invalid_sha_is_rejected_before_destination_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             destination = Path(temporary) / "consumer"
-            with patch.object(reusable_fixture.initializer, "_copy_fixture") as copy_fixture:
+            with patch.object(initializer, "_copy_fixture") as copy_fixture:
                 with self.assertRaisesRegex(
                     ValueError, "workflow-sha must be a full lowercase commit SHA"
                 ):
@@ -179,7 +180,7 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
             destination.mkdir()
             marker = destination / "marker.txt"
             marker.write_text("preserve\n", encoding="utf-8")
-            with patch.object(reusable_fixture.initializer, "_copy_fixture") as copy_fixture:
+            with patch.object(initializer, "_copy_fixture") as copy_fixture:
                 with self.assertRaisesRegex(ValueError, "destination must not exist"):
                     reusable_fixture.create_fixture(
                         Path("source"), destination, "library", WORKFLOW_SHA
@@ -188,7 +189,7 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
             self.assertEqual(marker.read_text(encoding="utf-8"), "preserve\n")
 
     def test_each_profile_writes_exact_sha_consumer_and_commits(self) -> None:
-        for profile in reusable_fixture.initializer.SUPPORTED_PROFILES:
+        for profile in initializer.SUPPORTED_PROFILES:
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as temporary:
                 source = Path(temporary) / "source"
                 destination = Path(temporary) / "consumer"
@@ -202,24 +203,24 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
 
                 with (
                     patch.object(
-                        reusable_fixture.initializer,
+                        initializer,
                         "_copy_fixture",
                         side_effect=copy_fixture,
                     ) as copy_mock,
                     patch.object(
-                        reusable_fixture.initializer,
+                        initializer,
                         "_fixture_arguments",
                         return_value=(scalars, repeatable),
                     ) as arguments_mock,
                     patch.object(
-                        reusable_fixture.initializer,
+                        initializer,
                         "_build_changes",
                         return_value=(changes, {"status": "ready"}),
                     ) as build_mock,
                     patch.object(
-                        reusable_fixture.initializer, "_apply_changes"
+                        initializer, "_apply_changes"
                     ) as apply_mock,
-                    patch.object(reusable_fixture.initializer, "_git") as git_mock,
+                    patch.object(initializer, "_git") as git_mock,
                 ):
                     reusable_fixture.create_fixture(
                         source, destination, profile, WORKFLOW_SHA
@@ -489,6 +490,47 @@ def escaped_mapping_key(text: str, indent: str) -> bool:
     return any("\\" in key for key in re.findall(pattern, text))
 
 
+def scorecard_published_job_failures(published: str) -> list[str]:
+    """The published job may carry no env, defaults, or unapproved steps."""
+    failures: list[str] = []
+    if escaped_mapping_key(published, "    "):
+        failures.append("Scorecard publication does not support escaped published-job mapping keys")
+    if re.search(r"(?m)^    (?:env|'env'|\"env\")[ \t]*:", published):
+        failures.append("Scorecard published job must not define job-level env")
+    if re.search(r"(?m)^    (?:defaults|'defaults'|\"defaults\")[ \t]*:", published):
+        failures.append("Scorecard published job must not define job-level defaults")
+    if re.search(r"(?m)^        run:", published):
+        failures.append("Scorecard published job may use only OpenSSF-approved actions")
+
+    for action in re.findall(r"(?m)^        uses:\s*([^\s#]+)", published):
+        owner_action = action.split("@", 1)[0]
+        if owner_action not in SCORECARD_APPROVED_ACTIONS:
+            failures.append(
+                f"Scorecard published job uses unsupported action {owner_action}"
+            )
+    return failures
+
+
+def scorecard_verification_failures(text: str) -> list[str]:
+    """The post-publication job must verify the exact-SHA result and the badge."""
+    failures: list[str] = []
+    if "verify-publication:" not in text:
+        failures.append("Scorecard workflow must verify the public result after publication")
+    expected_url = (
+        "https://api.scorecard.dev/projects/github.com/"
+        + "${GITHUB_REPOSITORY}?commit=${GITHUB_SHA}"
+    )
+    if expected_url not in text:
+        failures.append("Scorecard public verification must bind to the exact GitHub SHA")
+    badge_url = (
+        "https://api.scorecard.dev/projects/github.com/"
+        + "${GITHUB_REPOSITORY}/badge"
+    )
+    if badge_url not in text or "invalid repo path" not in text:
+        failures.append("Scorecard public verification must validate the rendered badge surface")
+    return failures
+
+
 def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
     path = root / SCORECARD_WORKFLOW
     if not path.is_file():
@@ -514,21 +556,7 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         return "FAIL", failures
 
     published = match.group("body")
-    if escaped_mapping_key(published, "    "):
-        failures.append("Scorecard publication does not support escaped published-job mapping keys")
-    if re.search(r"(?m)^    (?:env|'env'|\"env\")[ \t]*:", published):
-        failures.append("Scorecard published job must not define job-level env")
-    if re.search(r"(?m)^    (?:defaults|'defaults'|\"defaults\")[ \t]*:", published):
-        failures.append("Scorecard published job must not define job-level defaults")
-    if re.search(r"(?m)^        run:", published):
-        failures.append("Scorecard published job may use only OpenSSF-approved actions")
-
-    for action in re.findall(r"(?m)^        uses:\s*([^\s#]+)", published):
-        owner_action = action.split("@", 1)[0]
-        if owner_action not in SCORECARD_APPROVED_ACTIONS:
-            failures.append(
-                f"Scorecard published job uses unsupported action {owner_action}"
-            )
+    failures.extend(scorecard_published_job_failures(published))
 
     if text.count("id-token: write") != 1 or "id-token: write" not in published:
         failures.append(
@@ -538,21 +566,7 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         failures.append(
             "Scorecard published job must enumerate the checked repository through git"
         )
-    if "verify-publication:" not in text:
-        failures.append("Scorecard workflow must verify the public result after publication")
-    expected_url = (
-        "https://api.scorecard.dev/projects/github.com/"
-        + "${GITHUB_REPOSITORY}?commit=${GITHUB_SHA}"
-    )
-    if expected_url not in text:
-        failures.append("Scorecard public verification must bind to the exact GitHub SHA")
-    badge_url = (
-        "https://api.scorecard.dev/projects/github.com/"
-        + "${GITHUB_REPOSITORY}/badge"
-    )
-    if badge_url not in text or "invalid repo path" not in text:
-        failures.append("Scorecard public verification must validate the rendered badge surface")
-
+    failures.extend(scorecard_verification_failures(text))
     return ("PASS" if not failures else "FAIL"), failures
 
 

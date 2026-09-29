@@ -10,6 +10,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
 import check_excel_evidence as host
 import check_release as release
@@ -18,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class HostEvidenceTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.area = Path(self.temporary.name)
@@ -36,7 +37,7 @@ class HostEvidenceTests(unittest.TestCase):
         (self.root / host.POLICY).write_text(json.dumps(self.policy))
         release._git(self.root, "add", "--all")
         release._git(self.root, "commit", "-m", "Synthetic host policy")
-        self.sha = release._git_output(self.root, "rev-parse", "HEAD")
+        self.sha = self.revision("HEAD")
         self.log = "\n".join([
             "PROJECT TESTS", *("CASE=" + case for case in self.policy["cases"]),
             "CASES=4", "ASSERTIONS=6", "FAILURES=0", "CLEANUP=PASS; detail=synthetic state restored",
@@ -63,21 +64,27 @@ class HostEvidenceTests(unittest.TestCase):
                              "detail": "Number/source/description assertions passed in complete synthetic suite"}]},
         }
 
-    def evaluate(self):
+    def revision(self, name: str) -> str:
+        sha = release._git_output(self.root, "rev-parse", name)
+        if sha is None:
+            self.fail(f"fixture repository cannot resolve {name}")
+        return sha
+
+    def evaluate(self) -> dict[str, Any]:
         self.path.write_text(json.dumps(self.record))
         return host.evaluate(self.root, self.sha, self.path)
 
-    def invalid(self):
+    def invalid(self) -> None:
         report = self.evaluate()
         self.assertIn("EVIDENCE_INVALID", report["outcomes"], report)
 
-    def test_manual_pass_repeatability(self):
+    def test_manual_pass_repeatability(self) -> None:
         first = self.evaluate()
         self.assertEqual(first["status"], "pass", first)
         self.assertEqual(first, self.evaluate())
         self.assertEqual(first["execution"], "manual")
 
-    def test_automated_identity(self):
+    def test_automated_identity(self) -> None:
         self.record["execution"] = "automated"
         self.record["runner"] = {"class": "trusted-interactive", "identity": "Synthetic isolated desktop",
                                  "workflow": {"repository": "example/validation", "path": ".github/workflows/host.yml",
@@ -86,14 +93,14 @@ class HostEvidenceTests(unittest.TestCase):
         self.record["runner"]["workflow"]["sha"] = "main"
         self.invalid()
 
-    def test_manual_cannot_claim_hosted_execution(self):
+    def test_manual_cannot_claim_hosted_execution(self) -> None:
         self.record["runner"]["workflow"] = {"run_id": 123}
         self.invalid()
         self.record["runner"]["workflow"] = None
         self.record["runner"]["class"] = "trusted-interactive"
         self.invalid()
 
-    def test_unavailable_is_non_green(self):
+    def test_unavailable_is_non_green(self) -> None:
         self.record.update(execution="unavailable", availability_reason="No eligible trusted host",
                            runner=None, environment=None, harness=None, sources=[], stages={})
         report = self.evaluate()
@@ -102,22 +109,22 @@ class HostEvidenceTests(unittest.TestCase):
         self.record["harness"] = {"cases": 4}
         self.invalid()
 
-    def test_compile_failure_distinct(self):
+    def test_compile_failure_distinct(self) -> None:
         self.record["stages"]["compile"]["status"] = "FAIL"
         self.record["stages"]["regression"] = {"status": "NOT_RUN", "detail": "Compile failed", "log": None}
         self.record["harness"] = None
         self.assertEqual(self.evaluate()["outcomes"], ["COMPILE_FAILED", "INCOMPLETE"])
 
-    def test_test_failure_distinct(self):
+    def test_test_failure_distinct(self) -> None:
         self.record["stages"]["regression"]["status"] = "FAIL"
         self.record["harness"]["failures"] = 1
         self.assertEqual(self.evaluate()["outcomes"], ["TEST_FAILED"])
 
-    def test_cleanup_failure_distinct(self):
+    def test_cleanup_failure_distinct(self) -> None:
         self.record["stages"]["cleanup"]["status"] = "FAIL"
         self.assertEqual(self.evaluate()["outcomes"], ["CLEANUP_FAILED"])
 
-    def test_internal_harness_cleanup_failure(self):
+    def test_internal_harness_cleanup_failure(self) -> None:
         self.record["stages"]["cleanup"]["status"] = "FAIL"
         failed = self.log.replace("RESULT=PASS", "RESULT=FAIL").replace("cleanup=PASS", "cleanup=FAIL")
         (self.bundle / "failed.log").write_text(failed)
@@ -125,7 +132,7 @@ class HostEvidenceTests(unittest.TestCase):
             "path": "failed.log", "sha256": hashlib.sha256(failed.encode()).hexdigest()}
         self.assertEqual(self.evaluate()["outcomes"], ["CLEANUP_FAILED"])
 
-    def test_import_failure_and_timeout(self):
+    def test_import_failure_and_timeout(self) -> None:
         for status, outcome in (("FAIL", "IMPORT_FAILED"), ("TIMEOUT", "EXECUTION_TIMEOUT")):
             self.record["stages"]["import"]["status"] = status
             for name in ("compile", "regression"):
@@ -133,7 +140,7 @@ class HostEvidenceTests(unittest.TestCase):
             self.record["harness"] = None
             self.assertEqual(self.evaluate()["outcomes"], [outcome, "INCOMPLETE"])
 
-    def test_sha_and_source_binding(self):
+    def test_sha_and_source_binding(self) -> None:
         original = copy.deepcopy(self.record)
         for field, value in (("candidate_sha", "f" * 40), ("template_contract", {}),
                              ("repository", "wrong/repo"), ("sources", [])):
@@ -141,14 +148,14 @@ class HostEvidenceTests(unittest.TestCase):
             self.record[field] = value
             self.invalid()
 
-    def test_environment_and_trust_required(self):
+    def test_environment_and_trust_required(self) -> None:
         original = copy.deepcopy(self.record)
         for key in self.record["environment"]:
             self.record = copy.deepcopy(original)
             self.record["environment"][key] = True if key == "trust_changes" else ""
             self.invalid()
 
-    def test_counts_and_expected_errors(self):
+    def test_counts_and_expected_errors(self) -> None:
         original = copy.deepcopy(self.record)
         for field, value in (("cases", 3), ("assertions", True), ("failures", 1),
                              ("completeness", "INCOMPLETE"), ("expected_errors", [])):
@@ -159,7 +166,7 @@ class HostEvidenceTests(unittest.TestCase):
         self.record["harness"]["expected_errors"][0]["status"] = "FAIL"
         self.invalid()
 
-    def test_raw_log_tamper_missing_and_traversal(self):
+    def test_raw_log_tamper_missing_and_traversal(self) -> None:
         (self.bundle / "host.log").write_text("changed")
         self.invalid()
         (self.bundle / "host.log").unlink()
@@ -167,7 +174,7 @@ class HostEvidenceTests(unittest.TestCase):
         self.record["stages"]["import"]["log"]["path"] = "../outside.log"
         self.invalid()
 
-    def test_duplicate_or_incomplete_raw_summary(self):
+    def test_duplicate_or_incomplete_raw_summary(self) -> None:
         for raw in (self.log + self.log, self.log.replace("ASSERTIONS=6", "ASSERTIONS=5"),
                     self.log.replace("CASE=ratio.zero-denominator\n", "")):
             (self.bundle / "host.log").write_text(raw)
@@ -175,7 +182,7 @@ class HostEvidenceTests(unittest.TestCase):
                 stage["log"]["sha256"] = hashlib.sha256(raw.encode()).hexdigest()
             self.invalid()
 
-    def test_release_binding_and_omission(self):
+    def test_release_binding_and_omission(self) -> None:
         self.evaluate()
         evidence = release._fixture_evidence("library", self.sha, self.release_policy)
         for key in ("vba-compile", "regression"):
@@ -191,7 +198,7 @@ class HostEvidenceTests(unittest.TestCase):
         path.write_text(json.dumps(evidence))
         self.assertTrue(host.release_findings(self.root, self.sha, path, self.path))
 
-    def test_cli_unavailable_and_output_guard(self):
+    def test_cli_unavailable_and_output_guard(self) -> None:
         self.record.update(execution="unavailable", availability_reason="No eligible trusted host",
                            runner=None, environment=None, harness=None, sources=[], stages={})
         self.evaluate()
@@ -201,27 +208,27 @@ class HostEvidenceTests(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             host.main(args + ["--output", str(self.path)])
 
-    def test_dirty_or_wrong_checkout(self):
+    def test_dirty_or_wrong_checkout(self) -> None:
         (self.root / "src/Project.bas").write_text("changed")
         self.invalid()
         release._git(self.root, "checkout", "--", "src/Project.bas")
-        old = release._git_output(self.root, "rev-parse", "HEAD^")
+        old = self.revision("HEAD^")
         self.path.write_text(json.dumps(self.record))
         report = host.evaluate(self.root, old, self.path)
         self.assertIn("EVIDENCE_INVALID", report["outcomes"])
 
-    def test_compile_failure_cannot_claim_test_execution(self):
+    def test_compile_failure_cannot_claim_test_execution(self) -> None:
         self.record["stages"]["compile"]["status"] = "FAIL"
         self.invalid()
 
-    def test_symlinked_logs_rejected(self):
+    def test_symlinked_logs_rejected(self) -> None:
         original = self.bundle / "host.log"
         moved = self.area / "outside.log"
         original.rename(moved)
         original.symlink_to(moved)
         self.invalid()
 
-    def test_timestamps_require_order_and_timezone(self):
+    def test_timestamps_require_order_and_timezone(self) -> None:
         self.record["finished_at"] = "2026-09-09T08:00:00Z"
         self.invalid()
         self.record["finished_at"] = "2026-09-09T09:01:00"

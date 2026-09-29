@@ -2,16 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import ModuleType
-from typing import Callable
+from typing import Any, Callable
 
-from policy_coverage_core import mutate_config
+from policy_coverage_core import Case, mutate_config
 
-Case = tuple[str, str, str | None, Callable[[Path], None]]
-Mutation = Callable[[dict], None]
+Mutation = Callable[[dict[str, Any]], None]
 
 
 def _assign(**values: object) -> Mutation:
-    def mutate(document: dict) -> None:
+    def mutate(document: dict[str, Any]) -> None:
         document.update(values)
 
     return mutate

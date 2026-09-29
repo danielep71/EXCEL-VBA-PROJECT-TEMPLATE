@@ -40,9 +40,15 @@ def require(condition: object, message: str) -> None:
         raise ValueError(message)
 
 
-def object_keys(value: Any, keys: str, label: str) -> None:
-    require(isinstance(value, dict) and set(value) == set(keys.split()),
-            f"{label}: invalid object fields")
+def object_keys(value: Any, keys: str, label: str) -> dict[str, Any]:
+    """Return ``value`` when it is an object with exactly ``keys``, else fail.
+
+    Returning the value narrows it for the type checker, so callers that need
+    the object do not rely on a separate ``require`` it cannot see.
+    """
+    if not (isinstance(value, dict) and set(value) == set(keys.split())):
+        raise ValueError(f"{label}: invalid object fields")
+    return value
 
 
 def nonempty(value: Any) -> bool:
@@ -104,8 +110,8 @@ def _validate_tag_signature_policy(value: Any) -> None:
 
 
 def policy_for(root: Path, sha: str, configuration: dict[str, Any]) -> dict[str, Any]:
-    policy = decode(committed(root, sha, POLICY))
-    object_keys(policy, "schema_version workflow signature tag_signature", "policy")
+    policy = object_keys(decode(committed(root, sha, POLICY)),
+                         "schema_version workflow signature tag_signature", "policy")
     require(type(policy["schema_version"]) is int and policy["schema_version"] == 1,
             "unsupported provenance policy schema")
     workflow = policy["workflow"]
