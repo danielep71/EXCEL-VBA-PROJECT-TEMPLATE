@@ -120,9 +120,20 @@ Use only the categories needed by a release.
 - Removed the two temporary `pending-publication` classifications for the
   v1.2.1 comparison links now that the tag is published; both links again
   receive the normal anonymous external-link check.
+- The enforced McCabe complexity ceiling for maintained Python tooling is now
+  15 instead of 20. The 18 functions above 15 were split along their existing
+  responsibilities (validation stages, table-driven self-test cases, per-rule
+  helpers) with no change to findings, exit codes or report schemas; the
+  maximum is now 15, and functions above 10 fell from 49 to 31. The hosted Ruff
+  step now proves the ceiling on every run: a synthetic complexity-15 function
+  must pass and one at 16 must be rejected. The checker-development contract
+  pins the configured value and that probe (#92).
 
 ### Fixed
 
+- `check_repo.py` reports issue-form evidence fields that must be mandatory in
+  a fixed, sorted order. They were visited in set order, so with more than one
+  such finding the report order changed with Python's hash seed (#92).
 - The guarded provisioner's first plan for a repository created with **Use this
   template** no longer stops without explanation: GitHub enables Wikis and
   Projects on every new repository while the baseline policy disables both. The

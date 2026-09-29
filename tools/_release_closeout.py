@@ -13,7 +13,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from _gatelib import git_text
 
@@ -898,101 +898,74 @@ def exercise_review_regressions(failures: list[str]) -> None:
             failures.append("paginated-compare: candidate on a later page was not accepted")
 
 
-def run_self_test() -> int:
-    failures: list[str] = []
+Mutation = Callable[[dict[str, Any], str], None]
 
-    def run_case(name: str, mutate: Any = None, expected: str | None = None) -> None:
-        with tempfile.TemporaryDirectory(prefix="release-closeout-") as raw:
-            root, snapshot_path, candidate = fixture(Path(raw))
-            if mutate is not None:
-                value = as_object(load_json(snapshot_path), "fixture snapshot")
-                mutate(value, candidate)
-                write_json(snapshot_path, value)
-            report = build_report(fixture_options(root, snapshot_path, candidate))
-            controls = {row["control"] for row in report["findings"]}
-            expected_status = "pass" if expected is None else "fail"
-            ok = report["status"] == expected_status
-            ok = ok and (expected is None or expected in controls)
-            if not ok:
-                failures.append(f"{name}: unexpected report {report['findings']!r}")
 
-    run_case("valid-closeout")
-    run_case(
-        "lightweight-tag",
-        lambda value, candidate: value.update(
-            {"tag_ref": {"ref": "refs/tags/v1.2.3", "object": {"type": "commit", "sha": candidate}}}
+def _assigning(*assignments: tuple[tuple[Any, ...], Any]) -> Mutation:
+    """A snapshot mutation that sets each nested path (keys and list indexes) to a value."""
+
+    def mutate(value: dict[str, Any], _candidate: str) -> None:
+        for path, new in assignments:
+            target: Any = value
+            for step in path[:-1]:
+                target = target[step]
+            target[path[-1]] = new
+
+    return mutate
+
+
+def _lightweight_tag(value: dict[str, Any], candidate: str) -> None:
+    value.update({"tag_ref": {"ref": "refs/tags/v1.2.3", "object": {"type": "commit", "sha": candidate}}})
+
+
+# (case, snapshot mutation, control that must reject it); None/None is the valid closeout.
+SELF_TEST_CASES_BEFORE_REVIEW: tuple[tuple[str, Mutation | None, str | None], ...] = (
+    ("valid-closeout", None, None),
+    ("lightweight-tag", _lightweight_tag, "tag"),
+    ("moved-tag", _assigning((("tag_object", "object", "sha"), "c" * 40)), "tag"),
+    ("failed-tag-ci", _assigning((("workflow_runs", "workflow_runs", 0, "conclusion"), "failure")), "tag-ci"),
+    ("draft-release", _assigning((("release", "draft"), True)), "release"),
+    ("unexpected-prerelease", _assigning((("release", "prerelease"), True)), "release"),
+    ("not-latest", _assigning((("latest_release", "id"), 99)), "release"),
+)
+SELF_TEST_CASES_AFTER_REVIEW: tuple[tuple[str, Mutation | None, str | None], ...] = (
+    ("unexpected-asset", _assigning((("release", "assets"), [{"name": "dist/unexpected.zip"}])), "assets"),
+    ("missing-archive-url", _assigning((("release", "zipball_url"), None)), "source-archives"),
+    ("unresolved-compare", _assigning((("compare", "status"), "diverged")), "comparison-link"),
+    (
+        "open-milestone",
+        _assigning(
+            (("milestone_items", 0, "state"), "open"),
+            (("milestone", "open_issues"), 1),
+            (("milestone", "closed_issues"), 1),
         ),
-        "tag",
-    )
+        "milestone",
+    ),
+    ("milestone-state", _assigning((("milestone", "state"), "open")), "milestone"),
+    ("milestone-counter-drift", _assigning((("milestone", "closed_issues"), 99)), "milestone"),
+    ("wiki-drift", _assigning((("wiki", "status"), "fail")), "wiki"),
+    ("archive-retrieval", _assigning((("source_archives", "zip"), "fail")), "source-archives"),
+)
 
-    def moved(value: dict[str, Any], _candidate: str) -> None:
-        value["tag_object"]["object"]["sha"] = "c" * 40
 
-    run_case("moved-tag", moved, "tag")
+def _self_test_case_failure(name: str, mutate: Mutation | None, expected: str | None) -> str | None:
+    """Run one fixture case; return a failure message unless it is rejected by ``expected``."""
+    with tempfile.TemporaryDirectory(prefix="release-closeout-") as raw:
+        root, snapshot_path, candidate = fixture(Path(raw))
+        if mutate is not None:
+            value = as_object(load_json(snapshot_path), "fixture snapshot")
+            mutate(value, candidate)
+            write_json(snapshot_path, value)
+        report = build_report(fixture_options(root, snapshot_path, candidate))
+        controls = {row["control"] for row in report["findings"]}
+        expected_status = "pass" if expected is None else "fail"
+        ok = report["status"] == expected_status
+        ok = ok and (expected is None or expected in controls)
+        return None if ok else f"{name}: unexpected report {report['findings']!r}"
 
-    def failed_ci(value: dict[str, Any], _candidate: str) -> None:
-        value["workflow_runs"]["workflow_runs"][0]["conclusion"] = "failure"
 
-    run_case("failed-tag-ci", failed_ci, "tag-ci")
-
-    def draft(value: dict[str, Any], _candidate: str) -> None:
-        value["release"]["draft"] = True
-
-    run_case("draft-release", draft, "release")
-
-    def prerelease(value: dict[str, Any], _candidate: str) -> None:
-        value["release"]["prerelease"] = True
-
-    run_case("unexpected-prerelease", prerelease, "release")
-
-    def latest(value: dict[str, Any], _candidate: str) -> None:
-        value["latest_release"]["id"] = 99
-
-    run_case("not-latest", latest, "release")
-    exercise_review_regressions(failures)
-
-    def asset(value: dict[str, Any], _candidate: str) -> None:
-        value["release"]["assets"] = [{"name": "dist/unexpected.zip"}]
-
-    run_case("unexpected-asset", asset, "assets")
-
-    def archive_url(value: dict[str, Any], _candidate: str) -> None:
-        value["release"]["zipball_url"] = None
-
-    run_case("missing-archive-url", archive_url, "source-archives")
-
-    def compare(value: dict[str, Any], _candidate: str) -> None:
-        value["compare"]["status"] = "diverged"
-
-    run_case("unresolved-compare", compare, "comparison-link")
-
-    def open_item(value: dict[str, Any], _candidate: str) -> None:
-        value["milestone_items"][0]["state"] = "open"
-        value["milestone"]["open_issues"] = 1
-        value["milestone"]["closed_issues"] = 1
-
-    run_case("open-milestone", open_item, "milestone")
-
-    def open_milestone(value: dict[str, Any], _candidate: str) -> None:
-        value["milestone"]["state"] = "open"
-
-    run_case("milestone-state", open_milestone, "milestone")
-
-    def stale_count(value: dict[str, Any], _candidate: str) -> None:
-        value["milestone"]["closed_issues"] = 99
-
-    run_case("milestone-counter-drift", stale_count, "milestone")
-
-    def wiki(value: dict[str, Any], _candidate: str) -> None:
-        value["wiki"]["status"] = "fail"
-
-    run_case("wiki-drift", wiki, "wiki")
-
-    def archive(value: dict[str, Any], _candidate: str) -> None:
-        value["source_archives"]["zip"] = "fail"
-
-    run_case("archive-retrieval", archive, "source-archives")
-
+def _wrong_version_failure() -> str | None:
+    """A tag that disagrees with VERSION must be rejected by the source-version control."""
     with tempfile.TemporaryDirectory(prefix="release-closeout-version-") as raw:
         root, snapshot_path, candidate = fixture(Path(raw))
         wrong = fixture_options(root, snapshot_path, candidate)
@@ -1009,7 +982,21 @@ def run_self_test() -> int:
         report = build_report(wrong)
         controls = {row["control"] for row in report["findings"]}
         if "source-version" not in controls:
-            failures.append("wrong-version: tag/VERSION mismatch was not rejected")
+            return "wrong-version: tag/VERSION mismatch was not rejected"
+        return None
+
+
+def _case_failures(cases: tuple[tuple[str, Mutation | None, str | None], ...]) -> list[str]:
+    return [failure for failure in (_self_test_case_failure(*case) for case in cases) if failure]
+
+
+def run_self_test() -> int:
+    failures = _case_failures(SELF_TEST_CASES_BEFORE_REVIEW)
+    exercise_review_regressions(failures)
+    failures += _case_failures(SELF_TEST_CASES_AFTER_REVIEW)
+    wrong_version = _wrong_version_failure()
+    if wrong_version:
+        failures.append(wrong_version)
 
     if failures:
         print("SELF-TEST FAIL:", file=sys.stderr)

@@ -25,7 +25,7 @@ def _case(cases: list[Case]):
     return register
 
 
-def _label_cases(module: ModuleType) -> list[Case]:
+def _label_item_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
     case = _case(cases)
 
@@ -56,6 +56,13 @@ def _label_cases(module: ModuleType) -> list[Case]:
     @case("labels-order-invalid", "label-manifest", "sorted")
     def _(root: Path) -> None:
         mutate_labels(module, root, lambda d: d["core"].reverse())
+
+    return cases
+
+
+def _label_manifest_cases(module: ModuleType) -> list[Case]:
+    cases: list[Case] = []
+    case = _case(cases)
 
     @case("labels-root-shape", "label-manifest", "Root must contain exactly")
     def _(root: Path) -> None:
@@ -402,7 +409,7 @@ def _vba_structure_cases(module: ModuleType) -> list[Case]:
     return cases
 
 
-def _vba_contract_cases(module: ModuleType) -> list[Case]:
+def _vba_visibility_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
     case = _case(cases)
 
@@ -470,6 +477,13 @@ def _vba_contract_cases(module: ModuleType) -> list[Case]:
                 "src/modules/Quality.bas", "test"
             ),
         )
+
+    return cases
+
+
+def _vba_contract_cases(module: ModuleType) -> list[Case]:
+    cases: list[Case] = []
+    case = _case(cases)
 
     @case("generated-required-unregistered", "generated-vba-contract", "requires this")
     def _(root: Path) -> None:
@@ -539,10 +553,12 @@ def _vba_contract_cases(module: ModuleType) -> list[Case]:
 
 def quality_cases(module: ModuleType) -> list[Case]:
     return [
-        *_label_cases(module),
+        *_label_item_cases(module),
+        *_label_manifest_cases(module),
         *_issue_form_cases(module),
         *_workflow_and_version_cases(module),
         *_vba_export_cases(module),
         *_vba_structure_cases(module),
+        *_vba_visibility_cases(module),
         *_vba_contract_cases(module),
     ]

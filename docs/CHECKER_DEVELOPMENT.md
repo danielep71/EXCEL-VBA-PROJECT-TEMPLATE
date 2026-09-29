@@ -119,6 +119,25 @@ patch does not enable Ruff `SLF` rules or redesign those boundaries. Only a
 private access that prevents the strict `_gatelib` boundary from passing belongs
 here; broader ownership/API cleanup remains later architecture work.
 
+### Python complexity ceiling
+
+Ruff `C90` enforces a McCabe ceiling of **15** (`[tool.ruff.lint.mccabe]` in
+`pyproject.toml`) across maintained `tools/`. A threshold is only evidence if it
+is shown to run, so the hosted *Enforce Python lint baseline* step in
+`static-checks.yml` pipes two synthetic functions through the configured Ruff:
+complexity 15 must pass and complexity 16 must be rejected as `(16 > 15)`.
+`tools/dev_check.sh` runs the same probe locally. `checker_development.py`
+pins the contract statically: the configured value is 15, `C90` is selected,
+the Ruff step runs `ruff check tools` and both probes, and the terminal
+enforcement step consumes the Ruff outcome. Each of those degradations has a
+rejecting fixture in its independent tests.
+
+Keep a function under the ceiling by splitting it along coherent
+responsibilities: named decision stages, pure helpers, or table-driven cases.
+Do not split it into meaningless one-line wrappers. Changing the ceiling is a
+contract change: update `COMPLEXITY_CEILING`, both probes and this section
+together.
+
 ## 🧭 Internal boundaries
 
 `tools/checker_development.py` parses the checker with Python AST and requires the following ordered ownership boundaries:

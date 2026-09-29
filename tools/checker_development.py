@@ -10,6 +10,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,10 @@ from _gatelib import run_gate
 TOOL_NAME = "Checker development contract"
 CHECKER_PATH = Path("tools/check_repo.py")
 GATELIB_PATH = Path("tools/_gatelib.py")
+# The enforced McCabe ceiling for maintained Python tooling, and where hosted CI proves it.
+COMPLEXITY_CEILING = 15
+PYPROJECT_PATH = Path("pyproject.toml")
+STATIC_CHECKS_PATH = Path(".github/workflows/static-checks.yml")
 SECTION_STARTS = (
     ("runtime-core", "Repository"),
     ("configuration", "_same_keys"),
@@ -916,6 +921,87 @@ def self_test_registry_tests() -> list[dict[str, Any]]:
     ]
 
 
+def _toml_table(text: str, name: str) -> str:
+    match = re.search(rf"(?ms)^\[{re.escape(name)}\][ \t]*\n(.*?)(?=^\[|\Z)", text)
+    return "" if match is None else match.group(1)
+
+
+def _workflow_step(text: str, step_id: str) -> str:
+    return next((step for step in text.split("\n      - name: ")
+                 if f"\n        id: {step_id}\n" in step), "")
+
+
+def configured_complexity(pyproject: str) -> int | None:
+    match = re.search(r"(?m)^max-complexity[ \t]*=[ \t]*(\d+)[ \t]*(?:#.*)?$",
+                      _toml_table(pyproject, "tool.ruff.lint.mccabe"))
+    return None if match is None else int(match.group(1))
+
+
+def complexity_ceiling_failures(pyproject: str, workflow: str) -> list[str]:
+    """The ceiling must be configured, selected, run and proven by the hosted Ruff step."""
+    failures: list[str] = []
+    configured = configured_complexity(pyproject)
+    if configured != COMPLEXITY_CEILING:
+        failures.append(f"pyproject.toml McCabe max-complexity is {configured}; "
+                        f"expected {COMPLEXITY_CEILING}")
+    if not re.search(r'(?m)^select[ \t]*=.*"C90"', _toml_table(pyproject, "tool.ruff.lint")):
+        failures.append('pyproject.toml Ruff lint selection must include "C90"')
+    step = _workflow_step(workflow, "ruff")
+    over = COMPLEXITY_CEILING + 1
+    required = ("ruff check tools", "--select C901", f"probe {COMPLEXITY_CEILING} ",
+                f"probe {over} ", f"({over} > {COMPLEXITY_CEILING})")
+    missing = [item.strip() for item in required if item not in step]
+    if missing:
+        failures.append("static-checks Ruff step does not run and prove the ceiling: missing "
+                        + ", ".join(f"`{item}`" for item in missing))
+    if ('"Ruff lint:$RUFF_OUTCOME"' not in workflow
+            or "RUFF_OUTCOME: ${{ steps.ruff.outcome }}" not in workflow):
+        failures.append("static-checks does not enforce the Ruff step outcome")
+    return failures
+
+
+def complexity_ceiling_report(root: Path) -> tuple[dict[str, Any], list[str]]:
+    pyproject = (root / PYPROJECT_PATH).read_text(encoding="utf-8")
+    workflow = (root / STATIC_CHECKS_PATH).read_text(encoding="utf-8")
+    evidence = {
+        "ceiling": COMPLEXITY_CEILING,
+        "configured": configured_complexity(pyproject),
+        "configuration": PYPROJECT_PATH.as_posix(),
+        "hosted_step": STATIC_CHECKS_PATH.as_posix() + "#ruff",
+        "probe_accepted": COMPLEXITY_CEILING,
+        "probe_rejected": COMPLEXITY_CEILING + 1,
+    }
+    return evidence, complexity_ceiling_failures(pyproject, workflow)
+
+
+def complexity_ceiling_tests(root: Path) -> list[dict[str, Any]]:
+    """Each degradation of the ceiling contract must be rejected; the live one accepted."""
+    pyproject = (root / PYPROJECT_PATH).read_text(encoding="utf-8")
+    workflow = (root / STATIC_CHECKS_PATH).read_text(encoding="utf-8")
+    ceiling = f"max-complexity = {COMPLEXITY_CEILING}"
+    cases = (
+        ("raised", 0, ceiling, "max-complexity = 20"),
+        ("lowered", 0, ceiling, f"max-complexity = {COMPLEXITY_CEILING - 1}"),
+        ("unconfigured", 0, ceiling + "\n", ""),
+        ("c90-deselected", 0, '"C90", ', ""),
+        ("lint-not-run", 1, "ruff check tools 2>&1", "true 2>&1"),
+        ("probe-not-rejected", 1, f"probe {COMPLEXITY_CEILING + 1} ", f"probe {COMPLEXITY_CEILING} "),
+        ("outcome-unenforced", 1, '"Ruff lint:$RUFF_OUTCOME" \\\n', ""),
+    )
+    results = [{"id": "complexity-ceiling-live",
+                "status": "fail" if complexity_ceiling_failures(pyproject, workflow) else "pass",
+                "detail": ""}]
+    for name, target, old, new in cases:
+        texts = [pyproject, workflow]
+        texts[target] = texts[target].replace(old, new)
+        degraded = texts[target] != (pyproject, workflow)[target]
+        rejected = bool(complexity_ceiling_failures(*texts))
+        results.append({"id": "complexity-ceiling-" + name,
+                        "status": "pass" if degraded and rejected else "fail",
+                        "detail": "" if degraded else "degradation did not apply"})
+    return results
+
+
 def shared_library_report(root: Path) -> tuple[dict[str, Any], list[str]]:
     failures: list[str] = []
     gatelib = (root / GATELIB_PATH).resolve()
@@ -969,13 +1055,16 @@ def build_report(root: Path) -> dict[str, Any]:
     failures.extend(shared_failures)
     interfaces, interface_failures = self_test_interface_report(root)
     failures.extend(interface_failures)
+    complexity, complexity_failures = complexity_ceiling_report(root)
+    failures.extend(complexity_failures)
 
     parser_results = (parser_tests(module) + reusable_identity_tests(module)
                       + dependency_rollback_tests())
     reporter_results = reporter_tests(module)
     cli_results = cli_tests(module, checker)
     gate_results = (gate_runner_tests() + self_test_registry_tests()
-                    + cli_discovery_tests() + guard_polarity_tests())
+                    + cli_discovery_tests() + guard_polarity_tests()
+                    + complexity_ceiling_tests(root))
     all_unit_results = [*parser_results, *reporter_results, *cli_results, *gate_results]
     failed_units = [item for item in all_unit_results if item["status"] != "pass"]
     if failed_units:
@@ -998,6 +1087,7 @@ def build_report(root: Path) -> dict[str, Any]:
         "canonical_checks": ids,
         "shared_library": shared_library,
         "self_test_interfaces": interfaces,
+        "complexity_ceiling": complexity,
         "unit_tests": all_unit_results,
         "failures": failures,
     }
@@ -1017,6 +1107,9 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"- **Internal sections:** {len(report['sections'])}",
         f"- **Canonical policy checks:** {len(report['canonical_checks'])}",
         f"- **Shared focused-gate library:** `{report['shared_library']['path']}`",
+        f"- **Python complexity ceiling:** {report['complexity_ceiling']['configured']} "
+        f"(Ruff C901; hosted probe accepts {report['complexity_ceiling']['probe_accepted']}, "
+        f"rejects {report['complexity_ceiling']['probe_rejected']})",
         f"- **Independent unit tests:** {len(report['unit_tests'])}",
         "",
         "| Section | Start | End | Definitions |",
@@ -1061,7 +1154,8 @@ def run_self_test(root: Path) -> int:
         return 1
     print(
         "SELF-TEST PASS: internal boundaries, parser/reporter units, CLI contract, "
-        "canonical check order, artifact identity, shared-helper ownership, and standard-library-only runtime passed."
+        "canonical check order, artifact identity, shared-helper ownership, Python complexity ceiling, "
+        "and standard-library-only runtime passed."
     )
     return 0
 

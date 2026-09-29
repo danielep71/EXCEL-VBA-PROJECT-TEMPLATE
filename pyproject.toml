@@ -10,7 +10,7 @@ line-length = 100
 select = ["E4", "E7", "E9", "F", "I001", "C90", "S314"]
 
 [tool.ruff.lint.mccabe]
-max-complexity = 20
+max-complexity = 15
 
 [tool.mypy]
 python_version = "3.10"

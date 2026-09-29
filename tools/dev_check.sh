@@ -140,6 +140,22 @@ fi
 # --- Python quality baseline --------------------------------------------------
 bold "Python quality baseline"
 run "Ruff lint" ruff check tools
+# Same ceiling probe as the hosted Ruff step: the configured McCabe threshold
+# must accept a synthetic complexity-15 function and reject one at 16.
+complexity_probe() { # complexity_probe <complexity>
+  python3 -c 'import sys; n = int(sys.argv[1]); print("def probe(x):\n" + "".join(f"    if x == {i}:\n        return {i}\n" for i in range(n - 1)) + "    return -1")' "$1" |
+    ruff check --no-cache --select C901 --stdin-filename tools/complexity_probe.py -
+}
+ceiling_probe() {
+  complexity_probe 15 >/dev/null || { echo "a complexity-15 function was rejected"; return 1; }
+  local rejected
+  if rejected=$(complexity_probe 16 2>&1); then
+    echo "a complexity-16 function was accepted"; return 1
+  fi
+  grep -qF 'C901 `probe` is too complex (16 > 15)' <<<"$rejected" ||
+    { echo "a complexity-16 function was not rejected at 16 > 15"; return 1; }
+}
+run "Ruff complexity-ceiling probe" ceiling_probe
 run "mypy type check" python3 -m mypy
 
 # --- Authoritative workflow validation ---------------------------------------

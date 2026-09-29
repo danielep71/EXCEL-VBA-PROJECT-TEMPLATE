@@ -489,6 +489,47 @@ def escaped_mapping_key(text: str, indent: str) -> bool:
     return any("\\" in key for key in re.findall(pattern, text))
 
 
+def scorecard_published_job_failures(published: str) -> list[str]:
+    """The published job may carry no env, defaults, or unapproved steps."""
+    failures: list[str] = []
+    if escaped_mapping_key(published, "    "):
+        failures.append("Scorecard publication does not support escaped published-job mapping keys")
+    if re.search(r"(?m)^    (?:env|'env'|\"env\")[ \t]*:", published):
+        failures.append("Scorecard published job must not define job-level env")
+    if re.search(r"(?m)^    (?:defaults|'defaults'|\"defaults\")[ \t]*:", published):
+        failures.append("Scorecard published job must not define job-level defaults")
+    if re.search(r"(?m)^        run:", published):
+        failures.append("Scorecard published job may use only OpenSSF-approved actions")
+
+    for action in re.findall(r"(?m)^        uses:\s*([^\s#]+)", published):
+        owner_action = action.split("@", 1)[0]
+        if owner_action not in SCORECARD_APPROVED_ACTIONS:
+            failures.append(
+                f"Scorecard published job uses unsupported action {owner_action}"
+            )
+    return failures
+
+
+def scorecard_verification_failures(text: str) -> list[str]:
+    """The post-publication job must verify the exact-SHA result and the badge."""
+    failures: list[str] = []
+    if "verify-publication:" not in text:
+        failures.append("Scorecard workflow must verify the public result after publication")
+    expected_url = (
+        "https://api.scorecard.dev/projects/github.com/"
+        + "${GITHUB_REPOSITORY}?commit=${GITHUB_SHA}"
+    )
+    if expected_url not in text:
+        failures.append("Scorecard public verification must bind to the exact GitHub SHA")
+    badge_url = (
+        "https://api.scorecard.dev/projects/github.com/"
+        + "${GITHUB_REPOSITORY}/badge"
+    )
+    if badge_url not in text or "invalid repo path" not in text:
+        failures.append("Scorecard public verification must validate the rendered badge surface")
+    return failures
+
+
 def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
     path = root / SCORECARD_WORKFLOW
     if not path.is_file():
@@ -514,21 +555,7 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         return "FAIL", failures
 
     published = match.group("body")
-    if escaped_mapping_key(published, "    "):
-        failures.append("Scorecard publication does not support escaped published-job mapping keys")
-    if re.search(r"(?m)^    (?:env|'env'|\"env\")[ \t]*:", published):
-        failures.append("Scorecard published job must not define job-level env")
-    if re.search(r"(?m)^    (?:defaults|'defaults'|\"defaults\")[ \t]*:", published):
-        failures.append("Scorecard published job must not define job-level defaults")
-    if re.search(r"(?m)^        run:", published):
-        failures.append("Scorecard published job may use only OpenSSF-approved actions")
-
-    for action in re.findall(r"(?m)^        uses:\s*([^\s#]+)", published):
-        owner_action = action.split("@", 1)[0]
-        if owner_action not in SCORECARD_APPROVED_ACTIONS:
-            failures.append(
-                f"Scorecard published job uses unsupported action {owner_action}"
-            )
+    failures.extend(scorecard_published_job_failures(published))
 
     if text.count("id-token: write") != 1 or "id-token: write" not in published:
         failures.append(
@@ -538,21 +565,7 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         failures.append(
             "Scorecard published job must enumerate the checked repository through git"
         )
-    if "verify-publication:" not in text:
-        failures.append("Scorecard workflow must verify the public result after publication")
-    expected_url = (
-        "https://api.scorecard.dev/projects/github.com/"
-        + "${GITHUB_REPOSITORY}?commit=${GITHUB_SHA}"
-    )
-    if expected_url not in text:
-        failures.append("Scorecard public verification must bind to the exact GitHub SHA")
-    badge_url = (
-        "https://api.scorecard.dev/projects/github.com/"
-        + "${GITHUB_REPOSITORY}/badge"
-    )
-    if badge_url not in text or "invalid repo path" not in text:
-        failures.append("Scorecard public verification must validate the rendered badge surface")
-
+    failures.extend(scorecard_verification_failures(text))
     return ("PASS" if not failures else "FAIL"), failures
 
 

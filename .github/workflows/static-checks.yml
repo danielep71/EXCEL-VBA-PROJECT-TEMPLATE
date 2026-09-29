@@ -115,6 +115,19 @@ jobs:
         run: |
           set -o pipefail
           ruff check tools 2>&1 | tee test-results/ruff.txt
+          # Ceiling evidence: the configured McCabe threshold (pyproject.toml) must
+          # accept a synthetic complexity-15 function and reject one at 16.
+          probe() {
+            python3 -c 'import sys; n = int(sys.argv[1]); print("def probe(x):\n" + "".join(f"    if x == {i}:\n        return {i}\n" for i in range(n - 1)) + "    return -1")' "$1" |
+              ruff check --no-cache --select C901 --stdin-filename tools/complexity_probe.py -
+          }
+          probe 15 2>&1 | tee -a test-results/ruff.txt
+          if probe 16 > test-results/ruff-probe-16.txt 2>&1; then
+            echo "::error::Ruff accepted a synthetic complexity-16 function"
+            exit 1
+          fi
+          tee -a test-results/ruff.txt < test-results/ruff-probe-16.txt
+          grep -F 'C901 `probe` is too complex (16 > 15)' test-results/ruff-probe-16.txt
 
       - name: Enforce Python type baseline
         id: mypy

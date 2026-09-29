@@ -166,6 +166,107 @@ def validate_entrypoint(
     return []
 
 
+def _action_metadata(
+    root: Path,
+    files: set[str],
+    workflow: str,
+    line: int,
+    reference: str,
+) -> tuple[str, str] | list[dict[str, Any]]:
+    """Resolve a reference to ``(relative, metadata)``, or the one location finding."""
+    relative = safe_relative(reference)
+    if relative is None:
+        message = (
+            "Local action reference must stay inside the repository and "
+            "contain no traversal segments."
+        )
+    elif not (root / PurePosixPath(relative)).is_dir():
+        message = f"Local action directory does not exist: {relative}"
+    else:
+        action_dir = root / PurePosixPath(relative)
+        candidates = [
+            f"{relative}/{name}"
+            for name in METADATA_NAMES
+            if (action_dir / name).is_file()
+        ]
+        if len(candidates) != 1:
+            message = (
+                "Local action must contain exactly one of action.yml or "
+                f"action.yaml; observed {len(candidates)}."
+            )
+        elif candidates[0] not in files:
+            message = f"Local action metadata is not tracked: {candidates[0]}"
+        else:
+            return relative, candidates[0]
+    return [finding(workflow, message, line=line, reference=reference)]
+
+
+def _docker_findings(
+    root: Path,
+    files: set[str],
+    metadata: str,
+    relative: str,
+    image: str | None,
+) -> list[dict[str, Any]]:
+    if not image:
+        message = "Docker local action requires runs.image."
+    elif image.casefold() != "dockerfile":
+        message = (
+            "Reusable baseline supports local Docker actions only with "
+            "runs.image: Dockerfile."
+        )
+    else:
+        dockerfile = f"{relative}/Dockerfile"
+        if not (root / dockerfile).is_file():
+            message = f"Dockerfile does not exist: {dockerfile}"
+        elif dockerfile not in files:
+            message = f"Dockerfile is not tracked: {dockerfile}"
+        else:
+            return []
+    return [finding(metadata, message)]
+
+
+def _runs_findings(
+    root: Path,
+    files: set[str],
+    metadata: str,
+    relative: str,
+    using: str,
+    entrypoints: dict[str, str],
+    has_steps: bool,
+) -> list[dict[str, Any]]:
+    normalized = using.casefold()
+    if normalized == "composite":
+        if has_steps:
+            return []
+        return [finding(metadata, "Composite local action requires runs.steps.")]
+    if normalized in {"node20", "node24"}:
+        findings: list[dict[str, Any]] = []
+        if not entrypoints.get("main"):
+            findings.append(
+                finding(metadata, f"{using} local action requires runs.main.")
+            )
+        for key in ("main", "pre", "post"):
+            value = entrypoints.get(key)
+            if value is not None:
+                findings.extend(
+                    validate_entrypoint(
+                        root, files, metadata, relative, key, value
+                    )
+                )
+        return findings
+    if normalized == "docker":
+        return _docker_findings(
+            root, files, metadata, relative, entrypoints.get("image")
+        )
+    return [
+        finding(
+            metadata,
+            f"Unsupported local action runs.using value: {using}",
+        )
+    ]
+
+
 def validate_action(
     root: Path,
     files: set[str],
@@ -173,57 +274,12 @@ def validate_action(
     line: int,
     reference: str,
 ) -> list[dict[str, Any]]:
+    located = _action_metadata(root, files, workflow, line, reference)
+    if isinstance(located, list):
+        return located
+    relative, metadata = located
+
     findings: list[dict[str, Any]] = []
-    relative = safe_relative(reference)
-    if relative is None:
-        return [
-            finding(
-                workflow,
-                "Local action reference must stay inside the repository and "
-                "contain no traversal segments.",
-                line=line,
-                reference=reference,
-            )
-        ]
-
-    action_dir = root / PurePosixPath(relative)
-    if not action_dir.is_dir():
-        return [
-            finding(
-                workflow,
-                f"Local action directory does not exist: {relative}",
-                line=line,
-                reference=reference,
-            )
-        ]
-
-    candidates = [
-        f"{relative}/{name}"
-        for name in METADATA_NAMES
-        if (action_dir / name).is_file()
-    ]
-    if len(candidates) != 1:
-        return [
-            finding(
-                workflow,
-                "Local action must contain exactly one of action.yml or "
-                f"action.yaml; observed {len(candidates)}.",
-                line=line,
-                reference=reference,
-            )
-        ]
-
-    metadata = candidates[0]
-    if metadata not in files:
-        return [
-            finding(
-                workflow,
-                f"Local action metadata is not tracked: {metadata}",
-                line=line,
-                reference=reference,
-            )
-        ]
-
     text = (root / metadata).read_text(encoding="utf-8")
     if top_scalar(text, "name") is None:
         findings.append(
@@ -243,63 +299,11 @@ def validate_action(
             finding(metadata, "Local action metadata requires runs.using.")
         )
         return findings
-
-    normalized = using.casefold()
-    if normalized == "composite":
-        if not has_steps:
-            findings.append(
-                finding(metadata, "Composite local action requires runs.steps.")
-            )
-    elif normalized in {"node20", "node24"}:
-        if not entrypoints.get("main"):
-            findings.append(
-                finding(metadata, f"{using} local action requires runs.main.")
-            )
-        for key in ("main", "pre", "post"):
-            value = entrypoints.get(key)
-            if value is not None:
-                findings.extend(
-                    validate_entrypoint(
-                        root, files, metadata, relative, key, value
-                    )
-                )
-    elif normalized == "docker":
-        image = entrypoints.get("image")
-        if not image:
-            findings.append(
-                finding(metadata, "Docker local action requires runs.image.")
-            )
-        elif image.casefold() != "dockerfile":
-            findings.append(
-                finding(
-                    metadata,
-                    "Reusable baseline supports local Docker actions only with "
-                    "runs.image: Dockerfile.",
-                )
-            )
-        else:
-            dockerfile = f"{relative}/Dockerfile"
-            if not (root / dockerfile).is_file():
-                findings.append(
-                    finding(
-                        metadata,
-                        f"Dockerfile does not exist: {dockerfile}",
-                    )
-                )
-            elif dockerfile not in files:
-                findings.append(
-                    finding(
-                        metadata,
-                        f"Dockerfile is not tracked: {dockerfile}",
-                    )
-                )
-    else:
-        findings.append(
-            finding(
-                metadata,
-                f"Unsupported local action runs.using value: {using}",
-            )
+    findings.extend(
+        _runs_findings(
+            root, files, metadata, relative, using, entrypoints, has_steps
         )
+    )
     return findings
 
 
@@ -485,6 +489,16 @@ def run_self_test() -> int:
             "console.log('ok')\n"
         ),
     }
+    docker = {
+        ".github/actions/example/action.yml": (
+            "name: Example\n"
+            "description: Docker\n"
+            "runs:\n"
+            "  using: docker\n"
+            "  image: Dockerfile\n"
+        ),
+        ".github/actions/example/Dockerfile": "FROM scratch\n",
+    }
     tracked_composite = (
         workflow_path,
         ".github/actions/example/action.yml",
@@ -518,6 +532,18 @@ def run_self_test() -> int:
             "./.github/actions/example",
             node,
             tracked_node,
+        ),
+        "valid-docker": (
+            "pass",
+            "./.github/actions/example",
+            docker,
+            (*tracked_composite, ".github/actions/example/Dockerfile"),
+        ),
+        "untracked-dockerfile": (
+            "fail",
+            "./.github/actions/example",
+            docker,
+            tracked_composite,
         ),
         "missing-path": (
             "fail",
@@ -672,7 +698,7 @@ def run_self_test() -> int:
 
     print(
         "SELF-TEST PASS: quoted/unquoted local references, valid "
-        "composite/node actions, missing paths, traversal, tracked "
+        "composite/node/Docker actions, untracked Dockerfile, missing paths, traversal, tracked "
         "metadata, dual metadata, empty metadata scalars, missing/untracked "
         "entrypoints, entrypoint traversal, reusable workflow job calls, indentless steps, and script text passed."
     )
