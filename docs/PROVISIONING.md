@@ -42,8 +42,12 @@ requirements can be listed in `required_checks`; the universal job remains.
 | Labels | Add missing resolved labels; replacement needs a recorded exception; retain extra labels |
 | Rulesets | Preserve equal/stronger applicable rules; add missing baseline rulesets; never edit or delete existing rulesets |
 
-An existing ruleset with a baseline name but insufficient controls blocks apply
-and requires a separately reviewed migration. Rules with bypass or exclusions
+New baseline rulesets are named **Default branch protection** and **Version tag
+protection**. Coverage is judged by content, not name, so repositories
+provisioned earlier keep their **Template default branch** / **Template version
+tags** rulesets while those still cover the baseline; nothing is duplicated or
+renamed. An existing ruleset with a baseline name, new or legacy, but
+insufficient controls blocks apply and requires a separately reviewed migration. Rules with bypass or exclusions
 cannot prove coverage. Adding baseline protection does not remove existing
 reviewers, specialist checks, scope restrictions or stronger controls.
 

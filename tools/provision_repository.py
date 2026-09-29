@@ -146,16 +146,26 @@ def validate(before: dict[str, Any], profile: str, version: str) -> dict[str, An
     return policy
 
 
+# Baseline ruleset names by target: the name created now, then legacy names from
+# earlier contract adapters. Coverage is judged by content, so a legacy-named
+# ruleset that still covers the baseline is simply kept; a baseline-named ruleset
+# with insufficient controls, under any of these names, blocks for review.
+BASELINE_RULESET_NAMES = {
+    "branch": ("Default branch protection", "Template default branch"),
+    "tag": ("Version tag protection", "Template version tags"),
+}
+
+
 def baseline_rules(policy: dict[str, Any]) -> list[dict[str, Any]]:
     common = [{"type": "deletion"}, {"type": "non_fast_forward"}]
-    branch = {"name": "Template default branch", "target": "branch", "enforcement": "active", "bypass_actors": [],
+    branch = {"name": BASELINE_RULESET_NAMES["branch"][0], "target": "branch", "enforcement": "active", "bypass_actors": [],
               "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
               "rules": common + [{"type": "pull_request", "parameters": {"required_approving_review_count": 0,
                   "dismiss_stale_reviews_on_push": False, "require_code_owner_review": False,
                   "require_last_push_approval": False, "required_review_thread_resolution": False}},
                   {"type": "required_status_checks", "parameters": {"strict_required_status_checks_policy": True,
                       "required_status_checks": [{"context": name} for name in sorted(set(policy["required_checks"]))]}}]}
-    tag = {"name": "Template version tags", "target": "tag", "enforcement": "active", "bypass_actors": [],
+    tag = {"name": BASELINE_RULESET_NAMES["tag"][0], "target": "tag", "enforcement": "active", "bypass_actors": [],
            "conditions": {"ref_name": {"include": ["refs/tags/v*"], "exclude": []}},
            "rules": common + [{"type": "update", "parameters": {"update_allows_fetch_and_merge": False}}]}
     return [branch, tag]
@@ -227,8 +237,9 @@ def make_plan(before: dict[str, Any], profile: str, version: str) -> dict[str, A
     for desired in baseline_rules(policy):
         if covered(before["rulesets"], desired, before["default_branch"]):
             kept.append("Existing equal/stronger rules retained: " + desired["target"])
-        elif any(row["name"] == desired["name"] for row in before["rulesets"]):
-            blocked.append("Existing named ruleset differs; manual reviewed migration required: " + desired["name"])
+        elif named := [row["name"] for row in before["rulesets"]
+                       if row["name"] in BASELINE_RULESET_NAMES[desired["target"]]]:
+            blocked.append("Existing named ruleset differs; manual reviewed migration required: " + named[0])
         else:
             actions.append({"method": "POST", "path": "/rulesets", "body": desired})
     result = {"repository": before["repository"], "profile": profile, "contract_version": version,

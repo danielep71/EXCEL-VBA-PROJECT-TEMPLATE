@@ -102,6 +102,12 @@ Use only the categories needed by a release.
 
 ### Changed
 
+- The guarded provisioner names its baseline rulesets **Default branch
+  protection** and **Version tag protection** instead of "Template default
+  branch" / "Template version tags", which read wrongly inside generated
+  projects. Coverage is judged by content, so repositories provisioned under the
+  legacy names keep them with no duplicate proposed, and a weakened ruleset
+  under either name still blocks for review (#142).
 - The External documentation links workflow now fails only on an actionable
   outcome: a missing public page, a policy-blocked URL, a redirect or
   persistent transport failure, an exceeded link limit, or invalid or expired
