@@ -76,7 +76,9 @@ domain has a versioned rationale; subdomains and redirect destinations need
 their own entries. Every redirect is checked before connection. All resolved
 addresses must be public; the connection uses a checked IP while retaining the
 original hostname for TLS verification, preventing a second DNS lookup from
-changing the destination. No response body is downloaded intentionally.
+changing the destination. TLS 1.2 is the explicit minimum protocol version;
+certificate and hostname verification come from Python's default client
+context. No response body is downloaded intentionally.
 
 There are no authentication headers, cookies, environment proxies, credential
 files or private-site login attempts. URLs with user information or query

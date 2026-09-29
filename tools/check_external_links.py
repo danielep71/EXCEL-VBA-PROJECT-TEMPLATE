@@ -26,6 +26,8 @@ CLASSIFICATION_STATUSES = {
     "restricted-historical": "RESTRICTED_HISTORICAL",
     "pending-publication": "PENDING_PUBLICATION",
 }
+# Explicit TLS floor; never implied by the Python/OpenSSL defaults.
+MINIMUM_TLS_VERSION = ssl.TLSVersion.TLSv1_2
 PASSING_STATUSES = frozenset({"OK", "NOT_APPLICABLE", "EXCEPTED"})
 # Reported, never counted as reachable, but not a maintainer action on their own:
 # the server refuses anonymous access, or an exact classified target is not
@@ -136,6 +138,7 @@ def url_status(url: str, policy: dict[str, Any]) -> str | None:
 class PinnedHTTPS(http.client.HTTPSConnection):
     def __init__(self, host: str, address: str, timeout: int):
         self.tls_context = ssl.create_default_context()
+        self.tls_context.minimum_version = MINIMUM_TLS_VERSION
         super().__init__(host, timeout=timeout, context=self.tls_context)
         self.address = address
 

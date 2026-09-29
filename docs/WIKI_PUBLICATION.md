@@ -114,18 +114,28 @@ runs without live Wiki access on pushes/PRs. It does not change the published
 reusable-workflow pin or add a new required branch context automatically.
 
 `wiki-drift.yml` is a separate weekly/manual observation. It clones the public
-wiki anonymously under a bounded job timeout, then compares against the clean
-source revision checked out by that run. Clone failure is reported as
-`UNAVAILABLE`, with no claim about page correctness. A successful fetch followed
-by a byte/path/SHA mismatch is `DRIFT`; it fails that observation job. A match is
-`PASS`. None of these network outcomes replaces the deterministic PR checks.
+wiki anonymously under a bounded job timeout and reads the source commit the
+publication records in `Wiki-Source.json`. It then checks out **that** commit and
+compares the published bytes against the bundle rendered from it, with that
+commit's own `check_wiki.py`. It does not compare against wherever the default
+branch has moved since publication, which would report every later commit as
+drift. Default-branch and release-tag checks always use the repository's default
+branch, even when a manual run is dispatched from another branch. Outcomes:
 
-The comparison is intentionally strict about source identity: a publication
-from another source SHA is stale relative to the requested source, even if most
-prose is unchanged. Before final release, publish from the final reviewed
-default-branch commit. A development edition remains visibly tied to its source
-and must be refreshed after the final merge. Operators can reproduce an older
-publication by checking out its recorded source commit and comparing there.
+| Outcome | Meaning | Job |
+| --- | --- | --- |
+| `PASS` | Published bytes match their recorded source; the recorded source is at or after the latest `v*` release tag and on the default branch | passes; a notice says how many commits the default branch is ahead |
+| `UNAVAILABLE` | The anonymous clone failed; no claim about page correctness | fails |
+| `DRIFT` | Missing or invalid `Wiki-Source.json`, a recorded source not on the default branch, or a byte/path mismatch with the recorded source (for example an online edit) | fails |
+| `STALE` | The recorded source predates the latest `v*` release tag: a release was cut without republishing the wiki | fails |
+
+None of these network outcomes replaces the deterministic PR checks.
+
+Being behind the default branch is normal between releases. Before final
+release, publish from the final reviewed default-branch commit; that becomes the
+recorded source, and a later release that skips republication is reported as
+`STALE`. Operators can reproduce any publication locally by checking out its
+recorded source commit and running `tools/check_wiki.py --published-dir` there.
 
 Outbound source-page links also use the separate policies in
 [Documentation Checks](DOCUMENTATION_CHECKS.md). A wiki-byte match says nothing

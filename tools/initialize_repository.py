@@ -590,6 +590,20 @@ def _plan(root: Path, profile: str, changes: dict[str, bytes | None]) -> dict[st
     }
 
 
+# Mode policy for files the initializer writes. New files get owner read/write
+# and read for everyone else (0644). A replaced file keeps its permission bits,
+# including executable and stricter owner-only modes, but group/world write and
+# setuid/setgid/sticky never survive a rewrite. Built from stat constants so the
+# policy is stated in one place.
+NEW_FILE_MODE = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
+UNSAFE_MODE_BITS = stat.S_IWGRP | stat.S_IWOTH | stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX
+
+
+def _written_file_mode(original_mode: int | None) -> int:
+    base = NEW_FILE_MODE if original_mode is None else stat.S_IMODE(original_mode)
+    return base & ~UNSAFE_MODE_BITS
+
+
 def _apply_changes(root: Path, changes: dict[str, bytes | None]) -> None:
     originals: dict[str, tuple[bytes, int] | None] = {}
     staged: dict[str, Path] = {}
@@ -611,8 +625,7 @@ def _apply_changes(root: Path, changes: dict[str, bytes | None]) -> None:
                 stream.flush()
                 os.fsync(stream.fileno())
             original = originals[path]
-            mode = stat.S_IMODE(original[1]) if original is not None else 0o644
-            os.chmod(temporary, mode)
+            os.chmod(temporary, _written_file_mode(original[1] if original is not None else None))
             staged[path] = temporary
 
         for path, after in changes.items():

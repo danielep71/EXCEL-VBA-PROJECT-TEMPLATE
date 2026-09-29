@@ -234,6 +234,25 @@ class ProvisionTests(unittest.TestCase):
         self.assertTrue(self.plan()["blocked"])
         self.assertFalse(any(action["method"] == "DELETE" for action in self.plan()["actions"]))
 
+    def test_baseline_rulesets_use_neutral_names_and_accept_legacy_ones(self) -> None:
+        created = [action["body"]["name"] for action in self.plan()["actions"] if action["path"] == "/rulesets"]
+        self.assertEqual(created, ["Default branch protection", "Version tag protection"])
+        self.assertFalse(any("Template" in name for name in created))
+        # A repository provisioned under the legacy names keeps them; nothing is duplicated.
+        legacy = provision.baseline_rules(self.api.files[provision.POLICY])
+        for row, name in zip(legacy, ("Template default branch", "Template version tags")):
+            row["name"] = name
+        self.api.rulesets = [{"id": index + 1, **row} for index, row in enumerate(legacy)]
+        plan = self.plan()
+        self.assertFalse(plan["blocked"])
+        self.assertFalse(any(action["path"] == "/rulesets" for action in plan["actions"]))
+        # A weakened ruleset under either the new or the legacy name still blocks for review.
+        for name in ("Default branch protection", "Template default branch"):
+            with self.subTest(name=name):
+                self.api.rulesets = [{"id": 1, "name": name, "bypass_actors": [], "target": "branch", "enforcement": "disabled"}]
+                blocked = self.plan()["blocked"]
+                self.assertEqual(blocked, ["Existing named ruleset differs; manual reviewed migration required: " + name])
+
     def test_unknown_bypass_evidence_refuses_plan(self) -> None:
         self.api.rulesets = [{"id": 1, "name": "Private"}]
         with self.assertRaises(ValueError):

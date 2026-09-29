@@ -102,6 +102,12 @@ Use only the categories needed by a release.
 
 ### Changed
 
+- The guarded provisioner names its baseline rulesets **Default branch
+  protection** and **Version tag protection** instead of "Template default
+  branch" / "Template version tags", which read wrongly inside generated
+  projects. Coverage is judged by content, so repositories provisioned under the
+  legacy names keep them with no duplicate proposed, and a weakened ruleset
+  under either name still blocks for review (#142).
 - The External documentation links workflow now fails only on an actionable
   outcome: a missing public page, a policy-blocked URL, a redirect or
   persistent transport failure, an exceeded link limit, or invalid or expired
@@ -124,6 +130,30 @@ Use only the categories needed by a release.
   turn both off in Settings before planning, and the blocker names that remedy.
   A fixture now starts from GitHub's real new-repository defaults. Found by the
   v1.2.1 clean-room maintainer journey (#140).
+- The pull-request template's *Related issues* lines are no longer inside a code
+  block, where GitHub ignores closing keywords; a pull request that follows the
+  template now links and closes its issues on merge (#144).
+- The *Published wiki observations* workflow compares the published wiki with
+  the source commit it records in `Wiki-Source.json`, instead of with the
+  current default branch. Every commit merged after a publication was reported
+  as drift, so all scheduled runs failed. It now fails for an unavailable wiki,
+  a missing or invalid source record, a recorded source that is not on the
+  default branch, a byte mismatch with that source, or a publication older than
+  the latest release tag (`STALE`). Being ahead of the published source between
+  releases is reported as a notice.
+
+### Security
+
+- The external-link client sets TLS 1.2 as an explicit minimum protocol
+  version instead of relying on Python/OpenSSL defaults, keeping the default
+  context's certificate and hostname verification and the checked-IP
+  connection. Generated projects inherit the change. CodeQL
+  `security-extended` reported the implicit floor in an adopter (#131).
+- The initializer no longer carries group/world-writable or
+  setuid/setgid/sticky bits from a file it replaces into the rewritten file.
+  New files are `0644`; replaced files keep their executable and owner-only
+  bits. Files it does not write, and rollback, are unchanged. CodeQL
+  `security-extended` reported the verbatim mode copy in an adopter (#132).
 
 ### Documentation
 
