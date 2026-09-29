@@ -119,7 +119,8 @@ publication records in `Wiki-Source.json`. It then checks out **that** commit an
 compares the published bytes against the bundle rendered from it, with that
 commit's own `check_wiki.py`. It does not compare against wherever the default
 branch has moved since publication, which would report every later commit as
-drift. Outcomes:
+drift. Default-branch and release-tag checks always use the repository's default
+branch, even when a manual run is dispatched from another branch. Outcomes:
 
 | Outcome | Meaning | Job |
 | --- | --- | --- |

@@ -23,6 +23,7 @@ jobs:
           WIKI_REPOSITORY: ${{ github.repository }}
           WIKI_READBACK: ${{ runner.temp }}/wiki-readback
           WIKI_SOURCE_TREE: ${{ runner.temp }}/wiki-source
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GIT_TERMINAL_PROMPT: "0"
         run: |
           mkdir -p test-results
@@ -45,7 +46,14 @@ jobs:
             observe 'DRIFT: the published wiki has no valid Wiki-Source.json source record.'
             exit 1
           fi
-          if ! git merge-base --is-ancestor "$source_sha" HEAD 2>/dev/null; then
+          # Judge against the repository's default branch, never the dispatched ref:
+          # a manual run may check out any branch.
+          default_ref="refs/remotes/origin/${DEFAULT_BRANCH}"
+          if ! git rev-parse --verify --quiet "${default_ref}^{commit}" >/dev/null; then
+            observe "UNAVAILABLE: default branch ${DEFAULT_BRANCH} was not fetched; publication is unverified."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$source_sha" "$default_ref" 2>/dev/null; then
             observe "DRIFT: the published wiki records source ${source_sha}, which is not on the default branch."
             exit 1
           fi
@@ -58,12 +66,12 @@ jobs:
           # Freshness: every release publishes its wiki before tagging, so a
           # recorded source older than the latest release tag means a missed
           # republication. Being behind the default branch is normal between releases.
-          latest_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)"
+          latest_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*' "$default_ref" 2>/dev/null || true)"
           if [ -n "$latest_tag" ] && ! git merge-base --is-ancestor "$latest_tag^{commit}" "$source_sha"; then
             observe "STALE: the published wiki (source ${source_sha}) predates release ${latest_tag}; republish it from the release source."
             exit 1
           fi
-          behind="$(git rev-list --count "${source_sha}..HEAD")"
+          behind="$(git rev-list --count "${source_sha}..${default_ref}")"
           observe "PASS: published pages match their recorded source ${source_sha} (latest release ${latest_tag:-none}); the default branch is ${behind} commit(s) ahead, published at the next release."
           if [ "$behind" != 0 ]; then
             echo "::notice title=Published wiki::source ${source_sha:0:12} matches; default branch is ${behind} commit(s) ahead until the next release publication"
