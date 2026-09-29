@@ -152,7 +152,7 @@ ceiling_probe() {
   if rejected=$(complexity_probe 16 2>&1); then
     echo "a complexity-16 function was accepted"; return 1
   fi
-  grep -qF 'C901 `probe` is too complex (16 > 15)' <<<"$rejected" ||
+  grep -qF "is too complex (16 > 15)" <<<"$rejected" ||
     { echo "a complexity-16 function was not rejected at 16 > 15"; return 1; }
 }
 run "Ruff complexity-ceiling probe" ceiling_probe

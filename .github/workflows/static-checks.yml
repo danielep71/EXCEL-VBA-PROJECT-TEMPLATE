@@ -127,7 +127,7 @@ jobs:
             exit 1
           fi
           tee -a test-results/ruff.txt < test-results/ruff-probe-16.txt
-          grep -F 'C901 `probe` is too complex (16 > 15)' test-results/ruff-probe-16.txt
+          grep -F "is too complex (16 > 15)" test-results/ruff-probe-16.txt
 
       - name: Enforce Python type baseline
         id: mypy
