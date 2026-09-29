@@ -31,12 +31,10 @@
 
 ## 🔗 Related issues
 
-```text
-Closes #
-Related to #
-```
+- Closes #
+- Related to #
 
-Use a closing keyword only when this pull request satisfies the issue's complete acceptance criteria.
+Use a closing keyword only when this pull request satisfies the issue's complete acceptance criteria. Keep these lines as plain text: GitHub ignores closing keywords inside code blocks.
 
 ## 🧭 Change classification
 

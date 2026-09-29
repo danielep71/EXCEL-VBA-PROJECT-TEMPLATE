@@ -124,6 +124,9 @@ Use only the categories needed by a release.
   turn both off in Settings before planning, and the blocker names that remedy.
   A fixture now starts from GitHub's real new-repository defaults. Found by the
   v1.2.1 clean-room maintainer journey (#140).
+- The pull-request template's *Related issues* lines are no longer inside a code
+  block, where GitHub ignores closing keywords; a pull request that follows the
+  template now links and closes its issues on merge (#144).
 
 ### Documentation
 
