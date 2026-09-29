@@ -102,6 +102,15 @@ Use only the categories needed by a release.
 
 ### Changed
 
+- The External documentation links workflow now fails only on an actionable
+  outcome: a missing public page, a policy-blocked URL, a redirect or
+  persistent transport failure, an exceeded link limit, or invalid or expired
+  policy. Access-restricted, restricted-historical and pending-publication
+  links no longer fail the run on their own; they are counted as
+  `restricted_observations`, listed in the report, raised as a warning
+  annotation, and still never counted as reachable. Previously every run was
+  red by design, so a genuine defect was indistinguishable from the standing
+  restricted set.
 - Removed the two temporary `pending-publication` classifications for the
   v1.2.1 comparison links now that the tag is published; both links again
   receive the normal anonymous external-link check.

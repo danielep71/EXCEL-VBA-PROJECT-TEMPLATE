@@ -27,6 +27,12 @@ CLASSIFICATION_STATUSES = {
     "pending-publication": "PENDING_PUBLICATION",
 }
 PASSING_STATUSES = frozenset({"OK", "NOT_APPLICABLE", "EXCEPTED"})
+# Reported, never counted as reachable, but not a maintainer action on their own:
+# the server refuses anonymous access, or an exact classified target is not
+# probed. Classifications still expire, and expiry fails policy validation.
+RESTRICTED_STATUSES = frozenset(
+    {"ACCESS_RESTRICTED", "RESTRICTED_HISTORICAL", "PENDING_PUBLICATION"}
+)
 COUNT_LABELS = {
     "deterministic_public_defects": "Deterministic public defects",
     "restricted_historical": "restricted historical",
@@ -314,7 +320,8 @@ def build_report(
     counts = _counts(rows)
     status = (
         "fail"
-        if limited or any(row["status"] not in PASSING_STATUSES for row in rows)
+        if limited
+        or any(row["status"] not in PASSING_STATUSES | RESTRICTED_STATUSES for row in rows)
         else "pass"
     )
     return {
@@ -322,13 +329,16 @@ def build_report(
         "as_of": as_of.isoformat(),
         "limit_exceeded": limited,
         "discovered": len(links),
+        "restricted_observations": sum(row["status"] in RESTRICTED_STATUSES for row in rows),
         "counts": counts,
         "links": rows,
         "scope_note": (
-            "Anonymous HTTP observations only; access restrictions, declared historical "
-            "restrictions, pending-publication references and transients remain non-green "
-            "without being counted as deterministic public-page defects. Queries, credentials "
-            "and fragments are not probed; URLs are represented by domain and SHA-256 ID."
+            "Anonymous HTTP observations only. The result fails only for an actionable "
+            "outcome: a public-page defect, policy block, redirect or transient failure, "
+            "or an exceeded limit. Access restrictions, declared historical restrictions "
+            "and pending-publication references are reported but never counted as reachable. "
+            "Queries, credentials and fragments are not probed; URLs are represented by "
+            "domain and SHA-256 ID."
         ),
     }
 
@@ -342,6 +352,9 @@ def markdown(report: dict[str, Any]) -> str:
         "# External documentation links",
         "",
         f"Result: {report['status'].upper()}",
+        "",
+        f"Restricted observations (reported, not verified as reachable): "
+        f"{report['restricted_observations']}",
         "",
         f"Discovered: {report['discovered']}; limit exceeded: {report['limit_exceeded']}",
         rendered_counts,
