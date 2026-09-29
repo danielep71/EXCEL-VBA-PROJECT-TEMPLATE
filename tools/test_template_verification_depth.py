@@ -365,9 +365,16 @@ class InitializerDepthTests(unittest.TestCase):
         for original, expected in cases.items():
             with self.subTest(original=original):
                 self.assertEqual(initializer._written_file_mode(original), expected)
+        # Deliberately unsafe fixture modes: the safe new-file mode plus exactly the
+        # bits the policy must strip (0666, 0777), and a strict owner-only mode (0600).
+        world_writable = initializer.NEW_FILE_MODE | stat.S_IWGRP | stat.S_IWOTH
+        world_writable_executable = world_writable | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+        owner_only = stat.S_IRUSR | stat.S_IWUSR
+        self.assertEqual((world_writable, world_writable_executable, owner_only), (0o666, 0o777, 0o600))
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
-            for filename, mode in {"plain.txt": 0o666, "tool.sh": 0o777, "secret.txt": 0o600}.items():
+            fixtures = {"plain.txt": world_writable, "tool.sh": world_writable_executable, "secret.txt": owner_only}
+            for filename, mode in fixtures.items():
                 (root / filename).write_bytes(b"old")
                 os.chmod(root / filename, mode)
             initializer._apply_changes(
@@ -378,11 +385,11 @@ class InitializerDepthTests(unittest.TestCase):
                 observed, {"plain.txt": 0o644, "tool.sh": 0o755, "secret.txt": 0o600, "fresh.txt": 0o644}
             )
             # Rollback restores the exact original mode: only written files are normalized.
-            os.chmod(root / "plain.txt", 0o666)
+            os.chmod(root / "plain.txt", world_writable)
             with patch.object(initializer.os, "replace", side_effect=OSError("boom")):
                 with self.assertRaises(initializer.InitializationError):
                     initializer._apply_changes(root, {"plain.txt": b"broken"})
-            self.assertEqual(stat.S_IMODE((root / "plain.txt").stat().st_mode), 0o666)
+            self.assertEqual(stat.S_IMODE((root / "plain.txt").stat().st_mode), world_writable)
 
 
 class ReleaseDepthTests(unittest.TestCase):
