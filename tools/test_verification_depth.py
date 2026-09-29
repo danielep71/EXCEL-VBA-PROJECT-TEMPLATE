@@ -250,13 +250,13 @@ class InitializerDepthTests(unittest.TestCase):
                 root, "library", {"old.txt": b"new", "new.txt": b"x", "gone.txt": None}
             )
             self.assertEqual([row["action"] for row in plan["changes"]], ["update", "create", "delete"])
-            initializer._apply_changes(root, {"old.txt": b"new", "new.txt": b"x"})
+            initializer.apply_changes(root, {"old.txt": b"new", "new.txt": b"x"})
             self.assertEqual((root / "old.txt").read_bytes(), b"new")
             self.assertEqual((root / "new.txt").read_bytes(), b"x")
             before = (root / "old.txt").read_bytes()
             with patch("initialize_repository.os.replace", side_effect=OSError("boom")):
                 with self.assertRaisesRegex(initializer.InitializationError, "original files were restored"):
-                    initializer._apply_changes(root, {"old.txt": b"broken"})
+                    initializer.apply_changes(root, {"old.txt": b"broken"})
             self.assertEqual((root / "old.txt").read_bytes(), before)
 
     def test_initializer_written_file_modes_drop_unsafe_bits(self) -> None:
@@ -285,7 +285,7 @@ class InitializerDepthTests(unittest.TestCase):
             for filename, mode in fixtures.items():
                 (root / filename).write_bytes(b"old")
                 os.chmod(root / filename, mode)
-            initializer._apply_changes(
+            initializer.apply_changes(
                 root, {"plain.txt": b"new", "tool.sh": b"new", "secret.txt": b"new", "fresh.txt": b"x"}
             )
             observed = {path.name: stat.S_IMODE(path.stat().st_mode) for path in root.iterdir()}
@@ -296,7 +296,7 @@ class InitializerDepthTests(unittest.TestCase):
             os.chmod(root / "plain.txt", world_writable)
             with patch("initialize_repository.os.replace", side_effect=OSError("boom")):
                 with self.assertRaises(initializer.InitializationError):
-                    initializer._apply_changes(root, {"plain.txt": b"broken"})
+                    initializer.apply_changes(root, {"plain.txt": b"broken"})
             self.assertEqual(stat.S_IMODE((root / "plain.txt").stat().st_mode), world_writable)
 
 
@@ -946,8 +946,8 @@ class ExtendedReleaseAndCloseoutDepthTests(unittest.TestCase):
             root = Path(name)
             text_path = root / "nested" / "report.md"
             json_path = root / "nested" / "report.json"
-            closeout.write_report(text_path, rendered)
-            closeout.write_json(json_path, {"status": "pass"})
+            gatelib.write_text(text_path, rendered)
+            gatelib.write_json(json_path, {"status": "pass"})
             self.assertEqual(text_path.read_text(encoding="utf-8"), rendered)
             self.assertEqual(json.loads(json_path.read_text(encoding="utf-8"))["status"], "pass")
 
@@ -968,9 +968,9 @@ class ExtendedReleaseAndCloseoutDepthTests(unittest.TestCase):
         with (
             patch.object(initializer, "_git", return_value=clean),
             patch.object(initializer, "_load_config", return_value={"mode": "generated"}),
-            patch.object(initializer, "_build_changes", return_value=({"x.txt": b"x"}, {})),
+            patch.object(initializer, "build_changes", return_value=({"x.txt": b"x"}, {})),
             patch.object(initializer, "_plan", return_value={"mode": "dry-run", "status": "planned", "changes": []}),
-            patch.object(initializer, "_apply_changes") as apply_changes,
+            patch.object(initializer, "apply_changes") as apply_changes,
         ):
             self.assertEqual(initializer.main(["--profile", "library", "--apply"]), 0)
             apply_changes.assert_called_once()

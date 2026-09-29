@@ -34,7 +34,7 @@ SECTION_STARTS = (
     ("repository-policy", "check_required_paths"),
     ("vba-policy", "_vba_paths"),
     ("reporting", "build_report"),
-    ("fixtures", "_write_fixture"),
+    ("fixtures", "write_fixture"),
     ("cli", "parse_arguments"),
 )
 EXPECTED_CHECK_FUNCTIONS = (
@@ -59,46 +59,73 @@ EXPECTED_CHECK_FUNCTIONS = (
     "check_generated_vba_contract",
     "check_vba_public_api",
 )
-GATE_RUNNER_CONSUMERS = frozenset(
-    {
-        "check_documentation.py",
-        "check_wiki.py",
-        "check_external_links.py",
-        "check_excel_evidence.py",
-        "check_portfolio_drift.py",
-        "report_portfolio_quality.py",
-        "provision_repository.py",
-        "check_committed_whitespace.py",
-        "check_local_actions.py",
-        "check_release_semantics.py",
-        "check_template_contract.py",
-        "check_vba_conditionals.py",
-        "check_vba_jumps.py",
-        "check_vba_public_api.py",
-        "checker_development.py",
-        "policy_coverage_runner.py",
-    }
-)
-GATE_RUNNER_EXCLUSIONS = {
-    "_release_closeout.py": (
-        "private post-release provider-snapshot validator with a dedicated self-test; "
-        "not a focused run_gate report CLI"
-    ),
-    "collect_portfolio_snapshot.py": "GET-only evidence capture, not a report gate",
-    "create_reusable_workflow_fixture.py": "disposable consumer provisioning, not a report gate",
+# Every maintained CLI has exactly one architectural class. `run-gate` tools use
+# _gatelib.run_gate (or delegate `main` to a tool that does); every other class
+# states why its parser, report, write or exit semantics differ.
+CLI_CLASSES = ("run-gate", "specialized-gate", "utility", "test-runner", "canonical")
+_FOCUSED_GATE = "focused report gate on the shared run_gate contract"
+_UNITTEST = "unittest suite; normal invocation runs its fixtures"
+CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
+    "_release_closeout.py": ("run-gate", "post-release provider-snapshot validator"),
+    "check_committed_whitespace.py": ("run-gate", _FOCUSED_GATE),
+    "check_documentation.py": ("run-gate", _FOCUSED_GATE),
+    "check_excel_evidence.py": ("run-gate", _FOCUSED_GATE),
+    "check_external_links.py": ("run-gate", _FOCUSED_GATE),
+    "check_local_actions.py": ("run-gate", _FOCUSED_GATE),
+    "check_policy_coverage.py": ("run-gate", "entry-point alias of policy_coverage_runner.main"),
+    "check_portfolio_drift.py": ("run-gate", _FOCUSED_GATE),
+    "check_release_semantics.py": ("run-gate", _FOCUSED_GATE),
+    "check_template_contract.py": ("run-gate", _FOCUSED_GATE),
+    "check_vba_conditionals.py": ("run-gate", _FOCUSED_GATE),
+    "check_vba_jumps.py": ("run-gate", _FOCUSED_GATE),
+    "check_vba_public_api.py": ("run-gate", _FOCUSED_GATE),
+    "check_wiki.py": ("run-gate", _FOCUSED_GATE),
+    "checker_development.py": ("run-gate", _FOCUSED_GATE),
+    "policy_coverage_runner.py": ("run-gate", _FOCUSED_GATE),
+    "provision_repository.py": ("run-gate", _FOCUSED_GATE),
+    "report_portfolio_quality.py": ("run-gate", _FOCUSED_GATE),
     "check_release.py": (
-        "atomic evidence writes and a console rendering distinct from its Markdown summary"
+        "specialized-gate",
+        "atomic evidence writes and a console rendering distinct from its Markdown summary",
     ),
     "release_certification.py": (
-        "mutually exclusive build/verify bundle modes emitting JSON to stdout; "
-        "not a focused run_gate report CLI"
+        "specialized-gate",
+        "mutually exclusive build/verify bundle modes emitting JSON to stdout",
     ),
-    "test_workflow_validation.py": "text-only report with no JSON evidence output",
-    "test_template_workflow_validation.py": (
-        "template-only unittest wrapper for reusable-workflow maintenance fixtures; "
-        "not a focused run_gate report CLI"
+    "test_workflow_validation.py": (
+        "specialized-gate", "authoritative actionlint validation with a text-only report and no JSON",
     ),
-    "initialize_repository.py": "repository provisioning CLI, not a focused report gate",
+    "collect_portfolio_snapshot.py": ("utility", "GET-only evidence capture, not a report gate"),
+    "create_reusable_workflow_fixture.py": ("utility", "disposable consumer provisioning, not a report gate"),
+    "initialize_repository.py": ("utility", "repository provisioning CLI, not a report gate"),
+    "test_documentation.py": ("test-runner", _UNITTEST),
+    "test_excel_evidence.py": ("test-runner", _UNITTEST),
+    "test_portfolio_drift.py": ("test-runner", _UNITTEST),
+    "test_portfolio_quality.py": ("test-runner", _UNITTEST),
+    "test_provision_repository.py": ("test-runner", _UNITTEST),
+    "test_release_provenance.py": ("test-runner", _UNITTEST),
+    "test_template_verification_depth.py": ("test-runner", _UNITTEST),
+    "test_template_workflow_validation.py": ("test-runner", _UNITTEST),
+    "test_verification_depth.py": ("test-runner", _UNITTEST),
+    "test_wiki.py": ("test-runner", _UNITTEST),
+    "check_repo.py": (
+        "canonical", "self-contained distributable; must not import _gatelib or any sibling",
+    ),
+}
+# Reviewed cross-module private access. Test modules may exercise the private
+# members of the modules they verify; every other access needs an entry here.
+LOADED_MODULE = "loaded module"
+PRIVATE_ACCESS_ALLOWLIST: dict[tuple[str, str, str], str] = {
+    (name, LOADED_MODULE, member): (
+        "checker_development is the canonical checker's independent unit-test harness; "
+        "it tests this check_repo parser directly by design"
+    )
+    for name, member in (
+        ("checker_development.py", "_editorconfig_sections"),
+        ("checker_development.py", "_github_slugs"),
+        ("checker_development.py", "_identity_scan_text"),
+        ("checker_development.py", "_strip_vba_line"),
+    )
 }
 # These CLIs deliberately keep their fixtures separate from operational arguments.
 # Reasons identify the alternate test command, or explicitly disclose no offline suite.
@@ -682,26 +709,8 @@ def ownership_scan(root: Path) -> tuple[dict[str, Any], list[str]]:
         consumes_runner = _imports_helper(tool_tree, "run_gate")
         if "main" in definitions:
             entry_points.append(tool.name)
-        if tool.name in GATE_RUNNER_CONSUMERS:
+        if consumes_runner:
             gate_runner_imports.append(tool.name)
-            if not consumes_runner:
-                failures.append(f"{tool.name} does not consume _gatelib.run_gate")
-        elif consumes_runner:
-            failures.append(
-                f"{tool.name} consumes _gatelib.run_gate but is not a declared consumer"
-            )
-    declared = set(GATE_RUNNER_CONSUMERS) | set(GATE_RUNNER_EXCLUSIONS)
-    undeclared = sorted(set(entry_points) - declared)
-    if undeclared:
-        failures.append(
-            "focused-gate entry points are neither run_gate consumers nor documented "
-            "exclusions: " + ", ".join(undeclared)
-        )
-    stale = sorted(declared - set(entry_points))
-    if stale:
-        failures.append(
-            "declared run_gate consumers or exclusions no longer define main: " + ", ".join(stale)
-        )
     if local_helper_owners:
         failures.append(
             "shared helpers redefined outside _gatelib.py: " + "; ".join(local_helper_owners)
@@ -710,8 +719,9 @@ def ownership_scan(root: Path) -> tuple[dict[str, Any], list[str]]:
         "parser_consumers": parser_imports,
         "gate_runner_consumers": gate_runner_imports,
         "gate_runner_exclusions": [
-            {"tool": name, "reason": reason}
-            for name, reason in sorted(GATE_RUNNER_EXCLUSIONS.items())
+            {"tool": name, "reason": CLI_CLASSIFICATION[name][1]}
+            for name in sorted(entry_points)
+            if name in CLI_CLASSIFICATION and CLI_CLASSIFICATION[name][0] != "run-gate"
         ],
         "entry_points": sorted(entry_points),
     }
@@ -1106,6 +1116,204 @@ def strict_typing_tests(root: Path) -> list[dict[str, Any]]:
     return results
 
 
+def _tool_trees(root: Path) -> dict[str, ast.Module]:
+    return {path.name: ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for path in sorted((root / "tools").glob("*.py"))}
+
+
+def _delegated_main_source(tree: ast.Module) -> str | None:
+    """The sibling a thin entry point takes ``main`` from, if any."""
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and node.module and any(
+                (alias.asname or alias.name) == "main" for alias in node.names):
+            return node.module + ".py"
+    return None
+
+
+def _cli_class_failure(
+    name: str, tree: ast.Module, classification: dict[str, tuple[str, str]]
+) -> str | None:
+    kind, rationale = classification[name]
+    consumes = _imports_helper(tree, "run_gate")
+    delegate = _delegated_main_source(tree)
+    if kind not in CLI_CLASSES:
+        return f"{name}: unknown CLI class {kind!r}"
+    if kind != "run-gate" and not rationale.strip():
+        return f"{name}: {kind} CLI needs a rationale"
+    if (kind == "canonical") != (name == CHECKER_PATH.name):
+        return f"{name}: only {CHECKER_PATH.name} may be the canonical CLI"
+    if kind == "run-gate" and not consumes and classification.get(delegate or "", ("",))[0] != "run-gate":
+        return f"{name}: run-gate CLI neither consumes _gatelib.run_gate nor delegates main to one"
+    if kind != "run-gate" and consumes:
+        return f"{name}: {kind} CLI consumes _gatelib.run_gate; classify it as run-gate"
+    return None
+
+
+def cli_classification_failures(
+    trees: dict[str, ast.Module], classification: dict[str, tuple[str, str]]
+) -> list[str]:
+    """Every CLI is classified exactly once, and its class matches its orchestration."""
+    clis = {name for name, tree in trees.items() if has_cli_entry_point(tree)}
+    failures = [f"{name}: CLI has no architectural classification" for name in sorted(clis - set(classification))]
+    failures += [f"{name}: classified but no longer a CLI" for name in sorted(set(classification) - clis)]
+    for name in sorted(clis & set(classification)):
+        failure = _cli_class_failure(name, trees[name], classification)
+        if failure:
+            failures.append(failure)
+    return failures
+
+
+def _sibling_aliases(tree: ast.Module, siblings: set[str]) -> tuple[dict[str, str], list[tuple[str, str]]]:
+    """Import aliases of sibling modules, and ``from sibling import _private`` pairs."""
+    aliases: dict[str, str] = {}
+    private_imports: list[tuple[str, str]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            aliases.update({alias.asname or alias.name: alias.name for alias in node.names
+                            if alias.name in siblings})
+        elif isinstance(node, ast.ImportFrom) and node.module in siblings:
+            private_imports += [(node.module, alias.name) for alias in node.names
+                                if alias.name.startswith("_") and not alias.name.startswith("__")]
+    return aliases, private_imports
+
+
+def _loaded_module_names(tree: ast.Module) -> set[str]:
+    """Names typed as ModuleType: the dynamically loaded canonical-checker seam."""
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.arg) and node.annotation is not None and "ModuleType" in ast.unparse(node.annotation):
+            names.add(node.arg)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and "ModuleType" in ast.unparse(node.annotation):
+            names.add(node.target.id)
+    return names
+
+
+def private_accesses(name: str, tree: ast.Module, siblings: set[str]) -> set[tuple[str, str, str]]:
+    """``(consumer, provider, member)`` for each cross-module ``_private`` use in one module."""
+    aliases, private_imports = _sibling_aliases(tree, siblings)
+    loaded = _loaded_module_names(tree)
+    found = {(name, module + ".py", member) for module, member in private_imports}
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)):
+            continue
+        member, base = node.attr, node.value.id
+        if not member.startswith("_") or member.startswith("__"):
+            continue
+        if base in aliases and aliases[base] + ".py" != name:
+            found.add((name, aliases[base] + ".py", member))
+        elif base in loaded:
+            found.add((name, LOADED_MODULE, member))
+    return found
+
+
+def import_cycles(trees: dict[str, ast.Module]) -> list[list[str]]:
+    siblings = {name[:-3] for name in trees}
+    graph = {name[:-3]: set(_sibling_aliases(tree, siblings)[0].values())
+             | {node.module for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module in siblings}
+             for name, tree in trees.items()}
+    cycles: list[list[str]] = []
+    state: dict[str, int] = {}
+
+    def visit(node: str, path: list[str]) -> None:
+        state[node] = 1
+        for target in sorted(graph[node]):
+            if state.get(target) == 1:
+                cycles.append(path[path.index(target):] + [target])
+            elif target not in state:
+                visit(target, path + [target])
+        state[node] = 2
+
+    for start in sorted(graph):
+        if start not in state:
+            visit(start, [start])
+    return cycles
+
+
+def module_boundary_failures(
+    trees: dict[str, ast.Module], allowlist: dict[tuple[str, str, str], str]
+) -> tuple[list[str], dict[str, Any]]:
+    """Reject unreviewed cross-module private access, import cycles and a non-standalone checker."""
+    siblings = {name[:-3] for name in trees}
+    accesses = set().union(*(private_accesses(name, tree, siblings) for name, tree in trees.items()))
+    tests = {row for row in accesses if row[0].startswith("test_")}
+    production = accesses - tests
+    failures = [f"{consumer} uses private {member} of {provider} without a reviewed allow-list entry"
+                for consumer, provider, member in sorted(production - set(allowlist))]
+    failures += [f"stale private-access allow-list entry: {' / '.join(row)}"
+                 for row in sorted(set(allowlist) - production)]
+    failures += ["import cycle: " + " -> ".join(cycle) for cycle in import_cycles(trees)]
+    checker = trees.get(CHECKER_PATH.name)
+    if checker is not None and _sibling_aliases(checker, siblings - {CHECKER_PATH.stem})[0]:
+        failures.append(f"{CHECKER_PATH.name} imports a sibling module")
+    evidence = {
+        "production_private_accesses": len(production),
+        "allow_listed": sorted({" / ".join(row): allowlist[row] for row in production & set(allowlist)}.items()),
+        "test_private_accesses": len(tests),
+        "import_cycles": len(import_cycles(trees)),
+    }
+    return failures, evidence
+
+
+def architecture_report(root: Path) -> tuple[dict[str, Any], list[str]]:
+    trees = _tool_trees(root)
+    failures = cli_classification_failures(trees, CLI_CLASSIFICATION)
+    boundary_failures, boundaries = module_boundary_failures(trees, PRIVATE_ACCESS_ALLOWLIST)
+    evidence = {
+        "cli_classification": [
+            {"tool": name, "class": kind, "rationale": rationale}
+            for name, (kind, rationale) in sorted(CLI_CLASSIFICATION.items())
+        ],
+        "module_boundaries": boundaries,
+    }
+    return evidence, failures + boundary_failures
+
+
+def _synthetic_trees(sources: dict[str, str]) -> dict[str, ast.Module]:
+    return {name: ast.parse(source) for name, source in sources.items()}
+
+
+def architecture_tests() -> list[dict[str, Any]]:
+    """Each boundary or classification violation is rejected; the valid shapes are accepted."""
+    gate = "from _gatelib import run_gate\ndef main():\n    return run_gate\n"
+    classes = {"gate.py": ("run-gate", ""), "check_repo.py": ("canonical", "standalone")}
+    base = {"_gatelib.py": "def run_gate(): pass\n", "gate.py": gate, "check_repo.py": "def main(): pass\n"}
+    boundary_cases: tuple[tuple[str, dict[str, str], dict[tuple[str, str, str], str], bool], ...] = (
+        ("valid", {"a.py": "import b\nb.public()\n", "b.py": "def public(): pass\n"}, {}, False),
+        ("private-attribute", {"a.py": "import b\nb._hidden()\n", "b.py": ""}, {}, True),
+        ("private-from-import", {"a.py": "from b import _hidden\n", "b.py": ""}, {}, True),
+        ("loaded-module", {"a.py": "from types import ModuleType\ndef f(m: ModuleType):\n    m._x()\n"}, {}, True),
+        ("test-module-allowed", {"test_a.py": "import b\nb._hidden()\n", "b.py": ""}, {}, False),
+        ("allow-listed", {"a.py": "import b\nb._hidden()\n", "b.py": ""},
+         {("a.py", "b.py", "_hidden"): "reviewed"}, False),
+        ("stale-allow-list", {"a.py": "", "b.py": ""}, {("a.py", "b.py", "_hidden"): "reviewed"}, True),
+        ("import-cycle", {"a.py": "import b\n", "b.py": "import a\n"}, {}, True),
+        ("checker-imports-sibling", {"check_repo.py": "import b\n", "b.py": ""}, {}, True),
+    )
+    results = []
+    for name, sources, allowlist, rejects in boundary_cases:
+        failures, _ = module_boundary_failures(_synthetic_trees(sources), allowlist)
+        results.append({"id": "module-boundary-" + name,
+                        "status": "pass" if bool(failures) == rejects else "fail", "detail": ""})
+    cli_cases: tuple[tuple[str, dict[str, str], dict[str, tuple[str, str]], bool], ...] = (
+        ("valid", {}, {}, False),
+        ("unclassified", {"new.py": "def main(): pass\n"}, {}, True),
+        ("stale", {}, {"gone.py": ("utility", "removed")}, True),
+        ("run-gate-without-runner", {"gate.py": "def main(): pass\n"}, {}, True),
+        ("delegated-alias", {"alias.py": "from gate import main\n"}, {"alias.py": ("run-gate", "alias")}, False),
+        ("excluded-consumes-runner", {}, {"gate.py": ("utility", "said so")}, True),
+        ("missing-rationale", {"tool.py": "def main(): pass\n"}, {"tool.py": ("utility", " ")}, True),
+        ("second-canonical", {"tool.py": "def main(): pass\n"}, {"tool.py": ("canonical", "no")}, True),
+        ("unknown-class", {"tool.py": "def main(): pass\n"}, {"tool.py": ("library", "no")}, True),
+    )
+    for name, extra_sources, extra_classes, rejects in cli_cases:
+        trees = _synthetic_trees({**base, **extra_sources})
+        failures = cli_classification_failures(trees, {**classes, **extra_classes})
+        results.append({"id": "cli-classification-" + name,
+                        "status": "pass" if bool(failures) == rejects else "fail", "detail": ""})
+    return results
+
+
 def shared_library_report(root: Path) -> tuple[dict[str, Any], list[str]]:
     failures: list[str] = []
     gatelib = (root / GATELIB_PATH).resolve()
@@ -1163,6 +1371,8 @@ def build_report(root: Path) -> dict[str, Any]:
     failures.extend(complexity_failures)
     typing_contract, typing_failures = strict_typing_report(root)
     failures.extend(typing_failures)
+    architecture, architecture_failures = architecture_report(root)
+    failures.extend(architecture_failures)
 
     parser_results = (parser_tests(module) + reusable_identity_tests(module)
                       + dependency_rollback_tests())
@@ -1170,7 +1380,8 @@ def build_report(root: Path) -> dict[str, Any]:
     cli_results = cli_tests(module, checker)
     gate_results = (gate_runner_tests() + self_test_registry_tests()
                     + cli_discovery_tests() + guard_polarity_tests()
-                    + complexity_ceiling_tests(root) + strict_typing_tests(root))
+                    + complexity_ceiling_tests(root) + strict_typing_tests(root)
+                    + architecture_tests())
     all_unit_results = [*parser_results, *reporter_results, *cli_results, *gate_results]
     failed_units = [item for item in all_unit_results if item["status"] != "pass"]
     if failed_units:
@@ -1195,6 +1406,7 @@ def build_report(root: Path) -> dict[str, Any]:
         "self_test_interfaces": interfaces,
         "complexity_ceiling": complexity,
         "strict_typing": typing_contract,
+        "architecture": architecture,
         "unit_tests": all_unit_results,
         "failures": failures,
     }
@@ -1219,6 +1431,9 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"rejects {report['complexity_ceiling']['probe_rejected']})",
         f"- **Strict typing:** {'mypy --strict' if report['strict_typing']['strict'] else 'NOT strict'}; "
         f"{len(report['strict_typing']['relaxations'])} relaxations; hosted probe rejects unannotated code",
+        f"- **Architecture:** {len(report['architecture']['cli_classification'])} CLIs classified; "
+        f"{report['architecture']['module_boundaries']['production_private_accesses']} reviewed private uses; "
+        f"{report['architecture']['module_boundaries']['import_cycles']} import cycles",
         f"- **Independent unit tests:** {len(report['unit_tests'])}",
         "",
         "| Section | Start | End | Definitions |",
@@ -1232,6 +1447,9 @@ def markdown_report(report: dict[str, Any]) -> str:
     lines.extend(["", "### Independent tests", "", "| Test | Result |", "| --- | --- |"])
     for item in report["unit_tests"]:
         lines.append(f"| `{item['id']}` | {str(item['status']).upper()} |")
+    lines.extend(["", "### CLI classification", "", "| CLI | Class | Rationale |", "| --- | --- | --- |"])
+    for item in report["architecture"]["cli_classification"]:
+        lines.append(f"| `{item['tool']}` | {item['class']} | {item['rationale']} |")
     lines.extend(["", "### Self-test interfaces", "",
                   "CLI help is checked here; fixture execution remains a separate CI responsibility.",
                   "", "| CLI | --self-test | Alternative / exclusion |", "| --- | --- | --- |"])
@@ -1264,7 +1482,7 @@ def run_self_test(root: Path) -> int:
     print(
         "SELF-TEST PASS: internal boundaries, parser/reporter units, CLI contract, "
         "canonical check order, artifact identity, shared-helper ownership, Python complexity ceiling, "
-        "strict typing, and standard-library-only runtime passed."
+        "strict typing, CLI classification, module boundaries, and standard-library-only runtime passed."
     )
     return 0
 

@@ -1054,7 +1054,7 @@ def check_structured_data(
     )
 
 
-def _markdown_destinations(text: str) -> Iterable[tuple[int, str]]:
+def markdown_destinations(text: str) -> Iterable[tuple[int, str]]:
     fenced = False
     fence = ""
     inline = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
@@ -1141,7 +1141,7 @@ def check_markdown_links(
         except (OSError, UnicodeError):
             continue
         source = repo.path(path)
-        for number, raw in _markdown_destinations(text):
+        for number, raw in markdown_destinations(text):
             parsed = urlsplit(raw.strip("<>"))
             if parsed.scheme or raw.startswith("//"):
                 continue
@@ -2770,7 +2770,7 @@ def _write_report(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8", newline="\n")
 
 
-def _write_fixture(path: Path, content: str | bytes, *, crlf: bool = False) -> None:
+def write_fixture(path: Path, content: str | bytes, *, crlf: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if isinstance(content, bytes):
         path.write_bytes(content)
@@ -2927,7 +2927,7 @@ def _fixture_labels() -> dict[str, Any]:
     }
 
 
-def _run_git(root: Path, *arguments: str) -> None:
+def run_git(root: Path, *arguments: str) -> None:
     subprocess.run(
         ["git", "-C", str(root), *arguments],
         check=True,
@@ -2936,9 +2936,9 @@ def _run_git(root: Path, *arguments: str) -> None:
     )
 
 
-def _initialize_fixture(root: Path) -> None:
+def initialize_fixture(root: Path) -> None:
     checkout_revision = "a" * 40
-    _write_fixture(
+    write_fixture(
         root / ".editorconfig",
         """root = true
 
@@ -2953,7 +2953,7 @@ end_of_line = crlf
 insert_final_newline = true
 """,
     )
-    _write_fixture(
+    write_fixture(
         root / ".gitattributes",
         """* text=auto
 *.bas text eol=crlf
@@ -2967,7 +2967,7 @@ insert_final_newline = true
 *.xlsm binary
 """,
     )
-    _write_fixture(
+    write_fixture(
         root / ".gitignore",
         """.env
 !.env.example
@@ -2978,11 +2978,11 @@ test-results/
 ~$*
 """,
     )
-    _write_fixture(
+    write_fixture(
         root / CONFIG_PATH,
         json.dumps(_fixture_configuration(), indent=2, ensure_ascii=False) + "\n",
     )
-    _write_fixture(
+    write_fixture(
         root / LABEL_MANIFEST_PATH,
         json.dumps(_fixture_labels(), indent=2, ensure_ascii=False) + "\n",
     )
@@ -3031,8 +3031,8 @@ test-results/
                     "    validations:",
                     "      required: true",
                 ])
-        _write_fixture(root / ISSUE_TEMPLATE_DIRECTORY / filename, "\n".join(body) + "\n")
-    _write_fixture(
+        write_fixture(root / ISSUE_TEMPLATE_DIRECTORY / filename, "\n".join(body) + "\n")
+    write_fixture(
         root / ISSUE_TEMPLATE_DIRECTORY / "config.yml",
         """blank_issues_enabled: false
 contact_links:
@@ -3041,7 +3041,7 @@ contact_links:
     about: Use the private reporting channel.
 """,
     )
-    _write_fixture(
+    write_fixture(
         root / ".github/workflows/static-checks.yml",
         f"""name: Static repository checks
 
@@ -3060,24 +3060,24 @@ jobs:
         run: python3 tools/check_repo.py --root .
 """,
     )
-    _write_fixture(
+    write_fixture(
         root / "README.md",
         "# Fixture\n\nSee [details](docs/DETAILS.md#details).\n",
     )
-    _write_fixture(
+    write_fixture(
         root / "docs/DETAILS.md",
         "# Details\n\nFixture details.\n",
     )
-    _write_fixture(
+    write_fixture(
         root / "docs/PUBLIC_API.txt",
         "Quality\tFunction\tEcho\n",
     )
-    _write_fixture(
+    write_fixture(
         root / "CHANGELOG.md",
         "# Changelog\n\n## [Unreleased]\n\n- Fixture baseline.\n",
     )
-    _write_fixture(root / "VERSION", "0.0.0\n")
-    _write_fixture(
+    write_fixture(root / "VERSION", "0.0.0\n")
+    write_fixture(
         root / "src/core/QualityCore.bas",
         """Attribute VB_Name = "QualityCore"
 Option Explicit
@@ -3089,7 +3089,7 @@ End Function
 """,
         crlf=True,
     )
-    _write_fixture(
+    write_fixture(
         root / "src/modules/Quality.bas",
         """Attribute VB_Name = "Quality"
 Option Explicit
@@ -3100,7 +3100,7 @@ End Function
 """,
         crlf=True,
     )
-    _write_fixture(
+    write_fixture(
         root / "tests/modules/QualityTests.bas",
         """Attribute VB_Name = "QualityTests"
 Option Explicit
@@ -3110,21 +3110,21 @@ End Sub
 """,
         crlf=True,
     )
-    _write_fixture(
+    write_fixture(
         root / "tools/check_repo.py",
         "# Fixture command placeholder.\n",
     )
-    _run_git(root, "init", "-b", "main")
-    _run_git(root, "config", "user.name", "Repository Quality Self-Test")
-    _run_git(root, "config", "user.email", "quality-self-test@example.invalid")
-    _run_git(root, "add", "--all")
-    _run_git(root, "commit", "-m", "Create passing fixture")
+    run_git(root, "init", "-b", "main")
+    run_git(root, "config", "user.name", "Repository Quality Self-Test")
+    run_git(root, "config", "user.email", "quality-self-test@example.invalid")
+    run_git(root, "add", "--all")
+    run_git(root, "commit", "-m", "Create passing fixture")
 
 
 def _update_fixture_json(root: Path, path: str, mutate: Callable[[dict[str, Any]], None]) -> None:
     document = json.loads((root / path).read_text(encoding="utf-8"))
     mutate(document)
-    _write_fixture(
+    write_fixture(
         root / path,
         json.dumps(document, indent=2, ensure_ascii=False) + "\n",
     )
@@ -3144,26 +3144,26 @@ def _degrade_required_paths(root: Path) -> None:
 
 def _degrade_placeholders(root: Path) -> None:
     token = "{{" + "UNKNOWN_TOKEN}}"
-    _write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
+    write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
 
 
 def _degrade_identity(root: Path) -> None:
     token = "DONOR" + "-PROJECT"
-    _write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
+    write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
 
 
 def _degrade_dotfile_policy(root: Path) -> None:
     text = (root / ".editorconfig").read_text(encoding="utf-8")
-    _write_fixture(root / ".editorconfig", text.replace("root = true", "root = false"))
+    write_fixture(root / ".editorconfig", text.replace("root = true", "root = false"))
 
 
 def _degrade_structured_data(root: Path) -> None:
-    _write_fixture(root / LABEL_MANIFEST_PATH, "{\n")
+    write_fixture(root / LABEL_MANIFEST_PATH, "{\n")
 
 
 def _degrade_structured_yaml(root: Path) -> None:
     path = root / ".github/workflows/invalid-yaml.yml"
-    _write_fixture(
+    write_fixture(
         path,
         """name: Invalid YAML
 on: [push
@@ -3172,53 +3172,53 @@ jobs:
     runs-on: ubuntu-latest
 """,
     )
-    _run_git(root, "add", path.relative_to(root).as_posix())
+    run_git(root, "add", path.relative_to(root).as_posix())
 
 
 def _degrade_structured_xml(root: Path) -> None:
     path = root / "docs/invalid.xml"
-    _write_fixture(path, "<repository><unclosed></repository>\n")
-    _run_git(root, "add", path.relative_to(root).as_posix())
+    write_fixture(path, "<repository><unclosed></repository>\n")
+    run_git(root, "add", path.relative_to(root).as_posix())
 
 
 def _degrade_structured_xml_encoding(root: Path) -> None:
     path = root / "docs/invalid-encoding.xml"
-    _write_fixture(path, b"<repository>\xff</repository>\n")
-    _run_git(root, "add", path.relative_to(root).as_posix())
+    write_fixture(path, b"<repository>\xff</repository>\n")
+    run_git(root, "add", path.relative_to(root).as_posix())
 
 
 def _degrade_structured_xml_doctype(root: Path) -> None:
     path = root / "docs/doctype.xml"
-    _write_fixture(
+    write_fixture(
         path,
         '<!DOCTYPE repository [<!ENTITY sample "value">]><repository>&sample;</repository>\n',
     )
-    _run_git(root, "add", path.relative_to(root).as_posix())
+    run_git(root, "add", path.relative_to(root).as_posix())
 
 
 def _degrade_structured_xml_oversize(root: Path) -> None:
     path = root / "docs/oversize.xml"
     padding = "x" * MAX_XML_BYTES
-    _write_fixture(path, f"<repository>{padding}</repository>\n")
-    _run_git(root, "add", path.relative_to(root).as_posix())
+    write_fixture(path, f"<repository>{padding}</repository>\n")
+    run_git(root, "add", path.relative_to(root).as_posix())
 
 
 def _degrade_markdown_links(root: Path) -> None:
-    _write_fixture(root / "README.md", "# Fixture\n\n[Missing](docs/MISSING.md)\n")
+    write_fixture(root / "README.md", "# Fixture\n\n[Missing](docs/MISSING.md)\n")
 
 
 def _degrade_text_integrity(root: Path) -> None:
     marker = "<" * 7
-    _write_fixture(root / "README.md", f"# Fixture\n\n{marker} HEAD\n")
+    write_fixture(root / "README.md", f"# Fixture\n\n{marker} HEAD\n")
 
 
 def _degrade_forbidden_artifacts(root: Path) -> None:
-    _write_fixture(root / "secret.pem", b"fixture")
-    _run_git(root, "add", "-f", "secret.pem")
+    write_fixture(root / "secret.pem", b"fixture")
+    run_git(root, "add", "-f", "secret.pem")
 
 
 def _degrade_line_endings(root: Path) -> None:
-    _write_fixture(root / "README.md", "# Fixture\r\n\r\nWrong endings.\r\n", crlf=True)
+    write_fixture(root / "README.md", "# Fixture\r\n\r\nWrong endings.\r\n", crlf=True)
 
 
 def _degrade_label_manifest(root: Path) -> None:
@@ -3231,26 +3231,26 @@ def _degrade_label_manifest(root: Path) -> None:
 def _degrade_issue_forms(root: Path) -> None:
     path = root / ISSUE_TEMPLATE_DIRECTORY / "bug.yml"
     text = path.read_text(encoding="utf-8")
-    _write_fixture(path, text.replace("assignees: []", 'assignees: ["owner"]'))
+    write_fixture(path, text.replace("assignees: []", 'assignees: ["owner"]'))
 
 
 def _degrade_workflow_actions(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
     text = re.sub(r"actions/checkout@[0-9a-f]{40}", "actions/checkout@v4", text)
-    _write_fixture(path, text)
+    write_fixture(path, text)
 
 
 def _degrade_workflow_pull_request_target(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
-    _write_fixture(path, text.replace("on:\n", "on:\n  pull_request_target:\n", 1))
+    write_fixture(path, text.replace("on:\n", "on:\n  pull_request_target:\n", 1))
 
 
 def _degrade_workflow_pull_request_target_scalar(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
-    _write_fixture(
+    write_fixture(
         path,
         text.replace("on:\n  pull_request:\n", "on: pull_request_target\n", 1),
     )
@@ -3259,7 +3259,7 @@ def _degrade_workflow_pull_request_target_scalar(root: Path) -> None:
 def _degrade_workflow_pull_request_target_flow_map(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
-    _write_fixture(
+    write_fixture(
         path,
         text.replace(
             "on:\n  pull_request:\n", "on: {pull_request_target: null}\n", 1
@@ -3270,7 +3270,7 @@ def _degrade_workflow_pull_request_target_flow_map(root: Path) -> None:
 def _degrade_workflow_pr_write(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
-    _write_fixture(
+    write_fixture(
         path,
         text.replace("permissions:\n  contents: read", "permissions:\n  contents: write", 1),
     )
@@ -3280,7 +3280,7 @@ def _degrade_workflow_pr_scalar_flow_write(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
     text = text.replace("on:\n  pull_request:\n", "on: pull_request\n", 1)
-    _write_fixture(
+    write_fixture(
         path,
         text.replace(
             "permissions:\n  contents: read", "permissions: {contents: write}", 1
@@ -3294,7 +3294,7 @@ def _degrade_workflow_pr_flow_map_job_write(root: Path) -> None:
     text = text.replace(
         "on:\n  pull_request:\n", "on: {pull_request: null}\n", 1
     )
-    _write_fixture(
+    write_fixture(
         path,
         text.replace(
             "  quality:\n    runs-on: ubuntu-latest",
@@ -3305,17 +3305,17 @@ def _degrade_workflow_pr_flow_map_job_write(root: Path) -> None:
 
 
 def _degrade_version_changelog(root: Path) -> None:
-    _write_fixture(root / "VERSION", "version-one\n")
+    write_fixture(root / "VERSION", "version-one\n")
 
 
 def _degrade_git_diff(root: Path) -> None:
-    _write_fixture(root / "README.md", "# Fixture  \n")
+    write_fixture(root / "README.md", "# Fixture  \n")
 
 
 def _rewrite_vba(root: Path, relative: str, transform: Callable[[str], str]) -> None:
     path = root / relative
     text = path.read_bytes().decode("cp1252").replace("\r\n", "\n")
-    _write_fixture(path, transform(text), crlf=True)
+    write_fixture(path, transform(text), crlf=True)
 
 
 def _degrade_vba_option_explicit(root: Path) -> None:
@@ -3359,7 +3359,7 @@ def _degrade_generated_vba_contract(root: Path) -> None:
 
 
 def _degrade_vba_public_api(root: Path) -> None:
-    _write_fixture(root / "docs/PUBLIC_API.txt", "Quality\tFunction\tMissing\n")
+    write_fixture(root / "docs/PUBLIC_API.txt", "Quality\tFunction\tMissing\n")
 
 
 SELF_TEST_CASES: tuple[tuple[str, Callable[[Path], None]], ...] = (
@@ -3444,7 +3444,7 @@ def _positive_fixture_failures() -> list[str]:
     failures: list[str] = []
     with tempfile.TemporaryDirectory(prefix="repository-quality-") as temporary:
         root = Path(temporary)
-        _initialize_fixture(root)
+        initialize_fixture(root)
         before = _tree_digest(root)
         first = build_report(root)
         middle = _tree_digest(root)
@@ -3475,7 +3475,7 @@ def _degraded_fixture_failures(
     failures: list[str] = []
     with tempfile.TemporaryDirectory(prefix=f"repository-quality-{label}-") as temporary:
         root = Path(temporary)
-        _initialize_fixture(root)
+        initialize_fixture(root)
         degrade(root)
         before = _tree_digest(root)
         report = build_report(root)

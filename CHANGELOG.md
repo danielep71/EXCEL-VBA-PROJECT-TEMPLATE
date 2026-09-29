@@ -138,6 +138,23 @@ Use only the categories needed by a release.
   mypy step now proves strictness on every run (an unannotated probe must be
   rejected), and the checker-development contract rejects any configuration
   that weakens it (#93).
+- Module boundaries in the maintained Python tooling are now enforced rather
+  than advisory. Intentional cross-module sharing uses public names owned by
+  the provider:
+  - `check_repo.markdown_destinations` and its fixture interface
+    `write_fixture` / `initialize_fixture` / `run_git`;
+  - the initializer's `copy_fixture` / `fixture_arguments` / `build_changes` /
+    `apply_changes`.
+
+  Production uses of another module's `_private` members fell from 68 (21
+  members) to 4 reviewed parser unit tests. The checker-development contract
+  rejects any new private coupling outside test modules unless it has a
+  reviewed allow-list entry. It also rejects import cycles and any sibling
+  import in `check_repo.py`. Every maintained CLI now has exactly one
+  architectural class (`run-gate`, `specialized-gate`, `utility`,
+  `test-runner` or `canonical`). `_release_closeout.py` moved onto the shared
+  `run_gate` runner; its console, JSON, summary and exit codes are unchanged
+  (#91).
 
 ### Fixed
 

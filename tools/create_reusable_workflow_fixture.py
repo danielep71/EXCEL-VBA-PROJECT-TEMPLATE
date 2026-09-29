@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 import initialize_repository as initializer
+from _gatelib import git_text
 
 
 def create_fixture(source: Path, destination: Path, profile: str, workflow_sha: str) -> None:
@@ -18,10 +19,10 @@ def create_fixture(source: Path, destination: Path, profile: str, workflow_sha: 
         raise ValueError("workflow-sha must be a full lowercase commit SHA")
     if destination.exists():
         raise ValueError("destination must not exist")
-    initializer._copy_fixture(source, destination)
-    scalars, repeatable = initializer._fixture_arguments(profile)
-    changes, _ = initializer._build_changes(destination, profile, scalars, repeatable)
-    initializer._apply_changes(destination, changes)
+    initializer.copy_fixture(source, destination)
+    scalars, repeatable = initializer.fixture_arguments(profile)
+    changes, _ = initializer.build_changes(destination, profile, scalars, repeatable)
+    initializer.apply_changes(destination, changes)
     caller = f"""name: Reusable workflow consumer fixture
 on:
   push:
@@ -50,8 +51,8 @@ jobs:
           test -f tests/modules/ProjectTests.bas
 """
     (destination / ".github/workflows/static-checks.yml").write_text(caller, encoding="utf-8")
-    initializer._git(destination, "add", "--all")
-    initializer._git(destination, "commit", "-m", f"Create {profile} reusable workflow consumer")
+    git_text(destination, "add", "--all", check=True)
+    git_text(destination, "commit", "-m", f"Create {profile} reusable workflow consumer", check=True)
 
 
 def main() -> int:

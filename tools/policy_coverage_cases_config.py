@@ -33,7 +33,7 @@ def _root_and_profile_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
 
     def invalid_json(root: Path) -> None:
-        module._write_fixture(root / module.CONFIG_PATH, "{\n")
+        module.write_fixture(root / module.CONFIG_PATH, "{\n")
 
     cases.append(
         (

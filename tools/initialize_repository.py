@@ -582,7 +582,7 @@ def _add_generated_configuration(
             changes[readme] = _directory_readme(scalars["PROJECT_NAME"], profile, directory)
 
 
-def _build_changes(
+def build_changes(
     root: Path,
     profile: str,
     scalar_entries: Iterable[str],
@@ -678,7 +678,7 @@ def _written_file_mode(original_mode: int | None) -> int:
     return base & ~UNSAFE_MODE_BITS
 
 
-def _apply_changes(root: Path, changes: dict[str, bytes | None]) -> None:
+def apply_changes(root: Path, changes: dict[str, bytes | None]) -> None:
     originals: dict[str, tuple[bytes, int] | None] = {}
     staged: dict[str, Path] = {}
     try:
@@ -733,7 +733,7 @@ def _tree_digest(root: Path) -> str:
     return digest.hexdigest()
 
 
-def _fixture_arguments(profile: str) -> tuple[list[str], list[str]]:
+def fixture_arguments(profile: str) -> tuple[list[str], list[str]]:
     label = profile.replace("-", " ").title()
     scalars = [
         "COPYRIGHT_YEAR=2026",
@@ -751,7 +751,7 @@ def _fixture_arguments(profile: str) -> tuple[list[str], list[str]]:
     return scalars, repeatable
 
 
-def _copy_fixture(source: Path, destination: Path) -> None:
+def copy_fixture(source: Path, destination: Path) -> None:
     shutil.copytree(
         source,
         destination,
@@ -794,7 +794,7 @@ def _make_component_variant(
     destination: Path,
     remove_paths: tuple[str, ...],
 ) -> None:
-    _copy_fixture(source, destination)
+    copy_fixture(source, destination)
     config = json.loads((destination / CONFIG_PATH).read_text(encoding="utf-8"))
     components = config["vba"]["components"]
     removed_roles: set[str] = set()
@@ -864,7 +864,7 @@ def _assert_failure_without_change(
 ) -> None:
     before = _tree_digest(root)
     try:
-        _build_changes(root, profile, scalars, repeatable)
+        build_changes(root, profile, scalars, repeatable)
     except InitializationError as error:
         if expected not in str(error):
             raise AssertionError(f"Expected {expected!r}, observed {error!r}") from error
@@ -875,7 +875,7 @@ def _assert_failure_without_change(
 
 
 def _make_unused_fixture(source: Path, destination: Path) -> None:
-    _copy_fixture(source, destination)
+    copy_fixture(source, destination)
     readme = destination / "README.md"
     text = readme.read_text(encoding="utf-8")
     start = "<!-- template:optional:SOCIAL_PREVIEW_PATH:start -->"
@@ -984,7 +984,7 @@ def _assert_fresh_generated_content(root: Path, profile: str) -> None:
 
 
 def _make_evolved_generated_fixture(source: Path, destination: Path) -> None:
-    _copy_fixture(source, destination)
+    copy_fixture(source, destination)
 
     changelog = destination / "CHANGELOG.md"
     changelog_text = changelog.read_text(encoding="utf-8")
@@ -1191,8 +1191,8 @@ def self_test(source: Path) -> None:
         base = Path(temporary)
         for profile in SUPPORTED_PROFILES:
             fixture = base / profile
-            _copy_fixture(source, fixture)
-            scalars, repeatable = _fixture_arguments(profile)
+            copy_fixture(source, fixture)
+            scalars, repeatable = fixture_arguments(profile)
             preview = fixture / "assets/social-preview.png"
             preview.write_bytes(b"fixture-preview\n")
             _git(fixture, "add", "--all")
@@ -1241,22 +1241,22 @@ def self_test(source: Path) -> None:
             )
 
             before = _tree_digest(fixture)
-            changes, _ = _build_changes(fixture, profile, scalars, repeatable)
+            changes, _ = build_changes(fixture, profile, scalars, repeatable)
             if not changes or _tree_digest(fixture) != before:
                 raise AssertionError(f"{profile} dry-run was empty or changed the tree.")
-            repeated_changes, _ = _build_changes(fixture, profile, scalars, repeatable)
+            repeated_changes, _ = build_changes(fixture, profile, scalars, repeatable)
             if changes != repeated_changes or _plan(fixture, profile, changes) != _plan(
                 fixture, profile, repeated_changes
             ):
                 raise AssertionError(f"{profile} dry-run plan was not deterministic.")
-            _apply_changes(fixture, changes)
-            immediate_rerun, _ = _build_changes(fixture, profile, scalars, repeatable)
+            apply_changes(fixture, changes)
+            immediate_rerun, _ = build_changes(fixture, profile, scalars, repeatable)
             if immediate_rerun:
                 raise AssertionError(f"{profile} immediate second initialization was not idempotent.")
             _git(fixture, "add", "--all")
             _git(fixture, "commit", "-m", f"Initialize {profile} fixture")
 
-            rerun, _ = _build_changes(fixture, profile, scalars, repeatable)
+            rerun, _ = build_changes(fixture, profile, scalars, repeatable)
             if rerun:
                 raise AssertionError(f"{profile} second initialization was not idempotent.")
             generated_config = json.loads(
@@ -1285,7 +1285,7 @@ def self_test(source: Path) -> None:
             evolved_profile, evolved_scalars, evolved_repeatable = _record_arguments(
                 evolved
             )
-            evolved_rerun, _ = _build_changes(
+            evolved_rerun, _ = build_changes(
                 evolved,
                 evolved_profile,
                 evolved_scalars,
@@ -1390,7 +1390,7 @@ def main(argv: list[str] | None = None) -> int:
         config = _load_config(root)
         if status.stdout and config.get("mode") == "template":
             raise InitializationError("Working tree must be clean before initialization.")
-        changes, _ = _build_changes(
+        changes, _ = build_changes(
             root,
             arguments.profile,
             arguments.scalar_entries,
@@ -1398,7 +1398,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         plan = _plan(root, arguments.profile, changes)
         if arguments.apply:
-            _apply_changes(root, changes)
+            apply_changes(root, changes)
             plan["mode"] = "apply"
             plan["status"] = "applied" if changes else "no-op"
         print(json.dumps(plan, indent=2, ensure_ascii=False))

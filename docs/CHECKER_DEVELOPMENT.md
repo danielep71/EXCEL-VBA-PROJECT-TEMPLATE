@@ -16,16 +16,52 @@
 
 Gates that historically evaluated `--self-test` outside their operational handler reported failures as `SELF-TEST ERROR`; gates that evaluated it inside reported `ERROR`. `run_gate` preserves both wordings through `self_test_error_prefix`.
 
-The complete registry is `GATE_RUNNER_CONSUMERS` and `GATE_RUNNER_EXCLUSIONS` in
-[`checker_development.py`](../tools/checker_development.py). Its report lists
-every consumer and each exclusion's reason. Keep that executable registry as
-the maintained list rather than duplicating a table that misses later gates.
+### CLI classification
+
+Every maintained CLI has exactly one architectural class in `CLI_CLASSIFICATION`
+in [`checker_development.py`](../tools/checker_development.py). The report
+publishes the full table. Keep that executable registry as the maintained list
+rather than duplicating a table here that later gates would outdate.
+
+| Class | Meaning | Rule |
+| --- | --- | --- |
+| `run-gate` | Focused report gate | Imports `_gatelib.run_gate`, or delegates `main` to a `run-gate` tool (the `check_policy_coverage.py` alias) |
+| `specialized-gate` | Gate whose parser, report, write or exit semantics differ | Must not use `run_gate`; the rationale names the difference (for example `check_release.py`'s atomic evidence writes) |
+| `utility` | Provisioning or evidence capture, not a report gate | Must not use `run_gate`; rationale required |
+| `test-runner` | Unittest suite | Must not use `run_gate`; rationale required |
+| `canonical` | `check_repo.py` only | Self-contained; imports no sibling |
+
+A CLI with no class, a class for a file that is no longer a CLI, an unknown
+class, a missing rationale, a `run-gate` tool that does not use the runner, or
+any other class that quietly adopts it fails the contract. `_release_closeout.py`
+moved onto `run_gate` in v1.3.0 because its orchestration was identical;
+`check_release.py` stays specialized because sharing would weaken its atomicity.
+
+### Module boundaries
+
+An underscore marks a private member, and the contract makes that boundary
+real. A module may not use another module's `_private` member, whether through
+`import x; x._y`, `from x import _y`, or a dynamically loaded `ModuleType`,
+unless one of two things holds. Either the consumer is a test module
+(`test_*.py`), which may exercise the private members of the modules it
+verifies, or the use has an entry with a rationale in
+`PRIVATE_ACCESS_ALLOWLIST`. Stale allow-list entries fail too.
+
+Intentional sharing uses public names owned by the provider:
+
+- `check_repo.markdown_destinations`, used by the external-link gate;
+- `check_repo`'s fixture interface (`write_fixture`, `initialize_fixture` and
+  `run_git`), used by the semantic policy-coverage harness;
+- `initialize_repository`'s in-process plan interface (`copy_fixture`,
+  `fixture_arguments`, `build_changes` and `apply_changes`), used by the wiki
+  gate and the reusable-workflow fixture builder.
+
+The only reviewed private uses are `checker_development.py`'s independent unit
+tests of four `check_repo` parsers. The contract also rejects any import cycle
+among `tools/` modules, and any sibling import in `check_repo.py`.
 
 `ownership_scan` checks focused tools other than `_gatelib.py` and the canonical
-checker. Every top-level `main` in that scope must be a declared consumer or
-exclusion; adding a gate without updating the declaration fails the contract,
-as does an excluded tool quietly adopting the runner. The canonical checker is
-excluded separately by its self-contained import contract. Sixteen independent
+checker for redefined shared helpers and the shared parser. Sixteen independent
 runner tests cover CLI flags, defaults/help, self-test dispatch, diagnostic
 prefixes, exit mapping, deterministic evidence, write failures and propagation
 of non-operational exceptions.
@@ -118,14 +154,8 @@ Ownership and exception policy:
 - Typing uses the standard library only; generated projects gain no runtime
   typing dependency and the minimum stays Python 3.10.
 
-Private-member debt is deliberately a separate architecture concern. The
-post-v1.2.0 inventory contains three recurring families: checker-development
-introspection of private `check_repo` parser/rule helpers, semantic policy-coverage
-harness access to canonical check internals, and focused-tool reuse of narrowly
-scoped private parsing helpers such as Markdown destination extraction. This
-patch does not enable Ruff `SLF` rules or redesign those boundaries. Only a
-private access that prevents strict typing from passing belongs
-here; broader ownership/API cleanup remains later architecture work.
+Cross-module private access is governed by the module-boundary contract above,
+not by typing.
 
 ### Python complexity ceiling
 
@@ -157,7 +187,7 @@ together.
 | Repository policy | `check_required_paths` | generic repository, document, workflow and metadata rules |
 | VBA policy | `_vba_paths` | VBE exports, VBA structure, roles, generated contracts and public surface |
 | Reporting | `build_report` | deterministic report model, Markdown and console serialization |
-| Fixtures | `_write_fixture` | positive/degraded synthetic repository fixtures and self-test |
+| Fixtures | `write_fixture` | positive/degraded synthetic repository fixtures and self-test |
 | CLI | `parse_arguments` | supported command-line surface and exit behavior |
 
 The development check fails if a boundary disappears, changes order, leaves a top-level definition outside the ordered sections, or changes the canonical policy-check sequence without an explicit update to the contract.
