@@ -87,28 +87,36 @@ C90 and S314 checks. This is an ordering rule, not formatter adoption: CI still
 does not run `ruff format`, and the 100-column target remains advisory because
 E501 is deliberately not selected.
 
-Mypy remains incremental. The global configuration continues to cover the whole
-`tools/` tree at the established baseline. `_gatelib` is the first promoted
-strict module because it is imported by the focused-gate stack. In
-`pyproject.toml`, its per-module override spells out the exact strictness flags
-enabled by pinned mypy 2.3.1 rather than using the `strict = true` meta-option;
-this keeps strictness scoped to `_gatelib` and prevents unrelated modules from
-being promoted accidentally.
+### Strict typing
 
-The reproducible strict check for the boundary is:
+Every maintained Python module under `tools/`, tests included, passes
+`mypy --strict`: `pyproject.toml` sets `strict = true` in `[tool.mypy]` with no
+per-module overrides, `ignore_errors`, disabled error codes or relaxed strict
+flags. The hosted *Enforce Python type baseline* step runs `mypy`, then proves
+the configuration is the strict one: an annotated probe function must pass and
+the same function unannotated must be rejected as `no-untyped-def`.
+`tools/dev_check.sh` runs the same probe. `checker_development.py` pins the
+contract statically (strict set, no weakening line in any mypy table, the step
+runs both probes, the terminal step enforces the mypy outcome), with a rejecting
+fixture for each weakening.
 
-```bash
-mypy --strict tools/_gatelib.py
-```
+Ownership and exception policy:
 
-The normal hosted `mypy` invocation enforces the same pinned strict bundle on
-`_gatelib` through that per-module override while retaining the established
-whole-tree baseline elsewhere. Before the v1.2.1 release candidate is frozen,
-the exact strict command is also exercised as hosted evidence. Once a module is
-promoted, do not weaken its strict settings merely to make a later change green.
-Migrate additional modules only after they pass the pinned strict contract;
-record any narrow temporary relaxation explicitly rather than adding blanket
-ignores.
+- Type interfaces where they are defined, once. Shared contracts live in the
+  module that owns them (for example the policy-case registry `Case` and
+  `case_registrar` in `policy_coverage_core.py`), and consumers import them.
+- Prefer validators that return the narrowed value (`object_keys`,
+  `require_str`) over a separate `require(...)` the checker cannot see through.
+- `Any` stays only where data is genuinely external or unstructured (decoded
+  JSON/YAML, GitHub API payloads) and at the dynamically loaded canonical
+  checker seam, which is typed `ModuleType`/`Any` explicitly.
+- Tests patch an imported module by dotted path (`patch("tool.os.replace")`)
+  or import the defining module; they do not reach through a tool's own imports,
+  which strict mode rejects as implicit re-export.
+- A targeted `# type: ignore[code]` is the last resort: it names the error code
+  and states its reason on that line. The tree currently has none.
+- Typing uses the standard library only; generated projects gain no runtime
+  typing dependency and the minimum stays Python 3.10.
 
 Private-member debt is deliberately a separate architecture concern. The
 post-v1.2.0 inventory contains three recurring families: checker-development
@@ -116,7 +124,7 @@ introspection of private `check_repo` parser/rule helpers, semantic policy-cover
 harness access to canonical check internals, and focused-tool reuse of narrowly
 scoped private parsing helpers such as Markdown destination extraction. This
 patch does not enable Ruff `SLF` rules or redesign those boundaries. Only a
-private access that prevents the strict `_gatelib` boundary from passing belongs
+private access that prevents strict typing from passing belongs
 here; broader ownership/API cleanup remains later architecture work.
 
 ### Python complexity ceiling

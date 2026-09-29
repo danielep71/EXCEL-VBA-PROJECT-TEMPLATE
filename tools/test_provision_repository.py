@@ -6,13 +6,16 @@ import contextlib
 import copy
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 from urllib.parse import unquote
 
 import provision_repository as provision
+from check_portfolio_drift import CONFIG, PROFILES
 
 SHA = "a" * 40
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,8 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class FakeGitHub:
     def __init__(self, profile: str = "library"):
         self.repository = "example/generated"
-        self.writes: list[dict] = []
-        self.calls: list[tuple] = []
+        self.writes: list[dict[str, Any]] = []
+        self.calls: list[tuple[Any, ...]] = []
         self.fail_at = 0
         self.ignore = False
         policy = json.loads((ROOT / provision.POLICY).read_text())
@@ -37,10 +40,10 @@ class FakeGitHub:
         self.metadata = {**policy["features"], "id": 1, "full_name": self.repository,
                          "default_branch": "main", "description": None}
         self.topics: list[str] = []
-        self.labels: list[dict] = []
-        self.rulesets: list[dict] = []
+        self.labels: list[dict[str, Any]] = []
+        self.rulesets: list[dict[str, Any]] = []
 
-    def request(self, method: str, path: str = "", body: dict | None = None) -> object:
+    def request(self, method: str, path: str = "", body: dict[str, Any] | None = None) -> object:
         self.calls.append((method, path))
         if method == "GET":
             return copy.deepcopy(self.read(path))
@@ -93,10 +96,11 @@ class ProvisionTests(unittest.TestCase):
     def setUp(self) -> None:
         self.api = FakeGitHub()
 
-    def plan(self) -> dict:
-        return provision.execute(self.api, SHA, "library", "1.2.0")["plan"]
+    def plan(self) -> dict[str, Any]:
+        plan: dict[str, Any] = provision.execute(self.api, SHA, "library", "1.2.0")["plan"]
+        return plan
 
-    def apply(self, path: Path, plan: dict | None = None) -> dict:
+    def apply(self, path: Path, plan: dict[str, Any] | None = None) -> dict[str, Any]:
         return provision.execute(self.api, SHA, "library", "1.2.0", (plan or self.plan())["plan_sha256"], path)
 
     def test_plan_get_only_deterministic_complete(self) -> None:
@@ -117,7 +121,7 @@ class ProvisionTests(unittest.TestCase):
         original = provision.capture
         calls = 0
 
-        def changing(api: object, sha: str) -> dict:
+        def changing(api: object, sha: str) -> dict[str, Any]:
             nonlocal calls
             calls += 1
             if calls == 4:
@@ -140,7 +144,7 @@ class ProvisionTests(unittest.TestCase):
         self.assertFalse(self.api.writes)
 
     def test_three_profiles_apply_and_second_apply_noop(self) -> None:
-        for profile in sorted(provision.PROFILES):
+        for profile in sorted(PROFILES):
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as directory:
                 api = FakeGitHub(profile)
                 first = provision.execute(api, SHA, profile, "1.2.0")["plan"]
@@ -178,7 +182,7 @@ class ProvisionTests(unittest.TestCase):
     def test_mismatched_profile_identity_contract_and_head(self) -> None:
         for key, value in (("repository", "other/repo"), ("profile", "application"), ("mode", "template")):
             self.api = FakeGitHub()
-            self.api.files[provision.CONFIG][key] = value
+            self.api.files[CONFIG][key] = value
             with self.assertRaises(ValueError):
                 self.plan()
         self.api = FakeGitHub()
@@ -273,7 +277,7 @@ class ProvisionTests(unittest.TestCase):
             self.assertEqual(json.loads(receipt.read_text())["attempts"][-1]["outcome"], "REQUEST_PENDING_OR_UNCERTAIN")
 
     def test_journal_retries_transient_permission_error(self) -> None:
-        original = provision.os.replace
+        original = os.replace
         calls = 0
 
         def transient(source: str, target: str) -> None:
@@ -284,8 +288,8 @@ class ProvisionTests(unittest.TestCase):
             original(source, target)
 
         with tempfile.TemporaryDirectory() as directory, \
-                patch.object(provision.os, "replace", side_effect=transient), \
-                patch.object(provision.time, "sleep") as sleep:
+                patch("provision_repository.os.replace", side_effect=transient), \
+                patch("provision_repository.time.sleep") as sleep:
             path = Path(directory) / "journal.json"
             provision.journal(path, {"status": "pass"})
             self.assertEqual(json.loads(path.read_text()), {"status": "pass"})
@@ -295,8 +299,8 @@ class ProvisionTests(unittest.TestCase):
     def test_persistent_journal_permission_error_prevents_first_write(self) -> None:
         plan = self.plan()
         with tempfile.TemporaryDirectory() as directory, \
-                patch.object(provision.os, "replace", side_effect=PermissionError(13, "Access is denied")), \
-                patch.object(provision.time, "sleep") as sleep:
+                patch("provision_repository.os.replace", side_effect=PermissionError(13, "Access is denied")), \
+                patch("provision_repository.time.sleep") as sleep:
             with self.assertRaises(PermissionError):
                 self.apply(Path(directory) / "journal.json", plan)
         self.assertFalse(self.api.writes)
@@ -304,8 +308,8 @@ class ProvisionTests(unittest.TestCase):
 
     def test_non_permission_journal_error_is_not_retried(self) -> None:
         with tempfile.TemporaryDirectory() as directory, \
-                patch.object(provision.os, "replace", side_effect=OSError("Disk full")), \
-                patch.object(provision.time, "sleep") as sleep:
+                patch("provision_repository.os.replace", side_effect=OSError("Disk full")), \
+                patch("provision_repository.time.sleep") as sleep:
             with self.assertRaises(OSError):
                 provision.journal(Path(directory) / "journal.json", {"status": "fail"})
         sleep.assert_not_called()

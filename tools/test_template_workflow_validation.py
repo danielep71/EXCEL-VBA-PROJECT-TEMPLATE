@@ -22,6 +22,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import create_reusable_workflow_fixture as reusable_fixture
+import initialize_repository as initializer
 import test_workflow_validation as retained_workflow
 
 EXPECTED_ACTIONLINT_VERSION = "1.7.12"
@@ -163,7 +164,7 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
     def test_invalid_sha_is_rejected_before_destination_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             destination = Path(temporary) / "consumer"
-            with patch.object(reusable_fixture.initializer, "_copy_fixture") as copy_fixture:
+            with patch.object(initializer, "_copy_fixture") as copy_fixture:
                 with self.assertRaisesRegex(
                     ValueError, "workflow-sha must be a full lowercase commit SHA"
                 ):
@@ -179,7 +180,7 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
             destination.mkdir()
             marker = destination / "marker.txt"
             marker.write_text("preserve\n", encoding="utf-8")
-            with patch.object(reusable_fixture.initializer, "_copy_fixture") as copy_fixture:
+            with patch.object(initializer, "_copy_fixture") as copy_fixture:
                 with self.assertRaisesRegex(ValueError, "destination must not exist"):
                     reusable_fixture.create_fixture(
                         Path("source"), destination, "library", WORKFLOW_SHA
@@ -188,7 +189,7 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
             self.assertEqual(marker.read_text(encoding="utf-8"), "preserve\n")
 
     def test_each_profile_writes_exact_sha_consumer_and_commits(self) -> None:
-        for profile in reusable_fixture.initializer.SUPPORTED_PROFILES:
+        for profile in initializer.SUPPORTED_PROFILES:
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as temporary:
                 source = Path(temporary) / "source"
                 destination = Path(temporary) / "consumer"
@@ -202,24 +203,24 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
 
                 with (
                     patch.object(
-                        reusable_fixture.initializer,
+                        initializer,
                         "_copy_fixture",
                         side_effect=copy_fixture,
                     ) as copy_mock,
                     patch.object(
-                        reusable_fixture.initializer,
+                        initializer,
                         "_fixture_arguments",
                         return_value=(scalars, repeatable),
                     ) as arguments_mock,
                     patch.object(
-                        reusable_fixture.initializer,
+                        initializer,
                         "_build_changes",
                         return_value=(changes, {"status": "ready"}),
                     ) as build_mock,
                     patch.object(
-                        reusable_fixture.initializer, "_apply_changes"
+                        initializer, "_apply_changes"
                     ) as apply_mock,
-                    patch.object(reusable_fixture.initializer, "_git") as git_mock,
+                    patch.object(initializer, "_git") as git_mock,
                 ):
                     reusable_fixture.create_fixture(
                         source, destination, profile, WORKFLOW_SHA

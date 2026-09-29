@@ -112,7 +112,8 @@ def yaml_document(text: str) -> dict[str, Any]:
         return result
 
     result = value(yaml.compose(text))
-    require(isinstance(result, dict), "Workflow is not an object")
+    if not isinstance(result, dict):
+        raise ValueError("Workflow is not an object")
     return result
 
 

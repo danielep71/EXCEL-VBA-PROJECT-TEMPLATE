@@ -3121,7 +3121,7 @@ End Sub
     _run_git(root, "commit", "-m", "Create passing fixture")
 
 
-def _update_fixture_json(root: Path, path: str, mutate: Callable[[dict], None]) -> None:
+def _update_fixture_json(root: Path, path: str, mutate: Callable[[dict[str, Any]], None]) -> None:
     document = json.loads((root / path).read_text(encoding="utf-8"))
     mutate(document)
     _write_fixture(
@@ -3222,7 +3222,7 @@ def _degrade_line_endings(root: Path) -> None:
 
 
 def _degrade_label_manifest(root: Path) -> None:
-    def mutate(document: dict) -> None:
+    def mutate(document: dict[str, Any]) -> None:
         document["core"][0]["color"] = "d73a4a"
 
     _update_fixture_json(root, LABEL_MANIFEST_PATH, mutate)
@@ -3343,14 +3343,14 @@ def _degrade_vba_structure(root: Path) -> None:
 
 
 def _degrade_vba_visibility(root: Path) -> None:
-    def mutate(document: dict) -> None:
+    def mutate(document: dict[str, Any]) -> None:
         document["vba"]["components"]["src/modules/Quality.bas"] = "internal"
 
     _update_fixture_json(root, CONFIG_PATH, mutate)
 
 
 def _degrade_generated_vba_contract(root: Path) -> None:
-    def mutate(document: dict) -> None:
+    def mutate(document: dict[str, Any]) -> None:
         document["profiles"]["library"]["vba_contract"]["minimum_roles"][
             "internal"
         ] = 2

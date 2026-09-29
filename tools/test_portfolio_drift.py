@@ -7,6 +7,7 @@ import io
 import json
 import unittest
 from email.message import Message
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 
@@ -14,7 +15,7 @@ import check_portfolio_drift as drift
 import collect_portfolio_snapshot as capture
 
 
-def fixture(profile: str = "library", version: str = "1.2.0") -> dict:
+def fixture(profile: str = "library", version: str = "1.2.0") -> dict[str, Any]:
     config = {"repository": "example/consumer", "profile": profile, "mode": "generated",
               "template_contract": {"version": version, "source": "example/template"},
               "placeholders": {"catalogue": {"NAME": {}}}}
@@ -54,7 +55,7 @@ class DriftTests(unittest.TestCase):
         self.snapshot = fixture()
         self.repo = self.snapshot["repositories"][0]
 
-    def row(self, rule: str) -> dict:
+    def row(self, rule: str) -> dict[str, Any]:
         return next(row for row in drift.build_report(self.snapshot)["findings"] if row["rule"] == rule)
 
     def decide(self, rule: str, decision: str) -> None:
@@ -169,6 +170,11 @@ class DriftTests(unittest.TestCase):
             with self.subTest(text=text), self.assertRaises(ValueError):
                 drift.yaml_document(text)
 
+    def test_yaml_root_must_be_a_mapping(self) -> None:
+        for text in ("- on\n- jobs\n", "just a scalar"):
+            with self.subTest(text=text), self.assertRaisesRegex(ValueError, "Workflow is not an object"):
+                drift.yaml_document(text)
+
     def test_invalid_workflow_is_unverified(self) -> None:
         for source in ('jobs: [', 'permissions: {contents: read}\njobs: {x: {}}'):
             self.repo["files"][".github/workflows/static-checks.yml"] = source
@@ -191,7 +197,7 @@ class CaptureTests(unittest.TestCase):
     def test_get_only_and_no_redirect(self) -> None:
         opener = MagicMock()
         opener.open.return_value.__enter__.return_value.read.return_value = b'{}'
-        with patch.object(capture.urllib.request, "build_opener", return_value=opener) as build:
+        with patch("collect_portfolio_snapshot.urllib.request.build_opener", return_value=opener) as build:
             self.assertEqual(capture.get("example/consumer"), {})
         build.assert_called_once_with(capture.NoRedirect)
         request = opener.open.call_args.args[0]

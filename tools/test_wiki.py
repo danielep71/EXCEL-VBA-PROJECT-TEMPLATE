@@ -6,6 +6,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
 from check_wiki import (
     compare_bundle,
@@ -18,7 +19,7 @@ from check_wiki import (
 )
 
 
-def catalogue_fixture(root: Path) -> tuple[dict, set[str]]:
+def catalogue_fixture(root: Path) -> tuple[dict[str, Any], set[str]]:
     (root / 'docs/wiki').mkdir(parents=True)
     (root / 'docs/Authority.md').write_text('Authority')
     (root / 'docs/wiki/Home.md').write_text('> **Guide, not policy:** [Authority](../Authority.md) governs.\n')

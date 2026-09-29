@@ -157,6 +157,25 @@ ceiling_probe() {
 }
 run "Ruff complexity-ceiling probe" ceiling_probe
 run "mypy type check" python3 -m mypy
+# Same strictness probe as the hosted mypy step: the configured mypy must accept
+# an annotated function and reject the same function unannotated.
+strict_probe() {
+  local directory probe rejected
+  directory=$(mktemp -d) || return 1
+  probe="$directory/strict_probe.py"
+  printf 'def probe(value: int) -> int:\n    return value\n' > "$probe"
+  if ! python3 -m mypy --no-pretty "$probe" >/dev/null 2>&1; then
+    echo "an annotated function was rejected"; rm -rf "$directory"; return 1
+  fi
+  printf 'def probe(value):\n    return value\n' > "$probe"
+  if rejected=$(python3 -m mypy --no-pretty "$probe" 2>&1); then
+    echo "an unannotated function was accepted"; rm -rf "$directory"; return 1
+  fi
+  rm -rf "$directory"
+  grep -qF "[no-untyped-def]" <<<"$rejected" ||
+    { echo "the unannotated function was not rejected as no-untyped-def"; return 1; }
+}
+run "mypy strictness probe" strict_probe
 
 # --- Authoritative workflow validation ---------------------------------------
 bold "Workflow validation"

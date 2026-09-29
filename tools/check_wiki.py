@@ -35,7 +35,8 @@ def read_json(path: Path) -> dict[str, Any]:
             result[key] = value
         return result
     value = json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique)
-    require(isinstance(value, dict), 'JSON root must be an object')
+    if not isinstance(value, dict):
+        raise ValueError('JSON root must be an object')
     return value
 
 
@@ -227,8 +228,10 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def markdown(report: dict[str, Any]) -> str:
-    return '# Wiki contract\n\nResult: ' + report['status'].upper() + '\n\n' + '\n'.join(
-        '- ' + f for f in report['findings']) + '\n\n' + report['scope_note'] + '\n'
+    status: str = report['status']
+    scope_note: str = report['scope_note']
+    return '# Wiki contract\n\nResult: ' + status.upper() + '\n\n' + '\n'.join(
+        '- ' + f for f in report['findings']) + '\n\n' + scope_note + '\n'
 
 
 def main() -> int:

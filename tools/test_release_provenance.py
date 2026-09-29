@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import check_release as gate
@@ -19,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ProvenanceTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.area = Path(self.temporary.name)
@@ -28,8 +29,8 @@ class ProvenanceTests(unittest.TestCase):
         self.trust = json.loads((ROOT / provenance.POLICY).read_text())
         self.evidence_path = self.area / "evidence.json"
         self.record_path = self.area / "provenance.json"
-        self.manifest = self.area / "assets.sha256"
-        self.signature = None
+        self.manifest: Path | None = self.area / "assets.sha256"
+        self.signature: Path | None = None
         self.tag_registry_keys: list[str] = []
 
     def new_key(self, name: str) -> Path:
@@ -41,7 +42,15 @@ class ProvenanceTests(unittest.TestCase):
         )
         return key
 
-    def fixture(self, profile="application", binary=True, signed=False, tag_mode="none"):
+    def head(self) -> str:
+        sha = gate._git_output(self.root, "rev-parse", "HEAD")
+        if sha is None:
+            self.fail("fixture repository has no HEAD commit")
+        return sha
+
+    def fixture(
+        self, profile: str = "application", binary: bool = True, signed: bool = False, tag_mode: str = "none"
+    ) -> None:
         if signed:
             self.policy["provenance_signature_mode"] = "ssh"
         self.trust["tag_signature"] = {
@@ -74,8 +83,7 @@ class ProvenanceTests(unittest.TestCase):
         (self.root / provenance.POLICY).write_text(json.dumps(self.trust))
         gate._git(self.root, "add", "--all")
         self.assertEqual(gate._git(self.root, "commit", "-m", "Adopt provenance").returncode, 0)
-        self.sha = gate._git_output(self.root, "rev-parse", "HEAD")
-        self.assertIsNotNone(self.sha)
+        self.sha = self.head()
         if tag_mode == "signed":
             self.tag_key = self.new_key("tag-key")
             self.tag_registry_keys = [self.tag_key.with_suffix(".pub").read_text().strip()]
@@ -101,7 +109,9 @@ class ProvenanceTests(unittest.TestCase):
                 "candidate_sha": self.sha,
                 "package_test": "PASS",
             }]
-            self.manifest.write_text(f"{digest}  dist/fixture.xlsm\n")
+            manifest = self.area / "assets.sha256"
+            manifest.write_text(f"{digest}  dist/fixture.xlsm\n")
+            self.manifest = manifest
         else:
             self.manifest = None
         self.evidence = gate._fixture_evidence(
@@ -122,7 +132,7 @@ class ProvenanceTests(unittest.TestCase):
             "distribution": self.evidence["distribution"],
             "digest_algorithm": "sha256",
             "evidence_sha256": hashlib.sha256(self.evidence_path.read_bytes()).hexdigest(),
-            "manifest_sha256": hashlib.sha256(self.manifest.read_bytes()).hexdigest() if binary else None,
+            "manifest_sha256": hashlib.sha256(self.manifest.read_bytes()).hexdigest() if self.manifest else None,
             "assets": [{"path": asset["path"], "sha256": asset["sha256"]} for asset in assets],
             "workflow": {
                 "repository": self.configuration["repository"],
@@ -146,19 +156,20 @@ class ProvenanceTests(unittest.TestCase):
         if signed:
             self.sign()
 
-    def save(self):
+    def save(self) -> None:
         self.record_path.write_text(json.dumps(self.record))
 
-    def sign(self, namespace=provenance.NAMESPACE):
-        self.signature = self.record_path.with_suffix(".json.sig")
-        self.signature.unlink(missing_ok=True)
+    def sign(self, namespace: str = provenance.NAMESPACE) -> None:
+        signature = self.record_path.with_suffix(".json.sig")
+        signature.unlink(missing_ok=True)
+        self.signature = signature
         subprocess.run(
             ["ssh-keygen", "-Y", "sign", "-f", str(self.key), "-n", namespace, str(self.record_path)],
             check=True,
             capture_output=True,
         )
 
-    def report(self, include=True):
+    def report(self, include: bool = True) -> dict[str, Any]:
         with patch.object(provenance, "github_signing_keys", return_value=self.tag_registry_keys):
             return gate.build_report(
                 self.root,
@@ -171,24 +182,24 @@ class ProvenanceTests(unittest.TestCase):
                 self.signature,
             )
 
-    def passes(self, include=True):
+    def passes(self, include: bool = True) -> None:
         report = self.report(include)
         self.assertEqual(report["status"], "pass", report["findings"])
 
-    def fails(self, include=True):
+    def fails(self, include: bool = True) -> None:
         report = self.report(include)
         self.assertIn("release-provenance", [item["code"] for item in report["findings"]], report)
 
-    def test_application_binary_repeatability(self):
+    def test_application_binary_repeatability(self) -> None:
         self.fixture()
         self.passes()
         self.assertEqual(self.report(), self.report())
 
-    def test_ui_binary(self):
+    def test_ui_binary(self) -> None:
         self.fixture("ui-component")
         self.passes()
 
-    def test_generated_source_scan_allows_retained_initializer_grammar(self):
+    def test_generated_source_scan_allows_retained_initializer_grammar(self) -> None:
         gate._fixture_repository(self.root, "library", self.policy)
         tools = self.root / "tools"
         tools.mkdir()
@@ -222,18 +233,18 @@ class ProvenanceTests(unittest.TestCase):
             findings,
         )
 
-    def test_source_only_profiles_without_provenance(self):
+    def test_source_only_profiles_without_provenance(self) -> None:
         for profile in gate.SUPPORTED_PROFILES:
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as directory:
                 self.root = Path(directory) / "candidate"
                 self.fixture(profile, binary=False)
                 self.passes(False)
 
-    def test_binary_requires_provenance(self):
+    def test_binary_requires_provenance(self) -> None:
         self.fixture()
         self.fails(False)
 
-    def test_missing_extra_modified_payloads(self):
+    def test_missing_extra_modified_payloads(self) -> None:
         self.fixture()
         asset = self.root / "dist/fixture.xlsm"
         original = asset.read_bytes()
@@ -245,13 +256,13 @@ class ProvenanceTests(unittest.TestCase):
         (self.root / "dist/undeclared.txt").write_text("extra")
         self.fails()
 
-    def test_source_only_rejects_hidden_payload(self):
+    def test_source_only_rejects_hidden_payload(self) -> None:
         self.fixture("library", binary=False)
         (self.root / "dist").mkdir()
         (self.root / "dist/hidden.zip").write_bytes(b"extra")
         self.fails(False)
 
-    def test_symlinks_rejected(self):
+    def test_symlinks_rejected(self) -> None:
         self.fixture()
         asset = self.root / "dist/fixture.xlsm"
         target = self.area / "payload"
@@ -265,7 +276,7 @@ class ProvenanceTests(unittest.TestCase):
             raise
         self.fails()
 
-    def test_record_bindings_and_environment(self):
+    def test_record_bindings_and_environment(self) -> None:
         self.fixture()
         original = copy.deepcopy(self.record)
         for field, value in [
@@ -289,7 +300,7 @@ class ProvenanceTests(unittest.TestCase):
                 self.save()
                 self.fails()
 
-    def test_workflow_policy_binding(self):
+    def test_workflow_policy_binding(self) -> None:
         self.fixture()
         original = copy.deepcopy(self.record)
         for field, value in [
@@ -305,15 +316,18 @@ class ProvenanceTests(unittest.TestCase):
                 self.save()
                 self.fails()
 
-    def test_exact_evidence_and_manifest_bytes(self):
+    def test_exact_evidence_and_manifest_bytes(self) -> None:
         self.fixture()
         self.evidence_path.write_bytes(self.evidence_path.read_bytes() + b"\n")
         self.fails()
         self.evidence_path.write_text(json.dumps(self.evidence))
-        self.manifest.write_bytes(self.manifest.read_bytes() + b"\n")
+        manifest = self.manifest
+        if manifest is None:
+            self.fail("binary fixture has no asset manifest")
+        manifest.write_bytes(manifest.read_bytes() + b"\n")
         self.fails()
 
-    def test_duplicate_json_key(self):
+    def test_duplicate_json_key(self) -> None:
         self.fixture()
         self.record_path.write_text(
             self.record_path.read_text().replace(
@@ -323,7 +337,7 @@ class ProvenanceTests(unittest.TestCase):
         )
         self.fails()
 
-    def test_release_policy_requires_signature_mode(self):
+    def test_release_policy_requires_signature_mode(self) -> None:
         policy_root = self.area / "policy"
         (policy_root / ".github").mkdir(parents=True)
         missing = copy.deepcopy(self.policy)
@@ -333,7 +347,7 @@ class ProvenanceTests(unittest.TestCase):
         self.assertIsNone(loaded)
         self.assertIn("invalid-release-policy", [item["code"] for item in findings])
 
-    def test_release_policy_rejects_unsupported_signature_mode(self):
+    def test_release_policy_rejects_unsupported_signature_mode(self) -> None:
         policy_root = self.area / "policy"
         (policy_root / ".github").mkdir(parents=True)
         invalid = copy.deepcopy(self.policy)
@@ -343,14 +357,14 @@ class ProvenanceTests(unittest.TestCase):
         self.assertIsNone(loaded)
         self.assertIn("invalid-release-policy", [item["code"] for item in findings])
 
-    def test_committed_release_policy_selector_is_required_by_provenance(self):
+    def test_committed_release_policy_selector_is_required_by_provenance(self) -> None:
         self.fixture("library", binary=False)
         release_policy = json.loads((self.root / gate.POLICY_PATH).read_text())
         release_policy.pop("provenance_signature_mode")
         (self.root / gate.POLICY_PATH).write_text(json.dumps(release_policy))
         gate._git(self.root, "add", gate.POLICY_PATH)
         gate._git(self.root, "commit", "-m", "Remove provenance selector")
-        sha = gate._git_output(self.root, "rev-parse", "HEAD")
+        sha = self.head()
         findings = provenance.validate(
             self.root,
             self.configuration,
@@ -363,7 +377,7 @@ class ProvenanceTests(unittest.TestCase):
         self.assertTrue(findings)
         self.assertIn("requires provenance_signature_mode", findings[0]["message"])
 
-    def test_provenance_mode_must_match_unsigned_release_policy(self):
+    def test_provenance_mode_must_match_unsigned_release_policy(self) -> None:
         self.fixture("library", binary=False)
         trust = copy.deepcopy(self.trust)
         trust["signature"] = {
@@ -374,7 +388,7 @@ class ProvenanceTests(unittest.TestCase):
         (self.root / provenance.POLICY).write_text(json.dumps(trust))
         gate._git(self.root, "add", provenance.POLICY)
         gate._git(self.root, "commit", "-m", "Mismatch provenance mode")
-        sha = gate._git_output(self.root, "rev-parse", "HEAD")
+        sha = self.head()
         findings = provenance.validate(
             self.root,
             self.configuration,
@@ -387,14 +401,14 @@ class ProvenanceTests(unittest.TestCase):
         self.assertTrue(findings)
         self.assertIn("differs from release policy", findings[0]["message"])
 
-    def test_provenance_mode_must_match_signed_release_policy(self):
+    def test_provenance_mode_must_match_signed_release_policy(self) -> None:
         self.fixture("library", binary=False)
         release_policy = json.loads((self.root / gate.POLICY_PATH).read_text())
         release_policy["provenance_signature_mode"] = "ssh"
         (self.root / gate.POLICY_PATH).write_text(json.dumps(release_policy))
         gate._git(self.root, "add", gate.POLICY_PATH)
         gate._git(self.root, "commit", "-m", "Require signed provenance")
-        sha = gate._git_output(self.root, "rev-parse", "HEAD")
+        sha = self.head()
         findings = provenance.validate(
             self.root,
             self.configuration,
@@ -408,7 +422,7 @@ class ProvenanceTests(unittest.TestCase):
         self.assertIn("differs from release policy", findings[0]["message"])
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_real_ssh_signature_and_tamper(self):
+    def test_real_ssh_signature_and_tamper(self) -> None:
         self.fixture(signed=True)
         self.passes()
         self.record["environment"]["builder"] = "changed assertion"
@@ -416,20 +430,20 @@ class ProvenanceTests(unittest.TestCase):
         self.fails()
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_wrong_namespace(self):
+    def test_wrong_namespace(self) -> None:
         self.fixture(signed=True)
         self.sign("wrong-namespace")
         self.fails()
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_untrusted_key(self):
+    def test_untrusted_key(self) -> None:
         self.fixture(signed=True)
         self.key = self.new_key("other-key")
         self.sign()
         self.fails()
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_missing_signature_and_cannot_disable_in_worktree(self):
+    def test_missing_signature_and_cannot_disable_in_worktree(self) -> None:
         self.fixture(signed=True)
         self.signature = None
         (self.root / provenance.POLICY).write_text('{"signature":{"mode":"none"}}')
@@ -438,17 +452,17 @@ class ProvenanceTests(unittest.TestCase):
         self.fails()
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_signature_mandatory_even_source_only(self):
+    def test_signature_mandatory_even_source_only(self) -> None:
         self.fixture("library", binary=False, signed=True)
         self.passes()
         self.fails(False)
 
-    def test_signature_without_enabled_policy_rejected(self):
+    def test_signature_without_enabled_policy_rejected(self) -> None:
         self.fixture()
         self.signature = self.area / "not-a-signature"
         self.fails()
 
-    def test_invalid_committed_policy_cannot_be_repaired_by_external_record(self):
+    def test_invalid_committed_policy_cannot_be_repaired_by_external_record(self) -> None:
         self.fixture()
         for value in ({"mode": "unknown"}, {"mode": "ssh"}, {"mode": "none", "extra": True}):
             with self.subTest(value=value):
@@ -456,7 +470,7 @@ class ProvenanceTests(unittest.TestCase):
                 (self.root / provenance.POLICY).write_text(json.dumps(self.trust))
                 gate._git(self.root, "add", provenance.POLICY)
                 gate._git(self.root, "commit", "-m", "Synthetic invalid policy")
-                sha = gate._git_output(self.root, "rev-parse", "HEAD")
+                sha = self.head()
                 findings = provenance.validate(
                     self.root,
                     self.configuration,
@@ -468,11 +482,11 @@ class ProvenanceTests(unittest.TestCase):
                 )
                 self.assertTrue(findings)
 
-    def test_missing_committed_policy(self):
+    def test_missing_committed_policy(self) -> None:
         self.fixture("library", binary=False)
         gate._git(self.root, "rm", provenance.POLICY)
         gate._git(self.root, "commit", "-m", "Synthetic missing policy")
-        sha = gate._git_output(self.root, "rev-parse", "HEAD")
+        sha = self.head()
         self.assertTrue(
             provenance.validate(
                 self.root,
@@ -485,13 +499,13 @@ class ProvenanceTests(unittest.TestCase):
             )
         )
 
-    def test_unknown_contract_rejected(self):
+    def test_unknown_contract_rejected(self) -> None:
         self.fixture("library", binary=False)
         self.configuration["template_contract"]["version"] = "99.0.0"
         (self.root / gate.PROFILE_PATH).write_text(json.dumps(self.configuration))
         gate._git(self.root, "add", gate.PROFILE_PATH)
         gate._git(self.root, "commit", "-m", "Synthetic future contract")
-        sha = gate._git_output(self.root, "rev-parse", "HEAD")
+        sha = self.head()
         self.assertTrue(
             provenance.validate(
                 self.root,
@@ -505,37 +519,37 @@ class ProvenanceTests(unittest.TestCase):
         )
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_verifier_unavailable_or_times_out(self):
+    def test_verifier_unavailable_or_times_out(self) -> None:
         self.fixture(signed=True)
         real_run = subprocess.run
         for error in (FileNotFoundError("ssh-keygen"), subprocess.TimeoutExpired("ssh-keygen", 30)):
-            def run(args, **kwargs):
+            def run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[Any]:
                 if args[0] == "ssh-keygen":
                     raise error
                 return real_run(args, **kwargs)
 
-            with self.subTest(error=type(error).__name__), patch.object(provenance.subprocess, "run", run):
+            with self.subTest(error=type(error).__name__), patch("release_provenance.subprocess.run", run):
                 self.fails()
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_signed_template_tag_accepts_current_github_signing_key(self):
+    def test_signed_template_tag_accepts_current_github_signing_key(self) -> None:
         self.fixture("template", binary=False, tag_mode="signed")
         self.passes(False)
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_unsigned_template_tag_is_rejected(self):
+    def test_unsigned_template_tag_is_rejected(self) -> None:
         self.fixture("template", binary=False, tag_mode="unsigned")
         self.fails(False)
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_wrong_github_signing_key_is_rejected(self):
+    def test_wrong_github_signing_key_is_rejected(self) -> None:
         self.fixture("template", binary=False, tag_mode="signed")
         other = self.new_key("wrong-tag-key")
         self.tag_registry_keys = [other.with_suffix(".pub").read_text().strip()]
         self.fails(False)
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_corrupted_tag_signature_is_rejected(self):
+    def test_corrupted_tag_signature_is_rejected(self) -> None:
         self.fixture("template", binary=False, tag_mode="signed")
         result = subprocess.run(
             ["git", "-C", str(self.root), "cat-file", "tag", "refs/tags/v1.0.0"],
@@ -564,7 +578,7 @@ class ProvenanceTests(unittest.TestCase):
         self.fails(False)
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_signed_moved_tag_is_rejected(self):
+    def test_signed_moved_tag_is_rejected(self) -> None:
         self.fixture("template", binary=False, tag_mode="signed")
         self.assertEqual(
             gate._git(self.root, "commit", "--allow-empty", "-m", "Move tag target").returncode,
@@ -581,7 +595,7 @@ class ProvenanceTests(unittest.TestCase):
         self.fails(False)
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "requires OpenSSH")
-    def test_tag_signer_rotation_and_revocation(self):
+    def test_tag_signer_rotation_and_revocation(self) -> None:
         self.fixture("template", binary=False, tag_mode="signed")
         original = self.tag_registry_keys[0]
         replacement = self.new_key("replacement-tag-key").with_suffix(".pub").read_text().strip()
@@ -590,7 +604,7 @@ class ProvenanceTests(unittest.TestCase):
         self.tag_registry_keys = [replacement]
         self.fails(False)
 
-    def test_generated_release_does_not_inherit_template_tag_requirement(self):
+    def test_generated_release_does_not_inherit_template_tag_requirement(self) -> None:
         self.fixture("library", binary=False, tag_mode="unsigned")
         self.passes(False)
 

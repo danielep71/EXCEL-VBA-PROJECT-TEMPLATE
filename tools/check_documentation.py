@@ -18,8 +18,8 @@ POLICY = ".github/documentation-policy.json"
 
 def load_policy(root: Path) -> dict[str, Any]:
     policy = decode((root / POLICY).read_bytes())
-    require(isinstance(policy, dict) and policy.get("schema_version") == 1,
-            "unsupported documentation policy")
+    if not (isinstance(policy, dict) and policy.get("schema_version") == 1):
+        raise ValueError("unsupported documentation policy")
     history = policy.get("historical_documents")
     require(isinstance(history, dict) and all(relative(p) and nonempty(reason) for p, reason in history.items()),
             "historical exclusions require safe paths and reasons")
@@ -119,8 +119,10 @@ def build_report(root: Path) -> dict[str, Any]:
 
 
 def markdown(report: dict[str, Any]) -> str:
-    return (f"# Documentation drift\n\nResult: {report['status'].upper()}; commands checked: {report['commands']}\n\n"
-            + "\n".join(f"- {item}" for item in report["findings"]) + "\n\n" + report["scope_note"] + "\n")
+    status: str = report["status"]
+    scope_note: str = report["scope_note"]
+    return (f"# Documentation drift\n\nResult: {status.upper()}; commands checked: {report['commands']}\n\n"
+            + "\n".join(f"- {item}" for item in report["findings"]) + "\n\n" + scope_note + "\n")
 
 
 def main() -> int:

@@ -19,9 +19,9 @@ unformatted import blocks, and `C90` uses a McCabe ceiling of 15. The same CI
 step proves that ceiling on every run: a synthetic complexity-15 function must
 pass and one at 16 must be rejected, so a loosened or tightened threshold fails
 the job instead of silently changing the contract. CI also runs
-`mypy` across `tools/`; `_gatelib` is subject to the pinned mypy 2.3.1 strict
-bundle through its per-module override while the rest of the tree remains on the
-established whole-tree baseline. E501 is not selected and CI does not run
+`mypy` across `tools/` under `strict = true`, tests included, with no per-module
+relaxations; the same step proves strictness by requiring an annotated probe to
+pass and the same probe unannotated to be rejected. E501 is not selected and CI does not run
 `ruff format --check`; line length and formatter output are therefore not
 blocking rules. Prefer readable wrapping without changing literals or churning
 unrelated code. Editor indentation and line endings are defined in

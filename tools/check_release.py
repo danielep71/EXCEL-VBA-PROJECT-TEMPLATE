@@ -180,7 +180,7 @@ def _load_policy(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, str]
     if not isinstance(value, dict):
         return None, [_finding("invalid-release-policy", POLICY_PATH, "root must be an object")]
     # Stages run in order; the first problem is the single reported finding.
-    stages = (
+    stages: tuple[Callable[[], str | None], ...] = (
         lambda: _policy_key_problem(value),
         lambda: _policy_header_problem(value),
         lambda: _core_checks_problem(value.get("core_checks")),
@@ -957,7 +957,9 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             passed = first["status"] == "pass" and first == second and before == after
             results.append((f"valid-{profile}", "accepted", "PASS" if passed else "FAIL"))
 
-        def negative(name: str, mutate, expected_code: str, profile: str = "library") -> None:
+        def negative(
+            name: str, mutate: Callable[[dict[str, Any]], object], expected_code: str, profile: str = "library"
+        ) -> None:
             case = temporary / name
             case.mkdir()
             sha = _fixture_repository(case, profile, policy)
@@ -1044,7 +1046,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             "evidence-sha-mismatch",
         )
 
-        def binary_mutation(context, *, approved: bool, digest_matches: bool) -> None:
+        def binary_mutation(context: dict[str, Any], *, approved: bool, digest_matches: bool) -> None:
             asset = context["root"] / "dist" / ("fixture.xlsm" if approved else "fixture.exe")
             asset.parent.mkdir()
             asset.write_bytes(b"synthetic release asset\n")
@@ -1070,7 +1072,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             "incorrect-digest", lambda c: binary_mutation(c, approved=True, digest_matches=False),
             "asset-digest-mismatch", profile="application",
         )
-        def missing_manifest_mutation(context) -> None:
+        def missing_manifest_mutation(context: dict[str, Any]) -> None:
             binary_mutation(context, approved=True, digest_matches=True)
             context.update(manifest_path=None)
 
@@ -1079,7 +1081,7 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             missing_manifest_mutation,
             "missing-asset-manifest", profile="application",
         )
-        def asset_binding_mutation(context) -> None:
+        def asset_binding_mutation(context: dict[str, Any]) -> None:
             binary_mutation(context, approved=True, digest_matches=True)
             context["evidence_data"]["assets"][0]["candidate_sha"] = "f" * 40
             context["evidence"].write_text(
@@ -1099,13 +1101,13 @@ def _run_self_test(root: Path, summary_path: Path | None) -> int:
             "unapproved-binary", profile="template",
         )
 
-        def lightweight_tag(context) -> None:
+        def lightweight_tag(context: dict[str, Any]) -> None:
             _git(context["root"], "tag", "-d", "v1.0.0")
             _git(context["root"], "tag", "v1.0.0")
 
         negative("lightweight-tag", lightweight_tag, "lightweight-tag")
 
-        def moved_tag(context) -> None:
+        def moved_tag(context: dict[str, Any]) -> None:
             _git(context["root"], "tag", "-d", "v1.0.0")
             _git(context["root"], "commit", "--allow-empty", "-m", "Move release target")
             _git(context["root"], "tag", "-a", "v1.0.0", "-m", "Moved release")

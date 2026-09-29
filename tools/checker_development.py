@@ -1002,6 +1002,90 @@ def complexity_ceiling_tests(root: Path) -> list[dict[str, Any]]:
     return results
 
 
+# Strict-bundle flags whose `false` (or, for implicit_reexport, `true`) weakens strict mode.
+STRICT_FLAGS = (
+    "warn_unused_configs", "disallow_any_generics", "disallow_subclassing_any",
+    "disallow_untyped_calls", "disallow_untyped_defs", "disallow_incomplete_defs",
+    "check_untyped_defs", "disallow_untyped_decorators", "warn_redundant_casts",
+    "warn_unused_ignores", "warn_return_any", "strict_equality", "extra_checks",
+)
+
+
+def _mypy_sections(pyproject: str) -> str:
+    return "".join(re.findall(r"(?ms)^\[\[?tool\.mypy[^\]]*\]\]?[ \t]*\n.*?(?=^\[|\Z)", pyproject))
+
+
+def mypy_relaxations(pyproject: str) -> list[str]:
+    """Every configuration line, in any mypy table, that weakens the strict bundle."""
+    weakening = re.compile(
+        r"^(?:ignore_errors[ \t]*=[ \t]*true|disable_error_code[ \t]*=.*|strict[ \t]*=[ \t]*false"
+        r"|implicit_reexport[ \t]*=[ \t]*true|(?:" + "|".join(STRICT_FLAGS) + r")[ \t]*=[ \t]*false)\b.*$",
+        re.M,
+    )
+    return [match.group(0).strip() for match in weakening.finditer(_mypy_sections(pyproject))]
+
+
+def strict_typing_failures(pyproject: str, workflow: str) -> list[str]:
+    """Strict mypy must be configured unweakened, run, and proven by the hosted mypy step."""
+    failures: list[str] = []
+    if not re.search(r"(?m)^strict[ \t]*=[ \t]*true[ \t]*(?:#.*)?$", _toml_table(pyproject, "tool.mypy")):
+        failures.append("pyproject.toml [tool.mypy] must set strict = true")
+    failures.extend(f"pyproject.toml weakens strict mypy: `{line}`" for line in mypy_relaxations(pyproject))
+    step = _workflow_step(workflow, "mypy")
+    required = ("mypy 2>&1", 'mypy --no-pretty "$probe"', '"[no-untyped-def]"')
+    missing = [item for item in required if item not in step]
+    if missing:
+        failures.append("static-checks mypy step does not run and prove strict typing: missing "
+                        + ", ".join(f"`{item}`" for item in missing))
+    if ('"mypy type check:$MYPY_OUTCOME"' not in workflow
+            or "MYPY_OUTCOME: ${{ steps.mypy.outcome }}" not in workflow):
+        failures.append("static-checks does not enforce the mypy step outcome")
+    return failures
+
+
+def strict_typing_report(root: Path) -> tuple[dict[str, Any], list[str]]:
+    pyproject = (root / PYPROJECT_PATH).read_text(encoding="utf-8")
+    workflow = (root / STATIC_CHECKS_PATH).read_text(encoding="utf-8")
+    evidence = {
+        "configuration": PYPROJECT_PATH.as_posix(),
+        "strict": bool(re.search(r"(?m)^strict[ \t]*=[ \t]*true\b", _toml_table(pyproject, "tool.mypy"))),
+        "relaxations": mypy_relaxations(pyproject),
+        "hosted_step": STATIC_CHECKS_PATH.as_posix() + "#mypy",
+        "probe": "annotated function accepted; unannotated function rejected as no-untyped-def",
+    }
+    return evidence, strict_typing_failures(pyproject, workflow)
+
+
+def strict_typing_tests(root: Path) -> list[dict[str, Any]]:
+    """Each weakening of the strict-typing contract must be rejected; the live one accepted."""
+    pyproject = (root / PYPROJECT_PATH).read_text(encoding="utf-8")
+    workflow = (root / STATIC_CHECKS_PATH).read_text(encoding="utf-8")
+    override = '\n[[tool.mypy.overrides]]\nmodule = "x"\n'
+    cases = (
+        ("strict-false", 0, "strict = true", "strict = false"),
+        ("strict-unset", 0, "strict = true\n", ""),
+        ("ignore-errors", 0, "strict = true\n", "strict = true\n" + override + "ignore_errors = true\n"),
+        ("error-code-disabled", 0, "strict = true\n", 'strict = true\ndisable_error_code = ["attr-defined"]\n'),
+        ("flag-relaxed", 0, "strict = true\n", "strict = true\n" + override + "disallow_untyped_defs = false\n"),
+        ("reexport-relaxed", 0, "strict = true\n", "strict = true\nimplicit_reexport = true\n"),
+        ("mypy-not-run", 1, "mypy 2>&1", "true 2>&1"),
+        ("probe-not-rejected", 1, 'grep -F "[no-untyped-def]"', "true"),
+        ("outcome-unenforced", 1, '"mypy type check:$MYPY_OUTCOME" \\\n', ""),
+    )
+    results = [{"id": "strict-typing-live",
+                "status": "fail" if strict_typing_failures(pyproject, workflow) else "pass",
+                "detail": ""}]
+    for name, target, old, new in cases:
+        texts = [pyproject, workflow]
+        texts[target] = texts[target].replace(old, new, 1)
+        degraded = texts[target] != (pyproject, workflow)[target]
+        rejected = bool(strict_typing_failures(*texts))
+        results.append({"id": "strict-typing-" + name,
+                        "status": "pass" if degraded and rejected else "fail",
+                        "detail": "" if degraded else "degradation did not apply"})
+    return results
+
+
 def shared_library_report(root: Path) -> tuple[dict[str, Any], list[str]]:
     failures: list[str] = []
     gatelib = (root / GATELIB_PATH).resolve()
@@ -1057,6 +1141,8 @@ def build_report(root: Path) -> dict[str, Any]:
     failures.extend(interface_failures)
     complexity, complexity_failures = complexity_ceiling_report(root)
     failures.extend(complexity_failures)
+    typing_contract, typing_failures = strict_typing_report(root)
+    failures.extend(typing_failures)
 
     parser_results = (parser_tests(module) + reusable_identity_tests(module)
                       + dependency_rollback_tests())
@@ -1064,7 +1150,7 @@ def build_report(root: Path) -> dict[str, Any]:
     cli_results = cli_tests(module, checker)
     gate_results = (gate_runner_tests() + self_test_registry_tests()
                     + cli_discovery_tests() + guard_polarity_tests()
-                    + complexity_ceiling_tests(root))
+                    + complexity_ceiling_tests(root) + strict_typing_tests(root))
     all_unit_results = [*parser_results, *reporter_results, *cli_results, *gate_results]
     failed_units = [item for item in all_unit_results if item["status"] != "pass"]
     if failed_units:
@@ -1088,6 +1174,7 @@ def build_report(root: Path) -> dict[str, Any]:
         "shared_library": shared_library,
         "self_test_interfaces": interfaces,
         "complexity_ceiling": complexity,
+        "strict_typing": typing_contract,
         "unit_tests": all_unit_results,
         "failures": failures,
     }
@@ -1110,6 +1197,8 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"- **Python complexity ceiling:** {report['complexity_ceiling']['configured']} "
         f"(Ruff C901; hosted probe accepts {report['complexity_ceiling']['probe_accepted']}, "
         f"rejects {report['complexity_ceiling']['probe_rejected']})",
+        f"- **Strict typing:** {'mypy --strict' if report['strict_typing']['strict'] else 'NOT strict'}; "
+        f"{len(report['strict_typing']['relaxations'])} relaxations; hosted probe rejects unannotated code",
         f"- **Independent unit tests:** {len(report['unit_tests'])}",
         "",
         "| Section | Start | End | Definitions |",
@@ -1155,7 +1244,7 @@ def run_self_test(root: Path) -> int:
     print(
         "SELF-TEST PASS: internal boundaries, parser/reporter units, CLI contract, "
         "canonical check order, artifact identity, shared-helper ownership, Python complexity ceiling, "
-        "and standard-library-only runtime passed."
+        "strict typing, and standard-library-only runtime passed."
     )
     return 0
 

@@ -3,31 +3,14 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from types import ModuleType
-from typing import Callable
+from typing import Any
 
-from policy_coverage_core import mutate_config, mutate_labels, rewrite_vba
-
-Case = tuple[str, str, str | None, Callable[[Path], None]]
-
-
-def _register(cases: list[Case], name: str, rule: str, pattern: str | None = None):
-    def decorator(function: Callable[[Path], None]) -> Callable[[Path], None]:
-        cases.append((name, rule, pattern, function))
-        return function
-
-    return decorator
-
-
-def _case(cases: list[Case]):
-    def register(name: str, rule: str, pattern: str | None = None):
-        return _register(cases, name, rule, pattern)
-
-    return register
+from policy_coverage_core import Case, case_registrar, mutate_config, mutate_labels, rewrite_vba
 
 
 def _label_item_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
 
     @case("labels-array-type", "label-manifest", "must be an array")
     def _(root: Path) -> None:
@@ -62,7 +45,7 @@ def _label_item_cases(module: ModuleType) -> list[Case]:
 
 def _label_manifest_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
 
     @case("labels-root-shape", "label-manifest", "Root must contain exactly")
     def _(root: Path) -> None:
@@ -109,7 +92,7 @@ def _label_manifest_cases(module: ModuleType) -> list[Case]:
 
 def _issue_form_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
     form_path = f"{module.ISSUE_TEMPLATE_DIRECTORY}/bug.yml"
     form_config = f"{module.ISSUE_TEMPLATE_DIRECTORY}/config.yml"
 
@@ -211,7 +194,7 @@ def _issue_form_cases(module: ModuleType) -> list[Case]:
 
 def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
     workflow_path = ".github/workflows/static-checks.yml"
 
     @case("workflow-action-unparseable", "workflow-actions", "cannot be parsed")
@@ -306,7 +289,7 @@ def _workflow_and_version_cases(module: ModuleType) -> list[Case]:
 
 def _vba_export_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
     path = "src/modules/Quality.bas"
 
     @case("vba-export-unreadable", "vba-export-header", "cannot be read")
@@ -371,7 +354,7 @@ def _vba_export_cases(module: ModuleType) -> list[Case]:
 
 def _vba_structure_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
     path = "src/modules/Quality.bas"
 
     @case("vba-nested-opener", "vba-structure", "has no closing statement")
@@ -411,7 +394,7 @@ def _vba_structure_cases(module: ModuleType) -> list[Case]:
 
 def _vba_visibility_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
 
     @case("vba-unconfigured-component", "vba-visibility", "not assigned a profile role")
     def _(root: Path) -> None:
@@ -425,7 +408,7 @@ def _vba_visibility_cases(module: ModuleType) -> list[Case]:
 
     @case("vba-configured-not-tracked", "vba-visibility", "Configured VBA component is not tracked")
     def _(root: Path) -> None:
-        def mutation(document: dict) -> None:
+        def mutation(document: dict[str, Any]) -> None:
             document["vba"]["components"]["src/modules/Missing.bas"] = "public"
             document["vba"]["components"] = dict(
                 sorted(
@@ -483,7 +466,7 @@ def _vba_visibility_cases(module: ModuleType) -> list[Case]:
 
 def _vba_contract_cases(module: ModuleType) -> list[Case]:
     cases: list[Case] = []
-    case = _case(cases)
+    case = case_registrar(cases)
 
     @case("generated-required-unregistered", "generated-vba-contract", "requires this")
     def _(root: Path) -> None:
@@ -505,7 +488,7 @@ def _vba_contract_cases(module: ModuleType) -> list[Case]:
 
     @case("generated-required-not-tracked", "generated-vba-contract", "starter component to be tracked")
     def _(root: Path) -> None:
-        def mutation(document: dict) -> None:
+        def mutation(document: dict[str, Any]) -> None:
             contract = document["profiles"]["library"]["vba_contract"]
             contract["required_components"].pop("src/modules/Quality.bas")
             contract["required_components"]["src/modules/Missing.bas"] = "public"
@@ -529,7 +512,7 @@ def _vba_contract_cases(module: ModuleType) -> list[Case]:
         )
         module._run_git(root, "add", "src/modules/Other.bas")
 
-        def mutation(document: dict) -> None:
+        def mutation(document: dict[str, Any]) -> None:
             document["vba"]["components"]["src/modules/Other.bas"] = "public"
             document["vba"]["components"] = dict(
                 sorted(

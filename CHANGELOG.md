@@ -128,6 +128,16 @@ Use only the categories needed by a release.
   step now proves the ceiling on every run: a synthetic complexity-15 function
   must pass and one at 16 must be rejected. The checker-development contract
   pins the configured value and that probe (#92).
+- All maintained Python tooling, tests included, now passes `mypy --strict`.
+  `pyproject.toml` sets `strict = true` for the whole `tools/` tree in place of
+  the `_gatelib`-only override, with no per-module relaxations, ignored errors
+  or `# type: ignore` comments. The 466 strict errors were fixed at their
+  source: typed network and fixture seams, validators that return the value they
+  check, one shared typed registry for the semantic policy cases, and tests that
+  patch modules by dotted path instead of through a tool's imports. The hosted
+  mypy step now proves strictness on every run (an unannotated probe must be
+  rejected), and the checker-development contract rejects any configuration
+  that weakens it (#93).
 
 ### Fixed
 

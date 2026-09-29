@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, NoReturn
 
 from _gatelib import parse_report_args as parse_args
 from _gatelib import run_gate
@@ -31,7 +31,7 @@ def run_core_coverage(root: Path) -> dict[str, Any]:
     current_case = "bootstrap"
     original_finding = module.finding
 
-    def recording_finding(*args, **kwargs):
+    def recording_finding(*args: object, **kwargs: object) -> object:
         frame = inspect.currentframe()
         caller = frame.f_back if frame is not None else None
         if caller is not None and Path(caller.f_code.co_filename).resolve() == (root / CORE_TOOL).resolve():
@@ -113,7 +113,7 @@ def run_core_coverage(root: Path) -> dict[str, Any]:
         module._initialize_fixture(fixture_root)
         original_checks = module.CHECKS
 
-        def crash(repo, config):
+        def crash(repo: object, config: object) -> NoReturn:
             del repo, config
             raise RuntimeError("fixture operational failure")
 

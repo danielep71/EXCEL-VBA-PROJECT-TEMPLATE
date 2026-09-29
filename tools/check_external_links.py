@@ -14,7 +14,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import quote, urljoin, urlsplit
 
 from _gatelib import run_gate, tracked_files
@@ -176,7 +176,12 @@ def request(url: str, timeout: int) -> tuple[int, str | None]:
         connection.close()
 
 
-def attempt(url: str, policy: dict[str, Any], transport=request) -> tuple[str, int | None]:
+# Injectable network seams: the fixtures replace both without touching sockets.
+Transport = Callable[[str, int], tuple[int, str | None]]
+Pause = Callable[[int], None]
+
+
+def attempt(url: str, policy: dict[str, Any], transport: Transport = request) -> tuple[str, int | None]:
     seen = set()
     for _ in range(policy["redirects"] + 1):
         blocked = url_status(url, policy)
@@ -209,8 +214,8 @@ def attempt(url: str, policy: dict[str, Any], transport=request) -> tuple[str, i
 def probe(
     url: str,
     policy: dict[str, Any],
-    transport=request,
-    pause=time.sleep,
+    transport: Transport = request,
+    pause: Pause = time.sleep,
 ) -> dict[str, Any]:
     statuses = []
     codes = []
@@ -270,8 +275,8 @@ def _counts(rows: list[dict[str, Any]]) -> dict[str, int]:
 def build_report(
     root: Path,
     as_of: date,
-    transport=request,
-    pause=time.sleep,
+    transport: Transport = request,
+    pause: Pause = time.sleep,
 ) -> dict[str, Any]:
     policy = load_policy(root)["network"]
     validate_policy(policy, as_of)
@@ -370,7 +375,8 @@ def markdown(report: dict[str, Any]) -> str:
             f"| {row['locations'][0]} | {row['domain']} | {row['status']} | "
             f"{row['attempts']} | {row['id']} |"
         )
-    return "\n".join(lines) + "\n\n" + report["scope_note"] + "\n"
+    scope_note: str = report["scope_note"]
+    return "\n".join(lines) + "\n\n" + scope_note + "\n"
 
 
 def main() -> int:
