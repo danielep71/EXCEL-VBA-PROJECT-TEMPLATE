@@ -19,7 +19,14 @@ the overlay or reviewed pruning policy before running it.
 For a guided manual setup, follow each checkbox in
 [Post-Creation Checklist](../POST_CREATION_CHECKLIST.md) in the new repository.
 
-For the guarded provisioner, use a **separate template-maintenance checkout**.
+For the guarded provisioner, first untick **Wikis** and **Projects** under
+**Settings → General → Features** in the new repository. GitHub enables both on
+every new repository, the baseline policy disables both, and the provisioner never
+turns off an enabled feature without a recorded `feature:` exception. Skipping this
+makes the first plan stop with two blockers. Record an exception instead only when
+you deliberately want the provisioner to make that change.
+
+Then use a **separate template-maintenance checkout**.
 The tool is removed during project initialization. Replace the repository,
 profile and full initialized default-branch SHA:
 

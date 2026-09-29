@@ -206,6 +206,20 @@ class ProvisionTests(unittest.TestCase):
         self.api.files[provision.POLICY]["exceptions"]["feature:has_wiki"] = "Reviewed unused generated wiki; no owned content"
         self.assertFalse(self.plan()["blocked"])
 
+    def test_new_repository_defaults_block_until_features_are_turned_off(self) -> None:
+        # GitHub enables Wikis and Projects on every new repository; the policy disables both.
+        self.api.metadata.update({"has_wiki": True, "has_projects": True})
+        blocked = self.plan()["blocked"]
+        self.assertEqual(
+            sorted(item.split()[1] for item in blocked), ["has_projects", "has_wiki"]
+        )
+        self.assertTrue(all("turn it off in Settings first" in item for item in blocked))
+        self.api.metadata.update({"has_wiki": False, "has_projects": False})
+        plan = self.plan()
+        self.assertFalse(plan["blocked"])
+        feature_bodies = [action["body"] for action in plan["actions"] if action["path"] == ""]
+        self.assertFalse(any({"has_wiki", "has_projects"} & set(body) for body in feature_bodies))
+
     def test_existing_label_needs_exception_and_correct_api_shape(self) -> None:
         self.api.labels = [{"name": "bug", "color": "FFFFFF", "description": "Old"}]
         self.assertTrue(self.plan()["blocked"])

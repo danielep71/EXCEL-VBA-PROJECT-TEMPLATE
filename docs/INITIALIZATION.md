@@ -105,6 +105,13 @@ commit the initialized tree before repeating the command. A second run with
 the same arguments from that clean committed tree returns `no-op`; different
 inputs fail rather than silently rewriting an initialized repository.
 
+A repository created with **Use this template** runs its copied workflows on the
+uninitialized initial commit. That *Static repository checks* run fails at
+*Release semantics*, because the template's own release-history policy refers to
+commits absent from the new history. The failure is expected before
+initialization, which removes the template-only policy. Judge the repository by
+the run on the initialized setup branch.
+
 ### ➕ Optional and Repeatable Values
 
 Add a tracked social-preview image only when it already exists:

@@ -37,7 +37,7 @@ requirements can be listed in `required_checks`; the universal job remains.
 | --- | --- |
 | Description | Set the initialized versioned policy value |
 | Topics | Add the union of existing, declared and Excel/VBA/profile topics; never remove local topics |
-| Features | Apply declared booleans; disabling an enabled wiki, projects, discussions or template flag requires a recorded exception |
+| Features | Apply declared booleans; disabling an enabled wiki, projects, discussions or template flag requires a recorded exception. GitHub enables Wikis and Projects on every new repository: turn both off in Settings before the first plan, or the plan is blocked |
 | Merge methods | Preserve an already narrower method instead of enabling it; at least one desired method must remain enabled |
 | Labels | Add missing resolved labels; replacement needs a recorded exception; retain extra labels |
 | Rulesets | Preserve equal/stronger applicable rules; add missing baseline rulesets; never edit or delete existing rulesets |
