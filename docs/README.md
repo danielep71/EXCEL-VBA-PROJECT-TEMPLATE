@@ -19,7 +19,7 @@ may summarize it, but must link here rather than restating a competing rule.
 | Contract | Authoritative location | Other documents may contain |
 | --- | --- | --- |
 | Project purpose, supported profiles, quick start and navigation | [`../README.md`](../README.md) | Short orientation only |
-| Template initialization, token categories, profile rendering and manual fallback | [`INITIALIZATION.md`](INITIALIZATION.md) | A minimal initializer command |
+| Template initialization, token categories, profile rendering, governance tiers and the minimal-to-full upgrade, and manual fallback | [`INITIALIZATION.md`](INITIALIZATION.md) | A minimal initializer command |
 | Repository/source layout and VBA component ownership | [`REPOSITORY_STRUCTURE.md`](REPOSITORY_STRUCTURE.md) | A small directory summary |
 | VBA banners, procedure contracts, indentation and formatting review | [`VBA_HOUSE_STYLE.md`](VBA_HOUSE_STYLE.md) | A link to the source presentation rules |
 | Installation, import, upgrade, recovery and removal | [`../INSTALLATION.md`](../INSTALLATION.md) | Links and release prerequisites |
