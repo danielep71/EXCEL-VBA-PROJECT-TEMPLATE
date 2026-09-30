@@ -239,8 +239,14 @@ jobs:
       - name: Upgrade the minimal tier in place and re-verify as full
         if: matrix.tier == 'minimal'
         run: |
-          python3 tools/initialize_repository.py --root "$GENERATED_ROOT" --upgrade-tier full --apply
-          cd "$GENERATED_ROOT"
+          # Upgrade a copy: the minimal tree keeps its uploaded evidence file,
+          # which would otherwise make the working tree dirty.
+          upgraded="${GENERATED_ROOT}-upgraded"
+          cp -a "$GENERATED_ROOT" "$upgraded"
+          rm "$upgraded/generated-workflow-validation.md"
+          test -z "$(git -C "$upgraded" status --porcelain)"
+          python3 tools/initialize_repository.py --root "$upgraded" --upgrade-tier full --apply
+          cd "$upgraded"
           git add --all
           git commit -m "Upgrade to the full governance tier"
           test ! -e tools/test_template_verification_depth.py
