@@ -14,8 +14,8 @@ certify releases. Generated projects do not inherit the reporter or its fixtures
 
 | Dimension | Evidence and boundary |
 | --- | --- |
-| Adoption | Recorded contract source/version and project profile, or explicit ADOPT; no inferred replacement |
-| Structural conformance | Version-selected #25 predicates; file presence is not implementation correctness |
+| Adoption | Recorded contract source/version, project profile and governance tier, or explicit ADOPT; no inferred replacement |
+| Structural conformance | Version- and [tier](PORTFOLIO_DRIFT.md#governance-tiers)-selected #25 predicates; a control the recorded tier omits is `NOT_APPLICABLE`, not missing; file presence is not implementation correctness |
 | Required workflow health | Exact inspected SHA, default branch, latest push/dispatch run per workflow and its captured attempt; all required named jobs and their runs must succeed |
 | Branch and tag protection | Observed active rulesets and #25 scope predicates; unavailable policy is not a passing control |
 | Latest stable release | Most recently published non-draft, non-prerelease release, resolved tag commit, release text and asset metadata; publication is not certification |

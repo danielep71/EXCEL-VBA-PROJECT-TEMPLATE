@@ -95,6 +95,7 @@ Each entry classifies its changes as **breaking**, **required**, **optional** or
 | Focused-gate CLI orchestration consolidated into `tools/_gatelib.py` | Not applicable | Internal to the template's tooling; no public CLI changed |
 | Static repository checks expose reusable interface v1 | Optional | Follow [REUSABLE_WORKFLOWS.md](REUSABLE_WORKFLOWS.md) to adopt an exact workflow commit; copied workflows remain supported |
 | Windows/Excel host evidence interface | Optional execution | The template retains the policy, validator, fixtures and [EXCEL_EVIDENCE.md](EXCEL_EVIDENCE.md). Use a reviewed eligible host or the same-schema manual fallback; unavailable never means PASS. Existing base compile/regression evidence stays required, and no Windows runner becomes a universal requirement. |
+| Governance tiers | Optional | A project may record `"governance_tier": "minimal"`. The tier narrows the recorded version's rule set by the minimal entry of `TIER_EXCLUDED_RULES`; it adds no control and changes no published rule set. Projects without a recorded tier keep the full rule set and need no action. Conformance reports an omitted control as not applicable; see [governance tiers](INITIALIZATION.md#governance-tiers). |
 | Generated workflow identity checks recognize immutable references to the recorded template source | Optional | Update the canonical checker before adopting a reusable workflow; no broad identity-path exclusion is needed |
 
 <!-- template:tier:full:start -->

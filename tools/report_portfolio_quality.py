@@ -170,7 +170,8 @@ def repository_report(repo: dict[str, Any], findings: list[dict[str, Any]], as_o
                          "status": current if current != "CURRENT" else row["status"]})
     return {"repository": repo["repository"], "commit": repo["commit"], "observed_at": observed,
             "freshness": current, "recorded_contract": config.get("template_contract"),
-            "recorded_profile": config.get("profile"), "dimensions": dimensions,
+            "recorded_profile": config.get("profile"),
+            "recorded_governance_tier": config.get("governance_tier", "full"), "dimensions": dimensions,
             "drift_findings": rendered, "specialist": specialist_claims(repo, as_of, days),
             "workflow_observations": quality.get("workflows"),
             "release_evidence": quality.get("releases"), "certification": "NOT_ASSESSED",
@@ -201,7 +202,8 @@ def markdown_report(report: dict[str, Any]) -> str:
     for repo in report["repositories"]:
         lines += [f"## {cell(repo['repository'])}", "",
                   f"Commit: `{repo['commit']}` · Observed: {cell(repo['observed_at'])} · Freshness: {repo['freshness']}", "",
-                  f"Recorded contract: {cell(repo['recorded_contract'])} · Profile: {cell(repo['recorded_profile'])}", "",
+                  f"Recorded contract: {cell(repo['recorded_contract'])} · Profile: {cell(repo['recorded_profile'])}"
+                  f" · Governance tier: {cell(repo['recorded_governance_tier'])}", "",
                   "| Dimension | Status | Evidence / scope |", "| --- | --- | --- |"]
         for item in repo["dimensions"]:
             links = ", ".join(f"[evidence {index + 1}]({link})" for index, link in enumerate(item["evidence"]))

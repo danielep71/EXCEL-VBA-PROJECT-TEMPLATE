@@ -13,6 +13,7 @@ from urllib.error import HTTPError
 
 import check_portfolio_drift as drift
 import collect_portfolio_snapshot as capture
+from check_template_contract import TIER_EXCLUDED_RULES
 
 
 def fixture(profile: str = "library", version: str = "1.2.0") -> dict[str, Any]:
@@ -48,6 +49,21 @@ jobs:
             "labels": labels,
             "rulesets": [branch, tag], "decisions": []}
     return {"schema_version": 1, "contract_source": "example/template", "contract_commit": "b" * 40, "repositories": [repo]}
+
+
+def minimal_fixture(profile: str = "library") -> dict[str, Any]:
+    """A minimal-tier repository: full-tier artifacts absent, tier recorded."""
+    snapshot = fixture(profile)
+    repo = snapshot["repositories"][0]
+    config = json.loads(repo["files"][drift.CONFIG])
+    config["governance_tier"] = "minimal"
+    repo["files"][drift.CONFIG] = json.dumps(config)
+    absent = {path for rule in TIER_EXCLUDED_RULES["minimal"] for path in drift.PATHS[rule]}
+    absent |= {".github/release-policy.json", "tools/check_template_contract.py"}
+    for path in absent:
+        repo["files"].pop(path, None)
+    repo["paths"] = [path for path in repo["paths"] if path not in absent]
+    return snapshot
 
 
 class DriftTests(unittest.TestCase):
@@ -142,6 +158,45 @@ class DriftTests(unittest.TestCase):
             config["template_contract"][field] = value
             self.repo["files"][drift.CONFIG] = json.dumps(config)
             self.assertEqual(self.row("adoption")["status"], "UNVERIFIED")
+
+    def test_minimal_tier_omits_full_tier_controls(self) -> None:
+        for profile in sorted(drift.PROFILES):
+            with self.subTest(profile=profile):
+                report = drift.build_report(minimal_fixture(profile))
+                self.assertEqual(report["status"], "pass")
+                rows = {row["rule"]: row for row in report["findings"]}
+                self.assertIn("governance tier minimal", rows["adoption"]["detail"])
+                for rule in TIER_EXCLUDED_RULES["minimal"]:
+                    self.assertEqual((rows[rule]["status"], rows[rule]["decision"]), ("NOT_APPLICABLE", "NOT APPLICABLE"))
+                for rule in ("release-integrity", "template-contract-version", "procedure-scoped-jumps"):
+                    self.assertEqual(rows[rule]["status"], "PASS")
+
+    def test_minimal_tier_still_requires_kept_controls(self) -> None:
+        for path, rule in (("RELEASING.md", "release-integrity"), ("tools/check_vba_jumps.py", "procedure-scoped-jumps"),
+                           ("docs/TEMPLATE_CONTRACT.md", "template-contract-version")):
+            with self.subTest(path=path):
+                self.snapshot = minimal_fixture()
+                self.repo = self.snapshot["repositories"][0]
+                self.remove(path)
+                self.assertEqual(self.row(rule)["status"], "DRIFT")
+
+    def test_full_tier_is_not_relaxed(self) -> None:
+        self.remove("tools/initialize_repository.py")
+        self.assertEqual(self.row("deterministic-initializer")["status"], "DRIFT")
+        self.snapshot = fixture()
+        self.repo = self.snapshot["repositories"][0]
+        self.remove(".github/release-policy.json")
+        self.assertEqual(self.row("release-integrity")["status"], "DRIFT")
+
+    def test_unsupported_governance_tier(self) -> None:
+        for tier in ("full", "bogus"):
+            with self.subTest(tier=tier):
+                config = json.loads(fixture()["repositories"][0]["files"][drift.CONFIG])
+                config["governance_tier"] = tier
+                self.repo["files"][drift.CONFIG] = json.dumps(config)
+                report = drift.build_report(self.snapshot)
+                self.assertEqual([row["rule"] for row in report["findings"]], ["adoption"])
+                self.assertEqual(report["findings"][0]["status"], "UNVERIFIED")
 
     def test_decision_binding(self) -> None:
         self.decide("local-specialist", "KEEP")

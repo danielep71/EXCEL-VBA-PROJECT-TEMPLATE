@@ -111,7 +111,7 @@ Use only the categories needed by a release.
   documentation drift and external-link checks, local-action validation, label
   automation, Scorecard, Ruff/mypy and the initializer stay in the default
   `full` tier. A minimal project retains 6 Python files (6,808 lines) instead of
-  22 (17,953 lines), and 49–51 tracked files instead of 87–89, depending on the
+  22 (17,971 lines), and 49–51 tracked files instead of 87–89, depending on the
   profile. The tier is recorded as `"governance_tier": "minimal"` in the
   generated profile and initialization record; `full` is never recorded, so
   existing generated repositories are unaffected. Documentation shared by both
@@ -119,7 +119,13 @@ Use only the categories needed by a release.
   removed files are pruned. The template profile declares the tier matrix,
   which the canonical gate validates, and the initializer self-test generates
   every profile in both tiers and runs the four gates inside each minimal
-  result (#90).
+  result. Portfolio drift and quality reports honour the recorded tier: the
+  six controls a minimal project omits are `NOT_APPLICABLE`, never missing,
+  and `release-integrity` and `template-contract-version` check the artifacts
+  the minimal tier keeps. The tier narrows the recorded contract's rule set and
+  changes no published rule set, so the contract version stays `1.2.0`; an
+  evaluator that predates tiers reports the omitted controls as drift, never as
+  a pass (#90).
 
 ### Changed
 
