@@ -110,8 +110,8 @@ Use only the categories needed by a release.
   and CodeQL. Release evidence and provenance, host-evidence validation,
   documentation drift and external-link checks, local-action validation, label
   automation, Scorecard, Ruff/mypy and the initializer stay in the default
-  `full` tier. A minimal project retains 6 Python files (6,808 lines) instead of
-  22 (18,215 lines), and 49–51 tracked files instead of 87–89, depending on the
+  `full` tier. A minimal project retains 6 Python files (6,862 lines) instead of
+  22 (18,365 lines), and 50–53 tracked files instead of 88–91, depending on the
   profile. The tier is recorded as `"governance_tier": "minimal"` in the
   generated profile and initialization record; `full` is never recorded, so
   existing generated repositories are unaffected. Documentation shared by both
@@ -142,6 +142,21 @@ Use only the categories needed by a release.
   every owned file in the template, rejects a file owned by two profiles, and
   rejects a generated repository that still lists another profile's files
   (#86).
+- A substantive library-profile reference: neutral text and path utilities
+  with fifteen supported declarations in `TextFacade` over a `TextCore`
+  implementation. It has two constants (including the platform path
+  separator), the `TextPadSide` enum, the `TextPathParts` type, and eleven
+  functions for padding, whitespace, comparison, counting, splitting, joining,
+  blank detection and path composition, splitting and sanitizing. Every
+  rejected argument raises one invalid-argument code with the facade procedure
+  as source. `#If Mac` selects the path separator, accepted separators, rooted
+  forms and file-name rules. `TextTests` (26 cases, 123 assertions) covers
+  every public member, each error rule and both platforms' expectations, and
+  `TextExample` prints six deterministic operations. Only generated `library`
+  projects receive the four modules (#86).
+- The conditional-compilation gate models Office for Mac as `vba7-mac64`
+  (`Mac` and `VBA7` true, `Win32` and `Win64` false). `Mac` was previously
+  rejected as an unknown symbol (#86).
 
 ### Changed
 

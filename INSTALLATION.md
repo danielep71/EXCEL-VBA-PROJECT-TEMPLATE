@@ -91,6 +91,15 @@ For the baseline starter:
 3. `tests/modules/ProjectTests.bas` — development/regression only
 4. `examples/modules/ProjectExample.bas` — optional consumer example
 
+<!-- template:profile:library:start -->
+The library reference follows the same order:
+
+1. `src/core/TextCore.bas`
+2. `src/modules/TextFacade.bas`
+3. `tests/modules/TextTests.bas` — development/regression only
+4. `examples/modules/TextExample.bas` — optional consumer example
+<!-- template:profile:library:end -->
+
 A generated project may replace or extend this layout. The authoritative source
 and component-role rules are in
 [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md).
@@ -129,6 +138,12 @@ RESULT=PASS; completeness=COMPLETE; cases=4; assertions=6; failures=0; cleanup=P
 ```
 
 Run `ProjectExample.RunProjectExample` separately for the minimal consumer smoke.
+
+<!-- template:profile:library:start -->
+For the library reference, also run `TextTests.RunTextTests`; a passing run ends
+with `RESULT=PASS; completeness=COMPLETE; cases=26; assertions=123; failures=0;
+cleanup=PASS`. `TextExample.RunTextExample` is its consumer smoke.
+<!-- template:profile:library:end -->
 A generated project must replace these baseline expectations when it changes the
 starter contract.
 

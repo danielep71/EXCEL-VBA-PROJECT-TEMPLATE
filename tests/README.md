@@ -24,6 +24,18 @@ Success ends with:
 RESULT=PASS; completeness=COMPLETE; cases=4; assertions=6; failures=0; cleanup=PASS
 ```
 
+<!-- template:profile:library:start -->
+The library profile adds `modules/TextTests.bas`. Import it after `TextCore` and
+`TextFacade`, then run `TextTests.RunTextTests`. Its 26 cases and 123 assertions
+cover every supported `TextFacade` member: normal and boundary behavior, each
+documented invalid-argument rule with its number, source and description, the
+Windows and macOS path rules, and repeatability. Success ends with:
+
+```text
+RESULT=PASS; completeness=COMPLETE; cases=26; assertions=123; failures=0; cleanup=PASS
+```
+<!-- template:profile:library:end -->
+
 Any assertion, unexpected error, dirty start, incomplete execution, or cleanup
 failure is non-passing. The harness changes no Excel state; cleanup verifies its
 owned run flag and checks that calculation, display alerts, events and screen

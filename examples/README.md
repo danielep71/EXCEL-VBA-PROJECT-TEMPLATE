@@ -21,6 +21,14 @@ inputs and writes `ProjectRatio(12, 4) = 3` to the Immediate window. It does
 not read or mutate workbook, worksheet, selection, calculation, event, or UI
 state.
 
+<!-- template:profile:library:start -->
+The library profile adds `modules/TextExample.bas`. Run
+`TextExample.RunTextExample` after importing `TextCore` and `TextFacade`. It
+normalizes a label, cleans a list, joins a worksheet-shaped column, pads a code
+and builds a safe file path, printing six deterministic lines. Only the path
+line differs by platform, through its separator and file-name rules.
+<!-- template:profile:library:end -->
+
 Use `demo/` instead only when an interactive demo is itself a distinct project deliverable, an established public path must remain stable, or packaging automation requires that profile. Document the reason in the root README and do not maintain both `examples/` and `demo/` for the same purpose.
 
 Do not commit opaque generated workbooks here unless the repository's release policy explicitly treats them as reviewed source artifacts. Published binaries normally belong to GitHub Releases.

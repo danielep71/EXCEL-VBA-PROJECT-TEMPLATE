@@ -32,10 +32,13 @@ TOKEN_RE = re.compile(r"\s*(\(|\)|<>|=|-?\d+|[A-Za-z_]\w*)")
 # Microsoft documents Win32=True on both 32-bit and 64-bit development
 # platforms. Win64 is additionally True on 64-bit Office. VBA6 is modeled as
 # the legacy pre-VBA7 environment; VBA7 is modeled for both supported bitnesses.
+# Office for Mac 2016 and later is 64-bit VBA7 with Mac=True and neither
+# Windows constant set.
 ENVIRONMENTS: dict[str, dict[str, bool]] = {
-    "vba6-win32": {"VBA6": True, "VBA7": False, "WIN32": True, "WIN64": False},
-    "vba7-win32": {"VBA6": False, "VBA7": True, "WIN32": True, "WIN64": False},
-    "vba7-win64": {"VBA6": False, "VBA7": True, "WIN32": True, "WIN64": True},
+    "vba6-win32": {"VBA6": True, "VBA7": False, "WIN32": True, "WIN64": False, "MAC": False},
+    "vba7-win32": {"VBA6": False, "VBA7": True, "WIN32": True, "WIN64": False, "MAC": False},
+    "vba7-win64": {"VBA6": False, "VBA7": True, "WIN32": True, "WIN64": True, "MAC": False},
+    "vba7-mac64": {"VBA6": False, "VBA7": True, "WIN32": False, "WIN64": False, "MAC": True},
 }
 SUPPORTED_SYMBOLS = frozenset(next(iter(ENVIRONMENTS.values())))
 VBA7_ENVIRONMENTS = tuple(
@@ -142,7 +145,7 @@ class ExpressionParser:
         if upper not in SUPPORTED_SYMBOLS:
             raise ExpressionError(
                 f"unsupported conditional-compilation symbol {token!r}; "
-                "supported symbols are VBA6, VBA7, Win32, and Win64"
+                "supported symbols are VBA6, VBA7, Win32, Win64, and Mac"
             )
         return self.symbols[upper]
 
@@ -473,8 +476,9 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"- **Status:** {str(report['status']).upper()}",
         f"- **Components:** {report['components']}",
         f"- **Declare statements:** {report['declare_statements']}",
-        "- **Supported environments:** `vba6-win32`, `vba7-win32`, `vba7-win64`",
+        "- **Supported environments:** `vba6-win32`, `vba7-win32`, `vba7-win64`, `vba7-mac64`",
         "- **Win64 compatibility:** `Win32=True` and `Win64=True` in `vba7-win64`",
+        "- **Mac:** `Mac=True`, `VBA7=True`, `Win32=False` and `Win64=False` in `vba7-mac64`",
         f"- **Findings:** {len(report['findings'])}",
     ]
     if report["findings"]:
@@ -602,11 +606,33 @@ Option Explicit
 #End If
 ''',
         ),
-        "indeterminate-symbol": (
+        "mac-branches": (
+            "pass",
+            '''Attribute VB_Name = "Fixture"
+Option Explicit
+#If Mac Then
+    Private Declare PtrSafe Function MacClock Lib "libc.dylib" Alias "clock" () As LongPtr
+#ElseIf VBA7 Then
+    Private Declare PtrSafe Function WinTick Lib "kernel32" Alias "GetTickCount" () As Long
+#Else
+    Private Declare Function LegacyTick Lib "kernel32" Alias "GetTickCount" () As Long
+#End If
+''',
+        ),
+        "mac-nonptrsafe": (
             "fail",
             '''Attribute VB_Name = "Fixture"
 Option Explicit
 #If Mac Then
+    Private Declare Function MacClock Lib "libc.dylib" Alias "clock" () As Long
+#End If
+''',
+        ),
+        "indeterminate-symbol": (
+            "fail",
+            '''Attribute VB_Name = "Fixture"
+Option Explicit
+#If Win16 Then
     Private Declare Function Unknown Lib "kernel32" () As Long
 #End If
 ''',
@@ -648,6 +674,10 @@ Option Explicit
     if not any("vba7-win64" in item.get("environments", []) for item in reachable):
         failures.append("reachable-vba7-nonptrsafe: diagnostic omitted vba7-win64")
 
+    mac = reports["mac-nonptrsafe"]["findings"]
+    if [item.get("environments") for item in mac] != [["vba7-mac64"]]:
+        failures.append("mac-nonptrsafe: diagnostic did not name only vba7-mac64")
+
     ordering = reports["win32-before-win64"]["findings"]
     if not any("vba7-win64" in item.get("environments", []) for item in ordering):
         failures.append("win32-before-win64: Win32=True on Win64 was not modeled")
@@ -667,7 +697,7 @@ Option Explicit
         print(f"SELF-TEST FAIL: {len(failures)} failure(s).")
         return 1
     print(
-        "SELF-TEST PASS: nested VBA6/VBA7 and Win32/Win64 branches, ElseIf selection, "
+        "SELF-TEST PASS: nested VBA6/VBA7 and Win32/Win64 branches, Mac branches, ElseIf selection, "
         "PtrSafe reachability, inactive branches, Win32-on-Win64 semantics, boolean "
         "expressions, continued declares, indeterminate symbols, #Const rejection, and "
         "unbalanced directives passed."

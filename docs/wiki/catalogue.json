@@ -529,6 +529,11 @@
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
+    "examples/modules/TextExample.bas": {
+      "purpose": "Library-profile example that prints six deterministic text and path operations.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "examples/README.md": {
       "purpose": "Ownership and scope of reproducible usage examples.",
       "kind": "document",
@@ -569,8 +574,18 @@
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
+    "src/core/TextCore.bas": {
+      "purpose": "Library-profile text and path implementation with platform-specific path rules and the invalid-argument code.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "src/modules/ProjectFacade.bas": {
       "purpose": "Supported scalar ratio entry point and normalized caller-facing error source.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "src/modules/TextFacade.bas": {
+      "purpose": "Library-profile supported text and path API: fifteen declarations and a normalized error source.",
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
@@ -581,6 +596,11 @@
     },
     "tests/modules/ProjectTests.bas": {
       "purpose": "Four-case, six-assertion harness with host-state comparison and full reporting.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "tests/modules/TextTests.bas": {
+      "purpose": "Library-profile suite: 26 cases and 123 assertions over every supported TextFacade member.",
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },

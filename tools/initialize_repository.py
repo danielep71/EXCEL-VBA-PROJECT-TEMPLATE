@@ -1062,6 +1062,7 @@ def _make_component_variant(
         path = destination / relative
         path.unlink()
         placeholder = path.parent / "README.md"
+        directory = path.parent.relative_to(destination).as_posix()
         if not any(item.is_file() for item in path.parent.iterdir()):
             placeholder.write_text(
                 "# Fixture placeholder\n\n"
@@ -1069,10 +1070,10 @@ def _make_component_variant(
                 encoding="utf-8",
                 newline="\n",
             )
-        readme = readme.replace(
-            f"]({relative})",
-            f"]({path.parent.relative_to(destination).as_posix()}/README.md)",
-        )
+        # Link the placeholder when one exists; a directory that keeps other
+        # components (such as a profile-owned reference) is linked directly.
+        target = f"{directory}/README.md" if placeholder.is_file() else f"{directory}/"
+        readme = readme.replace(f"]({relative})", f"]({target})")
     readme_path.write_text(readme, encoding="utf-8", newline="\n")
     if "public" in removed_roles:
         config["vba"]["public_api_manifest"] = None

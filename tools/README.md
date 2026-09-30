@@ -226,19 +226,21 @@ broader rule cannot make a cross-procedure target green in CI.
 ## VBA conditional-compilation validation
 
 `check_vba_conditionals.py` is the authoritative hardening gate for reachable
-VBA `Declare` statements under the supported host model. It evaluates three
-explicit environments: `vba6-win32`, `vba7-win32`, and `vba7-win64`.
+VBA `Declare` statements under the supported host model. It evaluates four
+explicit environments: `vba6-win32`, `vba7-win32`, `vba7-win64`, and
+`vba7-mac64` (Office for Mac 2016 and later: `Mac` and `VBA7` true, `Win32` and
+`Win64` false).
 
 The checker maintains a full nested conditional stack containing parent
 activity, branch selection, current activity, and `#Else` state. It evaluates
 `#If`, `#ElseIf`, `#Else`, and `#End If` consistently, so inactive descendants
 cannot accidentally become active when an outer branch is false. Supported
-expressions use `VBA6`, `VBA7`, `Win32`, `Win64`, Boolean literals, integer
+expressions use `VBA6`, `VBA7`, `Win32`, `Win64`, `Mac`, Boolean literals, integer
 literals, parentheses, `Not`, `And`, `Or`, `=`, and `<>`.
 
 The boundary is deliberately conservative:
 
-- every `Declare` reachable in either supported VBA7 environment must include
+- every `Declare` reachable in any supported VBA7 environment must include
   `PtrSafe`;
 - VBA6-only declarations may retain legacy syntax;
 - unknown or project-defined symbols fail closed rather than being guessed;
