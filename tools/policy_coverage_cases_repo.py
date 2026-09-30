@@ -4,7 +4,14 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from policy_coverage_core import Case, add_force, case_registrar, mutate_config
+from policy_coverage_core import (
+    Case,
+    add_force,
+    case_registrar,
+    mutate_config,
+    register_variant,
+    template_governance,
+)
 
 
 def _required_and_placeholder_cases(module: ModuleType) -> list[Case]:
@@ -15,6 +22,7 @@ def _required_and_placeholder_cases(module: ModuleType) -> list[Case]:
             mode="template",
             profile=None,
             repository="example/TEMPLATE-IDENTITY",
+            governance_tiers=template_governance(),
         )
 
     case = case_registrar(cases)
@@ -159,6 +167,11 @@ def _markdown_and_text_cases(module: ModuleType) -> list[Case]:
         module.write_fixture(
             root / "README.md", "# Fixture\n\n[Bad anchor](docs/DETAILS.md#missing)\n"
         )
+
+    @case("markdown-variant-location", "markdown-links", "escapes the repository")
+    def _(root: Path) -> None:
+        text = "# Variant\n\n[Details](../../../docs/DETAILS.md)\n"
+        register_variant(module, root, "README.md", ".github/governance/minimal/README.md", text)
 
     @case("text-nul", "text-integrity", "NUL byte")
     def _(root: Path) -> None:

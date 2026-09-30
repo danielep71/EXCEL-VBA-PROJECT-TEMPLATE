@@ -5,10 +5,18 @@
 [![Dates: cut%2Ffreeze](https://img.shields.io/badge/dates-cut%2Ffreeze-217346)](../CHANGELOG.md#date-and-version-rules)
 [![Gate: fail closed](https://img.shields.io/badge/gate-fail%20closed-success)](../tools/check_release_semantics.py)
 
+<!-- template:tier:full:start -->
 This document defines release-only version and changelog semantics for the
 canonical template and initialized repositories. The generic repository checker
 keeps only broad structural checks; release correctness is enforced separately
 by `tools/check_release_semantics.py` and `tools/check_release.py`.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+This document defines release-only version and changelog semantics for
+initialized repositories. The generic repository checker keeps only broad
+structural checks; release correctness is enforced separately by
+`tools/check_release_semantics.py`.
+<!-- template:tier:minimal:end -->
 
 ## SemVer contract
 

@@ -110,6 +110,8 @@ def inventory(root: Path, data: dict[str, Any], files: set[str]) -> str:
            'T = transformed; X = removed. Values come from the actual initializer dry run with its',
            'standard synthetic values. Supplying optional/repeatable values changes rendered text.',
            'The optional `assets/social-preview.png` is retained when selected; otherwise removed.',
+           'Columns show the default full governance tier; the minimal tier also removes or replaces',
+           'the paths listed under [Governance Tiers](../INITIALIZATION.md#governance-tiers).',
            'An untracked directory is not a Git artifact. Directory retention follows its children.', '',
            '## Editing and validation rules by kind', '',
            '| Kind / owner | When to edit | Invariants and unsafe edits | Validation |',

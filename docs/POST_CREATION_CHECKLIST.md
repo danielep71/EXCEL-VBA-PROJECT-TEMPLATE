@@ -147,9 +147,14 @@ new releases. `RELEASING.md` and the pre-tag release gate therefore own creation
 authorization; the ruleset makes every matching tag immutable after creation.
 Do not create the first stable tag until the release gate, selected-profile
 pilot or equivalent deployment proof, and exact-SHA Excel evidence are
+<!-- template:tier:full:start -->
 complete. The canonical template itself additionally requires all three
 generated-profile pilots. Follow the
 [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) contract for the final candidate.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+complete. Follow [`RELEASING.md`](../RELEASING.md) for the final candidate.
+<!-- template:tier:minimal:end -->
 
 ## 7. 🧩 Profile-Specific Controls
 

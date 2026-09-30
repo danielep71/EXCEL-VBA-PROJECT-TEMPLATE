@@ -156,7 +156,15 @@ Verify CRLF working-tree exports and clean whitespace. These checks confirm
 source contracts; they do not execute Excel or prove VBE importability by
 themselves.
 
+<!-- template:tier:full:start -->
 For changed VBA exports, retain host compile/regression evidence for the actual
 candidate using the [Excel evidence guidance](EXCEL_EVIDENCE.md). A complete
 successful suite run establishes that the exercised code compiled; do not
 relabel an earlier source revision's test output as a new execution.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+For changed VBA exports, compile the project and run the regression suite on the
+actual candidate as described in [`tests/README.md`](../tests/README.md). A
+complete successful suite run establishes that the exercised code compiled; do
+not relabel an earlier source revision's test output as a new execution.
+<!-- template:tier:minimal:end -->

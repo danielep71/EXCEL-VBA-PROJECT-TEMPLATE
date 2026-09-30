@@ -4,7 +4,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable
 
-from policy_coverage_core import Case, mutate_config
+from policy_coverage_core import Case, mutate_config, template_governance
 
 Mutation = Callable[[dict[str, Any]], None]
 
@@ -62,6 +62,22 @@ def _root_and_profile_cases(module: ModuleType) -> list[Case]:
                 label_domains=["domain"],
             ),
             "Template mode requires label_domains",
+        ),
+        ("config-generated-governance", _assign(governance_tier="full"), "Generated mode records at most governance_tier"),
+        (
+            "config-governance-default",
+            _assign(mode="template", profile=None, repository="example/TEMPLATE-IDENTITY",
+                    governance_tiers={**template_governance(), "default": "minimal"}),
+            "full as the default",
+        ),
+        (
+            "config-governance-tier-shape",
+            _assign(mode="template", profile=None, repository="example/TEMPLATE-IDENTITY",
+                    governance_tiers={"default": "full", "tiers": {
+                        **template_governance()["tiers"],
+                        "minimal": {"description": " ", "remove_paths": [], "replace_paths": {}},
+                    }}),
+            "governance_tiers.tiers.minimal needs a description",
         ),
         ("config-profiles-shape", lambda d: d.__setitem__("profiles", {}), "profiles must contain exactly"),
         ("config-profile-entry-shape", lambda d: d["profiles"]["library"].__setitem__("extra", True), "required_paths, required_directories"),

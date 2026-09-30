@@ -26,11 +26,19 @@ TEMPLATE INSTRUCTIONS
 
 ---
 
+<!-- template:tier:full:start -->
 This document is authoritative for **vulnerability scope, private reporting,
 security triage, coordinated disclosure and safe harbor**. Contribution workflow
 is owned by [`CONTRIBUTING.md`](CONTRIBUTING.md); release sequence and provenance
 are owned by [`RELEASING.md`](RELEASING.md) and
 [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+This document is authoritative for **vulnerability scope, private reporting,
+security triage, coordinated disclosure and safe harbor**. Contribution workflow
+is owned by [`CONTRIBUTING.md`](CONTRIBUTING.md); the release sequence is owned
+by [`RELEASING.md`](RELEASING.md).
+<!-- template:tier:minimal:end -->
 
 > [!IMPORTANT]
 > A security policy does not make macros, workbooks, add-ins or release artifacts
@@ -193,10 +201,17 @@ pull-request code and be rotated after suspected exposure.
 
 ## 📦 Supply-chain boundary
 
+<!-- template:tier:full:start -->
 Trusted distribution is limited to the official repository and its published
 releases. Release actions, evidence schemas, checksums and tag-binding rules are
 **not duplicated here**; maintainers must follow [`RELEASING.md`](RELEASING.md)
 and [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+Trusted distribution is limited to the official repository and its published
+releases. Release actions and tag-binding rules are **not duplicated here**;
+maintainers must follow [`RELEASING.md`](RELEASING.md).
+<!-- template:tier:minimal:end -->
 
 Security-sensitive workflow changes require least-privilege permissions,
 immutable dependency pins and explicit review. Do not run untrusted code on a
