@@ -135,6 +135,13 @@ Use only the categories needed by a release.
   both tiers, with and without a social preview (12 jobs). Each minimal job
   lints its generated workflows, runs the four gates, then upgrades in place and
   re-verifies the result as a full-tier project (#90).
+- Profile-owned components. `profiles.<profile>.owned_paths` names files that
+  only that profile generates. The initializer deletes other profiles' owned
+  files with their component entries and public-API manifest rows, and prunes
+  documentation lines that referenced only them. The canonical gate requires
+  every owned file in the template, rejects a file owned by two profiles, and
+  rejects a generated repository that still lists another profile's files
+  (#86).
 
 ### Changed
 

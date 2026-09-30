@@ -91,6 +91,7 @@
         "src/workbook",
         "tests/modules"
       ],
+      "owned_paths": [],
       "vba_contract": {
         "minimum_roles": {
           "internal": 1,
@@ -113,6 +114,7 @@
         "src/modules",
         "tests/modules"
       ],
+      "owned_paths": [],
       "vba_contract": {
         "minimum_roles": {
           "internal": 1,
@@ -136,6 +138,7 @@
         "src/modules",
         "tests/modules"
       ],
+      "owned_paths": [],
       "vba_contract": {
         "minimum_roles": {
           "internal": 1,

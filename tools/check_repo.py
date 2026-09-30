@@ -372,14 +372,15 @@ def _validated_required_components(
 def _validate_profile_contract(
     name: str, entry: object, failures: list[dict[str, Any]]
 ) -> None:
-    if not _same_keys(entry, {"required_paths", "required_directories", "vba_contract"}):
+    if not _same_keys(entry, {"required_paths", "required_directories", "owned_paths", "vba_contract"}):
         failures.append(finding(
             CONFIG_PATH,
-            f"profiles.{name} must contain exactly required_paths, required_directories, and vba_contract.",
+            f"profiles.{name} must contain exactly required_paths, required_directories, owned_paths, and vba_contract.",
         ))
         return
     assert isinstance(entry, dict)
     _string_list(entry.get("required_paths"), f"profiles.{name}.required_paths", failures, paths=True)
+    _string_list(entry.get("owned_paths"), f"profiles.{name}.owned_paths", failures, paths=True)
     _string_list(entry.get("required_directories"), f"profiles.{name}.required_directories", failures, paths=True)
     contract = entry.get("vba_contract")
     field = f"profiles.{name}.vba_contract"
@@ -404,6 +405,22 @@ def _validate_profiles(document: dict[str, Any], failures: list[dict[str, Any]])
         return
     for name in SUPPORTED_PROFILES:
         _validate_profile_contract(name, profiles[name], failures)
+    _validate_owned_paths(document, profiles, failures)
+
+
+def _validate_owned_paths(
+    document: dict[str, Any], profiles: dict[str, Any], failures: list[dict[str, Any]]
+) -> None:
+    """Profile-owned paths belong to one profile; a generated repository keeps only its own."""
+    owners: dict[str, str] = {}
+    for name in SUPPORTED_PROFILES:
+        owned = profiles[name].get("owned_paths") if isinstance(profiles[name], dict) else None
+        for path in owned if isinstance(owned, list) else []:
+            if path in owners:
+                failures.append(finding(CONFIG_PATH, f"{path} is owned by both profiles.{owners[path]} and profiles.{name}."))
+            owners[path] = name
+            if document.get("mode") == "generated" and name != document.get("profile"):
+                failures.append(finding(CONFIG_PATH, f"Generated mode retains {path}, owned by unselected profile {name}."))
 
 
 def _validate_placeholder_spec(
@@ -652,6 +669,10 @@ def _effective_requirements(
         profile = config["profiles"][config["profile"]]
         paths.extend(profile["required_paths"])
         directories.extend(profile["required_directories"])
+    else:
+        # The template must carry every profile's owned components.
+        for profile in config["profiles"].values():
+            paths.extend(profile["owned_paths"])
     return (
         sorted(set(paths), key=lambda item: (item.casefold(), item)),
         sorted(set(directories), key=lambda item: (item.casefold(), item)),
@@ -2913,6 +2934,7 @@ def _fixture_configuration() -> dict[str, Any]:
             "application": {
                 "required_paths": [],
                 "required_directories": [],
+                "owned_paths": [],
                 "vba_contract": {
                     "minimum_roles": {"internal": 1, "public": 1, "test": 1},
                     "required_components": {
@@ -2925,6 +2947,7 @@ def _fixture_configuration() -> dict[str, Any]:
             "library": {
                 "required_paths": [],
                 "required_directories": ["src/core", "src/modules", "tests/modules"],
+                "owned_paths": [],
                 "vba_contract": {
                     "minimum_roles": {"internal": 1, "public": 1, "test": 1},
                     "required_components": {
@@ -2937,6 +2960,7 @@ def _fixture_configuration() -> dict[str, Any]:
             "ui-component": {
                 "required_paths": [],
                 "required_directories": [],
+                "owned_paths": [],
                 "vba_contract": {
                     "minimum_roles": {"internal": 1, "public": 1, "test": 1},
                     "required_components": {
