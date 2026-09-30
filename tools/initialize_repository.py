@@ -10,7 +10,9 @@ filesystem failures trigger a rollback attempt, not a repository-wide transactio
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
+import io
 import json
 import os
 import posixpath
@@ -761,6 +763,127 @@ def _plan(
     }
 
 
+def _rendered_tree(
+    template: Path, profile: str, scalars: list[str], repeatable: list[str], tier: str
+) -> dict[str, bytes]:
+    """Render a generation in memory: the template's files with its planned changes applied."""
+    changes, _ = build_changes(template, profile, scalars, repeatable, tier)
+    tree = {path: (template / path).read_bytes() for path in _tracked_files(template)}
+    for path, after in changes.items():
+        if after is None:
+            tree.pop(path, None)
+        else:
+            tree[path] = after
+    return tree
+
+
+def _merge_text(path: str, current: bytes, base: bytes, target: bytes) -> bytes | None:
+    """Three-way merge one text file; None when the adopter's change conflicts."""
+    with tempfile.TemporaryDirectory(prefix="initializer-upgrade-") as temporary:
+        names = []
+        for label, data in (("project", current), ("minimal", base), ("full", target)):
+            file = Path(temporary) / label
+            file.write_bytes(data)
+            names.append(str(file))
+        merged = subprocess.run(
+            ["git", "merge-file", "-p", "--quiet", *names],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+    if not 0 <= merged.returncode <= 127:
+        raise InitializationError(f"git merge-file could not merge {path}.")
+    if merged.returncode or path.endswith(".json") and not _is_json(merged.stdout):
+        return None
+    return merged.stdout
+
+
+def _is_json(data: bytes) -> bool:
+    try:
+        json.loads(data.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError):
+        return False
+    return True
+
+
+def _upgrade_file(
+    path: str, current: bytes | None, base: bytes | None, target: bytes
+) -> tuple[str, bytes | None]:
+    """Classify one target-tier file against the project and its minimal baseline."""
+    if current == target or current is not None and base == target:
+        return "unchanged", None
+    if current is None:
+        return ("add", target) if base is None else ("adopter-deleted", None)
+    if current == base:
+        return "replace", target
+    merged = _merge_text(path, current, base, target) if base is not None and _is_text(path) else None
+    return ("conflict", None) if merged is None else ("merge", merged)
+
+
+def _upgrade_source(template: Path, root: Path, tier: str) -> tuple[str, str, list[str], list[str]]:
+    """Validate an upgrade request; return the recorded tier and inputs."""
+    config = _load_config(root)
+    recorded = config.get("governance_tier", DEFAULT_TIER)
+    if config.get("mode") != "generated":
+        raise InitializationError("--upgrade-tier applies only to a generated repository.")
+    if recorded != tier and (recorded, tier) != ("minimal", "full"):
+        raise InitializationError("Only a minimal-tier repository can be upgraded, and only to the full tier.")
+    template_config = _load_config(template)
+    if template_config.get("mode") != "template":
+        raise InitializationError("The upgrade must run from a template checkout.")
+    if template_config.get("template_contract") != config.get("template_contract"):
+        raise InitializationError(
+            "The template checkout is at a different template_contract; upgrade from a checkout "
+            "at the project's recorded contract."
+        )
+    try:
+        profile, scalars, repeatable = _record_arguments(root)
+    except AssertionError as error:
+        raise InitializationError(str(error)) from error
+    return recorded, profile, scalars, repeatable
+
+
+def upgrade_changes(template: Path, root: Path, tier: str) -> dict[str, Any]:
+    """Plan the in-place upgrade of a minimal-tier project to ``tier``.
+
+    Adds target-tier files, replaces a file the project has not changed since
+    minimal generation, three-way merges adopter-changed text and never deletes.
+    A conflict leaves the plan with no writable changes.
+    """
+    recorded, profile, scalars, repeatable = _upgrade_source(template, root, tier)
+    files: dict[str, str] = {}
+    changes: dict[str, bytes | None] = {}
+    if recorded != tier:
+        base = _rendered_tree(template, profile, scalars, repeatable, recorded)
+        for path, target in sorted(_rendered_tree(template, profile, scalars, repeatable, tier).items()):
+            current = (root / path).read_bytes() if (root / path).is_file() else None
+            action, output = _upgrade_file(path, current, base.get(path), target)
+            if action != "unchanged":
+                files[path] = action
+            if output is not None:
+                changes[path] = output
+    conflicts = sorted(path for path, action in files.items() if action == "conflict")
+    entries = [
+        {
+            "action": action,
+            "path": path,
+            "before_sha256": _sha256((root / path).read_bytes() if (root / path).is_file() else None),
+            "after_sha256": _sha256(changes.get(path)),
+        }
+        for path, action in files.items()
+    ]
+    return {
+        "schema_version": 1,
+        "status": "conflict" if conflicts else ("ready" if changes else "no-op"),
+        "mode": "dry-run",
+        "profile": profile,
+        "upgrade": {"from": recorded, "to": tier},
+        "conflicts": conflicts,
+        "changes": entries,
+        "writes": {} if conflicts else changes,
+    }
+
+
 # Mode policy for files the initializer writes. New files get owner read/write
 # and read for everyone else (0644). A replaced file keeps its permission bits,
 # including executable and stricter owner-only modes, but group/world write and
@@ -1347,6 +1470,98 @@ def _assert_minimal_tier(source: Path, base: Path, profile: str) -> None:
     print(f"[PASS] {label}: tier plan, recording, idempotence, tier-change refusal, cleanup, no orphan references, and all four gates")
 
 
+def _generated_copy(base: Path, profile: str, name: str) -> Path:
+    """Copy the committed minimal fixture, history included, for one upgrade scenario."""
+    fixture = base / f"{profile}-{name}"
+    shutil.copytree(base / f"{profile}-minimal", fixture)
+    return fixture
+
+
+def _commit_fixture(root: Path, message: str) -> None:
+    _git(root, "add", "--all")
+    _git(root, "commit", "-m", message)
+
+
+def _quiet_main(arguments: list[str]) -> int:
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        return main(arguments)
+
+
+def _assert_clean_upgrade(source: Path, base: Path, profile: str, full: dict[str, bytes]) -> None:
+    """An unedited minimal project upgrades to exactly the direct full-tier generation."""
+    label = f"{profile}/upgrade"
+    fixture = _generated_copy(base, profile, "upgrade")
+    plan = upgrade_changes(source, fixture, DEFAULT_TIER)
+    actions = {entry["action"] for entry in plan["changes"]}
+    if plan["status"] != "ready" or plan["upgrade"] != {"from": "minimal", "to": "full"} or not actions <= {"add", "replace"}:
+        raise AssertionError(f"{label} planned an unexpected upgrade: {plan['status']} {sorted(actions)}")
+    if _quiet_main(["--root", str(fixture), "--upgrade-tier", "full", "--apply"]) != 0:
+        raise AssertionError(f"{label} command-line upgrade failed.")
+    upgraded = set(_git(fixture, "ls-files", "--cached", "--others", "--exclude-standard").stdout.splitlines())
+    if upgraded != set(full) or any((fixture / path).read_bytes() != data for path, data in full.items()):
+        raise AssertionError(f"{label} differs from the direct full-tier generation.")
+    _assert_tier_recorded(fixture, DEFAULT_TIER, label)
+    _commit_fixture(fixture, "Upgrade to the full tier")
+    if upgrade_changes(source, fixture, DEFAULT_TIER)["status"] != "no-op":
+        raise AssertionError(f"{label} second upgrade was not a no-op.")
+
+
+def _assert_upgrade_merge_and_conflict(source: Path, base: Path, profile: str, full: dict[str, bytes]) -> None:
+    """Adopter edits merge when they do not overlap a tier change and stop the upgrade when they do."""
+    label = f"{profile}/upgrade"
+    note = b"\nAdopter note.\n"
+    merged = _generated_copy(base, profile, "upgrade-merge")
+    (merged / "README.md").write_bytes((merged / "README.md").read_bytes() + note)
+    (merged / "docs/VBA_HOUSE_STYLE.md").unlink()
+    _commit_fixture(merged, "Adopter README note and removed style guide")
+    plan = upgrade_changes(source, merged, DEFAULT_TIER)
+    actions = {entry["path"]: entry["action"] for entry in plan["changes"]}
+    if plan["status"] != "ready" or actions.get("README.md") != "merge" or plan["writes"]["README.md"] != full["README.md"] + note:
+        raise AssertionError(f"{label} did not merge a non-overlapping adopter edit.")
+    if actions.get("docs/VBA_HOUSE_STYLE.md") != "adopter-deleted" or "docs/VBA_HOUSE_STYLE.md" in plan["writes"]:
+        raise AssertionError(f"{label} restored a file the adopter deleted.")
+    conflict = _generated_copy(base, profile, "upgrade-conflict")
+    (conflict / "RELEASING.md").write_text("# Adopter release guide\n", encoding="utf-8")
+    _commit_fixture(conflict, "Adopter release guide")
+    before = _tree_digest(conflict)
+    plan = upgrade_changes(source, conflict, DEFAULT_TIER)
+    if plan["status"] != "conflict" or plan["conflicts"] != ["RELEASING.md"] or plan["writes"]:
+        raise AssertionError(f"{label} did not stop on a conflicting adopter edit: {plan['conflicts']}")
+    if _quiet_main(["--root", str(conflict), "--upgrade-tier", "full", "--apply"]) != 2 or _tree_digest(conflict) != before:
+        raise AssertionError(f"{label} wrote files despite a conflict.")
+
+
+def _assert_upgrade_refusals(source: Path, base: Path, profile: str) -> None:
+    """Upgrades refuse a template repository, another contract, a dirty tree and explicit inputs."""
+    label = f"{profile}/upgrade"
+    other = _generated_copy(base, profile, "upgrade-contract")
+    config = json.loads((other / CONFIG_PATH).read_text(encoding="utf-8"))
+    config["template_contract"]["version"] = "1.1.0"
+    (other / CONFIG_PATH).write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    for root, fragment in ((source, "only to a generated repository"), (other, "different template_contract")):
+        try:
+            upgrade_changes(source, root, DEFAULT_TIER)
+        except InitializationError as error:
+            if fragment not in str(error):
+                raise AssertionError(f"{label} refused for the wrong reason: {error}") from error
+        else:
+            raise AssertionError(f"{label} accepted an upgrade that should be refused ({fragment}).")
+    minimal = str(base / f"{profile}-minimal")
+    for arguments in (["--root", str(other), "--upgrade-tier", "full"],
+                      ["--root", minimal, "--upgrade-tier", "full", "--profile", profile]):
+        if _quiet_main(arguments) != 2:
+            raise AssertionError(f"{label} accepted {' '.join(arguments[2:])} on an unsuitable tree.")
+
+
+def _assert_tier_upgrade(source: Path, base: Path, profile: str) -> None:
+    scalars, repeatable = fixture_arguments(profile)
+    full = _rendered_tree(source, profile, scalars, repeatable, DEFAULT_TIER)
+    _assert_clean_upgrade(source, base, profile, full)
+    _assert_upgrade_merge_and_conflict(source, base, profile, full)
+    _assert_upgrade_refusals(source, base, profile)
+    print(f"[PASS] {profile}/upgrade: exact full-tier result, idempotence, adopter merge, adopter deletion kept, conflict stop, and refusals")
+
+
 def self_test(source: Path) -> None:
     if _load_config(source).get("mode") == "generated":
         _generated_self_test(source)
@@ -1524,8 +1739,9 @@ def self_test(source: Path) -> None:
                 "mandatory-component removals, optional-component absence, and quality evidence"
             )
             _assert_minimal_tier(source, base, profile)
+            _assert_tier_upgrade(source, base, profile)
     print(
-        f"PASS: {len(SUPPORTED_PROFILES)} profile fixtures initialized in both governance tiers; "
+        f"PASS: {len(SUPPORTED_PROFILES)} profile fixtures initialized in both governance tiers and upgraded in place; "
         "12 mandatory/README-only removals rejected and 3 optional removals accepted."
     )
 
@@ -1538,11 +1754,35 @@ def build_parser() -> argparse.ArgumentParser:
         "--governance-tier", choices=GOVERNANCE_TIERS, default=DEFAULT_TIER,
         help="Generated tooling weight: full (default, complete lifecycle) or minimal.",
     )
+    parser.add_argument(
+        "--upgrade-tier", choices=("full",),
+        help="Upgrade a generated minimal-tier repository in place, from a template checkout.",
+    )
     parser.add_argument("--set", dest="scalar_entries", action="append", default=[], metavar="NAME=value")
     parser.add_argument("--add", dest="repeatable_entries", action="append", default=[], metavar="NAME=value")
     parser.add_argument("--apply", action="store_true", help="Apply the validated plan; dry-run is default.")
     parser.add_argument("--self-test", action="store_true", help="Exercise all profile and failure fixtures.")
     return parser
+
+
+def _run_upgrade(root: Path, tier: str, apply: bool) -> int:
+    """Plan, and with --apply write, an in-place tier upgrade; conflicts write nothing."""
+    status = _git(root, "status", "--porcelain", check=False)
+    if status.returncode != 0 or status.stdout:
+        raise InitializationError("--root must be a clean Git working tree before an upgrade.")
+    plan = upgrade_changes(Path(__file__).resolve().parents[1], root, tier)
+    writes = plan.pop("writes")
+    if plan["conflicts"]:
+        print(json.dumps(plan, indent=2, ensure_ascii=False))
+        raise InitializationError(
+            "Adopter changes conflict with the full tier; nothing was written: " + ", ".join(plan["conflicts"])
+        )
+    if apply:
+        apply_changes(root, writes)
+        plan["mode"] = "apply"
+        plan["status"] = "applied" if writes else "no-op"
+    print(json.dumps(plan, indent=2, ensure_ascii=False))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1552,6 +1792,10 @@ def main(argv: list[str] | None = None) -> int:
         if arguments.self_test:
             self_test(root)
             return 0
+        if arguments.upgrade_tier:
+            if arguments.profile or arguments.scalar_entries or arguments.repeatable_entries:
+                raise InitializationError("--upgrade-tier reads the recorded inputs; omit --profile, --set and --add.")
+            return _run_upgrade(root, arguments.upgrade_tier, arguments.apply)
         if arguments.profile is None:
             raise InitializationError("--profile is required unless --self-test is used.")
         status = _git(root, "status", "--porcelain", check=False)

@@ -408,7 +408,10 @@ mode to one explicit profile. It validates the complete substitution set,
 defaults to a deterministic dry-run, applies only with `--apply`, removes
 non-applicable/template-only content, resets inherited changelog history, and
 resets the generated version to the `0.0.0` sentinel, and supports an idempotent
-second run.
+second run. `--governance-tier minimal` generates the lighter tier, and
+`--upgrade-tier full`, run from a template checkout, upgrades a minimal project
+in place without overwriting adopter changes; see
+[governance tiers](../docs/INITIALIZATION.md#governance-tiers).
 
 See [`docs/INITIALIZATION.md`](../docs/INITIALIZATION.md) for the token catalogue,
 profile commands, optional and repeatable values, and the transparent manual

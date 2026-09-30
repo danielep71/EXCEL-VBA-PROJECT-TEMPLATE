@@ -111,7 +111,7 @@ Use only the categories needed by a release.
   documentation drift and external-link checks, local-action validation, label
   automation, Scorecard, Ruff/mypy and the initializer stay in the default
   `full` tier. A minimal project retains 6 Python files (6,808 lines) instead of
-  22 (17,971 lines), and 49–51 tracked files instead of 87–89, depending on the
+  22 (18,215 lines), and 49–51 tracked files instead of 87–89, depending on the
   profile. The tier is recorded as `"governance_tier": "minimal"` in the
   generated profile and initialization record; `full` is never recorded, so
   existing generated repositories are unaffected. Documentation shared by both
@@ -125,7 +125,13 @@ Use only the categories needed by a release.
   the minimal tier keeps. The tier narrows the recorded contract's rule set and
   changes no published rule set, so the contract version stays `1.2.0`; an
   evaluator that predates tiers reports the omitted controls as drift, never as
-  a pass (#90).
+  a pass. `initialize_repository.py --upgrade-tier full`, run from a template
+  checkout at the project's recorded contract, upgrades a minimal project in
+  place from its recorded inputs. It adds full-tier files, replaces files still
+  at their minimal version, three-way merges adopter edits that do not overlap a
+  tier difference, keeps adopter deletions and never deletes. Any conflict
+  stops it before writing. An unedited project upgrades to exactly the direct
+  full-tier result (#90).
 
 ### Changed
 
