@@ -12,7 +12,7 @@ from unittest.mock import patch
 import check_portfolio_drift as drift
 import collect_portfolio_snapshot as capture
 import report_portfolio_quality as quality
-from test_portfolio_drift import fixture
+from test_portfolio_drift import fixture, minimal_fixture
 
 NOW = "2026-09-09T12:00:00Z"
 
@@ -43,6 +43,18 @@ class ReportTests(unittest.TestCase):
         report = self.report()
         self.assertEqual(report["status"], "pass")
         self.assertEqual(report["repositories"][0]["certification"], "NOT_ASSESSED")
+
+    def test_governance_tier_recorded_and_not_applicable_passes(self) -> None:
+        self.assertEqual(self.report()["repositories"][0]["recorded_governance_tier"], "full")
+        data = minimal_fixture()
+        data["repositories"][0].update(unavailable={}, quality=copy.deepcopy(self.repo["quality"]))
+        report = quality.build_report(data, NOW)
+        repo = report["repositories"][0]
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(repo["recorded_governance_tier"], "minimal")
+        conformance = next(row for row in repo["dimensions"] if row["dimension"] == "structural-conformance")
+        self.assertEqual(conformance["status"], "PASS")
+        self.assertIn("Governance tier: minimal", quality.markdown_report(report))
 
     def test_seven_repositories_and_missing_adoption(self) -> None:
         self.repo["files"].pop(drift.CONFIG)

@@ -23,6 +23,24 @@ Missing adoption is `ADOPT`; unavailable content or an unsupported version is
 profile or baseline. Their live governance remains unscored. This is expected
 for established repositories that have not adopted the new template.
 
+<a id="governance-tiers"></a>
+
+### Governance tiers
+
+A recorded `"governance_tier": "minimal"` narrows the recorded version's rule
+set; it never adds rules or substitutes another version. Rules in the minimal
+entry of `TIER_EXCLUDED_RULES` (`advanced-release-provenance`,
+`committed-whitespace`, `deterministic-initializer`, `documentation-drift`,
+`label-drift-detection`, `repository-local-actions`) are `NOT_APPLICABLE` with
+decision `NOT APPLICABLE`. `release-integrity` requires `RELEASING.md`, `VERSION`
+and `CHANGELOG.md` without a release policy, and `template-contract-version`
+requires the contract authority without its checker. Every other rule, and the
+whole universal floor, applies unchanged. Without a recorded tier the full rule
+set applies; an explicit `full` or any other value is `UNVERIFIED`. An evaluator
+that predates governance tiers reports a minimal project's omitted controls as
+`DRIFT`, never as `PASS`; evaluate with a template commit that supports tiers.
+See [governance tiers](INITIALIZATION.md#governance-tiers).
+
 <a id="decisions"></a>
 
 ## ⚖️ Decisions and observations are separate
@@ -33,7 +51,7 @@ for established repositories that have not adopted the new template.
 | `ADOPT` | Adoption needs a maintainer decision; the tool assigns nothing |
 | `KEEP` | Preserve the documented local control; not a waiver of universal controls |
 | `DEFER` | Record a postponement while retaining the observed finding |
-| `NOT APPLICABLE` | Only for an optional profile-specific control; never a universal waiver |
+| `NOT APPLICABLE` | Only for an optional profile-specific control or a control the recorded governance tier omits; never a universal waiver |
 
 Observations are `PASS`, `DRIFT`, `UNVERIFIED` or `NOT_APPLICABLE`. A `PASS` means
 the documented **structural predicate below** passed, not that the named checker

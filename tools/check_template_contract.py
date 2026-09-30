@@ -91,6 +91,24 @@ CONTRACT_RULE_SETS: dict[str, frozenset[str]] = {
 }
 SUPPORTED_VERSIONS = tuple(sorted(CONTRACT_RULE_SETS))
 
+# A governance tier narrows, never extends, the recorded version's rule set.
+# The full tier (the default, never recorded) applies every rule; the minimal
+# tier omits the controls whose tooling it does not generate. Conformance
+# reports these as not applicable rather than missing.
+TIER_EXCLUDED_RULES: dict[str, frozenset[str]] = {
+    "full": frozenset(),
+    "minimal": frozenset(
+        {
+            "advanced-release-provenance",
+            "committed-whitespace",
+            "deterministic-initializer",
+            "documentation-drift",
+            "label-drift-detection",
+            "repository-local-actions",
+        }
+    ),
+}
+
 
 class ContractError(RuntimeError):
     """The gate could not complete: unreadable or unparsable input."""
