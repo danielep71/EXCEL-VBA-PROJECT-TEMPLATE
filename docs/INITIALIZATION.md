@@ -224,6 +224,10 @@ An applied initialization:
   checker-development and semantic policy-coverage tooling is deliberately in
   that set, while operational repository/release/VBA gates remain in generated
   projects;
+- deletes the files other profiles list under `profiles.<profile>.owned_paths`,
+  together with their `vba.components` entries and public-API manifest rows,
+  and prunes documentation lines that referenced only those files; the selected
+  profile keeps its own reference components, which remain optional to retain;
 - resets the changelog's `Unreleased` section so template-construction history
   is not attributed to the generated project;
 - resets `VERSION` to the `0.0.0` development sentinel;

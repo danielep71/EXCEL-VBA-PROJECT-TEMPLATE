@@ -513,10 +513,39 @@ def _tier_selection(
     return removed, replaced
 
 
+def _profile_selection(config: dict[str, Any], tracked: set[str], profile: str) -> set[str]:
+    """The paths other profiles own; the selected profile keeps only its own."""
+    removed = {
+        path
+        for name, settings in config["profiles"].items()
+        if name != profile
+        for path in settings.get("owned_paths", [])
+    }
+    untracked = sorted(removed - tracked)
+    if untracked:
+        raise InitializationError("Profile-owned paths are not tracked: " + ", ".join(untracked))
+    return removed
+
+
+def _filter_api_manifest(text: str, removed: set[str]) -> str:
+    """Drop manifest rows for public components that initialization removes."""
+    components = {PurePosixPath(path).stem for path in removed if PurePosixPath(path).suffix.casefold() in VBA_SUFFIXES}
+    kept = []
+    for line in text.splitlines(keepends=True):
+        fields = line.rstrip("\r\n").split("\t")
+        if line.startswith("# SIG\t"):
+            component = fields[1] if len(fields) > 1 else None
+        else:
+            component = None if line.startswith("#") else fields[0]
+        if component not in components:
+            kept.append(line)
+    return "".join(kept)
+
+
 _MARKDOWN_LINK = re.compile(r"\]\(([^)\s#]+)(?:#[^)]*)?\)")
 # A code span names a repository file only when it ends in a file extension;
 # ``owner/repo`` identifiers and directory prefixes are not paths.
-_CODE_PATH = re.compile(r"`((?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(?:py|md|json|yml|yaml|toml|txt|mjs|sh))`")
+_CODE_PATH = re.compile(r"`((?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(?:py|md|json|yml|yaml|toml|txt|mjs|sh|bas|cls|frm))`")
 _PRUNABLE_LINE = re.compile(r"\s*(?:\||[-*+] |\d+\. |\[!\[)")
 
 
@@ -650,6 +679,9 @@ def _add_generated_configuration(
     placeholders["exclude_paths"] = [path for path in placeholders["exclude_paths"] if path not in template_only]
     for settings in generated_config["profiles"].values():
         settings["required_paths"] = [path for path in settings["required_paths"] if path not in template_only]
+        settings["owned_paths"] = [path for path in settings["owned_paths"] if path not in template_only]
+    vba = generated_config["vba"]
+    vba["components"] = {path: role for path, role in vba["components"].items() if path not in template_only}
     changes[CONFIG_PATH] = (
         json.dumps(generated_config, indent=2, ensure_ascii=False) + "\n"
     ).encode("utf-8")
@@ -696,7 +728,9 @@ def build_changes(
 
     excluded = set(placeholders["exclude_paths"])
     tier_removed, replaced = _tier_selection(config, tracked, tier)
-    removed = _template_only_paths(placeholders, tracked, scalars.get("SOCIAL_PREVIEW_PATH", "")) | tier_removed
+    selection_removed = tier_removed | _profile_selection(config, tracked, profile)
+    removed = _template_only_paths(placeholders, tracked, scalars.get("SOCIAL_PREVIEW_PATH", "")) | selection_removed
+    manifest = config["vba"]["public_api_manifest"]
     token_pattern = re.compile(placeholders["pattern"])
     changes: dict[str, bytes | None] = {path: None for path in sorted(removed)}
     seen: set[str] = set()
@@ -717,8 +751,10 @@ def build_changes(
             token_pattern=token_pattern,
             seen=seen,
             tier=tier,
-            removed=frozenset(tier_removed),
+            removed=frozenset(selection_removed),
         )
+        if path == manifest:
+            rendered = _filter_api_manifest(rendered, removed)
         output = _encode(path, rendered)
         if output != source:
             changes[path] = output
@@ -1562,6 +1598,64 @@ def _assert_tier_upgrade(source: Path, base: Path, profile: str) -> None:
     print(f"[PASS] {profile}/upgrade: exact full-tier result, idempotence, adopter merge, adopter deletion kept, conflict stop, and refusals")
 
 
+OWNED_FIXTURE = "src/modules/OwnedFacade.bas"
+
+
+def _make_owned_fixture(source: Path, destination: Path) -> None:
+    """A template whose library profile owns one extra public component and its documentation."""
+    copy_fixture(source, destination)
+    renames = (("ProjectFacade", "OwnedFacade"), ("ProjectRatio", "OwnedRatio"),
+               ("PROJECT_ERROR_ZERO_DENOMINATOR", "OWNED_ERROR_ZERO_DENOMINATOR"))
+
+    def renamed(text: str) -> str:
+        for old, new in renames:
+            text = text.replace(old, new)
+        return text
+
+    facade = (destination / "src/modules/ProjectFacade.bas").read_bytes().decode("cp1252")
+    (destination / OWNED_FIXTURE).write_bytes(renamed(facade).encode("cp1252"))
+    config = _load_config(destination)
+    manifest = destination / config["vba"]["public_api_manifest"]
+    rows = [line for line in manifest.read_text(encoding="utf-8").splitlines(keepends=True) if "ProjectFacade\t" in line]
+    manifest.write_text(manifest.read_text(encoding="utf-8") + "".join(renamed(row) for row in rows), encoding="utf-8")
+    config["profiles"]["library"]["owned_paths"] = [OWNED_FIXTURE]
+    config["vba"]["components"] = dict(sorted({**config["vba"]["components"], OWNED_FIXTURE: "public"}.items()))
+    (destination / CONFIG_PATH).write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    readme = destination / "src/README.md"
+    readme.write_text(readme.read_text(encoding="utf-8") + f"\n- `{OWNED_FIXTURE}` is a library-owned fixture component.\n", encoding="utf-8")
+    _commit_fixture(destination, "Add a library-owned component fixture")
+
+
+def _assert_profile_owned_paths(source: Path, base: Path) -> None:
+    """A profile keeps its own components; every other profile drops them with their policy and API rows."""
+    template = base / "owned-template"
+    _make_owned_fixture(source, template)
+    for profile, kept in (("library", True), ("application", False)):
+        label = f"{profile}/owned-paths"
+        fixture = base / f"owned-{profile}"
+        shutil.copytree(template, fixture)
+        scalars, repeatable = fixture_arguments(profile)
+        changes, _ = build_changes(fixture, profile, scalars, repeatable)
+        apply_changes(fixture, changes)
+        _commit_fixture(fixture, f"Initialize {label}")
+        config = _load_config(fixture)
+        manifest = (fixture / config["vba"]["public_api_manifest"]).read_text(encoding="utf-8")
+        owned = {name: settings["owned_paths"] for name, settings in config["profiles"].items()}
+        state = (
+            (fixture / OWNED_FIXTURE).exists(),
+            OWNED_FIXTURE in config["vba"]["components"],
+            "OwnedFacade" in manifest,
+            "OwnedFacade" in (fixture / "src/README.md").read_text(encoding="utf-8"),
+            owned == {name: [OWNED_FIXTURE] if kept and name == "library" else [] for name in owned},
+        )
+        if state != (kept, kept, kept, kept, True):
+            raise AssertionError(f"{label} kept or removed the owned component inconsistently: {state}")
+        completed, report = _quality_report(fixture)
+        if completed.returncode != 0 or report.get("status") != "pass":
+            raise AssertionError(f"{label} failed repository quality:\n{completed.stdout}{completed.stderr}")
+    print("[PASS] profile-owned paths: kept with policy and API rows by the owner, removed with them elsewhere")
+
+
 def self_test(source: Path) -> None:
     if _load_config(source).get("mode") == "generated":
         _generated_self_test(source)
@@ -1740,6 +1834,7 @@ def self_test(source: Path) -> None:
             )
             _assert_minimal_tier(source, base, profile)
             _assert_tier_upgrade(source, base, profile)
+        _assert_profile_owned_paths(source, base)
     print(
         f"PASS: {len(SUPPORTED_PROFILES)} profile fixtures initialized in both governance tiers and upgraded in place; "
         "12 mandatory/README-only removals rejected and 3 optional removals accepted."

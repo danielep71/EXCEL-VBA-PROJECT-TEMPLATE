@@ -16,6 +16,14 @@ def _assign(**values: object) -> Mutation:
     return mutate
 
 
+def _owned_by(*profiles: str) -> Mutation:
+    def mutate(document: dict[str, Any]) -> None:
+        for name in profiles:
+            document["profiles"][name]["owned_paths"] = ["README.md"]
+
+    return mutate
+
+
 def _case(
     cases: list[Case],
     module: ModuleType,
@@ -81,6 +89,8 @@ def _root_and_profile_cases(module: ModuleType) -> list[Case]:
         ),
         ("config-profiles-shape", lambda d: d.__setitem__("profiles", {}), "profiles must contain exactly"),
         ("config-profile-entry-shape", lambda d: d["profiles"]["library"].__setitem__("extra", True), "required_paths, required_directories"),
+        ("config-owned-overlap", _owned_by("application", "library"), "is owned by both"),
+        ("config-owned-unselected", lambda d: d["profiles"]["application"].__setitem__("owned_paths", ["README.md"]), "owned by unselected profile"),
         ("config-contract-shape", lambda d: d["profiles"]["library"].__setitem__("vba_contract", {}), "minimum_roles and required_components"),
         ("config-minimum-roles-empty", lambda d: d["profiles"]["library"]["vba_contract"].__setitem__("minimum_roles", {}), "minimum_roles must be a non-empty"),
         ("config-minimum-roles-order", lambda d: d["profiles"]["library"]["vba_contract"].__setitem__("minimum_roles", {"test": 1, "public": 1, "internal": 1}), "minimum_roles keys must be sorted"),
