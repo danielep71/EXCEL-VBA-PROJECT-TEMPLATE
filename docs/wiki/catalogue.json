@@ -250,7 +250,7 @@
       "authority": ".github/workflows/external-links.yml"
     },
     ".github/workflows/generated-profile-matrix.yml": {
-      "purpose": "Template-only matrix that generates all supported profiles and executes their retained CI surface.",
+      "purpose": "Template-only matrix that generates every profile in both governance tiers, executes their retained CI surface and upgrades each minimal result in place.",
       "kind": "workflow",
       "authority": "tools/README.md"
     },

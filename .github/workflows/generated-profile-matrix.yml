@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   generated-profile:
-    name: ${{ matrix.profile }} / preview=${{ matrix.preview }}
+    name: ${{ matrix.profile }} / ${{ matrix.tier }} / preview=${{ matrix.preview }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -31,6 +31,9 @@ jobs:
           - application
           - library
           - ui-component
+        tier:
+          - full
+          - minimal
         preview:
           - "present"
           - "absent"
@@ -54,6 +57,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install pinned Python quality tools
+        if: matrix.tier == 'full'
         run: >-
           python -m pip install
           --disable-pip-version-check
@@ -77,10 +81,11 @@ jobs:
       - name: Create fresh generated repository
         env:
           PROFILE: ${{ matrix.profile }}
+          TIER: ${{ matrix.tier }}
           PREVIEW: ${{ matrix.preview }}
           CANDIDATE_SHA: ${{ github.sha }}
         run: |
-          fixture="${RUNNER_TEMP}/generated-${PROFILE}-${PREVIEW}"
+          fixture="${RUNNER_TEMP}/generated-${PROFILE}-${TIER}-${PREVIEW}"
           mkdir -p "$fixture"
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
           tar --exclude=.git --exclude=test-results -cf - . | tar -xf - -C "$fixture"
@@ -93,12 +98,13 @@ jobs:
           args=(
             --root "$fixture"
             --profile "$PROFILE"
+            --governance-tier "$TIER"
             --set "COPYRIGHT_YEAR=2026"
             --set "MAINTAINER_NAME=Generated Matrix"
             --set "PROJECT_NAME=Matrix ${PROFILE}"
             --set "PROJECT_TAGLINE=Generated CI fixture"
             --set "PROJECT_DESCRIPTION=Generated CI fixture for the ${PROFILE} repository profile."
-            --set "REPOSITORY_PATH=example/matrix-${PROFILE}-${PREVIEW}"
+            --set "REPOSITORY_PATH=example/matrix-${PROFILE}-${TIER}-${PREVIEW}"
             --set "SUPPORT_CONTACT=security@example.invalid"
             --add "KNOWN_LIMITATION=Excel execution is outside this static generated-profile matrix."
           )
@@ -110,7 +116,7 @@ jobs:
           fi
           python3 "$fixture/tools/initialize_repository.py" "${args[@]}" --apply
           git -C "$fixture" add --all
-          git -C "$fixture" commit -m "Initialize ${PROFILE} generated fixture"
+          git -C "$fixture" commit -m "Initialize ${PROFILE} ${TIER} generated fixture"
           printf 'GENERATED_ROOT=%s\n' "$fixture" >> "$GITHUB_ENV"
 
       - name: Prove generated tree is self-contained
@@ -123,6 +129,30 @@ jobs:
           test ! -e "$GENERATED_ROOT/tools/provision_repository.py"
           test ! -e "$GENERATED_ROOT/tools/test_template_workflow_validation.py"
           test ! -e "$GENERATED_ROOT/tools/test_template_verification_depth.py"
+
+      - name: Prove the minimal tier keeps only its declared tooling
+        if: matrix.tier == 'minimal'
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["GENERATED_ROOT"])
+          tier = json.loads(Path(".github/repository-profile.json").read_text(encoding="utf-8"))
+          removed = [path for path in tier["governance_tiers"]["tiers"]["minimal"]["remove_paths"] if (root / path).exists()]
+          if removed:
+              raise SystemExit("minimal tier retained removed paths: " + ", ".join(removed))
+          tools = sorted(path.name for path in (root / "tools").glob("*.py"))
+          expected = ["_gatelib.py", "check_release_semantics.py", "check_repo.py",
+                      "check_vba_conditionals.py", "check_vba_jumps.py", "check_vba_public_api.py"]
+          if tools != expected:
+              raise SystemExit(f"minimal tier retained {tools}, expected {expected}")
+          profile = json.loads((root / ".github/repository-profile.json").read_text(encoding="utf-8"))
+          record = json.loads((root / ".github/initialization.json").read_text(encoding="utf-8"))
+          if profile.get("governance_tier") != "minimal" or record.get("governance_tier") != "minimal":
+              raise SystemExit("minimal tier was not recorded in the profile and the initialization record")
+          PY
 
       - name: Inspect rendered pull-request template
         run: |
@@ -169,6 +199,7 @@ jobs:
           PY
 
       - name: Run retained generated-project tests
+        if: matrix.tier == 'full'
         env:
           ACTIONLINT_PATH: ${{ steps.actionlint.outputs.path }}
         run: |
@@ -178,6 +209,7 @@ jobs:
           python3 tools/test_workflow_validation.py             --root .             --actionlint "$ACTIONLINT_PATH"             --summary generated-workflow-validation.md
 
       - name: Run retained generated-project quality gates
+        if: matrix.tier == 'full'
         run: |
           cd "$GENERATED_ROOT"
           ruff check tools
@@ -186,9 +218,41 @@ jobs:
           python3 tools/check_template_contract.py --root .
           python3 tools/check_repo.py --root .
 
+      - name: Run the minimal-tier workflow validation and gates
+        if: matrix.tier == 'minimal'
+        env:
+          ACTIONLINT_PATH: ${{ steps.actionlint.outputs.path }}
+        run: |
+          cd "$GENERATED_ROOT"
+          {
+            echo "## Minimal-tier workflow validation"
+            echo
+            "$ACTIONLINT_PATH" -version | head -1
+            "$ACTIONLINT_PATH" .github/workflows/*.yml
+            echo "actionlint: all generated workflows pass"
+          } > generated-workflow-validation.md
+          for gate in check_repo check_vba_public_api check_vba_jumps check_release_semantics; do
+            python3 "tools/${gate}.py" --root . --self-test
+            python3 "tools/${gate}.py" --root .
+          done
+
+      - name: Upgrade the minimal tier in place and re-verify as full
+        if: matrix.tier == 'minimal'
+        run: |
+          python3 tools/initialize_repository.py --root "$GENERATED_ROOT" --upgrade-tier full --apply
+          cd "$GENERATED_ROOT"
+          git add --all
+          git commit -m "Upgrade to the full governance tier"
+          test ! -e tools/test_template_verification_depth.py
+          test -e tools/initialize_repository.py
+          python3 tools/check_repo.py --root .
+          python3 tools/check_template_contract.py --root .
+          python3 tools/initialize_repository.py --root . --self-test
+
       - name: Record exact generated evidence
         env:
           PROFILE: ${{ matrix.profile }}
+          TIER: ${{ matrix.tier }}
           PREVIEW: ${{ matrix.preview }}
           CANDIDATE_SHA: ${{ github.sha }}
         run: |
@@ -202,6 +266,7 @@ jobs:
           record = {
               "template_sha": os.environ["CANDIDATE_SHA"],
               "profile": os.environ["PROFILE"],
+              "governance_tier": os.environ["TIER"],
               "preview": os.environ["PREVIEW"],
               "generated_repository": profile["repository"],
               "scope": "static generated-project validation; no Excel execution",
@@ -215,7 +280,7 @@ jobs:
       - name: Upload matrix evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: generated-${{ matrix.profile }}-${{ matrix.preview }}-${{ github.run_id }}
+          name: generated-${{ matrix.profile }}-${{ matrix.tier }}-${{ matrix.preview }}-${{ github.run_id }}
           path: |
             generated-matrix-evidence.json
             ${{ env.GENERATED_ROOT }}/generated-workflow-validation.md

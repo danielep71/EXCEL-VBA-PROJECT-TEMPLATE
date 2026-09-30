@@ -111,8 +111,12 @@ python3 tools/initialize_repository.py --profile library \
   --set COPYRIGHT_YEAR="2026"
 ```
 
-Choose `library`, `ui-component`, or `application`. Optional values,
-repeatable values, failure behavior and the manual fallback are authoritative in
+Choose `library`, `ui-component`, or `application`. Add
+`--governance-tier minimal` for a lighter project that keeps the four
+standard-library gates and no release-evidence tooling; the default `full` tier
+keeps everything, and a minimal project can upgrade in place later. Optional
+values, repeatable values, [governance tiers](docs/INITIALIZATION.md#governance-tiers),
+failure behavior and the manual fallback are authoritative in
 [`docs/INITIALIZATION.md`](docs/INITIALIZATION.md).
 <!-- template:remove:end -->
 
