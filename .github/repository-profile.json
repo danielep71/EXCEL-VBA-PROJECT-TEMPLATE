@@ -143,7 +143,12 @@
         "src/modules",
         "tests/modules"
       ],
-      "owned_paths": [],
+      "owned_paths": [
+        "examples/modules/ProgressExample.bas",
+        "src/core/ProgressCore.bas",
+        "src/modules/ProgressFacade.bas",
+        "tests/modules/ProgressTests.bas"
+      ],
       "vba_contract": {
         "minimum_roles": {
           "internal": 1,
@@ -339,12 +344,16 @@
       "tests"
     ],
     "components": {
+      "examples/modules/ProgressExample.bas": "example",
       "examples/modules/ProjectExample.bas": "example",
       "examples/modules/TextExample.bas": "example",
+      "src/core/ProgressCore.bas": "internal",
       "src/core/ProjectCore.bas": "internal",
       "src/core/TextCore.bas": "internal",
+      "src/modules/ProgressFacade.bas": "public",
       "src/modules/ProjectFacade.bas": "public",
       "src/modules/TextFacade.bas": "public",
+      "tests/modules/ProgressTests.bas": "test",
       "tests/modules/ProjectTests.bas": "test",
       "tests/modules/TextTests.bas": "test"
     },

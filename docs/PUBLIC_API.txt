@@ -36,3 +36,31 @@ TextFacade	Function	TextSplitPath
 # SIG	TextFacade	Function	TextSplitPath	Public Function TextSplitPath( ByVal path As String) As TextPathParts
 TextFacade	Function	TextSafeFileName
 # SIG	TextFacade	Function	TextSafeFileName	Public Function TextSafeFileName( ByVal value As String, Optional ByVal replacement As String = "_") As String
+ProgressFacade	Const	PROGRESS_ERROR_ACTIVE
+# SIG	ProgressFacade	Const	PROGRESS_ERROR_ACTIVE	Public Const PROGRESS_ERROR_ACTIVE As Long = ProgressCore.ERR_SESSION_ACTIVE
+ProgressFacade	Const	PROGRESS_ERROR_INACTIVE
+# SIG	ProgressFacade	Const	PROGRESS_ERROR_INACTIVE	Public Const PROGRESS_ERROR_INACTIVE As Long = ProgressCore.ERR_SESSION_INACTIVE
+ProgressFacade	Const	PROGRESS_ERROR_CANCELLED
+# SIG	ProgressFacade	Const	PROGRESS_ERROR_CANCELLED	Public Const PROGRESS_ERROR_CANCELLED As Long = ProgressCore.ERR_CANCELLED
+ProgressFacade	Const	PROGRESS_ERROR_INVALID_ARGUMENT
+# SIG	ProgressFacade	Const	PROGRESS_ERROR_INVALID_ARGUMENT	Public Const PROGRESS_ERROR_INVALID_ARGUMENT As Long = ProgressCore.ERR_INVALID_ARGUMENT
+ProgressFacade	Enum	ProgressOptions
+# SIG	ProgressFacade	Enum	ProgressOptions	Public Enum ProgressOptions | ProgressDefault = 0 | ProgressKeepScreenUpdating = ProgressCore.OPTION_KEEP_SCREEN | ProgressShowElapsed = ProgressCore.OPTION_SHOW_ELAPSED | End Enum
+ProgressFacade	Sub	ProgressBegin
+# SIG	ProgressFacade	Sub	ProgressBegin	Public Sub ProgressBegin( ByVal caption As String, Optional ByVal total As Long = 0, Optional ByVal options As ProgressOptions = ProgressDefault)
+ProgressFacade	Sub	ProgressUpdate
+# SIG	ProgressFacade	Sub	ProgressUpdate	Public Sub ProgressUpdate( ByVal completed As Long, Optional ByVal detail As String = "")
+ProgressFacade	Function	ProgressEnd
+# SIG	ProgressFacade	Function	ProgressEnd	Public Function ProgressEnd() As Boolean
+ProgressFacade	Sub	ProgressRecover
+# SIG	ProgressFacade	Sub	ProgressRecover	Public Sub ProgressRecover()
+ProgressFacade	Sub	ProgressRequestCancel
+# SIG	ProgressFacade	Sub	ProgressRequestCancel	Public Sub ProgressRequestCancel()
+ProgressFacade	Function	ProgressIsCancelled
+# SIG	ProgressFacade	Function	ProgressIsCancelled	Public Function ProgressIsCancelled() As Boolean
+ProgressFacade	Function	ProgressIsActive
+# SIG	ProgressFacade	Function	ProgressIsActive	Public Function ProgressIsActive() As Boolean
+ProgressFacade	Function	ProgressElapsedSeconds
+# SIG	ProgressFacade	Function	ProgressElapsedSeconds	Public Function ProgressElapsedSeconds() As Double
+ProgressFacade	Function	ProgressText
+# SIG	ProgressFacade	Function	ProgressText	Public Function ProgressText() As String

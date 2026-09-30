@@ -18,7 +18,10 @@ The required starter is the same: `src/modules/ProjectFacade.bas`,
 The optional example is `examples/modules/ProjectExample.bas`.
 The `library` profile also keeps a substantive reference: `TextCore`,
 `TextFacade`, `TextTests` and `TextExample`, neutral text and path utilities with
-fifteen supported declarations. The other profiles do not generate it.
+fifteen supported declarations. The `ui-component` profile keeps a progress
+session instead: `ProgressCore`, `ProgressFacade`, `ProgressTests` and
+`ProgressExample`, which own and restore the status bar, cursor, screen updating
+and Esc handling. Each profile generates only its own reference.
 Profile selection does not generate UI controls, financial calculations or an
 application shell. A README in a directory cannot replace substantive VBA.
 

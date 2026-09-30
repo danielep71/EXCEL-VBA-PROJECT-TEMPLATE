@@ -24,6 +24,7 @@ import check_external_links as external_links
 import check_local_actions as local_actions
 import check_release as release
 import check_release_semantics as semantics
+import check_repo as repo_gate
 import check_template_contract as contract
 import check_wiki as wiki
 import checker_development as checker_dev
@@ -2203,6 +2204,36 @@ class RemainingCoverageDepthTests(unittest.TestCase):
         second = {**first, "nonce": 2}
         with patch.object(coverage_runner, "build_report", side_effect=[first, second]):
             self.assertEqual(coverage_runner.run_self_test(Path(".")), 1)
+
+
+class VbaStructureDirectiveTests(unittest.TestCase):
+    """The portable gate's coarse PtrSafe model follows the whole #If chain."""
+
+    @staticmethod
+    def structure_failures(*lines: str) -> list[dict[str, Any]]:
+        failures: list[dict[str, Any]] = []
+        repo_gate._scan_vba_structure_component("Fixture.bas", list(lines), failures)
+        return failures
+
+    def test_else_after_vba7_elseif_is_legacy_only(self) -> None:
+        self.assertEqual(self.structure_failures(
+            "#If Mac Then",
+            "#ElseIf VBA7 Then",
+            'Private Declare PtrSafe Function Tick Lib "kernel32" () As Long',
+            "#Else",
+            'Private Declare Function Tick Lib "kernel32" () As Long',
+            "#End If",
+        ), [])
+
+    def test_else_without_vba7_branch_is_still_checked(self) -> None:
+        failures = self.structure_failures(
+            "#If Win64 Then",
+            "#Else",
+            'Private Declare Function Tick Lib "kernel32" () As Long',
+            "#End If",
+        )
+        self.assertEqual([item["message"] for item in failures],
+                         ["Declare in an active VBA7 branch must include PtrSafe."])
 
 
 if __name__ == "__main__":

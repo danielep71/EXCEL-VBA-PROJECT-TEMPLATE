@@ -89,7 +89,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `docs/PORTFOLIO_QUALITY.md` / document | Timestamped quality observations, freshness and missing-evidence interpretation; no overall score. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
 | `docs/POST_CREATION_CHECKLIST.md` / document | Live settings and read-back controls that template creation does not transfer. | T / T / T | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `docs/PROVISIONING.md` / document | Guarded setup planner, approved-digest apply and durable journal contract. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
-| `docs/PUBLIC_API.txt` / document | Complete public declaration inventory with normalized signature records. | T / R / T | [docs/PUBLIC_API.txt](../../docs/PUBLIC_API.txt) |
+| `docs/PUBLIC_API.txt` / document | Complete public declaration inventory with normalized signature records. | T / T / T | [docs/PUBLIC_API.txt](../../docs/PUBLIC_API.txt) |
 | `docs/README.md` / document | Documentation hub and single-authority mapping. | T / T / T | [docs/README.md](../../docs/README.md) |
 | `docs/RELEASE_CLOSEOUT.md` / document | Canonical post-publication release closeout procedure and evidence boundaries. | R / R / R | [docs/RELEASE_CLOSEOUT.md](../../docs/RELEASE_CLOSEOUT.md) |
 | `docs/RELEASE_EVIDENCE.md` / document | Candidate-bound release JSON and profile/asset evidence schemas. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
@@ -118,15 +118,19 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `docs/wiki/_Sidebar.md` / wiki | Generated ordered Wiki navigation; edit the page registry rather than this output. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `docs/wiki/catalogue.json` / wiki | Ordered page registry, per-path purpose/authority and shared inventory editing rules. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `examples/README.md` / document | Ownership and scope of reproducible usage examples. | T / T / T | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `examples/modules/ProgressExample.bas` / vba | UI-component example: a 25-step loop with status-bar progress and Esc cancellation. | X / X / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `examples/modules/ProjectExample.bas` / vba | Optional project-private example that prints one supported facade result. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `examples/modules/TextExample.bas` / vba | Library-profile example that prints six deterministic text and path operations. | X / R / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `pyproject.toml` / policy | Python compatibility target, advisory line length, enforced lint selection, complexity ceiling and typing scope. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `src/README.md` / document | Production export organization and public/internal boundaries. | T / T / T | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `src/core/ProgressCore.bas` / vba | UI-component session state: snapshot and restore of five Application properties and the native elapsed-time seam. | X / X / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `src/core/ProjectCore.bas` / vba | Stateless checked division and the internal zero-denominator error code. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `src/core/TextCore.bas` / vba | Library-profile text and path implementation with platform-specific path rules and the invalid-argument code. | X / R / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `src/modules/ProgressFacade.bas` / vba | UI-component supported progress-session API: fourteen declarations and a normalized error source. | X / X / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `src/modules/ProjectFacade.bas` / vba | Supported scalar ratio entry point and normalized caller-facing error source. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `src/modules/TextFacade.bas` / vba | Library-profile supported text and path API: fifteen declarations and a normalized error source. | X / R / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tests/README.md` / document | Regression entry point, output contract, repeatability and cleanup expectations. | T / T / T | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `tests/modules/ProgressTests.bas` / vba | UI-component suite: 12 lifecycle, restoration and negative-control cases. | X / X / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tests/modules/ProjectTests.bas` / vba | Four-case, six-assertion harness with host-state comparison and full reporting. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tests/modules/TextTests.bas` / vba | Library-profile suite: 26 cases and 123 assertions over every supported TextFacade member. | X / R / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tools/LOCAL_ACTIONS.md` / document | Repository-local composite/Node/Docker action validation boundaries. | R / R / R | [tools/LOCAL_ACTIONS.md](../../tools/LOCAL_ACTIONS.md) |

@@ -110,8 +110,8 @@ Use only the categories needed by a release.
   and CodeQL. Release evidence and provenance, host-evidence validation,
   documentation drift and external-link checks, local-action validation, label
   automation, Scorecard, Ruff/mypy and the initializer stay in the default
-  `full` tier. A minimal project retains 6 Python files (6,862 lines) instead of
-  22 (18,365 lines), and 50–53 tracked files instead of 88–91, depending on the
+  `full` tier. A minimal project retains 6 Python files (6,865 lines) instead of
+  22 (18,368 lines), and 51–54 tracked files instead of 89–92, depending on the
   profile. The tier is recorded as `"governance_tier": "minimal"` in the
   generated profile and initialization record; `full` is never recorded, so
   existing generated repositories are unaffected. Documentation shared by both
@@ -154,6 +154,24 @@ Use only the categories needed by a release.
   every public member, each error rule and both platforms' expectations, and
   `TextExample` prints six deterministic operations. Only generated `library`
   projects receive the four modules (#86).
+- A substantive ui-component reference: a progress session that owns the
+  Excel status bar, display of the status bar, cursor (Windows), screen
+  updating and Esc handling for a long operation. It snapshots all five at
+  `ProgressBegin` and restores them in reverse order at `ProgressEnd`;
+  calculation, events, alerts and selection stay caller-owned. It refuses a
+  second session, turns Esc into a cancel request that stops the next
+  `ProgressUpdate`, and `ProgressRecover` restores Excel defaults when a VBA
+  reset has lost the snapshot. Elapsed time uses the Windows performance
+  counter behind VBA7/`PtrSafe`, legacy-VBA and macOS branches, because
+  `Timer` wraps at midnight. `ProgressTests` (12 cases; 79 assertions on
+  Windows, 75 on macOS) executes open, update, cancel, close, re-entry,
+  cleanup and recovery, with a negative control proving that a broken
+  restoration is detected. Only generated `ui-component` projects receive
+  the four modules (#87).
+- The portable gate's structural `PtrSafe` check treated the `#Else` of an
+  `#If ... #ElseIf VBA7 ... #Else` chain as reachable under VBA7, which
+  flagged legacy-only declarations. The `#Else` now counts as VBA7-reachable
+  only when no branch of the chain claimed VBA7 (#87).
 - The conditional-compilation gate models Office for Mac as `vba7-mac64`
   (`Mac` and `VBA7` true, `Win32` and `Win64` false). `Mac` was previously
   rejected as an unknown symbol (#86).
