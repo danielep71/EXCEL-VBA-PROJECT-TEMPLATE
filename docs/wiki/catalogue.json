@@ -154,6 +154,21 @@
       "kind": "policy",
       "authority": "docs/EXCEL_EVIDENCE.md"
     },
+    ".github/governance/minimal/RELEASING.md": {
+      "purpose": "Minimal-tier release guide that replaces RELEASING.md when that tier is selected.",
+      "kind": "document",
+      "authority": "docs/INITIALIZATION.md"
+    },
+    ".github/governance/minimal/static-checks.yml": {
+      "purpose": "Minimal-tier Static repository checks workflow: the four standard-library gates, no dependencies.",
+      "kind": "workflow",
+      "authority": "docs/INITIALIZATION.md"
+    },
+    ".github/governance/minimal/tools-README.md": {
+      "purpose": "Minimal-tier tools guide that replaces tools/README.md when that tier is selected.",
+      "kind": "document",
+      "authority": "docs/INITIALIZATION.md"
+    },
     ".github/ISSUE_TEMPLATE/bug.yml": {
       "purpose": "Structured reproducible-defect intake with environment and evidence.",
       "kind": "policy",
@@ -825,6 +840,16 @@
       "purpose": "GitHub metadata, policies, forms and workflow automation.",
       "kind": "directory",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    ".github/governance": {
+      "purpose": "Template-only governance-tier variants; removed from every generated repository.",
+      "kind": "directory",
+      "authority": "docs/INITIALIZATION.md"
+    },
+    ".github/governance/minimal": {
+      "purpose": "Files that replace their full-tier counterparts in the minimal governance tier.",
+      "kind": "directory",
+      "authority": "docs/INITIALIZATION.md"
     },
     ".github/ISSUE_TEMPLATE": {
       "purpose": "Governed public intake forms and private-security routing.",

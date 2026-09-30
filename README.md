@@ -131,6 +131,7 @@ examples, repository policy and the [public API manifest](docs/PUBLIC_API.txt).
 
 ### 2. Validate locally
 
+<!-- template:tier:full:start -->
 ```bash
 python3 tools/check_repo.py --root . --self-test
 python3 tools/check_repo.py --root . \
@@ -139,6 +140,18 @@ python3 tools/check_repo.py --root . \
 python3 tools/check_release.py --root . --self-test \
   --summary test-results/release-self-test.md
 ```
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+```bash
+python3 tools/check_repo.py --root . --self-test
+python3 tools/check_repo.py --root . \
+  --output test-results/static-checks.json \
+  --summary test-results/static-checks.md
+python3 tools/check_vba_public_api.py --root .
+python3 tools/check_vba_jumps.py --root .
+python3 tools/check_release_semantics.py --root .
+```
+<!-- template:tier:minimal:end -->
 
 <!-- template:repeatable:ADDITIONAL_TEST_COMMAND:start -->
 Run the project-specific check as well:
@@ -249,10 +262,17 @@ For checker maintenance, the independent
 single-file, standard-library runtime and parser/reporter development boundaries.
 <!-- template:remove:end -->
 
+<!-- template:tier:full:start -->
 For a release candidate, use [`RELEASING.md`](RELEASING.md). SemVer/changelog
 semantics and release-evidence schemas are maintained separately in
 [`RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) and
 [`RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+For a release candidate, use [`RELEASING.md`](RELEASING.md). SemVer/changelog
+semantics are maintained separately in
+[`RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md).
+<!-- template:tier:minimal:end -->
 
 ## 🛡️ Engineering boundaries
 

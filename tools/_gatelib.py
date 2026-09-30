@@ -96,11 +96,10 @@ def run_gate(
     reported ``ERROR``. Callers select that wording with
     ``self_test_error_prefix``.
 
-    Gates whose output contract differs -- ``check_release.py`` (atomic writes
-    and a console rendering distinct from its Markdown summary),
-    ``test_workflow_validation.py`` (text-only report, no JSON output) and
-    ``check_repo.py`` (a self-contained distributable that must not import this
-    module) -- keep their own ``main``. Every maintained CLI's architectural
+    Gates whose output contract differs -- atomic evidence writes with a
+    console rendering distinct from the Markdown summary, a text-only report
+    with no JSON, or the self-contained ``check_repo.py`` that must not import
+    this module -- keep their own ``main``. Every maintained CLI's architectural
     class lives in ``checker_development.CLI_CLASSIFICATION``; the canonical
     checker is independently excluded by its single-file contract.
     """

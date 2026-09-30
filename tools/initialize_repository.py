@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import os
+import posixpath
 import re
 import shutil
 import stat
@@ -26,10 +27,14 @@ CONFIG_PATH = ".github/repository-profile.json"
 RECORD_PATH = ".github/initialization.json"
 CANONICAL_SOCIAL_PREVIEW_PATH = "assets/social-preview.png"
 SUPPORTED_PROFILES = ("application", "library", "ui-component")
+# Governance weight is chosen independently of the product profile. ``full`` is
+# the default and is never recorded; only a non-default tier is written.
+GOVERNANCE_TIERS = ("full", "minimal")
+DEFAULT_TIER = "full"
 TOKEN_NAME_PATTERN = re.compile(r"[A-Z][A-Z0-9_]*")
 REPOSITORY_PATTERN = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 MARKER_PATTERN = re.compile(
-    r"<!-- template:(remove|profile:(?:application|library|ui-component)|"
+    r"<!-- template:(remove|profile:(?:application|library|ui-component)|tier:(?:full|minimal)|"
     r"optional:[A-Z][A-Z0-9_]*|repeatable:[A-Z][A-Z0-9_]*):(start|end) -->"
 )
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
@@ -260,6 +265,7 @@ def _render_blocks(
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
     catalogue: dict[str, dict[str, Any]],
+    tier: str = DEFAULT_TIER,
 ) -> str:
     output: list[str] = []
     active: tuple[str, bool] | None = None
@@ -276,6 +282,8 @@ def _render_blocks(
                     keep = False
                 elif marker.startswith("profile:"):
                     keep = marker.split(":", 1)[1] == profile
+                elif marker.startswith("tier:"):
+                    keep = marker.split(":", 1)[1] == tier
                 elif marker.startswith("optional:"):
                     name = marker.split(":", 1)[1]
                     if catalogue.get(name, {}).get("category") != "optional":
@@ -384,15 +392,18 @@ def _record(
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
     contract: dict[str, Any],
+    tier: str = DEFAULT_TIER,
 ) -> bytes:
     values: dict[str, Any] = dict(sorted(scalars.items()))
     values.update({name: items for name, items in sorted(repeatable.items())})
-    document = {
+    document: dict[str, Any] = {
         "schema_version": 1,
         "profile": profile,
         "template_contract": contract,
         "values": values,
     }
+    if tier != DEFAULT_TIER:
+        document["governance_tier"] = tier
     return (json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
 
 
@@ -402,6 +413,7 @@ def _already_initialized(
     profile: str,
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
+    tier: str = DEFAULT_TIER,
 ) -> bool:
     if config.get("mode") != "generated":
         return False
@@ -411,7 +423,12 @@ def _already_initialized(
         raise InitializationError(f"Generated repository is missing {RECORD_PATH}.") from error
     if config.get("profile") != profile or config.get("repository") != scalars["REPOSITORY_PATH"]:
         raise InitializationError("Repository is already initialized with different profile or repository inputs.")
-    if existing != _record(profile, scalars, repeatable, config.get("template_contract", {})):
+    if config.get("governance_tier", DEFAULT_TIER) != tier:
+        raise InitializationError(
+            "Repository is already initialized with a different governance tier; "
+            "change tiers with the documented upgrade, not a re-run."
+        )
+    if existing != _record(profile, scalars, repeatable, config.get("template_contract", {}), tier):
         raise InitializationError("Repository is already initialized with different substitution inputs.")
     return True
 
@@ -474,6 +491,62 @@ def _template_only_paths(
     return configured_template_only - retained_template_only
 
 
+def _tier_selection(
+    config: dict[str, Any], tracked: set[str], tier: str
+) -> tuple[set[str], dict[str, str]]:
+    """The paths a governance tier removes and the variant sources that replace files."""
+    if tier not in GOVERNANCE_TIERS:
+        raise InitializationError(f"Unsupported governance tier {tier!r}.")
+    try:
+        specification = config["governance_tiers"]["tiers"][tier]
+        removed = set(specification["remove_paths"])
+        replaced = dict(specification["replace_paths"])
+    except (KeyError, TypeError) as error:
+        raise InitializationError(f"{CONFIG_PATH} has no valid governance tier {tier!r}.") from error
+    untracked = sorted((removed | set(replaced) | set(replaced.values())) - tracked)
+    if untracked:
+        raise InitializationError(
+            f"Governance tier {tier!r} names untracked paths: " + ", ".join(untracked)
+        )
+    return removed, replaced
+
+
+_MARKDOWN_LINK = re.compile(r"\]\(([^)\s#]+)(?:#[^)]*)?\)")
+# A code span names a repository file only when it ends in a file extension;
+# ``owner/repo`` identifiers and directory prefixes are not paths.
+_CODE_PATH = re.compile(r"`((?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(?:py|md|json|yml|yaml|toml|txt|mjs|sh))`")
+_PRUNABLE_LINE = re.compile(r"\s*(?:\||[-*+] |\d+\. |\[!\[)")
+
+
+def _referenced_paths(path: str, line: str) -> set[str]:
+    """Repository paths a Markdown line links to or names in a code span."""
+    base = PurePosixPath(path).parent
+    found = set()
+    for target in _MARKDOWN_LINK.findall(line):
+        if "://" not in target and not target.startswith("mailto:"):
+            found.add(posixpath.normpath(str(base / target)))
+    return found | set(_CODE_PATH.findall(line))
+
+
+def _prune_removed_references(path: str, text: str, removed: set[str]) -> str:
+    """Drop table rows, list items and badges whose every referenced path was removed.
+
+    Only whole rows/items are pruned, and only when nothing they reference
+    survives, so prose and mixed references still need explicit tier blocks.
+    Nothing is pruned when no referenced path was removed (the full tier).
+    """
+    if not path.endswith(".md") or not removed:
+        return text
+    kept = []
+    for line in text.splitlines(keepends=True):
+        references = _referenced_paths(path, line) if _PRUNABLE_LINE.match(line) else set()
+        names = {PurePosixPath(item).name for item in removed}
+        if references and all(item in removed or item in names for item in references):
+            continue
+        kept.append(line)
+    return "".join(kept)
+
+
 def _rewrite_issue_security_url(path: str, rendered: str, template_repository: str, generated_repository: str) -> str:
     """Point the issue chooser's private-security link at the generated repository."""
     if path != ".github/ISSUE_TEMPLATE/config.yml":
@@ -498,11 +571,13 @@ def _render_tracked_text(
     values: dict[str, str],
     token_pattern: re.Pattern[str],
     seen: set[str],
+    tier: str = DEFAULT_TIER,
+    removed: frozenset[str] = frozenset(),
 ) -> str:
     """Render one tracked text file; record the placeholders it uses in ``seen``."""
     catalogue = config["placeholders"]["catalogue"]
     _reject_executable_placeholders(path, list(token_pattern.finditer(text)))
-    rendered = _render_blocks(path, text, profile, scalars, repeatable, catalogue)
+    rendered = _render_blocks(path, text, profile, scalars, repeatable, catalogue, tier)
     for match in token_pattern.finditer(rendered):
         name = match.group(1)
         if name not in catalogue:
@@ -515,6 +590,7 @@ def _render_tracked_text(
         path, rendered, config["repository"], scalars["REPOSITORY_PATH"]
     )
     rendered = _rewrite_issue_security_url(path, rendered, config["repository"], scalars["REPOSITORY_PATH"])
+    rendered = _prune_removed_references(path, rendered, set(removed))
     unresolved = sorted({match.group(1) for match in token_pattern.finditer(rendered)})
     if unresolved:
         raise InitializationError(f"{path}: unresolved placeholders: {', '.join(unresolved)}")
@@ -553,22 +629,30 @@ def _add_generated_configuration(
     repeatable: dict[str, list[str]],
     template_only: set[str],
     tracked_files: tuple[str, ...],
+    tier: str = DEFAULT_TIER,
 ) -> None:
     """Write the generated profile, the initialization record and any missing directory READMEs."""
     generated_config = json.loads(json.dumps(config))
     generated_config["mode"] = "generated"
     generated_config["profile"] = profile
     generated_config["repository"] = scalars["REPOSITORY_PATH"]
+    generated_config.pop("governance_tiers", None)
+    if tier != DEFAULT_TIER:
+        generated_config["governance_tier"] = tier
     generated_config["required_paths"] = [
         path
         for path in generated_config["required_paths"]
         if path not in template_only
     ]
+    placeholders = generated_config["placeholders"]
+    placeholders["exclude_paths"] = [path for path in placeholders["exclude_paths"] if path not in template_only]
+    for settings in generated_config["profiles"].values():
+        settings["required_paths"] = [path for path in settings["required_paths"] if path not in template_only]
     changes[CONFIG_PATH] = (
         json.dumps(generated_config, indent=2, ensure_ascii=False) + "\n"
     ).encode("utf-8")
     changes[RECORD_PATH] = _record(
-        profile, scalars, repeatable, generated_config.get("template_contract", {})
+        profile, scalars, repeatable, generated_config.get("template_contract", {}), tier
     )
 
     profile_settings = generated_config["profiles"][profile]
@@ -587,6 +671,7 @@ def build_changes(
     profile: str,
     scalar_entries: Iterable[str],
     repeatable_entries: Iterable[str],
+    tier: str = DEFAULT_TIER,
 ) -> tuple[dict[str, bytes | None], dict[str, str]]:
     config = _load_config(root)
     tracked_files = _tracked_files(root)
@@ -602,24 +687,26 @@ def build_changes(
         require_preview_file=config.get("mode") != "generated",
     )
     values = _replacement_values(profile, scalars, repeatable, catalogue)
-    if _already_initialized(root, config, profile, scalars, repeatable):
+    if _already_initialized(root, config, profile, scalars, repeatable, tier):
         return {}, values
     if config.get("mode") != "template":
         raise InitializationError("Repository mode must be template or a matching prior initialization.")
 
     excluded = set(placeholders["exclude_paths"])
-    template_only = _template_only_paths(placeholders, tracked, scalars.get("SOCIAL_PREVIEW_PATH", ""))
+    tier_removed, replaced = _tier_selection(config, tracked, tier)
+    removed = _template_only_paths(placeholders, tracked, scalars.get("SOCIAL_PREVIEW_PATH", "")) | tier_removed
     token_pattern = re.compile(placeholders["pattern"])
-    changes: dict[str, bytes | None] = {path: None for path in sorted(template_only)}
+    changes: dict[str, bytes | None] = {path: None for path in sorted(removed)}
     seen: set[str] = set()
 
     for path in tracked_files:
-        if path in template_only or path in excluded or not _is_text(path):
+        if path in removed or path in excluded or not _is_text(path):
             continue
         source = (root / path).read_bytes()
+        template = (root / replaced[path]).read_bytes() if path in replaced else source
         rendered = _render_tracked_text(
             path,
-            _decode(path, source),
+            _decode(path, template),
             profile=profile,
             config=config,
             scalars=scalars,
@@ -627,13 +714,15 @@ def build_changes(
             values=values,
             token_pattern=token_pattern,
             seen=seen,
+            tier=tier,
+            removed=frozenset(tier_removed),
         )
         output = _encode(path, rendered)
         if output != source:
             changes[path] = output
 
     _check_placeholder_usage(scalars, repeatable, catalogue, seen)
-    _add_generated_configuration(changes, config, profile, scalars, repeatable, template_only, tracked_files)
+    _add_generated_configuration(changes, config, profile, scalars, repeatable, removed, tracked_files, tier)
     return dict(sorted(changes.items())), values
 
 
@@ -641,7 +730,9 @@ def _sha256(data: bytes | None) -> str | None:
     return hashlib.sha256(data).hexdigest() if data is not None else None
 
 
-def _plan(root: Path, profile: str, changes: dict[str, bytes | None]) -> dict[str, Any]:
+def _plan(
+    root: Path, profile: str, changes: dict[str, bytes | None], tier: str = DEFAULT_TIER
+) -> dict[str, Any]:
     entries = []
     for path, after in changes.items():
         target = root / path
@@ -660,6 +751,12 @@ def _plan(root: Path, profile: str, changes: dict[str, bytes | None]) -> dict[st
         "status": "ready" if entries else "no-op",
         "mode": "dry-run",
         "profile": profile,
+        "governance_tier": tier,
+        "retained_tools": sorted(
+            f"tools/{tool.name}" for tool in (root / "tools").glob("*.py")
+            if changes.get(f"tools/{tool.name}", b"") is not None
+        ),
+        "removed_paths": sorted(path for path, after in changes.items() if after is None),
         "changes": entries,
     }
 
@@ -1153,7 +1250,8 @@ def _generated_self_test(source: Path) -> None:
         require_preview_file=False,
     )
     if not _already_initialized(
-        source, config, profile, scalar_values, repeatable_values
+        source, config, profile, scalar_values, repeatable_values,
+        config.get("governance_tier", DEFAULT_TIER),
     ):
         raise AssertionError(
             "Generated repository initialization record is not authoritative."
@@ -1181,6 +1279,72 @@ def _generated_self_test(source: Path) -> None:
         f"PASS: generated {profile} repository initialization is recorded, clean, "
         "idempotent, and quality-valid."
     )
+
+
+MINIMAL_GATES = ("check_repo.py", "check_vba_public_api.py", "check_vba_jumps.py", "check_release_semantics.py")
+
+
+def _assert_no_removed_references(root: Path, removed: set[str], label: str) -> None:
+    """No retained file may name a path the tier removed, except template-checkout commands."""
+    present = {PurePosixPath(path).name for path in _tracked_files(root)}
+    names = sorted({PurePosixPath(path).name for path in removed} - present, key=len, reverse=True)
+    if not names:
+        return
+    pattern = re.compile(r"(?<![A-Za-z0-9_-])(" + "|".join(map(re.escape, names)) + r")(?![A-Za-z0-9_])")
+    for path in _tracked_files(root):
+        if path == CONFIG_PATH or PurePosixPath(path).suffix.casefold() in VBA_SUFFIXES | {".png"}:
+            continue
+        text = re.sub(r"<template-checkout>/[A-Za-z0-9_./-]+", "", (root / path).read_text(encoding="utf-8"))
+        found = sorted(set(pattern.findall(text)))
+        if found:
+            raise AssertionError(f"{label} {path} still references removed paths: {', '.join(found)}")
+
+
+def _assert_tier_recorded(root: Path, tier: str, label: str) -> None:
+    config = _load_config(root)
+    record = json.loads((root / RECORD_PATH).read_text(encoding="utf-8"))
+    expected = None if tier == DEFAULT_TIER else tier
+    if "governance_tiers" in config or config.get("governance_tier") != expected or record.get("governance_tier") != expected:
+        raise AssertionError(f"{label} did not record governance tier {tier!r} exactly once.")
+
+
+def _assert_minimal_tier(source: Path, base: Path, profile: str) -> None:
+    """A minimal-tier project is small, clean, self-consistent and passes its own gates."""
+    label = f"{profile}/minimal"
+    fixture = base / f"{profile}-minimal"
+    copy_fixture(source, fixture)
+    scalars, repeatable = fixture_arguments(profile)
+    removed = set(_load_config(source)["governance_tiers"]["tiers"]["minimal"]["remove_paths"])
+    changes, _ = build_changes(fixture, profile, scalars, repeatable, "minimal")
+    plan = _plan(fixture, profile, changes, "minimal")
+    if plan["governance_tier"] != "minimal" or not removed <= set(plan["removed_paths"]):
+        raise AssertionError(f"{label} plan did not state the tier and every removed path.")
+    if set(plan["retained_tools"]) != {f"tools/{name}" for name in ("_gatelib.py", "check_vba_conditionals.py", *MINIMAL_GATES)}:
+        raise AssertionError(f"{label} retained an unexpected tool set: {plan['retained_tools']}")
+    apply_changes(fixture, changes)
+    _git(fixture, "add", "--all")
+    _git(fixture, "commit", "-m", f"Initialize {label} fixture")
+    if build_changes(fixture, profile, scalars, repeatable, "minimal")[0]:
+        raise AssertionError(f"{label} second initialization was not idempotent.")
+    try:
+        build_changes(fixture, profile, scalars, repeatable, DEFAULT_TIER)
+    except InitializationError as error:
+        if "different governance tier" not in str(error):
+            raise AssertionError(f"{label} tier change failed for the wrong reason: {error}") from error
+    else:
+        raise AssertionError(f"{label} accepted a re-run with a different governance tier.")
+    _assert_tier_recorded(fixture, "minimal", label)
+    _assert_generated_cleanup(fixture, profile)
+    _assert_no_removed_references(fixture, removed, label)
+    for gate in MINIMAL_GATES:
+        for arguments in (["--self-test"], []):
+            completed = subprocess.run(
+                [sys.executable, str(fixture / "tools" / gate), "--root", str(fixture), *arguments],
+                capture_output=True, text=True, check=False,
+            )
+            if completed.returncode != 0:
+                raise AssertionError(f"{label} {gate} {' '.join(arguments)} failed:\n{completed.stdout}{completed.stderr}")
+    print(f"[PASS] {label}: tier plan, recording, idempotence, tier-change refusal, cleanup, no orphan references, and all four gates")
 
 
 def self_test(source: Path) -> None:
@@ -1276,6 +1440,7 @@ def self_test(source: Path) -> None:
             if not (fixture / "assets/social-preview.png").is_file():
                 raise AssertionError(f"{profile} removed its selected social preview.")
             _assert_generated_cleanup(fixture, profile)
+            _assert_tier_recorded(fixture, DEFAULT_TIER, f"{profile}/full")
             _assert_fresh_generated_content(fixture, profile)
             _generated_self_test(fixture)
             _assert_retained_documentation_tests(fixture)
@@ -1358,8 +1523,9 @@ def self_test(source: Path) -> None:
                 f"[PASS] {profile}: initialization, substantive contract, README-only rejection, "
                 "mandatory-component removals, optional-component absence, and quality evidence"
             )
+            _assert_minimal_tier(source, base, profile)
     print(
-        f"PASS: {len(SUPPORTED_PROFILES)} profile fixtures initialized; "
+        f"PASS: {len(SUPPORTED_PROFILES)} profile fixtures initialized in both governance tiers; "
         "12 mandatory/README-only removals rejected and 3 optional removals accepted."
     )
 
@@ -1368,6 +1534,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd(), help="Repository root.")
     parser.add_argument("--profile", choices=SUPPORTED_PROFILES, help="One repository profile.")
+    parser.add_argument(
+        "--governance-tier", choices=GOVERNANCE_TIERS, default=DEFAULT_TIER,
+        help="Generated tooling weight: full (default, complete lifecycle) or minimal.",
+    )
     parser.add_argument("--set", dest="scalar_entries", action="append", default=[], metavar="NAME=value")
     parser.add_argument("--add", dest="repeatable_entries", action="append", default=[], metavar="NAME=value")
     parser.add_argument("--apply", action="store_true", help="Apply the validated plan; dry-run is default.")
@@ -1395,8 +1565,9 @@ def main(argv: list[str] | None = None) -> int:
             arguments.profile,
             arguments.scalar_entries,
             arguments.repeatable_entries,
+            arguments.governance_tier,
         )
-        plan = _plan(root, arguments.profile, changes)
+        plan = _plan(root, arguments.profile, changes, arguments.governance_tier)
         if arguments.apply:
             apply_changes(root, changes)
             plan["mode"] = "apply"

@@ -130,6 +130,34 @@ def config_document(root: Path, module: ModuleType) -> dict[str, Any]:
     return document
 
 
+def template_governance() -> dict[str, Any]:
+    """A valid template-mode governance matrix for fixtures that switch to template mode."""
+    return {
+        "default": "full",
+        "tiers": {
+            "full": {"description": "Full tier.", "remove_paths": [], "replace_paths": {}},
+            "minimal": {"description": "Minimal tier.", "remove_paths": [], "replace_paths": {}},
+        },
+    }
+
+
+def register_variant(module: ModuleType, root: Path, target: str, variant: str, text: str) -> None:
+    """Track ``variant`` as the minimal-tier replacement for ``target`` in template mode."""
+    module.write_fixture(root / variant, text)
+    add_force(module, root, variant)
+
+    def mutation(document: dict[str, Any]) -> None:
+        governance = template_governance()
+        governance["tiers"]["minimal"]["replace_paths"] = {target: variant}
+        document["governance_tiers"] = governance
+        document["placeholders"]["template_only_paths"] = sorted(
+            [*document["placeholders"]["template_only_paths"], variant], key=str.casefold
+        )
+        document.update(mode="template", profile=None, repository="example/TEMPLATE-IDENTITY")
+
+    mutate_config(module, root, mutation)
+
+
 def mutate_config(module: ModuleType, root: Path, mutation: Callable[[dict[str, Any]], None]) -> None:
     document = config_document(root, module)
     mutation(document)

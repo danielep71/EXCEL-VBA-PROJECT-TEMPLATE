@@ -10,6 +10,8 @@ of that kind; the row supplies its specific purpose and authoritative document.
 T = transformed; X = removed. Values come from the actual initializer dry run with its
 standard synthetic values. Supplying optional/repeatable values changes rendered text.
 The optional `assets/social-preview.png` is retained when selected; otherwise removed.
+Columns show the default full governance tier; the minimal tier also removes or replaces
+the paths listed under [Governance Tiers](../INITIALIZATION.md#governance-tiers).
 An untracked directory is not a Git artifact. Directory retention follows its children.
 
 ## Editing and validation rules by kind
@@ -40,6 +42,9 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `.github/dependabot.yml` / policy | Weekly proposal-only GitHub Actions dependency discovery. | R / R / R | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `.github/documentation-policy.json` / policy | Registered documentation references, HTTP bounds, allowed domains and expiring exceptions. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `.github/excel-evidence-policy.json` / policy | Starter entry point, case registry, assertion count and expected-error case. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
+| `.github/governance/minimal/RELEASING.md` / document | Minimal-tier release guide that replaces RELEASING.md when that tier is selected. | X / X / X | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
+| `.github/governance/minimal/static-checks.yml` / workflow | Minimal-tier Static repository checks workflow: the four standard-library gates, no dependencies. | X / X / X | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
+| `.github/governance/minimal/tools-README.md` / document | Minimal-tier tools guide that replaces tools/README.md when that tier is selected. | X / X / X | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
 | `.github/labels.json` / policy | Canonical core/profile/domain label definitions and reconciliation policy. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `.github/provisioning-policy.json` / policy | Reviewed metadata/features/merge/required-check goals and exception rationale. | R / R / R | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `.github/release-history-policy.json` / policy | Canonical-template merge-history rules, exact-SHA reviewed exceptions and preserved historical records. | X / X / X | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
@@ -78,23 +83,23 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `docs/DEPENDENCY_UPDATES.md` / document | Manual dependency monitoring, provenance review and rollback. | T / T / T | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `docs/DOCUMENTATION_CHECKS.md` / document | Offline command/reference validation and separate external-link policy. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `docs/EXCEL_EVIDENCE.md` / document | Optional Windows/Excel runner interface and manual retained-log schema. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
-| `docs/INITIALIZATION.md` / document | Authoritative initialization inputs, profile rendering and no-op contract. | R / R / R | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
+| `docs/INITIALIZATION.md` / document | Authoritative initialization inputs, profile rendering and no-op contract. | T / T / T | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
 | `docs/PILOT_CERTIFICATION.md` / document | Historical template pilot/certification evidence; not a fresh acceptance run. | X / X / X | [docs/PILOT_CERTIFICATION.md](../../docs/PILOT_CERTIFICATION.md) |
 | `docs/PORTFOLIO_DRIFT.md` / document | Read-only snapshot and structural adoption/conformance comparison contract. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |
 | `docs/PORTFOLIO_QUALITY.md` / document | Timestamped quality observations, freshness and missing-evidence interpretation; no overall score. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
-| `docs/POST_CREATION_CHECKLIST.md` / document | Live settings and read-back controls that template creation does not transfer. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
+| `docs/POST_CREATION_CHECKLIST.md` / document | Live settings and read-back controls that template creation does not transfer. | T / T / T | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `docs/PROVISIONING.md` / document | Guarded setup planner, approved-digest apply and durable journal contract. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `docs/PUBLIC_API.txt` / document | Complete public declaration inventory with normalized signature records. | R / R / R | [docs/PUBLIC_API.txt](../../docs/PUBLIC_API.txt) |
 | `docs/README.md` / document | Documentation hub and single-authority mapping. | T / T / T | [docs/README.md](../../docs/README.md) |
 | `docs/RELEASE_CLOSEOUT.md` / document | Canonical post-publication release closeout procedure and evidence boundaries. | R / R / R | [docs/RELEASE_CLOSEOUT.md](../../docs/RELEASE_CLOSEOUT.md) |
 | `docs/RELEASE_EVIDENCE.md` / document | Candidate-bound release JSON and profile/asset evidence schemas. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `docs/RELEASE_PROVENANCE.md` / document | Complete payload inventory, build records and optional SSH trust/signatures. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
-| `docs/RELEASE_SEMANTICS.md` / document | Strict SemVer, changelog ordering and comparison-link rules. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
+| `docs/RELEASE_SEMANTICS.md` / document | Strict SemVer, changelog ordering and comparison-link rules. | T / T / T | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
 | `docs/REPOSITORY_STRUCTURE.md` / document | Source layout, component roles, exports and distribution ownership. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `docs/REUSABLE_WORKFLOWS.md` / document | Immutable workflow interface pin, caller contract and adoption procedure. | T / T / T | [docs/REUSABLE_WORKFLOWS.md](../../docs/REUSABLE_WORKFLOWS.md) |
 | `docs/SUPPLY_CHAIN_ASSURANCE.md` / document | Canonical CodeQL, Dependabot and Scorecard permission/evidence boundaries. | R / R / R | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
-| `docs/TEMPLATE_CONTRACT.md` / document | Independent adopted control versions and migration classification. | R / R / R | [docs/TEMPLATE_CONTRACT.md](../../docs/TEMPLATE_CONTRACT.md) |
-| `docs/VBA_HOUSE_STYLE.md` / document | Procedure contracts, declaration annotations and explanatory body comments. | R / R / R | [docs/VBA_HOUSE_STYLE.md](../../docs/VBA_HOUSE_STYLE.md) |
+| `docs/TEMPLATE_CONTRACT.md` / document | Independent adopted control versions and migration classification. | T / T / T | [docs/TEMPLATE_CONTRACT.md](../../docs/TEMPLATE_CONTRACT.md) |
+| `docs/VBA_HOUSE_STYLE.md` / document | Procedure contracts, declaration annotations and explanatory body comments. | T / T / T | [docs/VBA_HOUSE_STYLE.md](../../docs/VBA_HOUSE_STYLE.md) |
 | `docs/WIKI_PUBLICATION.md` / document | Reviewed wiki source, complete inventory, exact-SHA publication and drift. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `docs/wiki/Choose-a-profile.md` / wiki | Guided choose a profile page; summarizes and links to the owning repository contracts. | X / X / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `docs/wiki/Configure-GitHub.md` / wiki | Guided configure github page; summarizes and links to the owning repository contracts. | X / X / X | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
@@ -118,7 +123,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `src/README.md` / document | Production export organization and public/internal boundaries. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `src/core/ProjectCore.bas` / vba | Stateless checked division and the internal zero-denominator error code. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `src/modules/ProjectFacade.bas` / vba | Supported scalar ratio entry point and normalized caller-facing error source. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
-| `tests/README.md` / document | Regression entry point, output contract, repeatability and cleanup expectations. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `tests/README.md` / document | Regression entry point, output contract, repeatability and cleanup expectations. | T / T / T | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tests/modules/ProjectTests.bas` / vba | Four-case, six-assertion harness with host-state comparison and full reporting. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tools/LOCAL_ACTIONS.md` / document | Repository-local composite/Node/Docker action validation boundaries. | R / R / R | [tools/LOCAL_ACTIONS.md](../../tools/LOCAL_ACTIONS.md) |
 | `tools/README.md` / document | Operational tool commands, reports and focused-gate responsibilities. | T / T / T | [tools/README.md](../../tools/README.md) |
@@ -175,6 +180,8 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | --- | --- | --- | --- |
 | `.github/` / directory | GitHub metadata, policies, forms and workflow automation. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `.github/ISSUE_TEMPLATE/` / directory | Governed public intake forms and private-security routing. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `.github/governance/` / directory | Template-only governance-tier variants; removed from every generated repository. | X / X / X | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
+| `.github/governance/minimal/` / directory | Files that replace their full-tier counterparts in the minimal governance tier. | X / X / X | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
 | `.github/scripts/` / directory | Reusable label policy and live reconciliation/detection implementations. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `.github/workflows/` / directory | Hosted triggers, permissions, orchestration and evidence retention. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `assets/` / directory | Maintained project visuals and optional social preview. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |

@@ -97,12 +97,14 @@ Each entry classifies its changes as **breaking**, **required**, **optional** or
 | Windows/Excel host evidence interface | Optional execution | The template retains the policy, validator, fixtures and [EXCEL_EVIDENCE.md](EXCEL_EVIDENCE.md). Use a reviewed eligible host or the same-schema manual fallback; unavailable never means PASS. Existing base compile/regression evidence stays required, and no Windows runner becomes a universal requirement. |
 | Generated workflow identity checks recognize immutable references to the recorded template source | Optional | Update the canonical checker before adopting a reusable workflow; no broad identity-path exclusion is needed |
 
+<!-- template:tier:full:start -->
 Reusable interface v1 adds no required control and does not change the resolved
 rule sets above. Its compatibility policy is owned by
 [REUSABLE_WORKFLOWS.md](REUSABLE_WORKFLOWS.md). A future breaking interface change
 must introduce a new interface major and a new template-contract version with a
 corresponding `CONTRACT_RULE_SETS` entry and migration note; do not redefine a
 published contract or move a published pin.
+<!-- template:tier:full:end -->
 
 ### 1.1.0
 
@@ -123,6 +125,7 @@ published contract or move a published pin.
 
 ## 5. ✅ Validation
 
+<!-- template:tier:full:start -->
 `tools/check_template_contract.py` is the focused gate for this contract. It:
 
 - requires exactly `version` and `source`, both well formed;
@@ -142,6 +145,13 @@ python3 tools/check_template_contract.py --root . --self-test
 
 Unknown or unsupported versions fail with an actionable message naming the
 recorded value and the supported set.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+The minimal governance tier records the adopted contract in
+`.github/repository-profile.json`, where the repository gate validates it, but
+does not include the focused contract gate. The full tier adds that gate; see
+[governance tiers](INITIALIZATION.md#governance-tiers).
+<!-- template:tier:minimal:end -->
 
 ---
 

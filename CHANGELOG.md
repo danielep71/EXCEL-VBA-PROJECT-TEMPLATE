@@ -100,6 +100,27 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+### Added
+
+- Governance tiers. `initialize_repository.py --governance-tier minimal`
+  generates a lighter project that keeps the four standard-library gates
+  (`check_repo`, `check_vba_public_api`, `check_vba_jumps`,
+  `check_release_semantics`) and their two helpers, a dependency-free *Static
+  repository checks* workflow with the same **Repository integrity** job name,
+  and CodeQL. Release evidence and provenance, host-evidence validation,
+  documentation drift and external-link checks, local-action validation, label
+  automation, Scorecard, Ruff/mypy and the initializer stay in the default
+  `full` tier. A minimal project retains 6 Python files (6,808 lines) instead of
+  22 (17,953 lines), and 49–51 tracked files instead of 87–89, depending on the
+  profile. The tier is recorded as `"governance_tier": "minimal"` in the
+  generated profile and initialization record; `full` is never recorded, so
+  existing generated repositories are unaffected. Documentation shared by both
+  tiers uses tier blocks, and table rows or list items that reference only
+  removed files are pruned. The template profile declares the tier matrix,
+  which the canonical gate validates, and the initializer self-test generates
+  every profile in both tiers and runs the four gates inside each minimal
+  result (#90).
+
 ### Changed
 
 - The guarded provisioner names its baseline rulesets **Default branch

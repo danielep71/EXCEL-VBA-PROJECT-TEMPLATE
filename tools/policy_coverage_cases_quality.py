@@ -5,7 +5,14 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from policy_coverage_core import Case, case_registrar, mutate_config, mutate_labels, rewrite_vba
+from policy_coverage_core import (
+    Case,
+    case_registrar,
+    mutate_config,
+    mutate_labels,
+    register_variant,
+    rewrite_vba,
+)
 
 
 def _label_item_cases(module: ModuleType) -> list[Case]:
@@ -188,6 +195,22 @@ def _issue_form_cases(module: ModuleType) -> list[Case]:
             "private", "restricted"
         )
         module.write_fixture(root / form_config, text)
+
+    return cases
+
+
+def _variant_cases(module: ModuleType) -> list[Case]:
+    cases: list[Case] = []
+    case = case_registrar(cases)
+    workflow_path = ".github/workflows/static-checks.yml"
+
+    @case("workflow-variant-pin", "workflow-actions", "variant pin is not used by .github/workflows")
+    def _(root: Path) -> None:
+        text = (root / workflow_path).read_text(encoding="utf-8")
+        stale, count = re.subn(r"actions/checkout@[0-9a-f]{40}", "actions/checkout@" + "b" * 40, text, count=1)
+        if count != 1:
+            raise AssertionError("variant pin mutation did not apply")
+        register_variant(module, root, workflow_path, ".github/governance/minimal/static-checks.yml", stale)
 
     return cases
 
@@ -540,6 +563,7 @@ def quality_cases(module: ModuleType) -> list[Case]:
         *_label_manifest_cases(module),
         *_issue_form_cases(module),
         *_workflow_and_version_cases(module),
+        *_variant_cases(module),
         *_vba_export_cases(module),
         *_vba_structure_cases(module),
         *_vba_visibility_cases(module),

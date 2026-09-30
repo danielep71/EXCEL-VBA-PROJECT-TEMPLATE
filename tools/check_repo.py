@@ -185,6 +185,11 @@ CONFIG_KEYS = {
     "identity",
     "vba",
 }
+# Governance tiers select the generated tooling weight independently of the
+# product profile. The template declares both tiers; a generated repository
+# records only a non-default tier, so an absent field means ``full``.
+OPTIONAL_CONFIG_KEYS = {"governance_tiers", "governance_tier"}
+GOVERNANCE_TIERS = ("full", "minimal")
 
 
 class Repository:
@@ -475,6 +480,7 @@ def _validate_placeholders(document: dict[str, Any], failures: list[dict[str, An
         "profile": "template:profile:{profile}",
         "optional": "template:optional:{token}",
         "repeatable": "template:repeatable:{token}",
+        "tier": "template:tier:{tier}",
     }
     if placeholders.get("block_markers") != expected_markers:
         failures.append(finding(CONFIG_PATH, "placeholders.block_markers must use the canonical marker grammar."))
@@ -565,6 +571,48 @@ def _validate_configuration_root(
     return mode, repository
 
 
+def _governance_tier_problem(name: str, tier: object, template_only: object) -> str | None:
+    if not _same_keys(tier, {"description", "remove_paths", "replace_paths"}):
+        return "must contain exactly description, remove_paths and replace_paths"
+    assert isinstance(tier, dict)
+    removed, replaced = tier["remove_paths"], tier["replace_paths"]
+    if not isinstance(tier["description"], str) or not tier["description"].strip():
+        return "needs a description"
+    if not isinstance(removed, list) or not all(isinstance(path, str) and _valid_relative_path(path) for path in removed):
+        return "remove_paths must be safe relative paths"
+    if removed != sorted(set(removed), key=lambda item: (item.casefold(), item)):
+        return "remove_paths must be sorted case-insensitively and unique"
+    if not isinstance(replaced, dict) or not all(
+            isinstance(key, str) and isinstance(value, str) and _valid_relative_path(key) and _valid_relative_path(value)
+            for key, value in replaced.items()):
+        return "replace_paths must map safe relative paths"
+    if name == "full" and (removed or replaced):
+        return "the full tier is the complete tree and may not remove or replace paths"
+    if not set(replaced.values()) <= set(template_only if isinstance(template_only, list) else []):
+        return "replace_paths sources must be template-only paths"
+    return None
+
+
+def _validate_governance(document: dict[str, Any], mode: object, failures: list[dict[str, Any]]) -> None:
+    tiers, recorded = document.get("governance_tiers"), document.get("governance_tier", "full")
+    if mode == "generated":
+        if "governance_tiers" in document or recorded not in GOVERNANCE_TIERS or "governance_tier" in document and recorded == "full":
+            failures.append(finding(CONFIG_PATH, "Generated mode records at most governance_tier: minimal and no governance_tiers matrix."))
+        return
+    if "governance_tier" in document or not _same_keys(tiers, {"default", "tiers"}):
+        failures.append(finding(CONFIG_PATH, "Template mode requires a governance_tiers object with default and tiers, and no governance_tier."))
+        return
+    assert isinstance(tiers, dict)
+    if tiers["default"] != "full" or not _same_keys(tiers["tiers"], set(GOVERNANCE_TIERS)):
+        failures.append(finding(CONFIG_PATH, "governance_tiers must define the full and minimal tiers with full as the default."))
+        return
+    template_only = document.get("placeholders", {}).get("template_only_paths") if isinstance(document.get("placeholders"), dict) else None
+    for name in GOVERNANCE_TIERS:
+        problem = _governance_tier_problem(name, tiers["tiers"][name], template_only)
+        if problem:
+            failures.append(finding(CONFIG_PATH, f"governance_tiers.tiers.{name} {problem}."))
+
+
 def load_configuration(
     repo: Repository,
 ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
@@ -574,11 +622,12 @@ def load_configuration(
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         failures.append(finding(CONFIG_PATH, f"Cannot load repository profile: {error}", getattr(error, "lineno", None)))
         return None, rule_result("configuration", "Repository profile configuration", failures, "")
-    if not _same_keys(document, CONFIG_KEYS):
+    if not isinstance(document, dict) or not CONFIG_KEYS <= set(document) <= CONFIG_KEYS | OPTIONAL_CONFIG_KEYS:
         failures.append(finding(CONFIG_PATH, "Root object must contain exactly the canonical configuration keys."))
     if not isinstance(document, dict):
         document = {}
     mode, repository = _validate_configuration_root(document, failures)
+    _validate_governance(document, mode, failures)
     _validate_profiles(document, failures)
     _validate_placeholders(document, failures)
     _validate_identity(document, mode, repository, failures)
@@ -1126,10 +1175,24 @@ def _github_slugs(text: str) -> set[str]:
     return slugs
 
 
+def _variant_locations(config: dict[str, Any]) -> dict[str, str]:
+    """Map each governance-tier variant source to the path it replaces.
+
+    A variant is written for its target location, so its links resolve there;
+    the template tree is a superset of every tier's tree.
+    """
+    tiers = config.get("governance_tiers", {}).get("tiers", {})
+    return {
+        source: target
+        for tier in tiers.values()
+        for target, source in tier["replace_paths"].items()
+    }
+
+
 def check_markdown_links(
     repo: Repository, config: dict[str, Any]
 ) -> dict[str, Any]:
-    del config
+    locations = _variant_locations(config)
     failures: list[dict[str, Any]] = []
     checked = 0
     slug_cache: dict[Path, set[str]] = {}
@@ -1140,7 +1203,7 @@ def check_markdown_links(
             text = repo.text(path)
         except (OSError, UnicodeError):
             continue
-        source = repo.path(path)
+        source = repo.path(locations.get(path, path))
         for number, raw in markdown_destinations(text):
             parsed = urlsplit(raw.strip("<>"))
             if parsed.scheme or raw.startswith("//"):
@@ -1149,7 +1212,7 @@ def check_markdown_links(
             if not target_text and not fragment:
                 continue
             checked += 1
-            target = source if not target_text else source.parent / target_text
+            target = repo.path(path) if not target_text else source.parent / target_text
             try:
                 target = target.resolve()
                 target.relative_to(repo.root)
@@ -2021,16 +2084,54 @@ def _check_external_action_references(
     return checked
 
 
+def _external_actions(lines: list[str]) -> list[tuple[int, str]]:
+    uses_line = re.compile(r"^\s*(?:-\s*)?uses:\s*([^\s#./][^\s#]*)")
+    return [
+        (number, match.group(1))
+        for number, line in enumerate(lines, start=1)
+        if (match := uses_line.match(line))
+    ]
+
+
+def _check_variant_pins(
+    variants: dict[str, list[str]],
+    canonical: set[str],
+    failures: list[dict[str, Any]],
+) -> None:
+    """Hold tier variants to the canonical pins that Dependabot maintains.
+
+    Dependabot scans only .github/workflows, so a variant stored elsewhere
+    would otherwise keep a superseded action revision.
+    """
+    for path, lines in variants.items():
+        for number, reference in _external_actions(lines):
+            if reference not in canonical:
+                failures.append(
+                    finding(
+                        path,
+                        f"Governance-tier variant pin is not used by .github/workflows: {reference}",
+                        number,
+                    )
+                )
+
+
 def check_workflow_actions(
     repo: Repository, config: dict[str, Any]
 ) -> dict[str, Any]:
-    del config
+    variant_paths = {
+        path
+        for path in _variant_locations(config)
+        if PurePosixPath(path).suffix.casefold() in {".yml", ".yaml"}
+    }
     failures: list[dict[str, Any]] = []
     checked = 0
+    canonical: set[str] = set()
+    variants: dict[str, list[str]] = {}
     for path in repo.files:
         pure = PurePosixPath(path)
+        workflow = path.startswith(".github/workflows/")
         if (
-            not path.startswith(".github/workflows/")
+            not (workflow or path in variant_paths)
             or pure.suffix.casefold() not in {".yml", ".yaml"}
         ):
             continue
@@ -2040,6 +2141,11 @@ def check_workflow_actions(
             continue
         _check_pr_workflow_permissions(path, lines, failures)
         checked += _check_external_action_references(path, lines, failures)
+        if workflow:
+            canonical.update(reference for _, reference in _external_actions(lines))
+        else:
+            variants[path] = lines
+    _check_variant_pins(variants, canonical, failures)
     return rule_result(
         "workflow-actions",
         "Immutable workflow actions",
@@ -2873,6 +2979,7 @@ def _fixture_configuration() -> dict[str, Any]:
                 "profile": "template:profile:{profile}",
                 "optional": "template:optional:{token}",
                 "repeatable": "template:repeatable:{token}",
+                "tier": "template:tier:{tier}",
             },
             "template_only_paths": [],
             "exclude_paths": [CONFIG_PATH],

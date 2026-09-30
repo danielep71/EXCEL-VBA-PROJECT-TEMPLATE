@@ -5,7 +5,9 @@
 [![Merge: manual](https://img.shields.io/badge/merge-manual-6f42c1)](#review-and-merge)
 
 This document owns dependency discovery, update evidence, approval and rollback.
+<!-- template:tier:full:start -->
 [REUSABLE_WORKFLOWS.md](REUSABLE_WORKFLOWS.md) owns the reusable interface;
+<!-- template:tier:full:end -->
 [TEMPLATE_CONTRACT.md](TEMPLATE_CONTRACT.md) owns contract compatibility.
 The policy applies to template maintenance and initialized repositories alike.
 
@@ -24,10 +26,11 @@ explicit maintainer review cadence.
 | --- | --- | --- |
 | External Actions | Every `uses:` in `.github/workflows/`; official `actions/checkout`, `actions/setup-python`, `actions/upload-artifact` releases and advisories | Full commit SHA plus audited semantic-version comment; update all intended occurrences |
 | GitHub Actions update discovery | `.github/dependabot.yml`; Dependabot pull requests are proposals only | Weekly candidate proposal; preserve immutable SHA pins and manual approval |
-| Security analyzers | `.github/workflows/codeql.yml`, `.github/workflows/scorecard.yml`, and [SUPPLY_CHAIN_ASSURANCE.md](SUPPLY_CHAIN_ASSURANCE.md) | Reviewed Action pin, query/analyzer behavior, permissions, triggers, and publication boundary |
+| Security analyzers | `.github/workflows/codeql.yml` and [SUPPLY_CHAIN_ASSURANCE.md](SUPPLY_CHAIN_ASSURANCE.md) | Reviewed Action pin, query/analyzer behavior, permissions, triggers, and publication boundary |
+| Scorecard analyzer | `.github/workflows/scorecard.yml` | Reviewed Action pin, analyzer behavior, permissions, triggers, and publication boundary |
 | Reusable workflows | Caller job-level `uses:`, [published interface pin](REUSABLE_WORKFLOWS.md), template source and its compatibility notes | Full provider SHA plus interface revision; review coupled caller-local scripts separately |
 | actionlint | `ACTIONLINT_VERSION` and archive digest in the static workflow; `EXPECTED_ACTIONLINT_VERSION` in `tools/test_workflow_validation.py`; official `rhysd/actionlint` releases | Version, platform-specific archive SHA-256 and expected validator version together |
-| Python quality tools | `RUFF_VERSION` and `MYPY_VERSION` in the static workflow; `tools/requirements-*-ci.txt`; official PyPI distribution metadata and upstream release notes | Exact direct/transitive versions plus reviewed wheel SHA-256 hashes for hosted CPython 3.10/Ubuntu x64; local cross-platform pins must mirror the CI locks |
+| Python quality tools | `RUFF_VERSION` and `MYPY_VERSION` in the static workflow; `tools/requirements-quality-ci.txt`, `tools/requirements-coverage-ci.txt` and `tools/requirements-portfolio-ci.txt`; official PyPI distribution metadata and upstream release notes | Exact direct/transitive versions plus reviewed wheel SHA-256 hashes for hosted CPython 3.10/Ubuntu x64; local cross-platform pins must mirror the CI locks |
 <!-- template:remove:start -->
 | Template snapshot parser | PyYAML pin in `portfolio-drift.yml` and `check_portfolio_drift.py`; [parser review](PORTFOLIO_DRIFT.md) and official PyPI/upstream metadata | Keep installer and runtime version assertion synchronized; template maintenance only |
 <!-- template:remove:end -->
@@ -90,6 +93,11 @@ The SHA/origin and least-privilege principles follow GitHub's
 ## 🧩 Grouping and compatibility
 
 - Group repeated occurrences of the same Action pin in one coherent update.
+<!-- template:remove:start -->
+- Include the minimal-tier workflow variant under `.github/governance/minimal/`
+  in the same update. Dependabot scans only `.github/workflows/`, so the
+  canonical gate rejects a variant pin that no workflow there still uses.
+<!-- template:remove:end -->
 - Keep an actionlint version, archive digest and validator expectation together.
 - Couple a reusable-workflow pin with local CLI changes only when required by
   its documented interface migration; explain and test the pair.

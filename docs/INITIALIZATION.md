@@ -12,7 +12,14 @@ rulesets, environments, or other live settings.
 
 ## 🛡️ Safety Model
 
+<!-- template:tier:full:start -->
 `tools/initialize_repository.py` is dependency-free and dry-run-first. It:
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+This project uses the minimal governance tier, which does not retain the
+initializer. The template's `<template-checkout>/tools/initialize_repository.py`
+is dependency-free and dry-run-first. It:
+<!-- template:tier:minimal:end -->
 
 1. requires a clean Git working tree;
 2. validates the complete input set before rendering any file;
@@ -86,6 +93,7 @@ identifiers; a project may rename them later as an explicit source change.
 
 Run this command from a clean repository root. Dry-run is the default:
 
+<!-- template:tier:full:start -->
 ```bash
 python3 tools/initialize_repository.py --profile library \
   --set PROJECT_NAME="Example Project" \
@@ -96,6 +104,19 @@ python3 tools/initialize_repository.py --profile library \
   --set SUPPORT_CONTACT="security@example.com" \
   --set COPYRIGHT_YEAR="2026"
 ```
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+```bash
+python3 <template-checkout>/tools/initialize_repository.py --root . --profile library \
+  --set PROJECT_NAME="Example Project" \
+  --set PROJECT_TAGLINE="A concise project identity" \
+  --set PROJECT_DESCRIPTION="One sentence describing the supported problem and audience." \
+  --set REPOSITORY_PATH="owner/repository" \
+  --set MAINTAINER_NAME="Example Maintainer" \
+  --set SUPPORT_CONTACT="security@example.com" \
+  --set COPYRIGHT_YEAR="2026"
+```
+<!-- template:tier:minimal:end -->
 
 Use exactly one profile:
 
@@ -137,6 +158,46 @@ Repeat list inputs in command order:
 Omitted optional and repeatable values remove their complete marked blocks;
 empty placeholder prose is never retained.
 
+<a id="governance-tiers"></a>
+
+## 🎚️ Governance Tiers
+
+The governance tier chooses how much maintenance tooling a generated project
+keeps. It is independent of the product profile: every profile can use either
+tier. Select it with `--governance-tier`; `full` is the default.
+
+| Tier | Keeps | Suits |
+| --- | --- | --- |
+| `full` | Everything below, plus release evidence and certification, build provenance, Excel host-evidence validation, documentation-drift and external-link checks, local-action validation, label automation, Scorecard, release closeout and the initializer | Portfolio-grade lifecycle and audited releases |
+| `minimal` | `check_repo.py` (repository integrity, VBA structure, pinned actions, version and changelog), `check_vba_public_api.py`, `check_vba_jumps.py`, `check_release_semantics.py`, their two helpers, the *Static repository checks* and CodeQL workflows, and the provisioning policy | A small team that wants source discipline and a safe release baseline |
+
+Both tiers keep the same VBA source, regression suite, issue forms, labels,
+private security reporting and branch/tag provisioning. The dry-run plan states
+the selected tier, the retained tools and every removed path. A `full` project
+records nothing extra; a `minimal` project records `"governance_tier": "minimal"`
+in `.github/repository-profile.json` and `.github/initialization.json`, so its
+required paths and conformance reports cover only the controls it keeps. A
+full-tier control that a minimal project lacks is reported as not applicable,
+never as missing.
+
+### ⬆️ Upgrade from minimal to full
+
+A minimal project adopts the full tier in place. From the project root, run the
+initializer of a template checkout at the project's recorded
+`template_contract` version:
+
+```bash
+python3 <template-checkout>/tools/initialize_repository.py --root . --upgrade-tier full
+```
+
+The command is a dry run: it reads the recorded profile and inputs, renders the
+full tier from the template, and lists every file it would add or replace. Add
+`--apply` to write it, then review, run the gates and commit. The upgrade adds
+full-tier files and replaces a minimal-tier file only when the project has not
+changed it since initialization. If an adopter-changed file differs from its
+full-tier version, the upgrade stops and names the file; it never overwrites or
+deletes adopter changes. A template at a different contract version is refused.
+
 ## ⚙️ Deterministic Transformations
 
 An applied initialization:
@@ -155,7 +216,8 @@ An applied initialization:
 - resets `VERSION` to the `0.0.0` development sentinel;
 - creates explanatory files in currently empty profile-required directories;
 - writes `.github/initialization.json`; and
-- leaves the initializer available for idempotence verification.
+- in the full tier, leaves the initializer available for idempotence
+  verification; the minimal tier removes it with the other full-tier tools.
 
 Explanatory profile-directory files are structural guidance only. They never
 satisfy the generated VBA contract: every selected profile must retain the
@@ -197,6 +259,7 @@ inputs.
 
 ## ✅ Verification
 
+<!-- template:tier:full:start -->
 ```bash
 python3 tools/initialize_repository.py --root . --self-test
 python3 tools/check_repo.py --root . --self-test
@@ -214,6 +277,20 @@ profile, identity, cleanup, repository quality and repeat-run safety; it does
 not regenerate all three profiles or require removed checker-development or
 policy-coverage tools.
 
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+```bash
+python3 tools/check_repo.py --root . --self-test
+python3 tools/check_repo.py --root . \
+  --output test-results/static-checks.json \
+  --summary test-results/static-checks.md
+```
+
+The minimal tier does not retain the initializer, so repeat-run safety is shown
+by the template's own fixtures rather than locally. The repository gate still
+validates the recorded profile, identity, cleanup and repository quality.
+
+<!-- template:tier:minimal:end -->
 After initialization, configure the live repository settings that a GitHub
 template cannot inherit. Follow
 [`POST_CREATION_CHECKLIST.md`](POST_CREATION_CHECKLIST.md) and preserve read-back

@@ -29,9 +29,11 @@ failure is non-passing. The harness changes no Excel state; cleanup verifies its
 owned run flag and checks that calculation, display alerts, events and screen
 updating match their pre-run values.
 
+<!-- template:tier:full:start -->
 The optional [Windows/Excel evidence interface](../docs/EXCEL_EVIDENCE.md)
 records this harness output, source identity and host environment with explicit
 manual/automated execution. Its validator does not execute Excel.
+<!-- template:tier:full:end -->
 
 ## Rules
 
