@@ -26,6 +26,22 @@ The starter implements one stateless ratio operation only to prove the
 façade/core, error, import, and test contracts. Replace it with real project
 behavior before release, or document why the sample remains supported.
 
+<!-- template:profile:library:start -->
+## Library reference
+
+| Import order | Path | Component | Role |
+| ---: | --- | --- | --- |
+| 3 | `core/TextCore.bas` | `TextCore` | Internal text and path implementation guarded by `Option Private Module` |
+| 4 | `modules/TextFacade.bas` | `TextFacade` | Supported text and path façade recorded in `docs/PUBLIC_API.txt` |
+
+The reference domain is deliberately generic: padding, whitespace
+normalization, comparison, counting, splitting and joining text, and composing
+and splitting paths as strings. Every Excel VBA library needs some of these,
+none of them carries business meaning, and path rules genuinely differ between
+Windows and macOS. Worksheet data enters only as `Range.Value` arrays; the
+façade never reads ambient Excel state or the file system.
+<!-- template:profile:library:end -->
+
 ## Rules
 
 - Preserve exported VBE component names, headers, and text encoding.

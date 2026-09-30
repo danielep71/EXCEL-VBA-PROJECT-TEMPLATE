@@ -6,3 +6,33 @@ ProjectFacade	Const	PROJECT_ERROR_ZERO_DENOMINATOR
 # SIG	ProjectFacade	Const	PROJECT_ERROR_ZERO_DENOMINATOR	Public Const PROJECT_ERROR_ZERO_DENOMINATOR As Long = ProjectCore.ERR_ZERO_DENOMINATOR
 ProjectFacade	Function	ProjectRatio
 # SIG	ProjectFacade	Function	ProjectRatio	Public Function ProjectRatio( ByVal numerator As Double, ByVal denominator As Double) As Double
+TextFacade	Const	TEXT_ERROR_INVALID_ARGUMENT
+# SIG	TextFacade	Const	TEXT_ERROR_INVALID_ARGUMENT	Public Const TEXT_ERROR_INVALID_ARGUMENT As Long = TextCore.ERR_INVALID_ARGUMENT
+TextFacade	Const	TEXT_PATH_SEPARATOR
+# SIG	TextFacade	Const	TEXT_PATH_SEPARATOR	Public Const TEXT_PATH_SEPARATOR As String = TextCore.PATH_SEPARATOR
+TextFacade	Enum	TextPadSide
+# SIG	TextFacade	Enum	TextPadSide	Public Enum TextPadSide | TextPadRight = TextCore.PAD_RIGHT | TextPadLeft = TextCore.PAD_LEFT | TextPadBoth = TextCore.PAD_BOTH | End Enum
+TextFacade	Type	TextPathParts
+# SIG	TextFacade	Type	TextPathParts	Public Type TextPathParts | Directory As String | BaseName As String | Extension As String | End Type
+TextFacade	Function	TextPad
+# SIG	TextFacade	Function	TextPad	Public Function TextPad( ByVal value As String, ByVal width As Long, Optional ByVal side As TextPadSide = TextPadRight, Optional ByVal fill As String = " ") As String
+TextFacade	Function	TextCollapseWhitespace
+# SIG	TextFacade	Function	TextCollapseWhitespace	Public Function TextCollapseWhitespace( ByVal value As String) As String
+TextFacade	Function	TextStartsWith
+# SIG	TextFacade	Function	TextStartsWith	Public Function TextStartsWith( ByVal value As String, ByVal prefix As String, Optional ByVal compareMode As VbCompareMethod = vbBinaryCompare) As Boolean
+TextFacade	Function	TextEndsWith
+# SIG	TextFacade	Function	TextEndsWith	Public Function TextEndsWith( ByVal value As String, ByVal suffix As String, Optional ByVal compareMode As VbCompareMethod = vbBinaryCompare) As Boolean
+TextFacade	Function	TextCount
+# SIG	TextFacade	Function	TextCount	Public Function TextCount( ByVal value As String, ByVal find As String, Optional ByVal compareMode As VbCompareMethod = vbBinaryCompare) As Long
+TextFacade	Function	TextSplit
+# SIG	TextFacade	Function	TextSplit	Public Function TextSplit( ByVal value As String, Optional ByVal delimiter As String = ",", Optional ByVal trimItems As Boolean = False, Optional ByVal removeEmpty As Boolean = False) As String()
+TextFacade	Function	TextJoin
+# SIG	TextFacade	Function	TextJoin	Public Function TextJoin( ByVal items As Variant, Optional ByVal delimiter As String = ", ", Optional ByVal skipEmpty As Boolean = False) As String
+TextFacade	Function	TextIsBlank
+# SIG	TextFacade	Function	TextIsBlank	Public Function TextIsBlank( ByVal value As Variant) As Boolean
+TextFacade	Function	TextJoinPath
+# SIG	TextFacade	Function	TextJoinPath	Public Function TextJoinPath( ByVal basePath As String, ByVal childPath As String) As String
+TextFacade	Function	TextSplitPath
+# SIG	TextFacade	Function	TextSplitPath	Public Function TextSplitPath( ByVal path As String) As TextPathParts
+TextFacade	Function	TextSafeFileName
+# SIG	TextFacade	Function	TextSafeFileName	Public Function TextSafeFileName( ByVal value As String, Optional ByVal replacement As String = "_") As String

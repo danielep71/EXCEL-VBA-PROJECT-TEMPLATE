@@ -114,7 +114,12 @@
         "src/modules",
         "tests/modules"
       ],
-      "owned_paths": [],
+      "owned_paths": [
+        "examples/modules/TextExample.bas",
+        "src/core/TextCore.bas",
+        "src/modules/TextFacade.bas",
+        "tests/modules/TextTests.bas"
+      ],
       "vba_contract": {
         "minimum_roles": {
           "internal": 1,
@@ -335,9 +340,13 @@
     ],
     "components": {
       "examples/modules/ProjectExample.bas": "example",
+      "examples/modules/TextExample.bas": "example",
       "src/core/ProjectCore.bas": "internal",
+      "src/core/TextCore.bas": "internal",
       "src/modules/ProjectFacade.bas": "public",
-      "tests/modules/ProjectTests.bas": "test"
+      "src/modules/TextFacade.bas": "public",
+      "tests/modules/ProjectTests.bas": "test",
+      "tests/modules/TextTests.bas": "test"
     },
     "public_api_manifest": "docs/PUBLIC_API.txt"
   },

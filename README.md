@@ -133,6 +133,20 @@ The starter proves the repository shape; it is not project-specific business
 logic. Rename or replace it only as one coherent change across source, tests,
 examples, repository policy and the [public API manifest](docs/PUBLIC_API.txt).
 
+<!-- template:profile:library:start -->
+The library profile adds a substantive reference: neutral text and path
+utilities with fifteen supported declarations, an explicit error contract and
+platform-specific path rules selected by `#If Mac`.
+
+- [`TextCore`](src/core/TextCore.bas) — internal implementation;
+- [`TextFacade`](src/modules/TextFacade.bas) — supported public façade;
+- [`TextTests`](tests/modules/TextTests.bas) — library regression suite; and
+- [`TextExample`](examples/modules/TextExample.bas) — multi-operation example.
+
+It shows how a real library grows on the starter's façade/core, error and test
+contracts. Keep, adapt or remove it as one coherent change, like the starter.
+<!-- template:profile:library:end -->
+
 ### 2. Validate locally
 
 <!-- template:tier:full:start -->
