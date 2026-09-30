@@ -147,6 +147,22 @@ It shows how a real library grows on the starter's façade/core, error and test
 contracts. Keep, adapt or remove it as one coherent change, like the starter.
 <!-- template:profile:library:end -->
 
+<!-- template:profile:ui-component:start -->
+The ui-component profile adds a substantive reference: a progress session that
+owns the Excel status bar, cursor, screen updating and Esc handling for a long
+operation and restores each one exactly as found.
+
+- [`ProgressCore`](src/core/ProgressCore.bas) — session state and the native
+  elapsed-time seam;
+- [`ProgressFacade`](src/modules/ProgressFacade.bas) — supported public façade;
+- [`ProgressTests`](tests/modules/ProgressTests.bas) — lifecycle, restoration
+  and negative-control suite; and
+- [`ProgressExample`](examples/modules/ProgressExample.bas) — the caller
+  pattern, including Esc cancellation.
+
+Keep, adapt or remove it as one coherent change, like the starter.
+<!-- template:profile:ui-component:end -->
+
 ### 2. Validate locally
 
 <!-- template:tier:full:start -->

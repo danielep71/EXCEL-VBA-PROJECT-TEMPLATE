@@ -524,6 +524,11 @@
       "kind": "wiki",
       "authority": "tools/README.md"
     },
+    "examples/modules/ProgressExample.bas": {
+      "purpose": "UI-component example: a 25-step loop with status-bar progress and Esc cancellation.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "examples/modules/ProjectExample.bas": {
       "purpose": "Optional project-private example that prints one supported facade result.",
       "kind": "vba",
@@ -569,6 +574,11 @@
       "kind": "document",
       "authority": "SECURITY.md"
     },
+    "src/core/ProgressCore.bas": {
+      "purpose": "UI-component session state: snapshot and restore of five Application properties and the native elapsed-time seam.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "src/core/ProjectCore.bas": {
       "purpose": "Stateless checked division and the internal zero-denominator error code.",
       "kind": "vba",
@@ -576,6 +586,11 @@
     },
     "src/core/TextCore.bas": {
       "purpose": "Library-profile text and path implementation with platform-specific path rules and the invalid-argument code.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "src/modules/ProgressFacade.bas": {
+      "purpose": "UI-component supported progress-session API: fourteen declarations and a normalized error source.",
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
@@ -592,6 +607,11 @@
     "src/README.md": {
       "purpose": "Production export organization and public/internal boundaries.",
       "kind": "document",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "tests/modules/ProgressTests.bas": {
+      "purpose": "UI-component suite: 12 lifecycle, restoration and negative-control cases.",
+      "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
     "tests/modules/ProjectTests.bas": {

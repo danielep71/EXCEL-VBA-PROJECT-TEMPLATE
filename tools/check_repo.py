@@ -2406,7 +2406,10 @@ def _handle_vba_directive(
             failures.append(finding(path, "#ElseIf without #If.", number))
         else:
             condition = upper[8:]
-            directives[-1]["active"] = "VBA7" in condition and "NOT VBA7" not in condition
+            requires = "VBA7" in condition and "NOT VBA7" not in condition
+            directives[-1]["active"] = requires
+            # #Else is VBA6-only once any branch of the chain claimed VBA7.
+            directives[-1]["vba7"] = directives[-1]["vba7"] or requires
         return True
     if upper.startswith("#ELSE"):
         if not directives:

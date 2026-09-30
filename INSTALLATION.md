@@ -100,6 +100,15 @@ The library reference follows the same order:
 4. `examples/modules/TextExample.bas` — optional consumer example
 <!-- template:profile:library:end -->
 
+<!-- template:profile:ui-component:start -->
+The ui-component reference follows the same order:
+
+1. `src/core/ProgressCore.bas`
+2. `src/modules/ProgressFacade.bas`
+3. `tests/modules/ProgressTests.bas` — development/regression only
+4. `examples/modules/ProgressExample.bas` — optional consumer example
+<!-- template:profile:ui-component:end -->
+
 A generated project may replace or extend this layout. The authoritative source
 and component-role rules are in
 [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md).
@@ -144,6 +153,13 @@ For the library reference, also run `TextTests.RunTextTests`; a passing run ends
 with `RESULT=PASS; completeness=COMPLETE; cases=26; assertions=123; failures=0;
 cleanup=PASS`. `TextExample.RunTextExample` is its consumer smoke.
 <!-- template:profile:library:end -->
+
+<!-- template:profile:ui-component:start -->
+For the ui-component reference, also run `ProgressTests.RunProgressTests`; a
+passing Windows run ends with `RESULT=PASS; completeness=COMPLETE; cases=12;
+assertions=79; failures=0; cleanup=PASS` (75 assertions on macOS).
+`ProgressExample.RunProgressExample` is its consumer smoke.
+<!-- template:profile:ui-component:end -->
 A generated project must replace these baseline expectations when it changes the
 starter contract.
 

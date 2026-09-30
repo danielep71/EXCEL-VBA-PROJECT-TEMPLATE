@@ -29,6 +29,15 @@ and builds a safe file path, printing six deterministic lines. Only the path
 line differs by platform, through its separator and file-name rules.
 <!-- template:profile:library:end -->
 
+<!-- template:profile:ui-component:start -->
+The ui-component profile adds `modules/ProgressExample.bas`. Run
+`ProgressExample.RunProgressExample` after importing `ProgressCore` and
+`ProgressFacade`. It sums the squares of 1 to 25 while the status bar shows
+progress and elapsed time, then prints `Completed 25 of 25; sum of squares =
+5525`. Press Esc while it runs to see the cancellation path; the caller's status
+bar, cursor, screen updating and Esc handling are restored either way.
+<!-- template:profile:ui-component:end -->
+
 Use `demo/` instead only when an interactive demo is itself a distinct project deliverable, an established public path must remain stable, or packaging automation requires that profile. Document the reason in the root README and do not maintain both `examples/` and `demo/` for the same purpose.
 
 Do not commit opaque generated workbooks here unless the repository's release policy explicitly treats them as reviewed source artifacts. Published binaries normally belong to GitHub Releases.
