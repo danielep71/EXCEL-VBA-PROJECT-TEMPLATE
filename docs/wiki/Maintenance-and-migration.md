@@ -26,8 +26,9 @@ baseline. Older adopters are evaluated against their recorded version.
 5. Update the adoption record only when the target contract is actually met.
 6. Retain the previous tested revision and a reviewed rollback procedure.
 
-The initializer is not an upgrade engine. Do not rerun it with different values
-or replace a mature repository with a fresh template tree.
+Apart from the in-place [governance-tier upgrade](../INITIALIZATION.md#governance-tiers)
+from minimal to full, the initializer is not an upgrade engine. Do not rerun it
+with different values or replace a mature repository with a fresh template tree.
 
 ## Reusable workflow adoption
 

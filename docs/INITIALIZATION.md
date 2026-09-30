@@ -182,21 +182,34 @@ never as missing.
 
 ### ⬆️ Upgrade from minimal to full
 
-A minimal project adopts the full tier in place. From the project root, run the
-initializer of a template checkout at the project's recorded
+A minimal project adopts the full tier in place. From a clean, committed project
+root, run the initializer of a template checkout at the project's recorded
 `template_contract` version:
 
 ```bash
 python3 <template-checkout>/tools/initialize_repository.py --root . --upgrade-tier full
 ```
 
-The command is a dry run: it reads the recorded profile and inputs, renders the
-full tier from the template, and lists every file it would add or replace. Add
-`--apply` to write it, then review, run the gates and commit. The upgrade adds
-full-tier files and replaces a minimal-tier file only when the project has not
-changed it since initialization. If an adopter-changed file differs from its
-full-tier version, the upgrade stops and names the file; it never overwrites or
-deletes adopter changes. A template at a different contract version is refused.
+The command reads the recorded profile and inputs from
+`.github/initialization.json`, so it takes no `--profile`, `--set` or `--add`.
+It renders the project's minimal baseline and its full-tier target from the
+template and compares each full-tier file with the project:
+
+| Action | When |
+| --- | --- |
+| `add` | The file exists only in the full tier and the project does not have it |
+| `replace` | The project still holds the minimal-tier version |
+| `merge` | The adopter changed the file and the change does not overlap a tier difference; a three-way text merge keeps both |
+| `adopter-deleted` | The adopter deleted the file; it stays deleted |
+| `conflict` | The adopter's change overlaps a tier difference, or a changed file is binary or already exists with other content |
+
+The default is a dry run that prints this plan. Add `--apply` to write it, then
+review the diff, run the gates and commit. Any conflict stops the upgrade before
+anything is written, exits `2` and names the files. The upgrade never deletes a
+file. An unedited minimal project upgrades to exactly the tree a direct
+full-tier initialization produces, and the tier is then no longer recorded. A
+template at a different contract version is refused, and a project already on
+the full tier is a no-op.
 
 ## ⚙️ Deterministic Transformations
 
