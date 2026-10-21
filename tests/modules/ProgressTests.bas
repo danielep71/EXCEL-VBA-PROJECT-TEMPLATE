@@ -135,7 +135,8 @@ Public Sub RunProgressTests()
 '
 ' STATE OWNERSHIP
 '   Reject an active run before resetting counters. Snapshot four Excel
-'   properties for comparison; the harness never changes those properties.
+'   properties for comparison. Cases change screen updating on purpose; the
+'   runner restores the owned UI found at suite start before comparing.
 '
 ' ERROR POLICY
 '   Record unexpected runner failures, attempt cleanup, print the summary,
@@ -1705,7 +1706,8 @@ Private Function CleanupRun( _
 '
 ' ERROR POLICY
 '   Return False for an unavailable snapshot, changed state, or a cleanup
-'   error. Report the reason; do not restore properties the harness never owned.
+'   error. Report the reason; RestoreSuiteUi has already given back the owned
+'   UI, so this function only verifies the result.
 '
 ' UPDATED
 '   2026-09-30
@@ -1732,8 +1734,9 @@ Private Function CleanupRun( _
             Exit Function
         End If
 
-    'Compare only properties that were captured successfully. The harness
-    'does not restore them because it never changed or owned them.
+    'Compare only properties that were captured successfully. The suite never
+    'changes calculation, alerts or events; screen updating was restored by
+    'RestoreSuiteUi, so any mismatch is a real restoration failure.
         excelStateUnchanged = _
             (Application.Calculation = initialCalculation) And _
             (Application.DisplayAlerts = initialDisplayAlerts) And _
@@ -1825,8 +1828,9 @@ Private Function EnvironmentSummary() _
 ' RESOLVE COMPILED ENVIRONMENT
 '------------------------------------------------------------------------------
     'Describe the running Office/VBA build from compiler constants; do not
-    'infer Office bitness from the Windows operating-system description.
-#If Win64 Then
+    'infer Office bitness from the operating-system description. Office for
+    'Mac 2016 and later is 64-bit VBA7 although Win64 is False there.
+#If Win64 Or (Mac And VBA7) Then
         bitness = "64-bit"
 #Else
         bitness = "32-bit"
