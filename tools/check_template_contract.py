@@ -9,8 +9,8 @@ contract stays fixed.
 
 This gate owns the contract's semantics. ``check_repo.py`` only requires the
 ``template_contract`` key to exist in the canonical configuration; every rule
-about its content lives here, so the portable checker's policy-branch inventory
-is unchanged.
+about its content lives here, so the portable checker carries no contract-specific
+policy branches.
 """
 
 from __future__ import annotations

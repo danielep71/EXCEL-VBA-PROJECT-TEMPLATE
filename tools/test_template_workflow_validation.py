@@ -335,7 +335,8 @@ class SupplyChainEligibilityTests(unittest.TestCase):
 
 
 class ScorecardReviewRegressionTests(unittest.TestCase):
-    """Exercise the three late review findings against actual retained policy."""
+    """Hold the Scorecard publication contract: job environment and defaults,
+    the file-mode input binding, and the SVG badge script, against the retained workflow."""
 
     def setUp(self) -> None:
         self.workflow = (Path(__file__).resolve().parents[1] / SCORECARD_WORKFLOW).read_text(

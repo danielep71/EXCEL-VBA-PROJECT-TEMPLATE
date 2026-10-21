@@ -1628,8 +1628,9 @@ Private Function EnvironmentSummary() _
 ' RESOLVE COMPILED ENVIRONMENT
 '------------------------------------------------------------------------------
     'Describe the running Office/VBA build from compiler constants; do not
-    'infer Office bitness from the Windows operating-system description.
-#If Win64 Then
+    'infer Office bitness from the operating-system description. Office for
+    'Mac 2016 and later is 64-bit VBA7 although Win64 is False there.
+#If Win64 Or (Mac And VBA7) Then
         bitness = "64-bit"
 #Else
         bitness = "32-bit"
