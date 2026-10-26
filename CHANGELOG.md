@@ -231,6 +231,12 @@ Use only the categories needed by a release.
   `test-runner` or `canonical`). `_release_closeout.py` moved onto the shared
   `run_gate` runner; its console, JSON, summary and exit codes are unchanged
   (#91).
+- Refreshed the pinned GitHub Actions to the commits reviewed on `main`:
+  `github/codeql-action` v4.39.1 (all of `init`, `analyze` and `upload-sarif`
+  together), `ossf/scorecard-action` v2.5.0, `actions/setup-python` v7.1.0
+  and `actions/upload-artifact` v7.0.2. The minimal-tier
+  `static-checks.yml` variant carries the same pins, so generated minimal
+  projects start current (#147, #148, #149, #150, #151, #152).
 
 ### Fixed
 
