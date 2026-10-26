@@ -11,7 +11,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from _gatelib import run_gate
-from check_template_contract import CONTRACT_RULE_SETS
+from check_template_contract import CONTRACT_RULE_SETS, TIER_EXCLUDED_RULES
 
 CONFIG = ".github/repository-profile.json"
 PROFILES = {"application", "library", "ui-component"}
@@ -41,6 +41,11 @@ PATHS = {
                                     "tools/release_provenance.py", "tools/test_release_provenance.py"],
 }
 UNIVERSAL = {"metadata", "workflow-properties", "branch-protection", "release-tag-protection"}
+# The minimal governance tier keeps these controls with fewer artifacts.
+MINIMAL_PATHS = {
+    "release-integrity": ["RELEASING.md", "VERSION", "CHANGELOG.md"],
+    "template-contract-version": ["docs/TEMPLATE_CONTRACT.md"],
+}
 
 
 def require(condition: bool, message: str) -> None:
@@ -228,6 +233,8 @@ def semantic_check(repo: dict[str, Any], rule: str, config: dict[str, Any], poli
                            and config.get("repository") == repo["repository"], "Recorded generated profile and repository identity")
     if rule == "placeholder-schema":
         return observation(isinstance(config.get("placeholders"), dict) and bool(config["placeholders"].get("catalogue")), "Placeholder catalogue required")
+    if rule == "release-integrity" and config.get("governance_tier") == "minimal":
+        return observation(True, "Minimal tier: release semantics and Excel certification; release evidence is a full-tier control")
     if rule == "release-integrity":
         release = read_json(repo, ".github/release-policy.json")
         if release is None:
@@ -259,10 +266,10 @@ def assess(repo: dict[str, Any], source: str, contract_commit: str) -> list[dict
             "Unknown decision rule")
     rows = []
 
-    def add(rule: str, state: str, detail: str, decision: str = "REQUIRED") -> None:
+    def add(rule: str, state: str, detail: str, decision: str = "REQUIRED", tiered: bool = False) -> None:
         entry = decisions.get(rule, {})
         selected = entry.get("decision", decision)
-        if selected == "NOT APPLICABLE" and rule in UNIVERSAL | set(PATHS):
+        if selected == "NOT APPLICABLE" and rule in UNIVERSAL | set(PATHS) and not tiered:
             state, detail = "DRIFT", "Universal control cannot be marked NOT APPLICABLE"
         rows.append({"repository": repo["repository"], "commit": repo["commit"],
                      "rule": rule, "decision": selected, "status": state,
@@ -287,14 +294,23 @@ def assess(repo: dict[str, Any], source: str, contract_commit: str) -> list[dict
     if contract["source"] != source:
         add("adoption", "UNVERIFIED", "Recorded source differs from evaluator contract source", "ADOPT")
         return rows
-    add("adoption", "PASS", f"Recorded contract {version}; profile {config.get('profile')}")
+    tier = config.get("governance_tier", "full")
+    if tier not in TIER_EXCLUDED_RULES or "governance_tier" in config and tier == "full":
+        add("adoption", "UNVERIFIED", "Unsupported recorded governance tier; only minimal is recorded", "ADOPT")
+        return rows
+    add("adoption", "PASS", f"Recorded contract {version}; profile {config.get('profile')}; governance tier {tier}")
     rules = CONTRACT_RULE_SETS[version] | UNIVERSAL
     require(set(decisions) <= rules | {"adoption", "local-specialist", "ui-evidence"}, "Unknown decision rule")
     for rule in sorted(rules):
+        if rule in TIER_EXCLUDED_RULES[tier]:
+            add(rule, "NOT_APPLICABLE", f"Full-tier control; the recorded {tier} governance tier omits it",
+                "NOT APPLICABLE", tiered=True)
+            continue
         if rule not in PATHS and rule not in UNIVERSAL:
             add(rule, "UNVERIFIED", "No evaluator registered for this contract rule")
             continue
-        state, detail = missing_paths(repo, PATHS.get(rule, []))
+        paths = MINIMAL_PATHS.get(rule, PATHS.get(rule, [])) if tier == "minimal" else PATHS.get(rule, [])
+        state, detail = missing_paths(repo, paths)
         if state == "PASS":
             state, detail = semantic_check(repo, rule, config, repo.get("policy", {}))
         add(rule, state, detail)

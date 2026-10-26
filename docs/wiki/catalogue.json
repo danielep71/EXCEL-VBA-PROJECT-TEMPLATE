@@ -154,6 +154,21 @@
       "kind": "policy",
       "authority": "docs/EXCEL_EVIDENCE.md"
     },
+    ".github/governance/minimal/RELEASING.md": {
+      "purpose": "Minimal-tier release guide that replaces RELEASING.md when that tier is selected.",
+      "kind": "document",
+      "authority": "docs/INITIALIZATION.md"
+    },
+    ".github/governance/minimal/static-checks.yml": {
+      "purpose": "Minimal-tier Static repository checks workflow: the four standard-library gates, no dependencies.",
+      "kind": "workflow",
+      "authority": "docs/INITIALIZATION.md"
+    },
+    ".github/governance/minimal/tools-README.md": {
+      "purpose": "Minimal-tier tools guide that replaces tools/README.md when that tier is selected.",
+      "kind": "document",
+      "authority": "docs/INITIALIZATION.md"
+    },
     ".github/ISSUE_TEMPLATE/bug.yml": {
       "purpose": "Structured reproducible-defect intake with environment and evidence.",
       "kind": "policy",
@@ -235,7 +250,7 @@
       "authority": ".github/workflows/external-links.yml"
     },
     ".github/workflows/generated-profile-matrix.yml": {
-      "purpose": "Template-only matrix that generates all supported profiles and executes their retained CI surface.",
+      "purpose": "Template-only matrix that generates every profile in both governance tiers, executes their retained CI surface and upgrades each minimal result in place.",
       "kind": "workflow",
       "authority": "tools/README.md"
     },
@@ -509,8 +524,18 @@
       "kind": "wiki",
       "authority": "tools/README.md"
     },
+    "examples/modules/ProgressExample.bas": {
+      "purpose": "UI-component example: a 25-step loop with status-bar progress and Esc cancellation.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "examples/modules/ProjectExample.bas": {
       "purpose": "Optional project-private example that prints one supported facade result.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "examples/modules/TextExample.bas": {
+      "purpose": "Library-profile example that prints six deterministic text and path operations.",
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
@@ -549,8 +574,23 @@
       "kind": "document",
       "authority": "SECURITY.md"
     },
+    "src/core/ProgressCore.bas": {
+      "purpose": "UI-component session state: snapshot and restore of five Application properties and the native elapsed-time seam.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "src/core/ProjectCore.bas": {
       "purpose": "Stateless checked division and the internal zero-denominator error code.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "src/core/TextCore.bas": {
+      "purpose": "Library-profile text and path implementation with platform-specific path rules and the invalid-argument code.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "src/modules/ProgressFacade.bas": {
+      "purpose": "UI-component supported progress-session API: fourteen declarations and a normalized error source.",
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
@@ -559,13 +599,28 @@
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
+    "src/modules/TextFacade.bas": {
+      "purpose": "Library-profile supported text and path API: fifteen declarations and a normalized error source.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "src/README.md": {
       "purpose": "Production export organization and public/internal boundaries.",
       "kind": "document",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
+    "tests/modules/ProgressTests.bas": {
+      "purpose": "UI-component suite: 12 lifecycle, restoration and negative-control cases.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "tests/modules/ProjectTests.bas": {
       "purpose": "Four-case, six-assertion harness with host-state comparison and full reporting.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "tests/modules/TextTests.bas": {
+      "purpose": "Library-profile suite: 26 cases and 123 assertions over every supported TextFacade member.",
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
@@ -825,6 +880,16 @@
       "purpose": "GitHub metadata, policies, forms and workflow automation.",
       "kind": "directory",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    ".github/governance": {
+      "purpose": "Template-only governance-tier variants; removed from every generated repository.",
+      "kind": "directory",
+      "authority": "docs/INITIALIZATION.md"
+    },
+    ".github/governance/minimal": {
+      "purpose": "Files that replace their full-tier counterparts in the minimal governance tier.",
+      "kind": "directory",
+      "authority": "docs/INITIALIZATION.md"
     },
     ".github/ISSUE_TEMPLATE": {
       "purpose": "Governed public intake forms and private-security routing.",

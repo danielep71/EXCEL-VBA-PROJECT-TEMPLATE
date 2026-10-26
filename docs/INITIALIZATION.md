@@ -12,7 +12,14 @@ rulesets, environments, or other live settings.
 
 ## 🛡️ Safety Model
 
+<!-- template:tier:full:start -->
 `tools/initialize_repository.py` is dependency-free and dry-run-first. It:
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+This project uses the minimal governance tier, which does not retain the
+initializer. The template's `<template-checkout>/tools/initialize_repository.py`
+is dependency-free and dry-run-first. It:
+<!-- template:tier:minimal:end -->
 
 1. requires a clean Git working tree;
 2. validates the complete input set before rendering any file;
@@ -86,6 +93,7 @@ identifiers; a project may rename them later as an explicit source change.
 
 Run this command from a clean repository root. Dry-run is the default:
 
+<!-- template:tier:full:start -->
 ```bash
 python3 tools/initialize_repository.py --profile library \
   --set PROJECT_NAME="Example Project" \
@@ -96,6 +104,19 @@ python3 tools/initialize_repository.py --profile library \
   --set SUPPORT_CONTACT="security@example.com" \
   --set COPYRIGHT_YEAR="2026"
 ```
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+```bash
+python3 <template-checkout>/tools/initialize_repository.py --root . --profile library \
+  --set PROJECT_NAME="Example Project" \
+  --set PROJECT_TAGLINE="A concise project identity" \
+  --set PROJECT_DESCRIPTION="One sentence describing the supported problem and audience." \
+  --set REPOSITORY_PATH="owner/repository" \
+  --set MAINTAINER_NAME="Example Maintainer" \
+  --set SUPPORT_CONTACT="security@example.com" \
+  --set COPYRIGHT_YEAR="2026"
+```
+<!-- template:tier:minimal:end -->
 
 Use exactly one profile:
 
@@ -137,6 +158,59 @@ Repeat list inputs in command order:
 Omitted optional and repeatable values remove their complete marked blocks;
 empty placeholder prose is never retained.
 
+<a id="governance-tiers"></a>
+
+## 🎚️ Governance Tiers
+
+The governance tier chooses how much maintenance tooling a generated project
+keeps. It is independent of the product profile: every profile can use either
+tier. Select it with `--governance-tier`; `full` is the default.
+
+| Tier | Keeps | Suits |
+| --- | --- | --- |
+| `full` | Everything below, plus release evidence and certification, build provenance, Excel host-evidence validation, documentation-drift and external-link checks, local-action validation, label automation, Scorecard, release closeout and the initializer | Portfolio-grade lifecycle and audited releases |
+| `minimal` | `check_repo.py` (repository integrity, VBA structure, pinned actions, version and changelog), `check_vba_public_api.py`, `check_vba_jumps.py`, `check_release_semantics.py`, their two helpers, the *Static repository checks* and CodeQL workflows, and the provisioning policy | A small team that wants source discipline and a safe release baseline |
+
+Both tiers keep the same VBA source, regression suite, issue forms, labels,
+private security reporting and branch/tag provisioning. The dry-run plan states
+the selected tier, the retained tools and every removed path. A `full` project
+records nothing extra; a `minimal` project records `"governance_tier": "minimal"`
+in `.github/repository-profile.json` and `.github/initialization.json`, so its
+required paths and conformance reports cover only the controls it keeps. A
+full-tier control that a minimal project lacks is reported as not applicable,
+never as missing.
+
+### ⬆️ Upgrade from minimal to full
+
+A minimal project adopts the full tier in place. From a clean, committed project
+root, run the initializer of a template checkout at the project's recorded
+`template_contract` version:
+
+```bash
+python3 <template-checkout>/tools/initialize_repository.py --root . --upgrade-tier full
+```
+
+The command reads the recorded profile and inputs from
+`.github/initialization.json`, so it takes no `--profile`, `--set` or `--add`.
+It renders the project's minimal baseline and its full-tier target from the
+template and compares each full-tier file with the project:
+
+| Action | When |
+| --- | --- |
+| `add` | The file exists only in the full tier and the project does not have it |
+| `replace` | The project still holds the minimal-tier version |
+| `merge` | The adopter changed the file and the change does not overlap a tier difference; a three-way text merge keeps both |
+| `adopter-deleted` | The adopter deleted the file; it stays deleted |
+| `conflict` | The adopter's change overlaps a tier difference, or a changed file is binary or already exists with other content |
+
+The default is a dry run that prints this plan. Add `--apply` to write it, then
+review the diff, run the gates and commit. Any conflict stops the upgrade before
+anything is written, exits `2` and names the files. The upgrade never deletes a
+file. An unedited minimal project upgrades to exactly the tree a direct
+full-tier initialization produces, and the tier is then no longer recorded. A
+template at a different contract version is refused, and a project already on
+the full tier is a no-op.
+
 ## ⚙️ Deterministic Transformations
 
 An applied initialization:
@@ -150,12 +224,17 @@ An applied initialization:
   checker-development and semantic policy-coverage tooling is deliberately in
   that set, while operational repository/release/VBA gates remain in generated
   projects;
+- deletes the files other profiles list under `profiles.<profile>.owned_paths`,
+  together with their `vba.components` entries and public-API manifest rows,
+  and prunes documentation lines that referenced only those files; the selected
+  profile keeps its own reference components, which remain optional to retain;
 - resets the changelog's `Unreleased` section so template-construction history
   is not attributed to the generated project;
 - resets `VERSION` to the `0.0.0` development sentinel;
 - creates explanatory files in currently empty profile-required directories;
 - writes `.github/initialization.json`; and
-- leaves the initializer available for idempotence verification.
+- in the full tier, leaves the initializer available for idempotence
+  verification; the minimal tier removes it with the other full-tier tools.
 
 Explanatory profile-directory files are structural guidance only. They never
 satisfy the generated VBA contract: every selected profile must retain the
@@ -197,6 +276,7 @@ inputs.
 
 ## ✅ Verification
 
+<!-- template:tier:full:start -->
 ```bash
 python3 tools/initialize_repository.py --root . --self-test
 python3 tools/check_repo.py --root . --self-test
@@ -214,6 +294,20 @@ profile, identity, cleanup, repository quality and repeat-run safety; it does
 not regenerate all three profiles or require removed checker-development or
 policy-coverage tools.
 
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+```bash
+python3 tools/check_repo.py --root . --self-test
+python3 tools/check_repo.py --root . \
+  --output test-results/static-checks.json \
+  --summary test-results/static-checks.md
+```
+
+The minimal tier does not retain the initializer, so repeat-run safety is shown
+by the template's own fixtures rather than locally. The repository gate still
+validates the recorded profile, identity, cleanup and repository quality.
+
+<!-- template:tier:minimal:end -->
 After initialization, configure the live repository settings that a GitHub
 template cannot inherit. Follow
 [`POST_CREATION_CHECKLIST.md`](POST_CREATION_CHECKLIST.md) and preserve read-back

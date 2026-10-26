@@ -91,6 +91,7 @@
         "src/workbook",
         "tests/modules"
       ],
+      "owned_paths": [],
       "vba_contract": {
         "minimum_roles": {
           "internal": 1,
@@ -112,6 +113,12 @@
         "src/core",
         "src/modules",
         "tests/modules"
+      ],
+      "owned_paths": [
+        "examples/modules/TextExample.bas",
+        "src/core/TextCore.bas",
+        "src/modules/TextFacade.bas",
+        "tests/modules/TextTests.bas"
       ],
       "vba_contract": {
         "minimum_roles": {
@@ -135,6 +142,12 @@
         "src/core",
         "src/modules",
         "tests/modules"
+      ],
+      "owned_paths": [
+        "examples/modules/ProgressExample.bas",
+        "src/core/ProgressCore.bas",
+        "src/modules/ProgressFacade.bas",
+        "tests/modules/ProgressTests.bas"
       ],
       "vba_contract": {
         "minimum_roles": {
@@ -237,9 +250,13 @@
       "template_only": "template:remove",
       "profile": "template:profile:{profile}",
       "optional": "template:optional:{token}",
-      "repeatable": "template:repeatable:{token}"
+      "repeatable": "template:repeatable:{token}",
+      "tier": "template:tier:{tier}"
     },
     "template_only_paths": [
+      ".github/governance/minimal/RELEASING.md",
+      ".github/governance/minimal/static-checks.yml",
+      ".github/governance/minimal/tools-README.md",
       ".github/release-history-policy.json",
       ".github/workflows/checker-development.yml",
       ".github/workflows/generated-profile-matrix.yml",
@@ -327,11 +344,77 @@
       "tests"
     ],
     "components": {
+      "examples/modules/ProgressExample.bas": "example",
       "examples/modules/ProjectExample.bas": "example",
+      "examples/modules/TextExample.bas": "example",
+      "src/core/ProgressCore.bas": "internal",
       "src/core/ProjectCore.bas": "internal",
+      "src/core/TextCore.bas": "internal",
+      "src/modules/ProgressFacade.bas": "public",
       "src/modules/ProjectFacade.bas": "public",
-      "tests/modules/ProjectTests.bas": "test"
+      "src/modules/TextFacade.bas": "public",
+      "tests/modules/ProgressTests.bas": "test",
+      "tests/modules/ProjectTests.bas": "test",
+      "tests/modules/TextTests.bas": "test"
     },
     "public_api_manifest": "docs/PUBLIC_API.txt"
+  },
+  "governance_tiers": {
+    "default": "full",
+    "tiers": {
+      "full": {
+        "description": "Complete lifecycle: release evidence and certification, provenance, Excel host evidence, documentation drift, external links, label automation, Scorecard and closeout.",
+        "remove_paths": [],
+        "replace_paths": {}
+      },
+      "minimal": {
+        "description": "Source discipline for a small team: repository integrity, VBA structure, explicit public API, procedure-scoped jumps, release semantics and CodeQL.",
+        "remove_paths": [
+          ".github/documentation-policy.json",
+          ".github/excel-evidence-policy.json",
+          ".github/release-policy.json",
+          ".github/release-provenance.json",
+          ".github/scripts/labels-drift.mjs",
+          ".github/scripts/labels-sync.mjs",
+          ".github/workflows/external-links.yml",
+          ".github/workflows/labels-drift.yml",
+          ".github/workflows/labels-sync.yml",
+          ".github/workflows/release-closeout.yml",
+          ".github/workflows/scorecard.yml",
+          "docs/DOCUMENTATION_CHECKS.md",
+          "docs/EXCEL_EVIDENCE.md",
+          "docs/RELEASE_CLOSEOUT.md",
+          "docs/RELEASE_EVIDENCE.md",
+          "docs/RELEASE_PROVENANCE.md",
+          "docs/REUSABLE_WORKFLOWS.md",
+          "pyproject.toml",
+          "tools/_release_closeout.py",
+          "tools/check_committed_whitespace.py",
+          "tools/check_documentation.py",
+          "tools/check_excel_evidence.py",
+          "tools/check_external_links.py",
+          "tools/check_local_actions.py",
+          "tools/check_release.py",
+          "tools/check_template_contract.py",
+          "tools/initialize_repository.py",
+          "tools/LOCAL_ACTIONS.md",
+          "tools/release_certification.py",
+          "tools/release_provenance.py",
+          "tools/requirements-coverage-ci.txt",
+          "tools/requirements-portfolio-ci.txt",
+          "tools/requirements-quality-ci.txt",
+          "tools/test_documentation.py",
+          "tools/test_excel_evidence.py",
+          "tools/test_release_provenance.py",
+          "tools/test_verification_depth.py",
+          "tools/test_workflow_validation.py"
+        ],
+        "replace_paths": {
+          ".github/workflows/static-checks.yml": ".github/governance/minimal/static-checks.yml",
+          "RELEASING.md": ".github/governance/minimal/RELEASING.md",
+          "tools/README.md": ".github/governance/minimal/tools-README.md"
+        }
+      }
+    }
   }
 }

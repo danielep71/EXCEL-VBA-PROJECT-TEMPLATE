@@ -185,6 +185,11 @@ CONFIG_KEYS = {
     "identity",
     "vba",
 }
+# Governance tiers select the generated tooling weight independently of the
+# product profile. The template declares both tiers; a generated repository
+# records only a non-default tier, so an absent field means ``full``.
+OPTIONAL_CONFIG_KEYS = {"governance_tiers", "governance_tier"}
+GOVERNANCE_TIERS = ("full", "minimal")
 
 
 class Repository:
@@ -367,14 +372,15 @@ def _validated_required_components(
 def _validate_profile_contract(
     name: str, entry: object, failures: list[dict[str, Any]]
 ) -> None:
-    if not _same_keys(entry, {"required_paths", "required_directories", "vba_contract"}):
+    if not _same_keys(entry, {"required_paths", "required_directories", "owned_paths", "vba_contract"}):
         failures.append(finding(
             CONFIG_PATH,
-            f"profiles.{name} must contain exactly required_paths, required_directories, and vba_contract.",
+            f"profiles.{name} must contain exactly required_paths, required_directories, owned_paths, and vba_contract.",
         ))
         return
     assert isinstance(entry, dict)
     _string_list(entry.get("required_paths"), f"profiles.{name}.required_paths", failures, paths=True)
+    _string_list(entry.get("owned_paths"), f"profiles.{name}.owned_paths", failures, paths=True)
     _string_list(entry.get("required_directories"), f"profiles.{name}.required_directories", failures, paths=True)
     contract = entry.get("vba_contract")
     field = f"profiles.{name}.vba_contract"
@@ -399,6 +405,22 @@ def _validate_profiles(document: dict[str, Any], failures: list[dict[str, Any]])
         return
     for name in SUPPORTED_PROFILES:
         _validate_profile_contract(name, profiles[name], failures)
+    _validate_owned_paths(document, profiles, failures)
+
+
+def _validate_owned_paths(
+    document: dict[str, Any], profiles: dict[str, Any], failures: list[dict[str, Any]]
+) -> None:
+    """Profile-owned paths belong to one profile; a generated repository keeps only its own."""
+    owners: dict[str, str] = {}
+    for name in SUPPORTED_PROFILES:
+        owned = profiles[name].get("owned_paths") if isinstance(profiles[name], dict) else None
+        for path in owned if isinstance(owned, list) else []:
+            if path in owners:
+                failures.append(finding(CONFIG_PATH, f"{path} is owned by both profiles.{owners[path]} and profiles.{name}."))
+            owners[path] = name
+            if document.get("mode") == "generated" and name != document.get("profile"):
+                failures.append(finding(CONFIG_PATH, f"Generated mode retains {path}, owned by unselected profile {name}."))
 
 
 def _validate_placeholder_spec(
@@ -475,6 +497,7 @@ def _validate_placeholders(document: dict[str, Any], failures: list[dict[str, An
         "profile": "template:profile:{profile}",
         "optional": "template:optional:{token}",
         "repeatable": "template:repeatable:{token}",
+        "tier": "template:tier:{tier}",
     }
     if placeholders.get("block_markers") != expected_markers:
         failures.append(finding(CONFIG_PATH, "placeholders.block_markers must use the canonical marker grammar."))
@@ -565,6 +588,48 @@ def _validate_configuration_root(
     return mode, repository
 
 
+def _governance_tier_problem(name: str, tier: object, template_only: object) -> str | None:
+    if not _same_keys(tier, {"description", "remove_paths", "replace_paths"}):
+        return "must contain exactly description, remove_paths and replace_paths"
+    assert isinstance(tier, dict)
+    removed, replaced = tier["remove_paths"], tier["replace_paths"]
+    if not isinstance(tier["description"], str) or not tier["description"].strip():
+        return "needs a description"
+    if not isinstance(removed, list) or not all(isinstance(path, str) and _valid_relative_path(path) for path in removed):
+        return "remove_paths must be safe relative paths"
+    if removed != sorted(set(removed), key=lambda item: (item.casefold(), item)):
+        return "remove_paths must be sorted case-insensitively and unique"
+    if not isinstance(replaced, dict) or not all(
+            isinstance(key, str) and isinstance(value, str) and _valid_relative_path(key) and _valid_relative_path(value)
+            for key, value in replaced.items()):
+        return "replace_paths must map safe relative paths"
+    if name == "full" and (removed or replaced):
+        return "the full tier is the complete tree and may not remove or replace paths"
+    if not set(replaced.values()) <= set(template_only if isinstance(template_only, list) else []):
+        return "replace_paths sources must be template-only paths"
+    return None
+
+
+def _validate_governance(document: dict[str, Any], mode: object, failures: list[dict[str, Any]]) -> None:
+    tiers, recorded = document.get("governance_tiers"), document.get("governance_tier", "full")
+    if mode == "generated":
+        if "governance_tiers" in document or recorded not in GOVERNANCE_TIERS or "governance_tier" in document and recorded == "full":
+            failures.append(finding(CONFIG_PATH, "Generated mode records at most governance_tier: minimal and no governance_tiers matrix."))
+        return
+    if "governance_tier" in document or not _same_keys(tiers, {"default", "tiers"}):
+        failures.append(finding(CONFIG_PATH, "Template mode requires a governance_tiers object with default and tiers, and no governance_tier."))
+        return
+    assert isinstance(tiers, dict)
+    if tiers["default"] != "full" or not _same_keys(tiers["tiers"], set(GOVERNANCE_TIERS)):
+        failures.append(finding(CONFIG_PATH, "governance_tiers must define the full and minimal tiers with full as the default."))
+        return
+    template_only = document.get("placeholders", {}).get("template_only_paths") if isinstance(document.get("placeholders"), dict) else None
+    for name in GOVERNANCE_TIERS:
+        problem = _governance_tier_problem(name, tiers["tiers"][name], template_only)
+        if problem:
+            failures.append(finding(CONFIG_PATH, f"governance_tiers.tiers.{name} {problem}."))
+
+
 def load_configuration(
     repo: Repository,
 ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
@@ -574,11 +639,12 @@ def load_configuration(
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         failures.append(finding(CONFIG_PATH, f"Cannot load repository profile: {error}", getattr(error, "lineno", None)))
         return None, rule_result("configuration", "Repository profile configuration", failures, "")
-    if not _same_keys(document, CONFIG_KEYS):
+    if not isinstance(document, dict) or not CONFIG_KEYS <= set(document) <= CONFIG_KEYS | OPTIONAL_CONFIG_KEYS:
         failures.append(finding(CONFIG_PATH, "Root object must contain exactly the canonical configuration keys."))
     if not isinstance(document, dict):
         document = {}
     mode, repository = _validate_configuration_root(document, failures)
+    _validate_governance(document, mode, failures)
     _validate_profiles(document, failures)
     _validate_placeholders(document, failures)
     _validate_identity(document, mode, repository, failures)
@@ -603,6 +669,10 @@ def _effective_requirements(
         profile = config["profiles"][config["profile"]]
         paths.extend(profile["required_paths"])
         directories.extend(profile["required_directories"])
+    else:
+        # The template must carry every profile's owned components.
+        for profile in config["profiles"].values():
+            paths.extend(profile["owned_paths"])
     return (
         sorted(set(paths), key=lambda item: (item.casefold(), item)),
         sorted(set(directories), key=lambda item: (item.casefold(), item)),
@@ -1054,7 +1124,7 @@ def check_structured_data(
     )
 
 
-def _markdown_destinations(text: str) -> Iterable[tuple[int, str]]:
+def markdown_destinations(text: str) -> Iterable[tuple[int, str]]:
     fenced = False
     fence = ""
     inline = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
@@ -1126,10 +1196,24 @@ def _github_slugs(text: str) -> set[str]:
     return slugs
 
 
+def _variant_locations(config: dict[str, Any]) -> dict[str, str]:
+    """Map each governance-tier variant source to the path it replaces.
+
+    A variant is written for its target location, so its links resolve there;
+    the template tree is a superset of every tier's tree.
+    """
+    tiers = config.get("governance_tiers", {}).get("tiers", {})
+    return {
+        source: target
+        for tier in tiers.values()
+        for target, source in tier["replace_paths"].items()
+    }
+
+
 def check_markdown_links(
     repo: Repository, config: dict[str, Any]
 ) -> dict[str, Any]:
-    del config
+    locations = _variant_locations(config)
     failures: list[dict[str, Any]] = []
     checked = 0
     slug_cache: dict[Path, set[str]] = {}
@@ -1140,8 +1224,8 @@ def check_markdown_links(
             text = repo.text(path)
         except (OSError, UnicodeError):
             continue
-        source = repo.path(path)
-        for number, raw in _markdown_destinations(text):
+        source = repo.path(locations.get(path, path))
+        for number, raw in markdown_destinations(text):
             parsed = urlsplit(raw.strip("<>"))
             if parsed.scheme or raw.startswith("//"):
                 continue
@@ -1149,7 +1233,7 @@ def check_markdown_links(
             if not target_text and not fragment:
                 continue
             checked += 1
-            target = source if not target_text else source.parent / target_text
+            target = repo.path(path) if not target_text else source.parent / target_text
             try:
                 target = target.resolve()
                 target.relative_to(repo.root)
@@ -2021,16 +2105,54 @@ def _check_external_action_references(
     return checked
 
 
+def _external_actions(lines: list[str]) -> list[tuple[int, str]]:
+    uses_line = re.compile(r"^\s*(?:-\s*)?uses:\s*([^\s#./][^\s#]*)")
+    return [
+        (number, match.group(1))
+        for number, line in enumerate(lines, start=1)
+        if (match := uses_line.match(line))
+    ]
+
+
+def _check_variant_pins(
+    variants: dict[str, list[str]],
+    canonical: set[str],
+    failures: list[dict[str, Any]],
+) -> None:
+    """Hold tier variants to the canonical pins that Dependabot maintains.
+
+    Dependabot scans only .github/workflows, so a variant stored elsewhere
+    would otherwise keep a superseded action revision.
+    """
+    for path, lines in variants.items():
+        for number, reference in _external_actions(lines):
+            if reference not in canonical:
+                failures.append(
+                    finding(
+                        path,
+                        f"Governance-tier variant pin is not used by .github/workflows: {reference}",
+                        number,
+                    )
+                )
+
+
 def check_workflow_actions(
     repo: Repository, config: dict[str, Any]
 ) -> dict[str, Any]:
-    del config
+    variant_paths = {
+        path
+        for path in _variant_locations(config)
+        if PurePosixPath(path).suffix.casefold() in {".yml", ".yaml"}
+    }
     failures: list[dict[str, Any]] = []
     checked = 0
+    canonical: set[str] = set()
+    variants: dict[str, list[str]] = {}
     for path in repo.files:
         pure = PurePosixPath(path)
+        workflow = path.startswith(".github/workflows/")
         if (
-            not path.startswith(".github/workflows/")
+            not (workflow or path in variant_paths)
             or pure.suffix.casefold() not in {".yml", ".yaml"}
         ):
             continue
@@ -2040,6 +2162,11 @@ def check_workflow_actions(
             continue
         _check_pr_workflow_permissions(path, lines, failures)
         checked += _check_external_action_references(path, lines, failures)
+        if workflow:
+            canonical.update(reference for _, reference in _external_actions(lines))
+        else:
+            variants[path] = lines
+    _check_variant_pins(variants, canonical, failures)
     return rule_result(
         "workflow-actions",
         "Immutable workflow actions",
@@ -2279,7 +2406,10 @@ def _handle_vba_directive(
             failures.append(finding(path, "#ElseIf without #If.", number))
         else:
             condition = upper[8:]
-            directives[-1]["active"] = "VBA7" in condition and "NOT VBA7" not in condition
+            requires = "VBA7" in condition and "NOT VBA7" not in condition
+            directives[-1]["active"] = requires
+            # #Else is VBA6-only once any branch of the chain claimed VBA7.
+            directives[-1]["vba7"] = directives[-1]["vba7"] or requires
         return True
     if upper.startswith("#ELSE"):
         if not directives:
@@ -2770,7 +2900,7 @@ def _write_report(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8", newline="\n")
 
 
-def _write_fixture(path: Path, content: str | bytes, *, crlf: bool = False) -> None:
+def write_fixture(path: Path, content: str | bytes, *, crlf: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if isinstance(content, bytes):
         path.write_bytes(content)
@@ -2807,6 +2937,7 @@ def _fixture_configuration() -> dict[str, Any]:
             "application": {
                 "required_paths": [],
                 "required_directories": [],
+                "owned_paths": [],
                 "vba_contract": {
                     "minimum_roles": {"internal": 1, "public": 1, "test": 1},
                     "required_components": {
@@ -2819,6 +2950,7 @@ def _fixture_configuration() -> dict[str, Any]:
             "library": {
                 "required_paths": [],
                 "required_directories": ["src/core", "src/modules", "tests/modules"],
+                "owned_paths": [],
                 "vba_contract": {
                     "minimum_roles": {"internal": 1, "public": 1, "test": 1},
                     "required_components": {
@@ -2831,6 +2963,7 @@ def _fixture_configuration() -> dict[str, Any]:
             "ui-component": {
                 "required_paths": [],
                 "required_directories": [],
+                "owned_paths": [],
                 "vba_contract": {
                     "minimum_roles": {"internal": 1, "public": 1, "test": 1},
                     "required_components": {
@@ -2873,6 +3006,7 @@ def _fixture_configuration() -> dict[str, Any]:
                 "profile": "template:profile:{profile}",
                 "optional": "template:optional:{token}",
                 "repeatable": "template:repeatable:{token}",
+                "tier": "template:tier:{tier}",
             },
             "template_only_paths": [],
             "exclude_paths": [CONFIG_PATH],
@@ -2927,7 +3061,7 @@ def _fixture_labels() -> dict[str, Any]:
     }
 
 
-def _run_git(root: Path, *arguments: str) -> None:
+def run_git(root: Path, *arguments: str) -> None:
     subprocess.run(
         ["git", "-C", str(root), *arguments],
         check=True,
@@ -2936,9 +3070,9 @@ def _run_git(root: Path, *arguments: str) -> None:
     )
 
 
-def _initialize_fixture(root: Path) -> None:
+def initialize_fixture(root: Path) -> None:
     checkout_revision = "a" * 40
-    _write_fixture(
+    write_fixture(
         root / ".editorconfig",
         """root = true
 
@@ -2953,7 +3087,7 @@ end_of_line = crlf
 insert_final_newline = true
 """,
     )
-    _write_fixture(
+    write_fixture(
         root / ".gitattributes",
         """* text=auto
 *.bas text eol=crlf
@@ -2967,7 +3101,7 @@ insert_final_newline = true
 *.xlsm binary
 """,
     )
-    _write_fixture(
+    write_fixture(
         root / ".gitignore",
         """.env
 !.env.example
@@ -2978,11 +3112,11 @@ test-results/
 ~$*
 """,
     )
-    _write_fixture(
+    write_fixture(
         root / CONFIG_PATH,
         json.dumps(_fixture_configuration(), indent=2, ensure_ascii=False) + "\n",
     )
-    _write_fixture(
+    write_fixture(
         root / LABEL_MANIFEST_PATH,
         json.dumps(_fixture_labels(), indent=2, ensure_ascii=False) + "\n",
     )
@@ -3031,8 +3165,8 @@ test-results/
                     "    validations:",
                     "      required: true",
                 ])
-        _write_fixture(root / ISSUE_TEMPLATE_DIRECTORY / filename, "\n".join(body) + "\n")
-    _write_fixture(
+        write_fixture(root / ISSUE_TEMPLATE_DIRECTORY / filename, "\n".join(body) + "\n")
+    write_fixture(
         root / ISSUE_TEMPLATE_DIRECTORY / "config.yml",
         """blank_issues_enabled: false
 contact_links:
@@ -3041,7 +3175,7 @@ contact_links:
     about: Use the private reporting channel.
 """,
     )
-    _write_fixture(
+    write_fixture(
         root / ".github/workflows/static-checks.yml",
         f"""name: Static repository checks
 
@@ -3060,24 +3194,24 @@ jobs:
         run: python3 tools/check_repo.py --root .
 """,
     )
-    _write_fixture(
+    write_fixture(
         root / "README.md",
         "# Fixture\n\nSee [details](docs/DETAILS.md#details).\n",
     )
-    _write_fixture(
+    write_fixture(
         root / "docs/DETAILS.md",
         "# Details\n\nFixture details.\n",
     )
-    _write_fixture(
+    write_fixture(
         root / "docs/PUBLIC_API.txt",
         "Quality\tFunction\tEcho\n",
     )
-    _write_fixture(
+    write_fixture(
         root / "CHANGELOG.md",
         "# Changelog\n\n## [Unreleased]\n\n- Fixture baseline.\n",
     )
-    _write_fixture(root / "VERSION", "0.0.0\n")
-    _write_fixture(
+    write_fixture(root / "VERSION", "0.0.0\n")
+    write_fixture(
         root / "src/core/QualityCore.bas",
         """Attribute VB_Name = "QualityCore"
 Option Explicit
@@ -3089,7 +3223,7 @@ End Function
 """,
         crlf=True,
     )
-    _write_fixture(
+    write_fixture(
         root / "src/modules/Quality.bas",
         """Attribute VB_Name = "Quality"
 Option Explicit
@@ -3100,7 +3234,7 @@ End Function
 """,
         crlf=True,
     )
-    _write_fixture(
+    write_fixture(
         root / "tests/modules/QualityTests.bas",
         """Attribute VB_Name = "QualityTests"
 Option Explicit
@@ -3110,21 +3244,21 @@ End Sub
 """,
         crlf=True,
     )
-    _write_fixture(
+    write_fixture(
         root / "tools/check_repo.py",
         "# Fixture command placeholder.\n",
     )
-    _run_git(root, "init", "-b", "main")
-    _run_git(root, "config", "user.name", "Repository Quality Self-Test")
-    _run_git(root, "config", "user.email", "quality-self-test@example.invalid")
-    _run_git(root, "add", "--all")
-    _run_git(root, "commit", "-m", "Create passing fixture")
+    run_git(root, "init", "-b", "main")
+    run_git(root, "config", "user.name", "Repository Quality Self-Test")
+    run_git(root, "config", "user.email", "quality-self-test@example.invalid")
+    run_git(root, "add", "--all")
+    run_git(root, "commit", "-m", "Create passing fixture")
 
 
 def _update_fixture_json(root: Path, path: str, mutate: Callable[[dict[str, Any]], None]) -> None:
     document = json.loads((root / path).read_text(encoding="utf-8"))
     mutate(document)
-    _write_fixture(
+    write_fixture(
         root / path,
         json.dumps(document, indent=2, ensure_ascii=False) + "\n",
     )
@@ -3144,26 +3278,26 @@ def _degrade_required_paths(root: Path) -> None:
 
 def _degrade_placeholders(root: Path) -> None:
     token = "{{" + "UNKNOWN_TOKEN}}"
-    _write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
+    write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
 
 
 def _degrade_identity(root: Path) -> None:
     token = "DONOR" + "-PROJECT"
-    _write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
+    write_fixture(root / "README.md", f"# Fixture\n\n{token}\n")
 
 
 def _degrade_dotfile_policy(root: Path) -> None:
     text = (root / ".editorconfig").read_text(encoding="utf-8")
-    _write_fixture(root / ".editorconfig", text.replace("root = true", "root = false"))
+    write_fixture(root / ".editorconfig", text.replace("root = true", "root = false"))
 
 
 def _degrade_structured_data(root: Path) -> None:
-    _write_fixture(root / LABEL_MANIFEST_PATH, "{\n")
+    write_fixture(root / LABEL_MANIFEST_PATH, "{\n")
 
 
 def _degrade_structured_yaml(root: Path) -> None:
     path = root / ".github/workflows/invalid-yaml.yml"
-    _write_fixture(
+    write_fixture(
         path,
         """name: Invalid YAML
 on: [push
@@ -3172,53 +3306,53 @@ jobs:
     runs-on: ubuntu-latest
 """,
     )
-    _run_git(root, "add", path.relative_to(root).as_posix())
+    run_git(root, "add", path.relative_to(root).as_posix())
 
 
 def _degrade_structured_xml(root: Path) -> None:
     path = root / "docs/invalid.xml"
-    _write_fixture(path, "<repository><unclosed></repository>\n")
-    _run_git(root, "add", path.relative_to(root).as_posix())
+    write_fixture(path, "<repository><unclosed></repository>\n")
+    run_git(root, "add", path.relative_to(root).as_posix())
 
 
 def _degrade_structured_xml_encoding(root: Path) -> None:
     path = root / "docs/invalid-encoding.xml"
-    _write_fixture(path, b"<repository>\xff</repository>\n")
-    _run_git(root, "add", path.relative_to(root).as_posix())
+    write_fixture(path, b"<repository>\xff</repository>\n")
+    run_git(root, "add", path.relative_to(root).as_posix())
 
 
 def _degrade_structured_xml_doctype(root: Path) -> None:
     path = root / "docs/doctype.xml"
-    _write_fixture(
+    write_fixture(
         path,
         '<!DOCTYPE repository [<!ENTITY sample "value">]><repository>&sample;</repository>\n',
     )
-    _run_git(root, "add", path.relative_to(root).as_posix())
+    run_git(root, "add", path.relative_to(root).as_posix())
 
 
 def _degrade_structured_xml_oversize(root: Path) -> None:
     path = root / "docs/oversize.xml"
     padding = "x" * MAX_XML_BYTES
-    _write_fixture(path, f"<repository>{padding}</repository>\n")
-    _run_git(root, "add", path.relative_to(root).as_posix())
+    write_fixture(path, f"<repository>{padding}</repository>\n")
+    run_git(root, "add", path.relative_to(root).as_posix())
 
 
 def _degrade_markdown_links(root: Path) -> None:
-    _write_fixture(root / "README.md", "# Fixture\n\n[Missing](docs/MISSING.md)\n")
+    write_fixture(root / "README.md", "# Fixture\n\n[Missing](docs/MISSING.md)\n")
 
 
 def _degrade_text_integrity(root: Path) -> None:
     marker = "<" * 7
-    _write_fixture(root / "README.md", f"# Fixture\n\n{marker} HEAD\n")
+    write_fixture(root / "README.md", f"# Fixture\n\n{marker} HEAD\n")
 
 
 def _degrade_forbidden_artifacts(root: Path) -> None:
-    _write_fixture(root / "secret.pem", b"fixture")
-    _run_git(root, "add", "-f", "secret.pem")
+    write_fixture(root / "secret.pem", b"fixture")
+    run_git(root, "add", "-f", "secret.pem")
 
 
 def _degrade_line_endings(root: Path) -> None:
-    _write_fixture(root / "README.md", "# Fixture\r\n\r\nWrong endings.\r\n", crlf=True)
+    write_fixture(root / "README.md", "# Fixture\r\n\r\nWrong endings.\r\n", crlf=True)
 
 
 def _degrade_label_manifest(root: Path) -> None:
@@ -3231,26 +3365,26 @@ def _degrade_label_manifest(root: Path) -> None:
 def _degrade_issue_forms(root: Path) -> None:
     path = root / ISSUE_TEMPLATE_DIRECTORY / "bug.yml"
     text = path.read_text(encoding="utf-8")
-    _write_fixture(path, text.replace("assignees: []", 'assignees: ["owner"]'))
+    write_fixture(path, text.replace("assignees: []", 'assignees: ["owner"]'))
 
 
 def _degrade_workflow_actions(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
     text = re.sub(r"actions/checkout@[0-9a-f]{40}", "actions/checkout@v4", text)
-    _write_fixture(path, text)
+    write_fixture(path, text)
 
 
 def _degrade_workflow_pull_request_target(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
-    _write_fixture(path, text.replace("on:\n", "on:\n  pull_request_target:\n", 1))
+    write_fixture(path, text.replace("on:\n", "on:\n  pull_request_target:\n", 1))
 
 
 def _degrade_workflow_pull_request_target_scalar(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
-    _write_fixture(
+    write_fixture(
         path,
         text.replace("on:\n  pull_request:\n", "on: pull_request_target\n", 1),
     )
@@ -3259,7 +3393,7 @@ def _degrade_workflow_pull_request_target_scalar(root: Path) -> None:
 def _degrade_workflow_pull_request_target_flow_map(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
-    _write_fixture(
+    write_fixture(
         path,
         text.replace(
             "on:\n  pull_request:\n", "on: {pull_request_target: null}\n", 1
@@ -3270,7 +3404,7 @@ def _degrade_workflow_pull_request_target_flow_map(root: Path) -> None:
 def _degrade_workflow_pr_write(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
-    _write_fixture(
+    write_fixture(
         path,
         text.replace("permissions:\n  contents: read", "permissions:\n  contents: write", 1),
     )
@@ -3280,7 +3414,7 @@ def _degrade_workflow_pr_scalar_flow_write(root: Path) -> None:
     path = root / ".github/workflows/static-checks.yml"
     text = path.read_text(encoding="utf-8")
     text = text.replace("on:\n  pull_request:\n", "on: pull_request\n", 1)
-    _write_fixture(
+    write_fixture(
         path,
         text.replace(
             "permissions:\n  contents: read", "permissions: {contents: write}", 1
@@ -3294,7 +3428,7 @@ def _degrade_workflow_pr_flow_map_job_write(root: Path) -> None:
     text = text.replace(
         "on:\n  pull_request:\n", "on: {pull_request: null}\n", 1
     )
-    _write_fixture(
+    write_fixture(
         path,
         text.replace(
             "  quality:\n    runs-on: ubuntu-latest",
@@ -3305,17 +3439,17 @@ def _degrade_workflow_pr_flow_map_job_write(root: Path) -> None:
 
 
 def _degrade_version_changelog(root: Path) -> None:
-    _write_fixture(root / "VERSION", "version-one\n")
+    write_fixture(root / "VERSION", "version-one\n")
 
 
 def _degrade_git_diff(root: Path) -> None:
-    _write_fixture(root / "README.md", "# Fixture  \n")
+    write_fixture(root / "README.md", "# Fixture  \n")
 
 
 def _rewrite_vba(root: Path, relative: str, transform: Callable[[str], str]) -> None:
     path = root / relative
     text = path.read_bytes().decode("cp1252").replace("\r\n", "\n")
-    _write_fixture(path, transform(text), crlf=True)
+    write_fixture(path, transform(text), crlf=True)
 
 
 def _degrade_vba_option_explicit(root: Path) -> None:
@@ -3359,7 +3493,7 @@ def _degrade_generated_vba_contract(root: Path) -> None:
 
 
 def _degrade_vba_public_api(root: Path) -> None:
-    _write_fixture(root / "docs/PUBLIC_API.txt", "Quality\tFunction\tMissing\n")
+    write_fixture(root / "docs/PUBLIC_API.txt", "Quality\tFunction\tMissing\n")
 
 
 SELF_TEST_CASES: tuple[tuple[str, Callable[[Path], None]], ...] = (
@@ -3444,7 +3578,7 @@ def _positive_fixture_failures() -> list[str]:
     failures: list[str] = []
     with tempfile.TemporaryDirectory(prefix="repository-quality-") as temporary:
         root = Path(temporary)
-        _initialize_fixture(root)
+        initialize_fixture(root)
         before = _tree_digest(root)
         first = build_report(root)
         middle = _tree_digest(root)
@@ -3475,7 +3609,7 @@ def _degraded_fixture_failures(
     failures: list[str] = []
     with tempfile.TemporaryDirectory(prefix=f"repository-quality-{label}-") as temporary:
         root = Path(temporary)
-        _initialize_fixture(root)
+        initialize_fixture(root)
         degrade(root)
         before = _tree_digest(root)
         report = build_report(root)

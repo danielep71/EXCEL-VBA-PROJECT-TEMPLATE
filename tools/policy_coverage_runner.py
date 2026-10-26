@@ -50,7 +50,7 @@ def run_core_coverage(root: Path) -> dict[str, Any]:
         current_case = name
         with tempfile.TemporaryDirectory(prefix=f"policy-coverage-{name}-") as temporary:
             fixture_root = Path(temporary)
-            module._initialize_fixture(fixture_root)
+            module.initialize_fixture(fixture_root)
             try:
                 mutate(fixture_root)
                 report = module.build_report(fixture_root)
@@ -86,12 +86,12 @@ def run_core_coverage(root: Path) -> dict[str, Any]:
             ["VERSION 1.0 CLASS", "BEGIN", "  MultiUse = -1", "END"]
             + ["' pad"] * 18
         )
-        module._write_fixture(
+        module.write_fixture(
             fixture_root / "src/modules/Late.cls",
             prefix + '\nAttribute VB_Name = "Late"\nOption Explicit\n',
             crlf=True,
         )
-        module._run_git(fixture_root, "add", "src/modules/Late.cls")
+        module.run_git(fixture_root, "add", "src/modules/Late.cls")
 
     extra_cases = [
         *configuration_cases(module),
@@ -110,7 +110,7 @@ def run_core_coverage(root: Path) -> dict[str, Any]:
     current_case = "operational-rule-crash"
     with tempfile.TemporaryDirectory(prefix="policy-coverage-operational-") as temporary:
         fixture_root = Path(temporary)
-        module._initialize_fixture(fixture_root)
+        module.initialize_fixture(fixture_root)
         original_checks = module.CHECKS
 
         def crash(repo: object, config: object) -> NoReturn:

@@ -100,6 +100,82 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+### Added
+
+- Governance tiers. `initialize_repository.py --governance-tier minimal`
+  generates a lighter project that keeps the four standard-library gates
+  (`check_repo`, `check_vba_public_api`, `check_vba_jumps`,
+  `check_release_semantics`) and their two helpers, a dependency-free *Static
+  repository checks* workflow with the same **Repository integrity** job name,
+  and CodeQL. Release evidence and provenance, host-evidence validation,
+  documentation drift and external-link checks, local-action validation, label
+  automation, Scorecard, Ruff/mypy and the initializer stay in the default
+  `full` tier. A minimal project retains 6 Python files (6,865 lines) instead of
+  22 (18,368 lines), and 51–54 tracked files instead of 89–92, depending on the
+  profile. The tier is recorded as `"governance_tier": "minimal"` in the
+  generated profile and initialization record; `full` is never recorded, so
+  existing generated repositories are unaffected. Documentation shared by both
+  tiers uses tier blocks, and table rows or list items that reference only
+  removed files are pruned. The template profile declares the tier matrix,
+  which the canonical gate validates, and the initializer self-test generates
+  every profile in both tiers and runs the four gates inside each minimal
+  result. Portfolio drift and quality reports honour the recorded tier: the
+  six controls a minimal project omits are `NOT_APPLICABLE`, never missing,
+  and `release-integrity` and `template-contract-version` check the artifacts
+  the minimal tier keeps. The tier narrows the recorded contract's rule set and
+  changes no published rule set, so the contract version stays `1.2.0`; an
+  evaluator that predates tiers reports the omitted controls as drift, never as
+  a pass. `initialize_repository.py --upgrade-tier full`, run from a template
+  checkout at the project's recorded contract, upgrades a minimal project in
+  place from its recorded inputs. It adds full-tier files, replaces files still
+  at their minimal version, three-way merges adopter edits that do not overlap a
+  tier difference, keeps adopter deletions and never deletes. Any conflict
+  stops it before writing. An unedited project upgrades to exactly the direct
+  full-tier result. The generated-profile CI matrix now covers every profile in
+  both tiers, with and without a social preview (12 jobs). Each minimal job
+  lints its generated workflows, runs the four gates, then upgrades in place and
+  re-verifies the result as a full-tier project (#90).
+- Profile-owned components. `profiles.<profile>.owned_paths` names files that
+  only that profile generates. The initializer deletes other profiles' owned
+  files with their component entries and public-API manifest rows, and prunes
+  documentation lines that referenced only them. The canonical gate requires
+  every owned file in the template, rejects a file owned by two profiles, and
+  rejects a generated repository that still lists another profile's files
+  (#86).
+- A substantive library-profile reference: neutral text and path utilities
+  with fifteen supported declarations in `TextFacade` over a `TextCore`
+  implementation. It has two constants (including the platform path
+  separator), the `TextPadSide` enum, the `TextPathParts` type, and eleven
+  functions for padding, whitespace, comparison, counting, splitting, joining,
+  blank detection and path composition, splitting and sanitizing. Every
+  rejected argument raises one invalid-argument code with the facade procedure
+  as source. `#If Mac` selects the path separator, accepted separators, rooted
+  forms and file-name rules. `TextTests` (26 cases, 123 assertions) covers
+  every public member, each error rule and both platforms' expectations, and
+  `TextExample` prints six deterministic operations. Only generated `library`
+  projects receive the four modules (#86).
+- A substantive ui-component reference: a progress session that owns the
+  Excel status bar, display of the status bar, cursor (Windows), screen
+  updating and Esc handling for a long operation. It snapshots all five at
+  `ProgressBegin` and restores them in reverse order at `ProgressEnd`;
+  calculation, events, alerts and selection stay caller-owned. It refuses a
+  second session, turns Esc into a cancel request that stops the next
+  `ProgressUpdate`, and `ProgressRecover` restores Excel defaults when a VBA
+  reset has lost the snapshot. Elapsed time uses the Windows performance
+  counter behind VBA7/`PtrSafe`, legacy-VBA and macOS branches, because
+  `Timer` wraps at midnight. `ProgressTests` (12 cases; 79 assertions on
+  Windows, 75 on macOS) executes open, update, cancel, close, re-entry,
+  cleanup and recovery, with a negative control proving that a broken
+  restoration is detected. Only generated `ui-component` projects receive
+  the four modules (#87).
+- The portable gate's structural `PtrSafe` check treated the `#Else` of an
+  `#If ... #ElseIf VBA7 ... #Else` chain as reachable under VBA7, which
+  flagged legacy-only declarations. The `#Else` now counts as VBA7-reachable
+  only when no branch of the chain claimed VBA7 (#87).
+- The conditional-compilation gate models Office for Mac as `vba7-mac64`
+  (`Mac` and `VBA7` true, `Win32` and `Win64` false). `Mac` was previously
+  rejected as an unknown symbol (#86).
+
 ### Changed
 
 - The guarded provisioner names its baseline rulesets **Default branch
@@ -138,6 +214,29 @@ Use only the categories needed by a release.
   mypy step now proves strictness on every run (an unannotated probe must be
   rejected), and the checker-development contract rejects any configuration
   that weakens it (#93).
+- Module boundaries in the maintained Python tooling are now enforced rather
+  than advisory. Intentional cross-module sharing uses public names owned by
+  the provider:
+  - `check_repo.markdown_destinations` and its fixture interface
+    `write_fixture` / `initialize_fixture` / `run_git`;
+  - the initializer's `copy_fixture` / `fixture_arguments` / `build_changes` /
+    `apply_changes`.
+
+  Production uses of another module's `_private` members fell from 68 (21
+  members) to 4 reviewed parser unit tests. The checker-development contract
+  rejects any new private coupling outside test modules unless it has a
+  reviewed allow-list entry. It also rejects import cycles and any sibling
+  import in `check_repo.py`. Every maintained CLI now has exactly one
+  architectural class (`run-gate`, `specialized-gate`, `utility`,
+  `test-runner` or `canonical`). `_release_closeout.py` moved onto the shared
+  `run_gate` runner; its console, JSON, summary and exit codes are unchanged
+  (#91).
+- Refreshed the pinned GitHub Actions to the commits reviewed on `main`:
+  `github/codeql-action` v4.39.1 (all of `init`, `analyze` and `upload-sarif`
+  together), `ossf/scorecard-action` v2.5.0, `actions/setup-python` v7.1.0
+  and `actions/upload-artifact` v7.0.2. The minimal-tier
+  `static-checks.yml` variant carries the same pins, so generated minimal
+  projects start current (#147, #148, #149, #150, #151, #152).
 
 ### Fixed
 

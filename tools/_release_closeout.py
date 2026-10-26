@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
-from _gatelib import git_text
+from _gatelib import git_text, run_gate, write_json
 
 PROFILE_PATH = ".github/repository-profile.json"
 RELEASE_POLICY_PATH = ".github/release-policy.json"
@@ -724,15 +724,6 @@ def markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def write_report(path: Path, content: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8", newline="\n")
-
-
-def write_json(path: Path, value: Any) -> None:
-    write_report(path, json.dumps(value, indent=2, sort_keys=True) + "\n")
-
-
 def fixture_git(root: Path, *arguments: str) -> str:
     completed = subprocess.run(
         [
@@ -1056,23 +1047,25 @@ def parse_arguments(argv: list[str]) -> tuple[Options | None, bool]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    try:
-        options, self_test = parse_arguments(sys.argv[1:] if argv is None else argv)
-        if self_test:
-            return run_self_test()
+    options, self_test = parse_arguments(sys.argv[1:] if argv is None else argv)
+    gate = argparse.Namespace(
+        self_test=self_test,
+        output=None if options is None else options.output,
+        summary=None if options is None else options.summary,
+    )
+
+    def build() -> dict[str, Any]:
         if options is None:
             raise CloseoutError("operational options are unavailable")
-        report = build_report(options)
-        markdown = markdown_report(report)
-        if options.output is not None:
-            write_json(options.output, report)
-        if options.summary is not None:
-            write_report(options.summary, markdown)
-        print(markdown, end="")
-        return 0 if report["status"] == "pass" else 1
-    except (CloseoutError, OSError, ValueError, TypeError) as error:
-        print(f"ERROR: {error}", file=sys.stderr)
-        return 2
+        return build_report(options)
+
+    return run_gate(
+        gate,
+        build=build,
+        markdown=markdown_report,
+        errors=(CloseoutError, OSError, ValueError, TypeError),
+        self_test=run_self_test,
+    )
 
 
 if __name__ == "__main__":

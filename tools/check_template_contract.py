@@ -9,8 +9,8 @@ contract stays fixed.
 
 This gate owns the contract's semantics. ``check_repo.py`` only requires the
 ``template_contract`` key to exist in the canonical configuration; every rule
-about its content lives here, so the portable checker's policy-branch inventory
-is unchanged.
+about its content lives here, so the portable checker carries no contract-specific
+policy branches.
 """
 
 from __future__ import annotations
@@ -90,6 +90,24 @@ CONTRACT_RULE_SETS: dict[str, frozenset[str]] = {
     ),
 }
 SUPPORTED_VERSIONS = tuple(sorted(CONTRACT_RULE_SETS))
+
+# A governance tier narrows, never extends, the recorded version's rule set.
+# The full tier (the default, never recorded) applies every rule; the minimal
+# tier omits the controls whose tooling it does not generate. Conformance
+# reports these as not applicable rather than missing.
+TIER_EXCLUDED_RULES: dict[str, frozenset[str]] = {
+    "full": frozenset(),
+    "minimal": frozenset(
+        {
+            "advanced-release-provenance",
+            "committed-whitespace",
+            "deterministic-initializer",
+            "documentation-drift",
+            "label-drift-detection",
+            "repository-local-actions",
+        }
+    ),
+}
 
 
 class ContractError(RuntimeError):

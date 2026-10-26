@@ -244,7 +244,7 @@ pnpm-debug.log*
 #------------------------------------------------------------------------------
 # R SESSION / LOCAL LIBRARY STATE
 #------------------------------------------------------------------------------
-# R source, project files, renv.lock, and benchmark evidence remain trackable.
+# R source, project files, and renv.lock remain trackable.
 .Rhistory
 .RData
 .Ruserdata
@@ -262,11 +262,11 @@ renv/local/
 #   *.bas, *.cls, *.frm, *.frx, *.xml
 #   src/**, examples/**, tests/**, tools/**
 #   demo/**, test/** only for documented legacy/profile alternatives
-#   docs/**, benchmark/**, evidence/**
+#   docs/**
 #   *.md, *.txt, *.yml, *.yaml, *.json, *.csv
 #   assets/**, images/**, .github/**
 #   .editorconfig, .gitattributes, .gitignore
 #
 # Do not ignore exported VBA extensions or authoritative source, documentation,
-# benchmark, evidence, asset, or .github directories.
+# asset, or .github directories.
 #==============================================================================

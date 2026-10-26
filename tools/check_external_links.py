@@ -19,7 +19,7 @@ from urllib.parse import quote, urljoin, urlsplit
 
 from _gatelib import run_gate, tracked_files
 from check_documentation import load_policy
-from check_repo import _markdown_destinations
+from check_repo import markdown_destinations
 from release_provenance import nonempty, require
 
 CLASSIFICATION_STATUSES = {
@@ -105,7 +105,7 @@ def validate_policy(policy: Any, as_of: date) -> None:
 
 
 def destinations(text: str) -> list[tuple[int, str]]:
-    result = list(_markdown_destinations(text))
+    result = list(markdown_destinations(text))
     fenced = False
     for number, line in enumerate(text.splitlines(), 1):
         if line.lstrip().startswith(("```", "~~~")):

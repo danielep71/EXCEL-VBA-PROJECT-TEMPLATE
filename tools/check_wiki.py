@@ -10,7 +10,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from _gatelib import git_text, run_gate, tracked_files
-from initialize_repository import _build_changes, _fixture_arguments
+from initialize_repository import build_changes, fixture_arguments
 
 WIKI = 'docs/wiki'
 CATALOGUE = f'{WIKI}/catalogue.json'
@@ -50,8 +50,8 @@ def lifecycle(root: Path, files: set[str]) -> tuple[dict[str, list[str]], dict[s
     matrix: dict[str, list[str]] = {p: [] for p in files}
     generated: dict[str, list[str]] = {}
     for profile in ('application', 'library', 'ui-component'):
-        scalars, repeats = _fixture_arguments(profile)
-        changes, _ = _build_changes(root, profile, scalars, repeats)
+        scalars, repeats = fixture_arguments(profile)
+        changes, _ = build_changes(root, profile, scalars, repeats)
         for path in files:
             state = 'R' if path not in changes else 'X' if changes[path] is None else 'T'
             matrix[path].append(state)
@@ -110,6 +110,8 @@ def inventory(root: Path, data: dict[str, Any], files: set[str]) -> str:
            'T = transformed; X = removed. Values come from the actual initializer dry run with its',
            'standard synthetic values. Supplying optional/repeatable values changes rendered text.',
            'The optional `assets/social-preview.png` is retained when selected; otherwise removed.',
+           'Columns show the default full governance tier; the minimal tier also removes or replaces',
+           'the paths listed under [Governance Tiers](../INITIALIZATION.md#governance-tiers).',
            'An untracked directory is not a Git artifact. Directory retention follows its children.', '',
            '## Editing and validation rules by kind', '',
            '| Kind / owner | When to edit | Invariants and unsafe edits | Validation |',

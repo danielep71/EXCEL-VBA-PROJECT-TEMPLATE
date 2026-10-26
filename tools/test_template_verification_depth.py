@@ -24,6 +24,7 @@ import check_external_links as external_links
 import check_local_actions as local_actions
 import check_release as release
 import check_release_semantics as semantics
+import check_repo as repo_gate
 import check_template_contract as contract
 import check_wiki as wiki
 import checker_development as checker_dev
@@ -352,13 +353,13 @@ class InitializerDepthTests(unittest.TestCase):
                 root, "library", {"old.txt": b"new", "new.txt": b"x", "gone.txt": None}
             )
             self.assertEqual([row["action"] for row in plan["changes"]], ["update", "create", "delete"])
-            initializer._apply_changes(root, {"old.txt": b"new", "new.txt": b"x"})
+            initializer.apply_changes(root, {"old.txt": b"new", "new.txt": b"x"})
             self.assertEqual((root / "old.txt").read_bytes(), b"new")
             self.assertEqual((root / "new.txt").read_bytes(), b"x")
             before = (root / "old.txt").read_bytes()
             with patch("initialize_repository.os.replace", side_effect=OSError("boom")):
                 with self.assertRaisesRegex(initializer.InitializationError, "original files were restored"):
-                    initializer._apply_changes(root, {"old.txt": b"broken"})
+                    initializer.apply_changes(root, {"old.txt": b"broken"})
             self.assertEqual((root / "old.txt").read_bytes(), before)
 
     def test_initializer_written_file_modes_drop_unsafe_bits(self) -> None:
@@ -387,7 +388,7 @@ class InitializerDepthTests(unittest.TestCase):
             for filename, mode in fixtures.items():
                 (root / filename).write_bytes(b"old")
                 os.chmod(root / filename, mode)
-            initializer._apply_changes(
+            initializer.apply_changes(
                 root, {"plain.txt": b"new", "tool.sh": b"new", "secret.txt": b"new", "fresh.txt": b"x"}
             )
             observed = {path.name: stat.S_IMODE(path.stat().st_mode) for path in root.iterdir()}
@@ -398,7 +399,7 @@ class InitializerDepthTests(unittest.TestCase):
             os.chmod(root / "plain.txt", world_writable)
             with patch("initialize_repository.os.replace", side_effect=OSError("boom")):
                 with self.assertRaises(initializer.InitializationError):
-                    initializer._apply_changes(root, {"plain.txt": b"broken"})
+                    initializer.apply_changes(root, {"plain.txt": b"broken"})
             self.assertEqual(stat.S_IMODE((root / "plain.txt").stat().st_mode), world_writable)
 
 
@@ -1084,8 +1085,8 @@ class ExtendedReleaseAndCloseoutDepthTests(unittest.TestCase):
             root = Path(name)
             text_path = root / "nested" / "report.md"
             json_path = root / "nested" / "report.json"
-            closeout.write_report(text_path, rendered)
-            closeout.write_json(json_path, {"status": "pass"})
+            gatelib.write_text(text_path, rendered)
+            gatelib.write_json(json_path, {"status": "pass"})
             self.assertEqual(text_path.read_text(encoding="utf-8"), rendered)
             self.assertEqual(json.loads(json_path.read_text(encoding="utf-8"))["status"], "pass")
 
@@ -1106,9 +1107,9 @@ class ExtendedReleaseAndCloseoutDepthTests(unittest.TestCase):
         with (
             patch.object(initializer, "_git", return_value=clean),
             patch.object(initializer, "_load_config", return_value={"mode": "generated"}),
-            patch.object(initializer, "_build_changes", return_value=({"x.txt": b"x"}, {})),
+            patch.object(initializer, "build_changes", return_value=({"x.txt": b"x"}, {})),
             patch.object(initializer, "_plan", return_value={"mode": "dry-run", "status": "planned", "changes": []}),
-            patch.object(initializer, "_apply_changes") as apply_changes,
+            patch.object(initializer, "apply_changes") as apply_changes,
         ):
             self.assertEqual(initializer.main(["--profile", "library", "--apply"]), 0)
             apply_changes.assert_called_once()
@@ -2203,6 +2204,36 @@ class RemainingCoverageDepthTests(unittest.TestCase):
         second = {**first, "nonce": 2}
         with patch.object(coverage_runner, "build_report", side_effect=[first, second]):
             self.assertEqual(coverage_runner.run_self_test(Path(".")), 1)
+
+
+class VbaStructureDirectiveTests(unittest.TestCase):
+    """The portable gate's coarse PtrSafe model follows the whole #If chain."""
+
+    @staticmethod
+    def structure_failures(*lines: str) -> list[dict[str, Any]]:
+        failures: list[dict[str, Any]] = []
+        repo_gate._scan_vba_structure_component("Fixture.bas", list(lines), failures)
+        return failures
+
+    def test_else_after_vba7_elseif_is_legacy_only(self) -> None:
+        self.assertEqual(self.structure_failures(
+            "#If Mac Then",
+            "#ElseIf VBA7 Then",
+            'Private Declare PtrSafe Function Tick Lib "kernel32" () As Long',
+            "#Else",
+            'Private Declare Function Tick Lib "kernel32" () As Long',
+            "#End If",
+        ), [])
+
+    def test_else_without_vba7_branch_is_still_checked(self) -> None:
+        failures = self.structure_failures(
+            "#If Win64 Then",
+            "#Else",
+            'Private Declare Function Tick Lib "kernel32" () As Long',
+            "#End If",
+        )
+        self.assertEqual([item["message"] for item in failures],
+                         ["Declare in an active VBA7 branch must include PtrSafe."])
 
 
 if __name__ == "__main__":

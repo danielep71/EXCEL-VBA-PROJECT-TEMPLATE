@@ -95,14 +95,20 @@ Each entry classifies its changes as **breaking**, **required**, **optional** or
 | Focused-gate CLI orchestration consolidated into `tools/_gatelib.py` | Not applicable | Internal to the template's tooling; no public CLI changed |
 | Static repository checks expose reusable interface v1 | Optional | Follow [REUSABLE_WORKFLOWS.md](REUSABLE_WORKFLOWS.md) to adopt an exact workflow commit; copied workflows remain supported |
 | Windows/Excel host evidence interface | Optional execution | The template retains the policy, validator, fixtures and [EXCEL_EVIDENCE.md](EXCEL_EVIDENCE.md). Use a reviewed eligible host or the same-schema manual fallback; unavailable never means PASS. Existing base compile/regression evidence stays required, and no Windows runner becomes a universal requirement. |
+| Governance tiers | Optional | A project may record `"governance_tier": "minimal"`. The tier narrows the recorded version's rule set by the minimal entry of `TIER_EXCLUDED_RULES`; it adds no control and changes no published rule set. Projects without a recorded tier keep the full rule set and need no action. Conformance reports an omitted control as not applicable; see [governance tiers](INITIALIZATION.md#governance-tiers). |
+| Library-profile text and path reference | Optional | Newly generated `library` projects receive `TextCore`, `TextFacade`, `TextTests` and `TextExample` as reference code, not as a required control. An existing library project may adopt it by copying the four modules, their `vba.components` entries, `profiles.library.owned_paths` and the `TextFacade` manifest rows, or ignore it. |
+| UI-component progress-session reference | Optional | Newly generated `ui-component` projects receive `ProgressCore`, `ProgressFacade`, `ProgressTests` and `ProgressExample` as reference code, not as a required control. An existing UI-component project may adopt it by copying the four modules, their `vba.components` entries, `profiles.ui-component.owned_paths` and the `ProgressFacade` manifest rows, or ignore it. |
+| Profile-owned paths and the `vba7-mac64` conditional-compilation environment | Not applicable | Template mechanics: `owned_paths` controls which profile generates a file, and the conditional gate now models `Mac`. `#If Mac` code that the gate previously rejected as an unknown symbol is now evaluated, and a `Declare` reachable on Mac must use `PtrSafe`. |
 | Generated workflow identity checks recognize immutable references to the recorded template source | Optional | Update the canonical checker before adopting a reusable workflow; no broad identity-path exclusion is needed |
 
+<!-- template:tier:full:start -->
 Reusable interface v1 adds no required control and does not change the resolved
 rule sets above. Its compatibility policy is owned by
 [REUSABLE_WORKFLOWS.md](REUSABLE_WORKFLOWS.md). A future breaking interface change
 must introduce a new interface major and a new template-contract version with a
 corresponding `CONTRACT_RULE_SETS` entry and migration note; do not redefine a
 published contract or move a published pin.
+<!-- template:tier:full:end -->
 
 ### 1.1.0
 
@@ -123,6 +129,7 @@ published contract or move a published pin.
 
 ## 5. ✅ Validation
 
+<!-- template:tier:full:start -->
 `tools/check_template_contract.py` is the focused gate for this contract. It:
 
 - requires exactly `version` and `source`, both well formed;
@@ -142,6 +149,13 @@ python3 tools/check_template_contract.py --root . --self-test
 
 Unknown or unsupported versions fail with an actionable message naming the
 recorded value and the supported set.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+The minimal governance tier records the adopted contract in
+`.github/repository-profile.json`, where the repository gate validates it, but
+does not include the focused contract gate. The full tier adds that gate; see
+[governance tiers](INITIALIZATION.md#governance-tiers).
+<!-- template:tier:minimal:end -->
 
 ---
 

@@ -90,10 +90,17 @@ work, the practical rules are:
 Do not weaken a project-specific numerical, UI, lifecycle, performance or
 packaging gate merely because the generic repository gate passes.
 
+<!-- template:tier:full:start -->
 For Python comments, docstrings, wrapping and enforced lint rules, follow
 [the tooling presentation policy](tools/README.md#python-presentation-and-lint-policy).
 Apply the same accuracy review to workflow comments, configuration explanations
 and embedded examples whenever their owning behavior changes.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+Keep Python comments and docstrings accurate when their owning behavior
+changes, and apply the same accuracy review to workflow comments, configuration
+explanations and embedded examples.
+<!-- template:tier:minimal:end -->
 
 ## 🔄 Compatibility and state ownership
 
@@ -152,8 +159,14 @@ test.
 For checker changes, additionally follow
 [`docs/CHECKER_DEVELOPMENT.md`](docs/CHECKER_DEVELOPMENT.md).
 <!-- template:remove:end -->
+<!-- template:tier:full:start -->
 For release-evidence schemas and exact-SHA binding, use
 [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md).
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+For version and changelog rules, use
+[`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md).
+<!-- template:tier:minimal:end -->
 
 <a id="pull-requests"></a>
 

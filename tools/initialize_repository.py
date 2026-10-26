@@ -10,9 +10,12 @@ filesystem failures trigger a rollback attempt, not a repository-wide transactio
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
+import io
 import json
 import os
+import posixpath
 import re
 import shutil
 import stat
@@ -26,10 +29,14 @@ CONFIG_PATH = ".github/repository-profile.json"
 RECORD_PATH = ".github/initialization.json"
 CANONICAL_SOCIAL_PREVIEW_PATH = "assets/social-preview.png"
 SUPPORTED_PROFILES = ("application", "library", "ui-component")
+# Governance weight is chosen independently of the product profile. ``full`` is
+# the default and is never recorded; only a non-default tier is written.
+GOVERNANCE_TIERS = ("full", "minimal")
+DEFAULT_TIER = "full"
 TOKEN_NAME_PATTERN = re.compile(r"[A-Z][A-Z0-9_]*")
 REPOSITORY_PATTERN = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 MARKER_PATTERN = re.compile(
-    r"<!-- template:(remove|profile:(?:application|library|ui-component)|"
+    r"<!-- template:(remove|profile:(?:application|library|ui-component)|tier:(?:full|minimal)|"
     r"optional:[A-Z][A-Z0-9_]*|repeatable:[A-Z][A-Z0-9_]*):(start|end) -->"
 )
 VBA_SUFFIXES = {".bas", ".cls", ".frm"}
@@ -260,6 +267,7 @@ def _render_blocks(
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
     catalogue: dict[str, dict[str, Any]],
+    tier: str = DEFAULT_TIER,
 ) -> str:
     output: list[str] = []
     active: tuple[str, bool] | None = None
@@ -276,6 +284,8 @@ def _render_blocks(
                     keep = False
                 elif marker.startswith("profile:"):
                     keep = marker.split(":", 1)[1] == profile
+                elif marker.startswith("tier:"):
+                    keep = marker.split(":", 1)[1] == tier
                 elif marker.startswith("optional:"):
                     name = marker.split(":", 1)[1]
                     if catalogue.get(name, {}).get("category") != "optional":
@@ -384,15 +394,18 @@ def _record(
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
     contract: dict[str, Any],
+    tier: str = DEFAULT_TIER,
 ) -> bytes:
     values: dict[str, Any] = dict(sorted(scalars.items()))
     values.update({name: items for name, items in sorted(repeatable.items())})
-    document = {
+    document: dict[str, Any] = {
         "schema_version": 1,
         "profile": profile,
         "template_contract": contract,
         "values": values,
     }
+    if tier != DEFAULT_TIER:
+        document["governance_tier"] = tier
     return (json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
 
 
@@ -402,6 +415,7 @@ def _already_initialized(
     profile: str,
     scalars: dict[str, str],
     repeatable: dict[str, list[str]],
+    tier: str = DEFAULT_TIER,
 ) -> bool:
     if config.get("mode") != "generated":
         return False
@@ -411,7 +425,12 @@ def _already_initialized(
         raise InitializationError(f"Generated repository is missing {RECORD_PATH}.") from error
     if config.get("profile") != profile or config.get("repository") != scalars["REPOSITORY_PATH"]:
         raise InitializationError("Repository is already initialized with different profile or repository inputs.")
-    if existing != _record(profile, scalars, repeatable, config.get("template_contract", {})):
+    if config.get("governance_tier", DEFAULT_TIER) != tier:
+        raise InitializationError(
+            "Repository is already initialized with a different governance tier; "
+            "change tiers with the documented upgrade, not a re-run."
+        )
+    if existing != _record(profile, scalars, repeatable, config.get("template_contract", {}), tier):
         raise InitializationError("Repository is already initialized with different substitution inputs.")
     return True
 
@@ -474,6 +493,91 @@ def _template_only_paths(
     return configured_template_only - retained_template_only
 
 
+def _tier_selection(
+    config: dict[str, Any], tracked: set[str], tier: str
+) -> tuple[set[str], dict[str, str]]:
+    """The paths a governance tier removes and the variant sources that replace files."""
+    if tier not in GOVERNANCE_TIERS:
+        raise InitializationError(f"Unsupported governance tier {tier!r}.")
+    try:
+        specification = config["governance_tiers"]["tiers"][tier]
+        removed = set(specification["remove_paths"])
+        replaced = dict(specification["replace_paths"])
+    except (KeyError, TypeError) as error:
+        raise InitializationError(f"{CONFIG_PATH} has no valid governance tier {tier!r}.") from error
+    untracked = sorted((removed | set(replaced) | set(replaced.values())) - tracked)
+    if untracked:
+        raise InitializationError(
+            f"Governance tier {tier!r} names untracked paths: " + ", ".join(untracked)
+        )
+    return removed, replaced
+
+
+def _profile_selection(config: dict[str, Any], tracked: set[str], profile: str) -> set[str]:
+    """The paths other profiles own; the selected profile keeps only its own."""
+    removed = {
+        path
+        for name, settings in config["profiles"].items()
+        if name != profile
+        for path in settings.get("owned_paths", [])
+    }
+    untracked = sorted(removed - tracked)
+    if untracked:
+        raise InitializationError("Profile-owned paths are not tracked: " + ", ".join(untracked))
+    return removed
+
+
+def _filter_api_manifest(text: str, removed: set[str]) -> str:
+    """Drop manifest rows for public components that initialization removes."""
+    components = {PurePosixPath(path).stem for path in removed if PurePosixPath(path).suffix.casefold() in VBA_SUFFIXES}
+    kept = []
+    for line in text.splitlines(keepends=True):
+        fields = line.rstrip("\r\n").split("\t")
+        if line.startswith("# SIG\t"):
+            component = fields[1] if len(fields) > 1 else None
+        else:
+            component = None if line.startswith("#") else fields[0]
+        if component not in components:
+            kept.append(line)
+    return "".join(kept)
+
+
+_MARKDOWN_LINK = re.compile(r"\]\(([^)\s#]+)(?:#[^)]*)?\)")
+# A code span names a repository file only when it ends in a file extension;
+# ``owner/repo`` identifiers and directory prefixes are not paths.
+_CODE_PATH = re.compile(r"`((?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(?:py|md|json|yml|yaml|toml|txt|mjs|sh|bas|cls|frm))`")
+_PRUNABLE_LINE = re.compile(r"\s*(?:\||[-*+] |\d+\. |\[!\[)")
+
+
+def _referenced_paths(path: str, line: str) -> set[str]:
+    """Repository paths a Markdown line links to or names in a code span."""
+    base = PurePosixPath(path).parent
+    found = set()
+    for target in _MARKDOWN_LINK.findall(line):
+        if "://" not in target and not target.startswith("mailto:"):
+            found.add(posixpath.normpath(str(base / target)))
+    return found | set(_CODE_PATH.findall(line))
+
+
+def _prune_removed_references(path: str, text: str, removed: set[str]) -> str:
+    """Drop table rows, list items and badges whose every referenced path was removed.
+
+    Only whole rows/items are pruned, and only when nothing they reference
+    survives, so prose and mixed references still need explicit tier blocks.
+    Nothing is pruned when no referenced path was removed (the full tier).
+    """
+    if not path.endswith(".md") or not removed:
+        return text
+    kept = []
+    for line in text.splitlines(keepends=True):
+        references = _referenced_paths(path, line) if _PRUNABLE_LINE.match(line) else set()
+        names = {PurePosixPath(item).name for item in removed}
+        if references and all(item in removed or item in names for item in references):
+            continue
+        kept.append(line)
+    return "".join(kept)
+
+
 def _rewrite_issue_security_url(path: str, rendered: str, template_repository: str, generated_repository: str) -> str:
     """Point the issue chooser's private-security link at the generated repository."""
     if path != ".github/ISSUE_TEMPLATE/config.yml":
@@ -498,11 +602,13 @@ def _render_tracked_text(
     values: dict[str, str],
     token_pattern: re.Pattern[str],
     seen: set[str],
+    tier: str = DEFAULT_TIER,
+    removed: frozenset[str] = frozenset(),
 ) -> str:
     """Render one tracked text file; record the placeholders it uses in ``seen``."""
     catalogue = config["placeholders"]["catalogue"]
     _reject_executable_placeholders(path, list(token_pattern.finditer(text)))
-    rendered = _render_blocks(path, text, profile, scalars, repeatable, catalogue)
+    rendered = _render_blocks(path, text, profile, scalars, repeatable, catalogue, tier)
     for match in token_pattern.finditer(rendered):
         name = match.group(1)
         if name not in catalogue:
@@ -515,6 +621,7 @@ def _render_tracked_text(
         path, rendered, config["repository"], scalars["REPOSITORY_PATH"]
     )
     rendered = _rewrite_issue_security_url(path, rendered, config["repository"], scalars["REPOSITORY_PATH"])
+    rendered = _prune_removed_references(path, rendered, set(removed))
     unresolved = sorted({match.group(1) for match in token_pattern.finditer(rendered)})
     if unresolved:
         raise InitializationError(f"{path}: unresolved placeholders: {', '.join(unresolved)}")
@@ -553,22 +660,33 @@ def _add_generated_configuration(
     repeatable: dict[str, list[str]],
     template_only: set[str],
     tracked_files: tuple[str, ...],
+    tier: str = DEFAULT_TIER,
 ) -> None:
     """Write the generated profile, the initialization record and any missing directory READMEs."""
     generated_config = json.loads(json.dumps(config))
     generated_config["mode"] = "generated"
     generated_config["profile"] = profile
     generated_config["repository"] = scalars["REPOSITORY_PATH"]
+    generated_config.pop("governance_tiers", None)
+    if tier != DEFAULT_TIER:
+        generated_config["governance_tier"] = tier
     generated_config["required_paths"] = [
         path
         for path in generated_config["required_paths"]
         if path not in template_only
     ]
+    placeholders = generated_config["placeholders"]
+    placeholders["exclude_paths"] = [path for path in placeholders["exclude_paths"] if path not in template_only]
+    for settings in generated_config["profiles"].values():
+        settings["required_paths"] = [path for path in settings["required_paths"] if path not in template_only]
+        settings["owned_paths"] = [path for path in settings["owned_paths"] if path not in template_only]
+    vba = generated_config["vba"]
+    vba["components"] = {path: role for path, role in vba["components"].items() if path not in template_only}
     changes[CONFIG_PATH] = (
         json.dumps(generated_config, indent=2, ensure_ascii=False) + "\n"
     ).encode("utf-8")
     changes[RECORD_PATH] = _record(
-        profile, scalars, repeatable, generated_config.get("template_contract", {})
+        profile, scalars, repeatable, generated_config.get("template_contract", {}), tier
     )
 
     profile_settings = generated_config["profiles"][profile]
@@ -582,11 +700,12 @@ def _add_generated_configuration(
             changes[readme] = _directory_readme(scalars["PROJECT_NAME"], profile, directory)
 
 
-def _build_changes(
+def build_changes(
     root: Path,
     profile: str,
     scalar_entries: Iterable[str],
     repeatable_entries: Iterable[str],
+    tier: str = DEFAULT_TIER,
 ) -> tuple[dict[str, bytes | None], dict[str, str]]:
     config = _load_config(root)
     tracked_files = _tracked_files(root)
@@ -602,24 +721,28 @@ def _build_changes(
         require_preview_file=config.get("mode") != "generated",
     )
     values = _replacement_values(profile, scalars, repeatable, catalogue)
-    if _already_initialized(root, config, profile, scalars, repeatable):
+    if _already_initialized(root, config, profile, scalars, repeatable, tier):
         return {}, values
     if config.get("mode") != "template":
         raise InitializationError("Repository mode must be template or a matching prior initialization.")
 
     excluded = set(placeholders["exclude_paths"])
-    template_only = _template_only_paths(placeholders, tracked, scalars.get("SOCIAL_PREVIEW_PATH", ""))
+    tier_removed, replaced = _tier_selection(config, tracked, tier)
+    selection_removed = tier_removed | _profile_selection(config, tracked, profile)
+    removed = _template_only_paths(placeholders, tracked, scalars.get("SOCIAL_PREVIEW_PATH", "")) | selection_removed
+    manifest = config["vba"]["public_api_manifest"]
     token_pattern = re.compile(placeholders["pattern"])
-    changes: dict[str, bytes | None] = {path: None for path in sorted(template_only)}
+    changes: dict[str, bytes | None] = {path: None for path in sorted(removed)}
     seen: set[str] = set()
 
     for path in tracked_files:
-        if path in template_only or path in excluded or not _is_text(path):
+        if path in removed or path in excluded or not _is_text(path):
             continue
         source = (root / path).read_bytes()
+        template = (root / replaced[path]).read_bytes() if path in replaced else source
         rendered = _render_tracked_text(
             path,
-            _decode(path, source),
+            _decode(path, template),
             profile=profile,
             config=config,
             scalars=scalars,
@@ -627,13 +750,17 @@ def _build_changes(
             values=values,
             token_pattern=token_pattern,
             seen=seen,
+            tier=tier,
+            removed=frozenset(selection_removed),
         )
+        if path == manifest:
+            rendered = _filter_api_manifest(rendered, removed)
         output = _encode(path, rendered)
         if output != source:
             changes[path] = output
 
     _check_placeholder_usage(scalars, repeatable, catalogue, seen)
-    _add_generated_configuration(changes, config, profile, scalars, repeatable, template_only, tracked_files)
+    _add_generated_configuration(changes, config, profile, scalars, repeatable, removed, tracked_files, tier)
     return dict(sorted(changes.items())), values
 
 
@@ -641,7 +768,9 @@ def _sha256(data: bytes | None) -> str | None:
     return hashlib.sha256(data).hexdigest() if data is not None else None
 
 
-def _plan(root: Path, profile: str, changes: dict[str, bytes | None]) -> dict[str, Any]:
+def _plan(
+    root: Path, profile: str, changes: dict[str, bytes | None], tier: str = DEFAULT_TIER
+) -> dict[str, Any]:
     entries = []
     for path, after in changes.items():
         target = root / path
@@ -660,7 +789,134 @@ def _plan(root: Path, profile: str, changes: dict[str, bytes | None]) -> dict[st
         "status": "ready" if entries else "no-op",
         "mode": "dry-run",
         "profile": profile,
+        "governance_tier": tier,
+        "retained_tools": sorted(
+            f"tools/{tool.name}" for tool in (root / "tools").glob("*.py")
+            if changes.get(f"tools/{tool.name}", b"") is not None
+        ),
+        "removed_paths": sorted(path for path, after in changes.items() if after is None),
         "changes": entries,
+    }
+
+
+def _rendered_tree(
+    template: Path, profile: str, scalars: list[str], repeatable: list[str], tier: str
+) -> dict[str, bytes]:
+    """Render a generation in memory: the template's files with its planned changes applied."""
+    changes, _ = build_changes(template, profile, scalars, repeatable, tier)
+    tree = {path: (template / path).read_bytes() for path in _tracked_files(template)}
+    for path, after in changes.items():
+        if after is None:
+            tree.pop(path, None)
+        else:
+            tree[path] = after
+    return tree
+
+
+def _merge_text(path: str, current: bytes, base: bytes, target: bytes) -> bytes | None:
+    """Three-way merge one text file; None when the adopter's change conflicts."""
+    with tempfile.TemporaryDirectory(prefix="initializer-upgrade-") as temporary:
+        names = []
+        for label, data in (("project", current), ("minimal", base), ("full", target)):
+            file = Path(temporary) / label
+            file.write_bytes(data)
+            names.append(str(file))
+        merged = subprocess.run(
+            ["git", "merge-file", "-p", "--quiet", *names],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+    if not 0 <= merged.returncode <= 127:
+        raise InitializationError(f"git merge-file could not merge {path}.")
+    if merged.returncode or path.endswith(".json") and not _is_json(merged.stdout):
+        return None
+    return merged.stdout
+
+
+def _is_json(data: bytes) -> bool:
+    try:
+        json.loads(data.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError):
+        return False
+    return True
+
+
+def _upgrade_file(
+    path: str, current: bytes | None, base: bytes | None, target: bytes
+) -> tuple[str, bytes | None]:
+    """Classify one target-tier file against the project and its minimal baseline."""
+    if current == target or current is not None and base == target:
+        return "unchanged", None
+    if current is None:
+        return ("add", target) if base is None else ("adopter-deleted", None)
+    if current == base:
+        return "replace", target
+    merged = _merge_text(path, current, base, target) if base is not None and _is_text(path) else None
+    return ("conflict", None) if merged is None else ("merge", merged)
+
+
+def _upgrade_source(template: Path, root: Path, tier: str) -> tuple[str, str, list[str], list[str]]:
+    """Validate an upgrade request; return the recorded tier and inputs."""
+    config = _load_config(root)
+    recorded = config.get("governance_tier", DEFAULT_TIER)
+    if config.get("mode") != "generated":
+        raise InitializationError("--upgrade-tier applies only to a generated repository.")
+    if recorded != tier and (recorded, tier) != ("minimal", "full"):
+        raise InitializationError("Only a minimal-tier repository can be upgraded, and only to the full tier.")
+    template_config = _load_config(template)
+    if template_config.get("mode") != "template":
+        raise InitializationError("The upgrade must run from a template checkout.")
+    if template_config.get("template_contract") != config.get("template_contract"):
+        raise InitializationError(
+            "The template checkout is at a different template_contract; upgrade from a checkout "
+            "at the project's recorded contract."
+        )
+    try:
+        profile, scalars, repeatable = _record_arguments(root)
+    except AssertionError as error:
+        raise InitializationError(str(error)) from error
+    return recorded, profile, scalars, repeatable
+
+
+def upgrade_changes(template: Path, root: Path, tier: str) -> dict[str, Any]:
+    """Plan the in-place upgrade of a minimal-tier project to ``tier``.
+
+    Adds target-tier files, replaces a file the project has not changed since
+    minimal generation, three-way merges adopter-changed text and never deletes.
+    A conflict leaves the plan with no writable changes.
+    """
+    recorded, profile, scalars, repeatable = _upgrade_source(template, root, tier)
+    files: dict[str, str] = {}
+    changes: dict[str, bytes | None] = {}
+    if recorded != tier:
+        base = _rendered_tree(template, profile, scalars, repeatable, recorded)
+        for path, target in sorted(_rendered_tree(template, profile, scalars, repeatable, tier).items()):
+            current = (root / path).read_bytes() if (root / path).is_file() else None
+            action, output = _upgrade_file(path, current, base.get(path), target)
+            if action != "unchanged":
+                files[path] = action
+            if output is not None:
+                changes[path] = output
+    conflicts = sorted(path for path, action in files.items() if action == "conflict")
+    entries = [
+        {
+            "action": action,
+            "path": path,
+            "before_sha256": _sha256((root / path).read_bytes() if (root / path).is_file() else None),
+            "after_sha256": _sha256(changes.get(path)),
+        }
+        for path, action in files.items()
+    ]
+    return {
+        "schema_version": 1,
+        "status": "conflict" if conflicts else ("ready" if changes else "no-op"),
+        "mode": "dry-run",
+        "profile": profile,
+        "upgrade": {"from": recorded, "to": tier},
+        "conflicts": conflicts,
+        "changes": entries,
+        "writes": {} if conflicts else changes,
     }
 
 
@@ -678,7 +934,7 @@ def _written_file_mode(original_mode: int | None) -> int:
     return base & ~UNSAFE_MODE_BITS
 
 
-def _apply_changes(root: Path, changes: dict[str, bytes | None]) -> None:
+def apply_changes(root: Path, changes: dict[str, bytes | None]) -> None:
     originals: dict[str, tuple[bytes, int] | None] = {}
     staged: dict[str, Path] = {}
     try:
@@ -733,7 +989,7 @@ def _tree_digest(root: Path) -> str:
     return digest.hexdigest()
 
 
-def _fixture_arguments(profile: str) -> tuple[list[str], list[str]]:
+def fixture_arguments(profile: str) -> tuple[list[str], list[str]]:
     label = profile.replace("-", " ").title()
     scalars = [
         "COPYRIGHT_YEAR=2026",
@@ -751,7 +1007,7 @@ def _fixture_arguments(profile: str) -> tuple[list[str], list[str]]:
     return scalars, repeatable
 
 
-def _copy_fixture(source: Path, destination: Path) -> None:
+def copy_fixture(source: Path, destination: Path) -> None:
     shutil.copytree(
         source,
         destination,
@@ -794,7 +1050,7 @@ def _make_component_variant(
     destination: Path,
     remove_paths: tuple[str, ...],
 ) -> None:
-    _copy_fixture(source, destination)
+    copy_fixture(source, destination)
     config = json.loads((destination / CONFIG_PATH).read_text(encoding="utf-8"))
     components = config["vba"]["components"]
     removed_roles: set[str] = set()
@@ -806,6 +1062,7 @@ def _make_component_variant(
         path = destination / relative
         path.unlink()
         placeholder = path.parent / "README.md"
+        directory = path.parent.relative_to(destination).as_posix()
         if not any(item.is_file() for item in path.parent.iterdir()):
             placeholder.write_text(
                 "# Fixture placeholder\n\n"
@@ -813,10 +1070,10 @@ def _make_component_variant(
                 encoding="utf-8",
                 newline="\n",
             )
-        readme = readme.replace(
-            f"]({relative})",
-            f"]({path.parent.relative_to(destination).as_posix()}/README.md)",
-        )
+        # Link the placeholder when one exists; a directory that keeps other
+        # components (such as a profile-owned reference) is linked directly.
+        target = f"{directory}/README.md" if placeholder.is_file() else f"{directory}/"
+        readme = readme.replace(f"]({relative})", f"]({target})")
     readme_path.write_text(readme, encoding="utf-8", newline="\n")
     if "public" in removed_roles:
         config["vba"]["public_api_manifest"] = None
@@ -864,7 +1121,7 @@ def _assert_failure_without_change(
 ) -> None:
     before = _tree_digest(root)
     try:
-        _build_changes(root, profile, scalars, repeatable)
+        build_changes(root, profile, scalars, repeatable)
     except InitializationError as error:
         if expected not in str(error):
             raise AssertionError(f"Expected {expected!r}, observed {error!r}") from error
@@ -875,7 +1132,7 @@ def _assert_failure_without_change(
 
 
 def _make_unused_fixture(source: Path, destination: Path) -> None:
-    _copy_fixture(source, destination)
+    copy_fixture(source, destination)
     readme = destination / "README.md"
     text = readme.read_text(encoding="utf-8")
     start = "<!-- template:optional:SOCIAL_PREVIEW_PATH:start -->"
@@ -984,7 +1241,7 @@ def _assert_fresh_generated_content(root: Path, profile: str) -> None:
 
 
 def _make_evolved_generated_fixture(source: Path, destination: Path) -> None:
-    _copy_fixture(source, destination)
+    copy_fixture(source, destination)
 
     changelog = destination / "CHANGELOG.md"
     changelog_text = changelog.read_text(encoding="utf-8")
@@ -1153,7 +1410,8 @@ def _generated_self_test(source: Path) -> None:
         require_preview_file=False,
     )
     if not _already_initialized(
-        source, config, profile, scalar_values, repeatable_values
+        source, config, profile, scalar_values, repeatable_values,
+        config.get("governance_tier", DEFAULT_TIER),
     ):
         raise AssertionError(
             "Generated repository initialization record is not authoritative."
@@ -1183,6 +1441,222 @@ def _generated_self_test(source: Path) -> None:
     )
 
 
+MINIMAL_GATES = ("check_repo.py", "check_vba_public_api.py", "check_vba_jumps.py", "check_release_semantics.py")
+
+
+def _assert_no_removed_references(root: Path, removed: set[str], label: str) -> None:
+    """No retained file may name a path the tier removed, except template-checkout commands."""
+    present = {PurePosixPath(path).name for path in _tracked_files(root)}
+    names = sorted({PurePosixPath(path).name for path in removed} - present, key=len, reverse=True)
+    if not names:
+        return
+    pattern = re.compile(r"(?<![A-Za-z0-9_-])(" + "|".join(map(re.escape, names)) + r")(?![A-Za-z0-9_])")
+    for path in _tracked_files(root):
+        if path == CONFIG_PATH or PurePosixPath(path).suffix.casefold() in VBA_SUFFIXES | {".png"}:
+            continue
+        text = re.sub(r"<template-checkout>/[A-Za-z0-9_./-]+", "", (root / path).read_text(encoding="utf-8"))
+        found = sorted(set(pattern.findall(text)))
+        if found:
+            raise AssertionError(f"{label} {path} still references removed paths: {', '.join(found)}")
+
+
+def _assert_tier_recorded(root: Path, tier: str, label: str) -> None:
+    config = _load_config(root)
+    record = json.loads((root / RECORD_PATH).read_text(encoding="utf-8"))
+    expected = None if tier == DEFAULT_TIER else tier
+    if "governance_tiers" in config or config.get("governance_tier") != expected or record.get("governance_tier") != expected:
+        raise AssertionError(f"{label} did not record governance tier {tier!r} exactly once.")
+
+
+def _assert_minimal_tier(source: Path, base: Path, profile: str) -> None:
+    """A minimal-tier project is small, clean, self-consistent and passes its own gates."""
+    label = f"{profile}/minimal"
+    fixture = base / f"{profile}-minimal"
+    copy_fixture(source, fixture)
+    scalars, repeatable = fixture_arguments(profile)
+    removed = set(_load_config(source)["governance_tiers"]["tiers"]["minimal"]["remove_paths"])
+    changes, _ = build_changes(fixture, profile, scalars, repeatable, "minimal")
+    plan = _plan(fixture, profile, changes, "minimal")
+    if plan["governance_tier"] != "minimal" or not removed <= set(plan["removed_paths"]):
+        raise AssertionError(f"{label} plan did not state the tier and every removed path.")
+    if set(plan["retained_tools"]) != {f"tools/{name}" for name in ("_gatelib.py", "check_vba_conditionals.py", *MINIMAL_GATES)}:
+        raise AssertionError(f"{label} retained an unexpected tool set: {plan['retained_tools']}")
+    apply_changes(fixture, changes)
+    _git(fixture, "add", "--all")
+    _git(fixture, "commit", "-m", f"Initialize {label} fixture")
+    if build_changes(fixture, profile, scalars, repeatable, "minimal")[0]:
+        raise AssertionError(f"{label} second initialization was not idempotent.")
+    try:
+        build_changes(fixture, profile, scalars, repeatable, DEFAULT_TIER)
+    except InitializationError as error:
+        if "different governance tier" not in str(error):
+            raise AssertionError(f"{label} tier change failed for the wrong reason: {error}") from error
+    else:
+        raise AssertionError(f"{label} accepted a re-run with a different governance tier.")
+    _assert_tier_recorded(fixture, "minimal", label)
+    _assert_generated_cleanup(fixture, profile)
+    _assert_no_removed_references(fixture, removed, label)
+    for gate in MINIMAL_GATES:
+        for arguments in (["--self-test"], []):
+            completed = subprocess.run(
+                [sys.executable, str(fixture / "tools" / gate), "--root", str(fixture), *arguments],
+                capture_output=True, text=True, check=False,
+            )
+            if completed.returncode != 0:
+                raise AssertionError(f"{label} {gate} {' '.join(arguments)} failed:\n{completed.stdout}{completed.stderr}")
+    print(f"[PASS] {label}: tier plan, recording, idempotence, tier-change refusal, cleanup, no orphan references, and all four gates")
+
+
+def _generated_copy(base: Path, profile: str, name: str) -> Path:
+    """Copy the committed minimal fixture, history included, for one upgrade scenario."""
+    fixture = base / f"{profile}-{name}"
+    shutil.copytree(base / f"{profile}-minimal", fixture)
+    return fixture
+
+
+def _commit_fixture(root: Path, message: str) -> None:
+    _git(root, "add", "--all")
+    _git(root, "commit", "-m", message)
+
+
+def _quiet_main(arguments: list[str]) -> int:
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        return main(arguments)
+
+
+def _assert_clean_upgrade(source: Path, base: Path, profile: str, full: dict[str, bytes]) -> None:
+    """An unedited minimal project upgrades to exactly the direct full-tier generation."""
+    label = f"{profile}/upgrade"
+    fixture = _generated_copy(base, profile, "upgrade")
+    plan = upgrade_changes(source, fixture, DEFAULT_TIER)
+    actions = {entry["action"] for entry in plan["changes"]}
+    if plan["status"] != "ready" or plan["upgrade"] != {"from": "minimal", "to": "full"} or not actions <= {"add", "replace"}:
+        raise AssertionError(f"{label} planned an unexpected upgrade: {plan['status']} {sorted(actions)}")
+    if _quiet_main(["--root", str(fixture), "--upgrade-tier", "full", "--apply"]) != 0:
+        raise AssertionError(f"{label} command-line upgrade failed.")
+    upgraded = set(_git(fixture, "ls-files", "--cached", "--others", "--exclude-standard").stdout.splitlines())
+    if upgraded != set(full) or any((fixture / path).read_bytes() != data for path, data in full.items()):
+        raise AssertionError(f"{label} differs from the direct full-tier generation.")
+    _assert_tier_recorded(fixture, DEFAULT_TIER, label)
+    _commit_fixture(fixture, "Upgrade to the full tier")
+    if upgrade_changes(source, fixture, DEFAULT_TIER)["status"] != "no-op":
+        raise AssertionError(f"{label} second upgrade was not a no-op.")
+
+
+def _assert_upgrade_merge_and_conflict(source: Path, base: Path, profile: str, full: dict[str, bytes]) -> None:
+    """Adopter edits merge when they do not overlap a tier change and stop the upgrade when they do."""
+    label = f"{profile}/upgrade"
+    note = b"\nAdopter note.\n"
+    merged = _generated_copy(base, profile, "upgrade-merge")
+    (merged / "README.md").write_bytes((merged / "README.md").read_bytes() + note)
+    (merged / "docs/VBA_HOUSE_STYLE.md").unlink()
+    _commit_fixture(merged, "Adopter README note and removed style guide")
+    plan = upgrade_changes(source, merged, DEFAULT_TIER)
+    actions = {entry["path"]: entry["action"] for entry in plan["changes"]}
+    if plan["status"] != "ready" or actions.get("README.md") != "merge" or plan["writes"]["README.md"] != full["README.md"] + note:
+        raise AssertionError(f"{label} did not merge a non-overlapping adopter edit.")
+    if actions.get("docs/VBA_HOUSE_STYLE.md") != "adopter-deleted" or "docs/VBA_HOUSE_STYLE.md" in plan["writes"]:
+        raise AssertionError(f"{label} restored a file the adopter deleted.")
+    conflict = _generated_copy(base, profile, "upgrade-conflict")
+    (conflict / "RELEASING.md").write_text("# Adopter release guide\n", encoding="utf-8")
+    _commit_fixture(conflict, "Adopter release guide")
+    before = _tree_digest(conflict)
+    plan = upgrade_changes(source, conflict, DEFAULT_TIER)
+    if plan["status"] != "conflict" or plan["conflicts"] != ["RELEASING.md"] or plan["writes"]:
+        raise AssertionError(f"{label} did not stop on a conflicting adopter edit: {plan['conflicts']}")
+    if _quiet_main(["--root", str(conflict), "--upgrade-tier", "full", "--apply"]) != 2 or _tree_digest(conflict) != before:
+        raise AssertionError(f"{label} wrote files despite a conflict.")
+
+
+def _assert_upgrade_refusals(source: Path, base: Path, profile: str) -> None:
+    """Upgrades refuse a template repository, another contract, a dirty tree and explicit inputs."""
+    label = f"{profile}/upgrade"
+    other = _generated_copy(base, profile, "upgrade-contract")
+    config = json.loads((other / CONFIG_PATH).read_text(encoding="utf-8"))
+    config["template_contract"]["version"] = "1.1.0"
+    (other / CONFIG_PATH).write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    for root, fragment in ((source, "only to a generated repository"), (other, "different template_contract")):
+        try:
+            upgrade_changes(source, root, DEFAULT_TIER)
+        except InitializationError as error:
+            if fragment not in str(error):
+                raise AssertionError(f"{label} refused for the wrong reason: {error}") from error
+        else:
+            raise AssertionError(f"{label} accepted an upgrade that should be refused ({fragment}).")
+    minimal = str(base / f"{profile}-minimal")
+    for arguments in (["--root", str(other), "--upgrade-tier", "full"],
+                      ["--root", minimal, "--upgrade-tier", "full", "--profile", profile]):
+        if _quiet_main(arguments) != 2:
+            raise AssertionError(f"{label} accepted {' '.join(arguments[2:])} on an unsuitable tree.")
+
+
+def _assert_tier_upgrade(source: Path, base: Path, profile: str) -> None:
+    scalars, repeatable = fixture_arguments(profile)
+    full = _rendered_tree(source, profile, scalars, repeatable, DEFAULT_TIER)
+    _assert_clean_upgrade(source, base, profile, full)
+    _assert_upgrade_merge_and_conflict(source, base, profile, full)
+    _assert_upgrade_refusals(source, base, profile)
+    print(f"[PASS] {profile}/upgrade: exact full-tier result, idempotence, adopter merge, adopter deletion kept, conflict stop, and refusals")
+
+
+OWNED_FIXTURE = "src/modules/OwnedFacade.bas"
+
+
+def _make_owned_fixture(source: Path, destination: Path) -> None:
+    """A template whose library profile owns one extra public component and its documentation."""
+    copy_fixture(source, destination)
+    renames = (("ProjectFacade", "OwnedFacade"), ("ProjectRatio", "OwnedRatio"),
+               ("PROJECT_ERROR_ZERO_DENOMINATOR", "OWNED_ERROR_ZERO_DENOMINATOR"))
+
+    def renamed(text: str) -> str:
+        for old, new in renames:
+            text = text.replace(old, new)
+        return text
+
+    facade = (destination / "src/modules/ProjectFacade.bas").read_bytes().decode("cp1252")
+    (destination / OWNED_FIXTURE).write_bytes(renamed(facade).encode("cp1252"))
+    config = _load_config(destination)
+    manifest = destination / config["vba"]["public_api_manifest"]
+    rows = [line for line in manifest.read_text(encoding="utf-8").splitlines(keepends=True) if "ProjectFacade\t" in line]
+    manifest.write_text(manifest.read_text(encoding="utf-8") + "".join(renamed(row) for row in rows), encoding="utf-8")
+    config["profiles"]["library"]["owned_paths"] = [OWNED_FIXTURE]
+    config["vba"]["components"] = dict(sorted({**config["vba"]["components"], OWNED_FIXTURE: "public"}.items()))
+    (destination / CONFIG_PATH).write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    readme = destination / "src/README.md"
+    readme.write_text(readme.read_text(encoding="utf-8") + f"\n- `{OWNED_FIXTURE}` is a library-owned fixture component.\n", encoding="utf-8")
+    _commit_fixture(destination, "Add a library-owned component fixture")
+
+
+def _assert_profile_owned_paths(source: Path, base: Path) -> None:
+    """A profile keeps its own components; every other profile drops them with their policy and API rows."""
+    template = base / "owned-template"
+    _make_owned_fixture(source, template)
+    for profile, kept in (("library", True), ("application", False)):
+        label = f"{profile}/owned-paths"
+        fixture = base / f"owned-{profile}"
+        shutil.copytree(template, fixture)
+        scalars, repeatable = fixture_arguments(profile)
+        changes, _ = build_changes(fixture, profile, scalars, repeatable)
+        apply_changes(fixture, changes)
+        _commit_fixture(fixture, f"Initialize {label}")
+        config = _load_config(fixture)
+        manifest = (fixture / config["vba"]["public_api_manifest"]).read_text(encoding="utf-8")
+        owned = {name: settings["owned_paths"] for name, settings in config["profiles"].items()}
+        state = (
+            (fixture / OWNED_FIXTURE).exists(),
+            OWNED_FIXTURE in config["vba"]["components"],
+            "OwnedFacade" in manifest,
+            "OwnedFacade" in (fixture / "src/README.md").read_text(encoding="utf-8"),
+            owned == {name: [OWNED_FIXTURE] if kept and name == "library" else [] for name in owned},
+        )
+        if state != (kept, kept, kept, kept, True):
+            raise AssertionError(f"{label} kept or removed the owned component inconsistently: {state}")
+        completed, report = _quality_report(fixture)
+        if completed.returncode != 0 or report.get("status") != "pass":
+            raise AssertionError(f"{label} failed repository quality:\n{completed.stdout}{completed.stderr}")
+    print("[PASS] profile-owned paths: kept with policy and API rows by the owner, removed with them elsewhere")
+
+
 def self_test(source: Path) -> None:
     if _load_config(source).get("mode") == "generated":
         _generated_self_test(source)
@@ -1191,8 +1665,8 @@ def self_test(source: Path) -> None:
         base = Path(temporary)
         for profile in SUPPORTED_PROFILES:
             fixture = base / profile
-            _copy_fixture(source, fixture)
-            scalars, repeatable = _fixture_arguments(profile)
+            copy_fixture(source, fixture)
+            scalars, repeatable = fixture_arguments(profile)
             preview = fixture / "assets/social-preview.png"
             preview.write_bytes(b"fixture-preview\n")
             _git(fixture, "add", "--all")
@@ -1241,22 +1715,22 @@ def self_test(source: Path) -> None:
             )
 
             before = _tree_digest(fixture)
-            changes, _ = _build_changes(fixture, profile, scalars, repeatable)
+            changes, _ = build_changes(fixture, profile, scalars, repeatable)
             if not changes or _tree_digest(fixture) != before:
                 raise AssertionError(f"{profile} dry-run was empty or changed the tree.")
-            repeated_changes, _ = _build_changes(fixture, profile, scalars, repeatable)
+            repeated_changes, _ = build_changes(fixture, profile, scalars, repeatable)
             if changes != repeated_changes or _plan(fixture, profile, changes) != _plan(
                 fixture, profile, repeated_changes
             ):
                 raise AssertionError(f"{profile} dry-run plan was not deterministic.")
-            _apply_changes(fixture, changes)
-            immediate_rerun, _ = _build_changes(fixture, profile, scalars, repeatable)
+            apply_changes(fixture, changes)
+            immediate_rerun, _ = build_changes(fixture, profile, scalars, repeatable)
             if immediate_rerun:
                 raise AssertionError(f"{profile} immediate second initialization was not idempotent.")
             _git(fixture, "add", "--all")
             _git(fixture, "commit", "-m", f"Initialize {profile} fixture")
 
-            rerun, _ = _build_changes(fixture, profile, scalars, repeatable)
+            rerun, _ = build_changes(fixture, profile, scalars, repeatable)
             if rerun:
                 raise AssertionError(f"{profile} second initialization was not idempotent.")
             generated_config = json.loads(
@@ -1276,6 +1750,7 @@ def self_test(source: Path) -> None:
             if not (fixture / "assets/social-preview.png").is_file():
                 raise AssertionError(f"{profile} removed its selected social preview.")
             _assert_generated_cleanup(fixture, profile)
+            _assert_tier_recorded(fixture, DEFAULT_TIER, f"{profile}/full")
             _assert_fresh_generated_content(fixture, profile)
             _generated_self_test(fixture)
             _assert_retained_documentation_tests(fixture)
@@ -1285,7 +1760,7 @@ def self_test(source: Path) -> None:
             evolved_profile, evolved_scalars, evolved_repeatable = _record_arguments(
                 evolved
             )
-            evolved_rerun, _ = _build_changes(
+            evolved_rerun, _ = build_changes(
                 evolved,
                 evolved_profile,
                 evolved_scalars,
@@ -1358,8 +1833,11 @@ def self_test(source: Path) -> None:
                 f"[PASS] {profile}: initialization, substantive contract, README-only rejection, "
                 "mandatory-component removals, optional-component absence, and quality evidence"
             )
+            _assert_minimal_tier(source, base, profile)
+            _assert_tier_upgrade(source, base, profile)
+        _assert_profile_owned_paths(source, base)
     print(
-        f"PASS: {len(SUPPORTED_PROFILES)} profile fixtures initialized; "
+        f"PASS: {len(SUPPORTED_PROFILES)} profile fixtures initialized in both governance tiers and upgraded in place; "
         "12 mandatory/README-only removals rejected and 3 optional removals accepted."
     )
 
@@ -1368,11 +1846,39 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd(), help="Repository root.")
     parser.add_argument("--profile", choices=SUPPORTED_PROFILES, help="One repository profile.")
+    parser.add_argument(
+        "--governance-tier", choices=GOVERNANCE_TIERS, default=DEFAULT_TIER,
+        help="Generated tooling weight: full (default, complete lifecycle) or minimal.",
+    )
+    parser.add_argument(
+        "--upgrade-tier", choices=("full",),
+        help="Upgrade a generated minimal-tier repository in place, from a template checkout.",
+    )
     parser.add_argument("--set", dest="scalar_entries", action="append", default=[], metavar="NAME=value")
     parser.add_argument("--add", dest="repeatable_entries", action="append", default=[], metavar="NAME=value")
     parser.add_argument("--apply", action="store_true", help="Apply the validated plan; dry-run is default.")
     parser.add_argument("--self-test", action="store_true", help="Exercise all profile and failure fixtures.")
     return parser
+
+
+def _run_upgrade(root: Path, tier: str, apply: bool) -> int:
+    """Plan, and with --apply write, an in-place tier upgrade; conflicts write nothing."""
+    status = _git(root, "status", "--porcelain", check=False)
+    if status.returncode != 0 or status.stdout:
+        raise InitializationError("--root must be a clean Git working tree before an upgrade.")
+    plan = upgrade_changes(Path(__file__).resolve().parents[1], root, tier)
+    writes = plan.pop("writes")
+    if plan["conflicts"]:
+        print(json.dumps(plan, indent=2, ensure_ascii=False))
+        raise InitializationError(
+            "Adopter changes conflict with the full tier; nothing was written: " + ", ".join(plan["conflicts"])
+        )
+    if apply:
+        apply_changes(root, writes)
+        plan["mode"] = "apply"
+        plan["status"] = "applied" if writes else "no-op"
+    print(json.dumps(plan, indent=2, ensure_ascii=False))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1382,6 +1888,10 @@ def main(argv: list[str] | None = None) -> int:
         if arguments.self_test:
             self_test(root)
             return 0
+        if arguments.upgrade_tier:
+            if arguments.profile or arguments.scalar_entries or arguments.repeatable_entries:
+                raise InitializationError("--upgrade-tier reads the recorded inputs; omit --profile, --set and --add.")
+            return _run_upgrade(root, arguments.upgrade_tier, arguments.apply)
         if arguments.profile is None:
             raise InitializationError("--profile is required unless --self-test is used.")
         status = _git(root, "status", "--porcelain", check=False)
@@ -1390,15 +1900,16 @@ def main(argv: list[str] | None = None) -> int:
         config = _load_config(root)
         if status.stdout and config.get("mode") == "template":
             raise InitializationError("Working tree must be clean before initialization.")
-        changes, _ = _build_changes(
+        changes, _ = build_changes(
             root,
             arguments.profile,
             arguments.scalar_entries,
             arguments.repeatable_entries,
+            arguments.governance_tier,
         )
-        plan = _plan(root, arguments.profile, changes)
+        plan = _plan(root, arguments.profile, changes, arguments.governance_tier)
         if arguments.apply:
-            _apply_changes(root, changes)
+            apply_changes(root, changes)
             plan["mode"] = "apply"
             plan["status"] = "applied" if changes else "no-op"
         print(json.dumps(plan, indent=2, ensure_ascii=False))

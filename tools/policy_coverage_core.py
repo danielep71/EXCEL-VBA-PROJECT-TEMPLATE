@@ -45,7 +45,7 @@ def production_finding_sites(source_path: Path) -> dict[str, dict[str, Any]]:
     tree = ast.parse(source, filename=str(source_path))
     fixture_boundary = None
     for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "_write_fixture":
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "write_fixture":
             fixture_boundary = node.lineno
             break
     if fixture_boundary is None:
@@ -122,12 +122,40 @@ def rule_by_id(report: dict[str, Any], rule_id: str) -> dict[str, Any] | None:
 
 
 def write_json(module: ModuleType, root: Path, relative: str, document: object) -> None:
-    module._write_fixture(root / relative, json.dumps(document, indent=2, ensure_ascii=False) + "\n")
+    module.write_fixture(root / relative, json.dumps(document, indent=2, ensure_ascii=False) + "\n")
 
 
 def config_document(root: Path, module: ModuleType) -> dict[str, Any]:
     document: dict[str, Any] = json.loads((root / module.CONFIG_PATH).read_text(encoding="utf-8"))
     return document
+
+
+def template_governance() -> dict[str, Any]:
+    """A valid template-mode governance matrix for fixtures that switch to template mode."""
+    return {
+        "default": "full",
+        "tiers": {
+            "full": {"description": "Full tier.", "remove_paths": [], "replace_paths": {}},
+            "minimal": {"description": "Minimal tier.", "remove_paths": [], "replace_paths": {}},
+        },
+    }
+
+
+def register_variant(module: ModuleType, root: Path, target: str, variant: str, text: str) -> None:
+    """Track ``variant`` as the minimal-tier replacement for ``target`` in template mode."""
+    module.write_fixture(root / variant, text)
+    add_force(module, root, variant)
+
+    def mutation(document: dict[str, Any]) -> None:
+        governance = template_governance()
+        governance["tiers"]["minimal"]["replace_paths"] = {target: variant}
+        document["governance_tiers"] = governance
+        document["placeholders"]["template_only_paths"] = sorted(
+            [*document["placeholders"]["template_only_paths"], variant], key=str.casefold
+        )
+        document.update(mode="template", profile=None, repository="example/TEMPLATE-IDENTITY")
+
+    mutate_config(module, root, mutation)
 
 
 def mutate_config(module: ModuleType, root: Path, mutation: Callable[[dict[str, Any]], None]) -> None:
@@ -143,8 +171,8 @@ def mutate_labels(module: ModuleType, root: Path, mutation: Callable[[dict[str, 
 
 
 def add_force(module: ModuleType, root: Path, relative: str) -> None:
-    module._run_git(root, "add", "-f", relative)
+    module.run_git(root, "add", "-f", relative)
 
 
 def rewrite_vba(module: ModuleType, root: Path, relative: str, text: str) -> None:
-    module._write_fixture(root / relative, text, crlf=True)
+    module.write_fixture(root / relative, text, crlf=True)
