@@ -137,8 +137,15 @@ def url_status(url: str, policy: dict[str, Any]) -> str | None:
 
 class PinnedHTTPS(http.client.HTTPSConnection):
     def __init__(self, host: str, address: str, timeout: int):
-        self.tls_context = ssl.create_default_context()
-        self.tls_context.minimum_version = MINIMUM_TLS_VERSION
+        # Configure a local context before publishing it on self, so static
+        # analysis sees the floor applied to the same object that is used.
+        context = ssl.create_default_context()
+        default_minimum = context.minimum_version
+        context.minimum_version = MINIMUM_TLS_VERSION
+        # The floor only raises: keep a stronger system default such as TLS 1.3.
+        if default_minimum > MINIMUM_TLS_VERSION:
+            context.minimum_version = default_minimum
+        self.tls_context = context
         super().__init__(host, timeout=timeout, context=self.tls_context)
         self.address = address
 

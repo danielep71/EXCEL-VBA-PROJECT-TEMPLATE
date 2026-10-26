@@ -625,10 +625,27 @@ class DocumentationTests(unittest.TestCase):
                 connect.assert_called_once_with(("93.184.215.14", 443), 2)
                 wrap.assert_called_once_with(connect.return_value, server_hostname="example.org")
 
+    def tls_context_with_default_minimum(self, default_minimum: ssl.TLSVersion) -> ssl.SSLContext:
+        create_default_context = ssl.create_default_context
+
+        def system_default() -> ssl.SSLContext:
+            context = create_default_context()
+            context.minimum_version = default_minimum
+            return context
+
+        with patch("check_external_links.ssl.create_default_context", side_effect=system_default):
+            return links.PinnedHTTPS("example.org", "93.184.215.14", 2).tls_context
+
     def test_tls_context_has_explicit_floor_and_full_verification(self) -> None:
-        context = links.PinnedHTTPS("example.org", "93.184.215.14", 2).tls_context
         self.assertEqual(links.MINIMUM_TLS_VERSION, ssl.TLSVersion.TLSv1_2)
+        context = self.tls_context_with_default_minimum(ssl.TLSVersion.MINIMUM_SUPPORTED)
         self.assertEqual(context.minimum_version, ssl.TLSVersion.TLSv1_2)
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.check_hostname)
+
+    def test_tls_floor_keeps_a_stronger_system_minimum(self) -> None:
+        context = self.tls_context_with_default_minimum(ssl.TLSVersion.TLSv1_3)
+        self.assertEqual(context.minimum_version, ssl.TLSVersion.TLSv1_3)
         self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
         self.assertTrue(context.check_hostname)
 
