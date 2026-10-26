@@ -267,8 +267,13 @@ Use only the categories needed by a release.
 - The external-link client sets TLS 1.2 as an explicit minimum protocol
   version instead of relying on Python/OpenSSL defaults, keeping the default
   context's certificate and hostname verification and the checked-IP
-  connection. Generated projects inherit the change. CodeQL
-  `security-extended` reported the implicit floor in an adopter (#131).
+  connection. The floor only raises: a system default that is already
+  stronger, such as TLS 1.3, is kept rather than lowered to 1.2. The context
+  is configured locally before it is stored on the connection, so CodeQL
+  recognizes the floor: with the floor set through the attribute, CodeQL
+  2.27.3 `security-extended` still reported `py/insecure-protocol`; it now
+  reports no findings. Generated projects inherit the change. CodeQL first
+  reported the implicit floor in an adopter (#131).
 - The initializer no longer carries group/world-writable or
   setuid/setgid/sticky bits from a file it replaces into the rewritten file.
   New files are `0644`; replaced files keep their executable and owner-only
