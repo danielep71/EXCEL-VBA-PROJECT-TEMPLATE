@@ -706,19 +706,23 @@ def build_changes(
     scalar_entries: Iterable[str],
     repeatable_entries: Iterable[str],
     tier: str = DEFAULT_TIER,
+    *,
+    require_preview_file: bool | None = None,
 ) -> tuple[dict[str, bytes | None], dict[str, str]]:
     config = _load_config(root)
     tracked_files = _tracked_files(root)
     tracked = set(tracked_files)
     placeholders = config["placeholders"]
     catalogue = placeholders["catalogue"]
+    if require_preview_file is None:
+        require_preview_file = config.get("mode") != "generated"
     scalars, repeatable = _validate_values(
         root,
         tracked,
         catalogue,
         scalar_entries,
         repeatable_entries,
-        require_preview_file=config.get("mode") != "generated",
+        require_preview_file=require_preview_file,
     )
     values = _replacement_values(profile, scalars, repeatable, catalogue)
     if _already_initialized(root, config, profile, scalars, repeatable, tier):
@@ -802,8 +806,12 @@ def _plan(
 def _rendered_tree(
     template: Path, profile: str, scalars: list[str], repeatable: list[str], tier: str
 ) -> dict[str, bytes]:
-    """Render a generation in memory: the template's files with its planned changes applied."""
-    changes, _ = build_changes(template, profile, scalars, repeatable, tier)
+    """Render a generation in memory: the template's files with its planned changes applied.
+
+    The recorded social preview may be an adopter asset the template does not
+    track, so its file is checked against the project by ``_upgrade_source``.
+    """
+    changes, _ = build_changes(template, profile, scalars, repeatable, tier, require_preview_file=False)
     tree = {path: (template / path).read_bytes() for path in _tracked_files(template)}
     for path, after in changes.items():
         if after is None:
@@ -876,6 +884,8 @@ def _upgrade_source(template: Path, root: Path, tier: str) -> tuple[str, str, li
         profile, scalars, repeatable = _record_arguments(root)
     except AssertionError as error:
         raise InitializationError(str(error)) from error
+    preview = next((item.split("=", 1)[1] for item in scalars if item.startswith("SOCIAL_PREVIEW_PATH=")), None)
+    _validate_social_preview(root, set(_tracked_files(root)), preview, require_preview_file=True)
     return recorded, profile, scalars, repeatable
 
 
@@ -1590,13 +1600,55 @@ def _assert_upgrade_refusals(source: Path, base: Path, profile: str) -> None:
             raise AssertionError(f"{label} accepted {' '.join(arguments[2:])} on an unsuitable tree.")
 
 
+ADOPTER_PREVIEW = "assets/adopter-preview.png"
+
+
+def _assert_upgrade_adopter_preview(source: Path, base: Path, profile: str) -> None:
+    """A social preview tracked only by the project is checked there, not in the template."""
+    label = f"{profile}/upgrade"
+    fixture = base / f"{profile}-upgrade-preview"
+    copy_fixture(source, fixture)
+    asset = b"\x89PNG\r\n\x1a\nadopter preview fixture\n"
+    (fixture / ADOPTER_PREVIEW).write_bytes(asset)
+    _commit_fixture(fixture, "Adopter social preview")
+    scalars, repeatable = fixture_arguments(profile)
+    changes, _ = build_changes(
+        fixture, profile, [*scalars, f"SOCIAL_PREVIEW_PATH={ADOPTER_PREVIEW}"], repeatable, "minimal"
+    )
+    apply_changes(fixture, changes)
+    _commit_fixture(fixture, f"Initialize {label} adopter-preview fixture")
+    missing = base / f"{profile}-upgrade-preview-missing"
+    shutil.copytree(fixture, missing)
+    _git(missing, "rm", "--quiet", ADOPTER_PREVIEW)
+    _commit_fixture(missing, "Remove the recorded social preview")
+    plan = upgrade_changes(source, fixture, DEFAULT_TIER)
+    if plan["status"] != "ready" or any(entry["path"] == ADOPTER_PREVIEW for entry in plan["changes"]):
+        raise AssertionError(f"{label} did not upgrade a project with an adopter-only social preview.")
+    if _quiet_main(["--root", str(fixture), "--upgrade-tier", "full", "--apply"]) != 0:
+        raise AssertionError(f"{label} command-line upgrade with an adopter preview failed.")
+    if (fixture / ADOPTER_PREVIEW).read_bytes() != asset:
+        raise AssertionError(f"{label} changed the adopter's social preview.")
+    _assert_tier_recorded(fixture, DEFAULT_TIER, label)
+    try:
+        upgrade_changes(source, missing, DEFAULT_TIER)
+    except InitializationError as error:
+        if "tracked repository-relative file" not in str(error):
+            raise AssertionError(f"{label} refused a missing adopter preview for the wrong reason: {error}") from error
+    else:
+        raise AssertionError(f"{label} accepted a recorded social preview the project does not track.")
+
+
 def _assert_tier_upgrade(source: Path, base: Path, profile: str) -> None:
     scalars, repeatable = fixture_arguments(profile)
     full = _rendered_tree(source, profile, scalars, repeatable, DEFAULT_TIER)
     _assert_clean_upgrade(source, base, profile, full)
     _assert_upgrade_merge_and_conflict(source, base, profile, full)
     _assert_upgrade_refusals(source, base, profile)
-    print(f"[PASS] {profile}/upgrade: exact full-tier result, idempotence, adopter merge, adopter deletion kept, conflict stop, and refusals")
+    _assert_upgrade_adopter_preview(source, base, profile)
+    print(
+        f"[PASS] {profile}/upgrade: exact full-tier result, idempotence, adopter merge, adopter deletion kept, "
+        "conflict stop, refusals, and an adopter-only social preview"
+    )
 
 
 OWNED_FIXTURE = "src/modules/OwnedFacade.bas"

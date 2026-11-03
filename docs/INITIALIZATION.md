@@ -209,7 +209,10 @@ anything is written, exits `2` and names the files. The upgrade never deletes a
 file. An unedited minimal project upgrades to exactly the tree a direct
 full-tier initialization produces, and the tier is then no longer recorded. A
 template at a different contract version is refused, and a project already on
-the full tier is a no-op.
+the full tier is a no-op. A recorded `SOCIAL_PREVIEW_PATH` is checked against the
+project, not the template: it must still be tracked there. An adopter's own
+preview image, which the template does not have, therefore upgrades normally
+and is left unchanged.
 
 ## ⚙️ Deterministic Transformations
 

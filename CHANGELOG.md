@@ -131,7 +131,9 @@ Use only the categories needed by a release.
   at their minimal version, three-way merges adopter edits that do not overlap a
   tier difference, keeps adopter deletions and never deletes. Any conflict
   stops it before writing. An unedited project upgrades to exactly the direct
-  full-tier result. The generated-profile CI matrix now covers every profile in
+  full-tier result. A recorded social preview is checked against the project,
+  so an adopter's own preview image, absent from the template, no longer
+  blocks the upgrade. The generated-profile CI matrix now covers every profile in
   both tiers, with and without a social preview (12 jobs). Each minimal job
   lints its generated workflows, runs the four gates, then upgrades in place and
   re-verifies the result as a full-tier project (#90).
