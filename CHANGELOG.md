@@ -150,10 +150,11 @@ Use only the categories needed by a release.
   blank detection and path composition, splitting and sanitizing. Every
   rejected argument raises one invalid-argument code with the facade procedure
   as source. `#If Mac` selects the path separator, accepted separators, rooted
-  forms and file-name rules. `TextTests` (26 cases, 123 assertions) covers
-  every public member, each error rule and both platforms' expectations, and
-  `TextExample` prints six deterministic operations. Only generated `library`
-  projects receive the four modules (#86).
+  forms and file-name rules; a name that cleans to the directory alias `.`
+  or `..` is rejected on both platforms. `TextTests` (29 cases, 135
+  assertions) covers every public member, each error rule and both platforms'
+  expectations, and `TextExample` prints six deterministic operations. Only
+  generated `library` projects receive the four modules (#86).
 - A substantive ui-component reference: a progress session that owns the
   Excel status bar, display of the status bar, cursor (Windows), screen
   updating and Esc handling for a long operation. It snapshots all five at

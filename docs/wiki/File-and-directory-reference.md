@@ -132,7 +132,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tests/README.md` / document | Regression entry point, output contract, repeatability and cleanup expectations. | T / T / T | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tests/modules/ProgressTests.bas` / vba | UI-component suite: 12 lifecycle, restoration and negative-control cases. | X / X / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tests/modules/ProjectTests.bas` / vba | Four-case, six-assertion harness with host-state comparison and full reporting. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
-| `tests/modules/TextTests.bas` / vba | Library-profile suite: 26 cases and 123 assertions over every supported TextFacade member. | X / R / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `tests/modules/TextTests.bas` / vba | Library-profile suite: 29 cases and 135 assertions over every supported TextFacade member. | X / R / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tools/LOCAL_ACTIONS.md` / document | Repository-local composite/Node/Docker action validation boundaries. | R / R / R | [tools/LOCAL_ACTIONS.md](../../tools/LOCAL_ACTIONS.md) |
 | `tools/README.md` / document | Operational tool commands, reports and focused-gate responsibilities. | T / T / T | [tools/README.md](../../tools/README.md) |
 | `tools/_gatelib.py` / script | Shared Git, tracked-file, report and focused CLI orchestration primitives; imported helper. | R / R / R | [tools/README.md](../../tools/README.md) |

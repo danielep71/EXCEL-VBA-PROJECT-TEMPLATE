@@ -66,9 +66,9 @@ Attribute VB_Name = "TextTests"
     'the expected counts define when the suite is complete.
         Private Const TEST_ERROR_DIRTY_START   As Long = vbObjectError + 2160    'Refused re-entry or interrupted run
         Private Const TEST_ERROR_FAILURES      As Long = vbObjectError + 2161    'Failed or incomplete suite outcome
-        Private Const INVALID_OPERATIONS       As Long = 15                      'Invalid-argument operations, one case each
-        Private Const EXPECTED_ASSERTIONS      As Long = 123                     'Required assertions for a complete run
-        Private Const EXPECTED_CASES           As Long = 26                      'Required cases for a complete run
+        Private Const INVALID_OPERATIONS       As Long = 18                      'Invalid-argument operations, one case each
+        Private Const EXPECTED_ASSERTIONS      As Long = 135                     'Required assertions for a complete run
+        Private Const EXPECTED_CASES           As Long = 29                      'Required cases for a complete run
 
 '------------------------------------------------------------------------------
 ' MODULE STATE
@@ -994,7 +994,7 @@ Private Sub ExpectedInvalid( _
 '   caseName, expectedSource and expectedDescription for the operation.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-03
 '==============================================================================
 '
 
@@ -1059,6 +1059,18 @@ Private Sub ExpectedInvalid( _
                 caseName = "error.safe-name-replacement-invalid"
                 expectedSource = "TextFacade.TextSafeFileName"
                 expectedDescription = "replacement must be a valid file-name character."
+            Case 15
+                caseName = "error.safe-name-parent-alias"
+                expectedSource = "TextFacade.TextSafeFileName"
+                expectedDescription = "value must not reduce to . or .."
+            Case 16
+                caseName = "error.safe-name-alias-after-deletion"
+                expectedSource = "TextFacade.TextSafeFileName"
+                expectedDescription = "value must not reduce to . or .."
+            Case 17
+                caseName = "error.safe-name-alias-after-replacement"
+                expectedSource = "TextFacade.TextSafeFileName"
+                expectedDescription = "value must not reduce to . or .."
             Case Else
                 caseName = "error.safe-name-empty"
                 expectedSource = "TextFacade.TextSafeFileName"
@@ -1093,7 +1105,7 @@ Private Function InvokeInvalid( _
 '   from the handler clears it before the caller continues.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-03
 '==============================================================================
 '
 
@@ -1147,6 +1159,12 @@ Private Function InvokeInvalid( _
                 ignoredText = TextFacade.TextSafeFileName("a", "ab")
             Case 14
                 ignoredText = TextFacade.TextSafeFileName("a", ":")
+            Case 15
+                ignoredText = TextFacade.TextSafeFileName("..")
+            Case 16
+                ignoredText = TextFacade.TextSafeFileName("/.", "")
+            Case 17
+                ignoredText = TextFacade.TextSafeFileName("::", ".")
             Case Else
                 ignoredText = TextFacade.TextSafeFileName(":/", "")
         End Select

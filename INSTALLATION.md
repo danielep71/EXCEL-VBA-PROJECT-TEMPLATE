@@ -150,7 +150,7 @@ Run `ProjectExample.RunProjectExample` separately for the minimal consumer smoke
 
 <!-- template:profile:library:start -->
 For the library reference, also run `TextTests.RunTextTests`; a passing run ends
-with `RESULT=PASS; completeness=COMPLETE; cases=26; assertions=123; failures=0;
+with `RESULT=PASS; completeness=COMPLETE; cases=29; assertions=135; failures=0;
 cleanup=PASS`. `TextExample.RunTextExample` is its consumer smoke.
 <!-- template:profile:library:end -->
 

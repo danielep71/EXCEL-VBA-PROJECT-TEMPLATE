@@ -570,11 +570,12 @@ Public Function TextSafeFileName( _
 '   underscore.
 '
 ' ERROR POLICY
-'   Raise TEXT_ERROR_INVALID_ARGUMENT from this procedure for
-'   an unusable replacement, or a value with no usable characters.
+'   Raise TEXT_ERROR_INVALID_ARGUMENT from this procedure for an unusable
+'   replacement, a value that cleans to the directory alias "." or "..",
+'   or a value with no usable characters.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-03
 '==============================================================================
 '
 

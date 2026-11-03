@@ -620,7 +620,7 @@
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
     "tests/modules/TextTests.bas": {
-      "purpose": "Library-profile suite: 26 cases and 123 assertions over every supported TextFacade member.",
+      "purpose": "Library-profile suite: 29 cases and 135 assertions over every supported TextFacade member.",
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
