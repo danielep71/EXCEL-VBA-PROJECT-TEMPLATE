@@ -91,7 +91,12 @@
         "src/workbook",
         "tests/modules"
       ],
-      "owned_paths": [],
+      "owned_paths": [
+        "examples/modules/LifecycleExample.bas",
+        "src/core/LifecycleCore.bas",
+        "src/modules/LifecycleFacade.bas",
+        "tests/modules/LifecycleTests.bas"
+      ],
       "vba_contract": {
         "minimum_roles": {
           "internal": 1,
@@ -344,15 +349,19 @@
       "tests"
     ],
     "components": {
+      "examples/modules/LifecycleExample.bas": "example",
       "examples/modules/ProgressExample.bas": "example",
       "examples/modules/ProjectExample.bas": "example",
       "examples/modules/TextExample.bas": "example",
+      "src/core/LifecycleCore.bas": "internal",
       "src/core/ProgressCore.bas": "internal",
       "src/core/ProjectCore.bas": "internal",
       "src/core/TextCore.bas": "internal",
+      "src/modules/LifecycleFacade.bas": "public",
       "src/modules/ProgressFacade.bas": "public",
       "src/modules/ProjectFacade.bas": "public",
       "src/modules/TextFacade.bas": "public",
+      "tests/modules/LifecycleTests.bas": "test",
       "tests/modules/ProgressTests.bas": "test",
       "tests/modules/ProjectTests.bas": "test",
       "tests/modules/TextTests.bas": "test"

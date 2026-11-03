@@ -109,6 +109,20 @@ The ui-component reference follows the same order:
 4. `examples/modules/ProgressExample.bas` — optional consumer example
 <!-- template:profile:ui-component:end -->
 
+<!-- template:profile:application:start -->
+The application reference follows the same order:
+
+1. `src/core/LifecycleCore.bas`
+2. `src/modules/LifecycleFacade.bas`
+3. `tests/modules/LifecycleTests.bas` — development/regression only
+4. `examples/modules/LifecycleExample.bas` — optional consumer example and
+   reference smoke check
+
+Wire `LifecycleStart ThisWorkbook` and `LifecycleStop` into the host's
+`Workbook_Open` and `Workbook_BeforeClose` as shown in
+[`src/README.md`](src/README.md#application-reference).
+<!-- template:profile:application:end -->
+
 A generated project may replace or extend this layout. The authoritative source
 and component-role rules are in
 [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md).
@@ -160,6 +174,14 @@ passing Windows run ends with `RESULT=PASS; completeness=COMPLETE; cases=12;
 assertions=79; failures=0; cleanup=PASS` (75 assertions on macOS).
 `ProgressExample.RunProgressExample` is its consumer smoke.
 <!-- template:profile:ui-component:end -->
+
+<!-- template:profile:application:start -->
+For the application reference, also run `LifecycleTests.RunLifecycleTests`; a
+passing run ends with `RESULT=PASS; completeness=COMPLETE; cases=16;
+assertions=106; failures=0; cleanup=PASS`. `LifecycleExample.RunLifecycleExample`
+is its end-to-end smoke; run it against the packaged workbook or add-in too when
+the release distributes one.
+<!-- template:profile:application:end -->
 A generated project must replace these baseline expectations when it changes the
 starter contract.
 

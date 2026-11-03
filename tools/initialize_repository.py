@@ -1683,6 +1683,7 @@ def _assert_profile_owned_paths(source: Path, base: Path) -> None:
     """A profile keeps its own components; every other profile drops them with their policy and API rows."""
     template = base / "owned-template"
     _make_owned_fixture(source, template)
+    template_owned = {name: settings["owned_paths"] for name, settings in _load_config(template)["profiles"].items()}
     for profile, kept in (("library", True), ("application", False)):
         label = f"{profile}/owned-paths"
         fixture = base / f"owned-{profile}"
@@ -1699,7 +1700,7 @@ def _assert_profile_owned_paths(source: Path, base: Path) -> None:
             OWNED_FIXTURE in config["vba"]["components"],
             "OwnedFacade" in manifest,
             "OwnedFacade" in (fixture / "src/README.md").read_text(encoding="utf-8"),
-            owned == {name: [OWNED_FIXTURE] if kept and name == "library" else [] for name in owned},
+            owned == {name: template_owned[name] if name == profile else [] for name in owned},
         )
         if state != (kept, kept, kept, kept, True):
             raise AssertionError(f"{label} kept or removed the owned component inconsistently: {state}")

@@ -53,6 +53,23 @@ On macOS the expected count is 75 assertions. The status bar flickers while the
 suite runs; the suite restores the values it found before cleanup is verified.
 <!-- template:profile:ui-component:end -->
 
+<!-- template:profile:application:start -->
+The application profile adds `modules/LifecycleTests.bas`. Import it after
+`LifecycleCore` and `LifecycleFacade`, then run `LifecycleTests.RunLifecycleTests`
+with a workbook active. Its 16 cases run on temporary workbooks that the suite
+closes unsaved: first start, repeated start and stop, restart, migration from
+schema 1, the current-schema no-op, refusals before any change, rollback of a
+start that fails mid-migration or mid-upgrade, re-entry refused as busy, single
+ownership, recovery after an unclean stop and of a live session, reset, and a
+status block written to an explicit range while another workbook is active.
+Two negative controls prove that an open host, a leaked session and corrupt
+state that recovery cannot repair are reported. Success ends with:
+
+```text
+RESULT=PASS; completeness=COMPLETE; cases=16; assertions=106; failures=0; cleanup=PASS
+```
+<!-- template:profile:application:end -->
+
 Any assertion, unexpected error, dirty start, incomplete execution, or cleanup
 failure is non-passing. The harness changes no Excel state; cleanup verifies its
 owned run flag and checks that calculation, display alerts, events and screen

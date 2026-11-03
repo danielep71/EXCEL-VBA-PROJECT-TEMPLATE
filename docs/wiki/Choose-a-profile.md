@@ -21,7 +21,10 @@ The `library` profile also keeps a substantive reference: `TextCore`,
 fifteen supported declarations. The `ui-component` profile keeps a progress
 session instead: `ProgressCore`, `ProgressFacade`, `ProgressTests` and
 `ProgressExample`, which own and restore the status bar, cursor, screen updating
-and Esc handling. Each profile generates only its own reference.
+and Esc handling. The `application` profile keeps a lifecycle: `LifecycleCore`,
+`LifecycleFacade`, `LifecycleTests` and `LifecycleExample`, which start,
+migrate, stop, recover and reset versioned state held in the host workbook.
+Each profile generates only its own reference.
 Profile selection does not generate UI controls, financial calculations or an
 application shell. A README in a directory cannot replace substantive VBA.
 
@@ -33,8 +36,9 @@ remain project-private. Keep that dependency direction when adding functionality
 - **Library:** core, modules and test-module directories; classes only if needed.
 - **UI component:** also reserves `src/classes`; add forms, binary companions
   and Ribbon resources only when the design actually uses them.
-- **Application:** also reserves `src/classes` and `src/workbook`; implement
-  host startup/shutdown and deployment deliberately.
+- **Application:** also reserves `src/classes` and `src/workbook`. The
+  lifecycle reference covers startup, shutdown, upgrade and recovery; wire it to
+  `Workbook_Open` and `Workbook_BeforeClose` and plan deployment deliberately.
 
 The initializer may create directory README files. They explain reserved
 locations and are not claims that those roles have been implemented.

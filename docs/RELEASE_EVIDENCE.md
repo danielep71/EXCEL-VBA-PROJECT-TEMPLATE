@@ -48,6 +48,21 @@ Additional required checks are profile-specific:
 | `application` | Startup, shutdown, upgrade, recovery, packaging, and end-to-end smoke evidence |
 | `template` | All three generated-profile pilots, live branch/tag governance evidence, the separately verified canonical Git-tag trust policy once the release tag exists, and the durable certification bundle described below |
 
+<!-- template:profile:application:start -->
+### Application reference evidence
+
+A generated application that keeps the lifecycle reference can source its
+profile checks from it. `LifecycleTests.RunLifecycleTests` exercises `startup`
+(first start, repeated start, re-entry, single ownership), `shutdown` (stop,
+repeated stop), `upgrade` (schema-1 migration, current-schema no-op, rollback of
+a failed upgrade) and `recovery` (unclean stop, live session, reset, refused
+corrupt state); cite its `RESULT=PASS` line for each. `end-to-end-smoke` is
+`LifecycleExample.RunLifecycleExample` run in the released artifact.
+`packaging` applies only when the release distributes a workbook or add-in: it
+names that asset and its post-package smoke. A source-only release records no
+package and claims no binary provenance.
+<!-- template:profile:application:end -->
+
 All checks use `status: "PASS"`, a non-empty `detail`, and the same
 `candidate_sha`. Project-specific checks may be added with lower-case,
 hyphen-separated identifiers and the same three base fields.

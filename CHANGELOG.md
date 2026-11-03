@@ -111,7 +111,7 @@ Use only the categories needed by a release.
   documentation drift and external-link checks, local-action validation, label
   automation, Scorecard, Ruff/mypy and the initializer stay in the default
   `full` tier. A minimal project retains 6 Python files (6,865 lines) instead of
-  22 (18,368 lines), and 51–54 tracked files instead of 89–92, depending on the
+  22 (18,444 lines), and 53–55 tracked files instead of 91–93, depending on the
   profile. The tier is recorded as `"governance_tier": "minimal"` in the
   generated profile and initialization record; `full` is never recorded, so
   existing generated repositories are unaffected. Documentation shared by both
@@ -171,6 +171,25 @@ Use only the categories needed by a release.
   cleanup and recovery, with a negative control proving that a broken
   restoration is detected. Only generated `ui-component` projects receive
   the four modules (#87).
+- A substantive application reference: a lifecycle whose versioned state lives
+  in three hidden workbook-level names of an explicit host (`LifecycleSchema`,
+  `LifecycleStatus`, `LifecycleStarts`), so it needs no sheet, window or
+  activation and works in workbooks and add-ins alike. `LifecycleStart`
+  discovers and validates the stored state before changing anything, then runs
+  each schema migration and counts the start; a failed step restores the names
+  exactly as found and names the step. It refuses newer or unreadable state, a
+  session that never stopped, a second workbook and re-entry; a repeated start
+  and a stop without a session are no-ops. `LifecycleRecover` clears an unclean
+  stop, `LifecycleReset` removes the state, and `LifecycleWriteStatus` writes to
+  an explicit range only. `LifecycleTests` (16 cases, 106 assertions) runs on
+  temporary workbooks: startup, repeat, shutdown, upgrade from schema 1,
+  current-schema no-op, rollback mid-migration and mid-upgrade, re-entry,
+  ownership, recovery, reset and explicit targets, with negative controls
+  proving that an open host, a leaked session and unrecoverable state are
+  detected. `LifecycleExample` is the end-to-end smoke. `RELEASE_EVIDENCE.md`
+  maps the application profile's required checks to these entry points; a
+  source-only release claims no packaging. Only generated `application`
+  projects receive the four modules (#88).
 - The portable gate's structural `PtrSafe` check treated the `#Else` of an
   `#If ... #ElseIf VBA7 ... #Else` chain as reachable under VBA7, which
   flagged legacy-only declarations. The `#Else` now counts as VBA7-reachable

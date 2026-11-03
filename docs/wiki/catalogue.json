@@ -524,6 +524,11 @@
       "kind": "wiki",
       "authority": "tools/README.md"
     },
+    "examples/modules/LifecycleExample.bas": {
+      "purpose": "Application example and reference smoke: one complete lifecycle session on a temporary workbook.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "examples/modules/ProgressExample.bas": {
       "purpose": "UI-component example: a 25-step loop with status-bar progress and Esc cancellation.",
       "kind": "vba",
@@ -574,6 +579,11 @@
       "kind": "document",
       "authority": "SECURITY.md"
     },
+    "src/core/LifecycleCore.bas": {
+      "purpose": "Application lifecycle state: discovery, schema migration, start with rollback, stop, recovery and reset in hidden workbook names.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "src/core/ProgressCore.bas": {
       "purpose": "UI-component session state: snapshot and restore of five Application properties and the native elapsed-time seam.",
       "kind": "vba",
@@ -586,6 +596,11 @@
     },
     "src/core/TextCore.bas": {
       "purpose": "Library-profile text and path implementation with platform-specific path rules and the invalid-argument code.",
+      "kind": "vba",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "src/modules/LifecycleFacade.bas": {
+      "purpose": "Application supported lifecycle API: nineteen declarations and a normalized error source.",
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
@@ -607,6 +622,11 @@
     "src/README.md": {
       "purpose": "Production export organization and public/internal boundaries.",
       "kind": "document",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "tests/modules/LifecycleTests.bas": {
+      "purpose": "Application suite: 16 lifecycle, upgrade, rollback, recovery and negative-control cases.",
+      "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
     "tests/modules/ProgressTests.bas": {

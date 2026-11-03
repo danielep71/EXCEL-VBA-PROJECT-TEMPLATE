@@ -163,6 +163,23 @@ operation and restores each one exactly as found.
 Keep, adapt or remove it as one coherent change, like the starter.
 <!-- template:profile:ui-component:end -->
 
+<!-- template:profile:application:start -->
+The application profile adds a substantive reference: an application lifecycle
+that starts, migrates, stops, recovers and resets an application whose
+versioned state lives in an explicit host workbook or add-in.
+
+- [`LifecycleCore`](src/core/LifecycleCore.bas) — discovery, schema
+  migrations, rollback, recovery and the fault-injection seam;
+- [`LifecycleFacade`](src/modules/LifecycleFacade.bas) — supported public
+  façade;
+- [`LifecycleTests`](tests/modules/LifecycleTests.bas) — lifecycle, upgrade,
+  rollback, recovery and negative-control suite; and
+- [`LifecycleExample`](examples/modules/LifecycleExample.bas) — one complete
+  session on a temporary workbook, the reference smoke check.
+
+Keep, adapt or remove it as one coherent change, like the starter.
+<!-- template:profile:application:end -->
+
 ### 2. Validate locally
 
 <!-- template:tier:full:start -->
@@ -244,8 +261,10 @@ changes.
 ### Application commitments
 
 Document startup, shutdown, configuration, data boundaries, deployment,
-upgrade and rollback. A distributable package requires provenance and
-post-package smoke evidence.
+upgrade and rollback. The lifecycle reference demonstrates each with executable
+tests; replace its stored state with the application's own. A distributable
+package requires provenance and post-package smoke evidence; a source-only
+release claims neither.
 <!-- template:profile:application:end -->
 
 <a id="repository-shape"></a>

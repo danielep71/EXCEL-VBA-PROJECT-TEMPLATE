@@ -38,6 +38,22 @@ progress and elapsed time, then prints `Completed 25 of 25; sum of squares =
 bar, cursor, screen updating and Esc handling are restored either way.
 <!-- template:profile:ui-component:end -->
 
+<!-- template:profile:application:start -->
+The application profile adds `modules/LifecycleExample.bas`, the reference
+smoke check. Run `LifecycleExample.RunLifecycleExample` after importing
+`LifecycleCore` and `LifecycleFacade`. It opens a temporary workbook, starts the
+application, writes the status block, repeats the start, stops, and closes the
+workbook unsaved, printing:
+
+```text
+LIFECYCLE EXAMPLE
+Start: yes; status=running; schema=2; starts=1
+Status block: Schema=2; Status=running; Starts=1
+Repeat start: no
+Stop: yes; status=stopped
+```
+<!-- template:profile:application:end -->
+
 Use `demo/` instead only when an interactive demo is itself a distinct project deliverable, an established public path must remain stable, or packaging automation requires that profile. Document the reason in the root README and do not maintain both `examples/` and `demo/` for the same purpose.
 
 Do not commit opaque generated workbooks here unless the repository's release policy explicitly treats them as reviewed source artifacts. Published binaries normally belong to GitHub Releases.
