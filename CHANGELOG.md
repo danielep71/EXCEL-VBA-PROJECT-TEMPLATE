@@ -110,38 +110,38 @@ Use only the categories needed by a release.
   and CodeQL. Release evidence and provenance, host-evidence validation,
   documentation drift and external-link checks, local-action validation, label
   automation, Scorecard, Ruff/mypy and the initializer stay in the default
-  `full` tier. A minimal project retains 6 Python files (6,865 lines) instead of
-  22 (18,444 lines), and 53–55 tracked files instead of 91–93, depending on the
-  profile. The tier is recorded as `"governance_tier": "minimal"` in the
-  generated profile and initialization record; `full` is never recorded, so
-  existing generated repositories are unaffected. Documentation shared by both
-  tiers uses tier blocks, and table rows or list items that reference only
-  removed files are pruned. The template profile declares the tier matrix,
-  which the canonical gate validates, and the initializer self-test generates
-  every profile in both tiers and runs the four gates inside each minimal
-  result. Portfolio drift and quality reports honour the recorded tier: the
-  six controls a minimal project omits are `NOT_APPLICABLE`, never missing,
-  and `release-integrity` and `template-contract-version` check the artifacts
-  the minimal tier keeps. The tier narrows the recorded contract's rule set and
-  changes no published rule set, so the contract version stays `1.2.0`; an
-  evaluator that predates tiers reports the omitted controls as drift, never as
-  a pass. `initialize_repository.py --upgrade-tier full`, run from a template
-  checkout at the project's recorded contract, upgrades a minimal project in
-  place from its recorded inputs. It adds full-tier files, replaces files still
-  at their minimal version, three-way merges adopter edits that do not overlap a
-  tier difference, keeps adopter deletions and never deletes. Any conflict
-  stops it before writing. An unedited project upgrades to exactly the direct
-  full-tier result. A recorded social preview is checked against the project,
-  so an adopter's own preview image, absent from the template, no longer
-  blocks the upgrade. The generated-profile CI matrix now covers every profile in
-  both tiers, with and without a social preview (12 jobs). Each minimal job
-  lints its generated workflows, runs the four gates, then upgrades in place and
-  re-verifies the result as a full-tier project. Minimal-tier
-  documentation no longer tells adopters to run the label workflows, consult
-  Scorecard or run the initializer, lint and typing steps it removes; it
-  describes manual label setup instead. The initializer self-test now also
-  rejects a retained file that names a removed workflow by its display name
-  (#90).
+  `full` tier. A minimal project retains 6 Python files (6,868 lines) instead of
+  22 (18,471 lines), and 53–55 tracked files instead of 89–91, depending on the
+  profile (one more with a social preview). The tier is recorded as
+  `"governance_tier": "minimal"` in the generated profile and initialization
+  record; `full` is never recorded, so existing generated repositories are
+  unaffected. Documentation shared by both tiers uses tier blocks, and table
+  rows or list items that reference only removed files are pruned. The template
+  profile declares the tier matrix, which the canonical gate validates, and the
+  initializer self-test generates every profile in both tiers and runs the four
+  gates inside each minimal result. Portfolio drift and quality reports honour
+  the recorded tier: the six controls a minimal project omits are
+  `NOT_APPLICABLE`, never missing, and `release-integrity` and
+  `template-contract-version` check the artifacts the minimal tier keeps. The
+  tier narrows the recorded contract's rule set and changes no published rule
+  set, so the contract version stays `1.2.0`; an evaluator that predates tiers
+  reports the omitted controls as drift, never as a pass.
+  `initialize_repository.py --upgrade-tier full`, run from a template checkout
+  at the project's recorded contract, upgrades a minimal project in place from
+  its recorded inputs. It adds full-tier files, replaces files still at their
+  minimal version, three-way merges adopter edits that do not overlap a tier
+  difference, keeps adopter deletions and never deletes. Any conflict stops it
+  before writing. An unedited project upgrades to exactly the direct full-tier
+  result. A recorded social preview is checked against the project, so an
+  adopter's own preview image, absent from the template, no longer blocks the
+  upgrade. The generated-profile CI matrix now covers every profile in both
+  tiers, with and without a social preview (12 jobs). Each minimal job lints its
+  generated workflows, runs the four gates, then upgrades in place and
+  re-verifies the result as a full-tier project. Minimal-tier documentation no
+  longer tells adopters to run the label workflows, consult Scorecard or run the
+  initializer, lint and typing steps it removes; it describes manual label setup
+  instead. The initializer self-test now also rejects a retained file that names
+  a removed workflow by its display name (#90).
 - Profile-owned components. `profiles.<profile>.owned_paths` names files that
   only that profile generates. The initializer deletes other profiles' owned
   files with their component entries and public-API manifest rows, and prunes

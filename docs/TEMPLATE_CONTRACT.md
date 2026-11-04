@@ -72,8 +72,8 @@ The contract version and a project's `VERSION` are deliberately unrelated:
   updating the template.
 
 The template's own release history and the contract history therefore diverge
-over time. They currently share numbers only because every release so far has
-changed the required control set.
+over time. They first diverged at v1.2.1, a patch release that kept contract
+`1.2.0`.
 
 <a id="version-history"></a>
 

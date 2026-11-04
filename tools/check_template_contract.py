@@ -7,10 +7,10 @@ template release that changes no required control ships without a contract bump,
 and a project may release any number of its own versions while its adopted
 contract stays fixed.
 
-This gate owns the contract's semantics. ``check_repo.py`` only requires the
-``template_contract`` key to exist in the canonical configuration; every rule
-about its content lives here, so the portable checker carries no contract-specific
-policy branches.
+This gate owns the contract's semantics. ``check_repo.py`` requires the
+``template_contract`` key to exist and reads only its ``source`` to recognize the
+recorded upstream in workflow references; every rule about the contract's
+content lives here.
 """
 
 from __future__ import annotations

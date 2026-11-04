@@ -3,8 +3,9 @@
 
 The coverage contract is semantic: every production ``finding(...)`` site in the
 canonical repository checker must be exercised by at least one deterministic
-fixture, or the coverage gate fails. Focused hardening gates and authoritative
-workflow validation are delegated to their own self-tests and must also pass.
+fixture, or the coverage gate fails. The focused hardening gates' own self-tests
+are run and must pass. Authoritative workflow validation is not run here: the
+gate verifies that its fixtures are declared, and the static workflow runs them.
 """
 
 from __future__ import annotations

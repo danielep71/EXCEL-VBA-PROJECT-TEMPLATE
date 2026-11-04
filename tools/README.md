@@ -37,7 +37,7 @@ It is intentionally CI-independent: after installing the pinned dependencies bel
 that block verbatim from the repository root in Bash.
 
 ```bash
-python -m pip install --disable-pip-version-check "coverage[toml]==7.10.6" "PyYAML==6.0.3"
+python -m pip install --disable-pip-version-check "coverage[toml]==7.10.6" "tomli==2.2.1; python_version < '3.11'" "PyYAML==6.0.3"
 ```
 
 The measurement scope is maintained `tools/*.py`. Test drivers matching
@@ -97,9 +97,10 @@ Appropriate contents include:
 
 Focused report gates use the shared runner. Distinct CLI contracts retain their
 own entry points: release validation has atomic evidence writes and separate
-console rendering; workflow validation emits text-only evidence; initialization
-and disposable fixture creation provision source; snapshot collection captures
-observations. The canonical checker remains self-contained.
+console rendering; release certification has mutually exclusive build/verify
+modes that emit JSON to stdout; workflow validation emits text-only evidence;
+initialization and disposable fixture creation provision source; snapshot
+collection captures observations. The canonical checker remains self-contained.
 
 <!-- template:remove:start -->
 The complete consumer/exclusion registry is maintained and enforced in
@@ -291,7 +292,7 @@ definitions, and Enum/Type bodies. The dedicated gate detects missing, stale,
 duplicate, or changed signatures and case-insensitive public-name collisions in
 standard modules.
 
-Conditional declarations are collected separately for the three supported
+Conditional declarations are collected separately for the four supported
 compilation environments described above. Mutually exclusive variants share one
 three-column manifest row and require one `# SIG` record for each distinct
 reachable signature. Duplicate records, missing or stale variants, and declarations
@@ -321,9 +322,9 @@ compatibility view cannot hide an unsupported or unrecorded public declaration.
 versioned identity of the control set a repository adopts, recorded as
 `template_contract` in `.github/repository-profile.json`.
 
-The canonical checker only requires the key to exist among the configuration
-keys; every rule about its content lives in this gate, so the portable checker's
-policy-branch inventory is unchanged.
+The canonical checker requires the key to exist and reads only its `source`, to
+recognize the recorded upstream in workflow references; every rule about the
+contract's content lives in this gate.
 
 The gate requires exactly `version` and `source`, rejects a non-canonical or
 unsupported version with a message naming the supported set, resolves the rule

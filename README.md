@@ -307,9 +307,9 @@ Installation, import, upgrade and removal procedures are authoritative in
 
 ## ✅ Validation
 
-The hosted `Repository integrity` workflow checks source/repository facts and
-fails closed when a required validator or evidence report does not complete. It
-does **not** compile VBA or execute Excel.
+The `Repository integrity` job of the hosted *Static repository checks* workflow
+checks source/repository facts and fails closed when a required validator or
+evidence report does not complete. It does **not** compile VBA or execute Excel.
 
 <!-- template:remove:start -->
 For checker maintenance, the independent

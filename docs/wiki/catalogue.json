@@ -715,7 +715,7 @@
       "authority": "docs/TEMPLATE_CONTRACT.md"
     },
     "tools/check_vba_conditionals.py": {
-      "purpose": "Validate conditional compilation and reachable PtrSafe declarations in three host models.",
+      "purpose": "Validate conditional compilation and reachable PtrSafe declarations in four host models.",
       "kind": "script",
       "authority": "tools/README.md"
     },

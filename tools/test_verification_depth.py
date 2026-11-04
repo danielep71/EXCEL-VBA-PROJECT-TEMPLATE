@@ -621,7 +621,7 @@ class CloseoutDepthTests(unittest.TestCase):
         self.assertEqual(len(findings), 3)
 
 
-class ContractAndWikiDepthTests(unittest.TestCase):
+class ContractDepthTests(unittest.TestCase):
     def test_contract_read_shape_notes_and_record_errors(self) -> None:
         findings: list[dict[str, str]] = []
         self.assertEqual(contract._check_shape([], findings), ("", ""))

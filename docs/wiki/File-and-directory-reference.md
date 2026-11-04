@@ -152,7 +152,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/check_release_semantics.py` / script | Enforce strict version, dated changelog, comparison and canonical-template history semantics. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
 | `tools/check_repo.py` / script | Self-contained dependency-free canonical 21-rule repository-quality gate. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/check_template_contract.py` / script | Resolve adopted contract versions and reject invalid or unsupported identities. | R / R / R | [docs/TEMPLATE_CONTRACT.md](../../docs/TEMPLATE_CONTRACT.md) |
-| `tools/check_vba_conditionals.py` / script | Validate conditional compilation and reachable PtrSafe declarations in three host models. | R / R / R | [tools/README.md](../../tools/README.md) |
+| `tools/check_vba_conditionals.py` / script | Validate conditional compilation and reachable PtrSafe declarations in four host models. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/check_vba_jumps.py` / script | Resolve jumps and labels within their owning VBA procedures. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/check_vba_public_api.py` / script | Compare complete public VBA declarations and normalized manifest signatures. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/check_wiki.py` / script | Validate complete wiki inventory/navigation, export pinned pages or compare a fetched publication. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |

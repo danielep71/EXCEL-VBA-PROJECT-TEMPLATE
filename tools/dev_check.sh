@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Run the locally reproducible part of hosted CI, in the same order, with the
-# same pinned tools.
+# Run the locally reproducible part of hosted CI with the same pinned tools.
 #
 # Purpose: let a maintainer find a failure before pushing instead of after a CI
-# round trip. Every check below is exactly the command the hosted workflows run.
+# round trip. Each check runs the same tool and arguments as its hosted
+# counterpart, broadly in the hosted order; the slow initializer and policy-
+# coverage checks run last, and the working-tree whitespace check is local only.
 #
 # This is NOT a claim of CI equivalence. It deliberately cannot cover:
 #   - actionlint workflow validation, unless actionlint is already on PATH
-#     (hosted CI installs a SHA-256-verified 1.7.12 binary);
-#   - anything requiring Excel, a Windows host, or live GitHub state;
-#   - hosted evidence upload, job summaries and the terminal CI verdict.
-# Those remain the hosted gates' responsibility and are reported as SKIPPED
-# rather than counted as passes.
+#     (hosted CI installs a SHA-256-verified 1.7.12 binary): reported as SKIPPED;
+#   - the statement-coverage floor, anything requiring Excel, a Windows host or
+#     live GitHub state, hosted evidence upload, job summaries and the terminal
+#     CI verdict: listed in the closing note, never counted as passes.
 #
 # Usage:
 #   python3 -m pip install -r tools/requirements-dev.txt
@@ -48,7 +48,7 @@ run() { # run <name> <command...>
   fi
 }
 
-pin() { grep -E "^$1==" tools/requirements-dev.txt | head -1 | sed 's/.*==//'; }
+pin() { grep -E "^$1==" tools/requirements-dev.txt | head -1 | sed -E 's/.*==([^;[:space:]]+).*/\1/'; }
 
 # --- CI pin-mirror guard ------------------------------------------------------
 # requirements-dev.txt only means anything while it still mirrors the workflows.
@@ -90,6 +90,7 @@ mirror "mypy CI lock" "$(lock_pin mypy "$QUALITY_LOCK")" \
   "$(workflow_env MYPY_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
 mirror coverage "$(pin 'coverage\[toml\]')" \
   "$(lock_pin 'coverage\[toml\]' "$COVERAGE_LOCK")" "$COVERAGE_LOCK"
+mirror tomli "$(pin tomli)" "$(lock_pin tomli "$COVERAGE_LOCK")" "$COVERAGE_LOCK"
 mirror PyYAML "$(pin PyYAML)" "$(lock_pin PyYAML "$COVERAGE_LOCK")" "$COVERAGE_LOCK"
 mirror "PyYAML portfolio lock" "$(pin PyYAML)" \
   "$(lock_pin PyYAML "$PORTFOLIO_LOCK")" "$PORTFOLIO_LOCK"

@@ -27,7 +27,7 @@ rather than duplicating a table here that later gates would outdate.
 | --- | --- | --- |
 | `run-gate` | Focused report gate | Imports `_gatelib.run_gate`, or delegates `main` to a `run-gate` tool (the `check_policy_coverage.py` alias) |
 | `specialized-gate` | Gate whose parser, report, write or exit semantics differ | Must not use `run_gate`; the rationale names the difference (for example `check_release.py`'s atomic evidence writes) |
-| `utility` | Provisioning or evidence capture, not a report gate | Must not use `run_gate`; rationale required |
+| `utility` | Provisioning or evidence capture that does not report through `run_gate` (a provisioning tool with a gate report, such as `provision_repository.py`, is a `run-gate`) | Must not use `run_gate`; rationale required |
 | `test-runner` | Unittest suite | Must not use `run_gate`; rationale required |
 | `canonical` | `check_repo.py` only | Self-contained; imports no sibling |
 
@@ -76,7 +76,7 @@ shared-runner registry and avoiding a parallel orchestration path.
 
 `tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused operational gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary in the canonical template. The checker-development workflow, this document, and the `policy_coverage_*` semantic-coverage harness are template-maintainer assets and are removed by initialization rather than shipped into generated projects.
 
-The public API gate also uses `check_vba_conditionals.py` to evaluate the same three supported compilation environments. It checks name collisions only where declarations can coexist, and requires one manifest declaration row plus a `# SIG` record for every distinct reachable signature. Unknown conditions fail closed. These are static models, not evidence of Excel runtime certification.
+The public API gate also uses `check_vba_conditionals.py` to evaluate the same four supported compilation environments (`vba6-win32`, `vba7-win32`, `vba7-win64` and `vba7-mac64`). It checks name collisions only where declarations can coexist, and requires one manifest declaration row plus a `# SIG` record for every distinct reachable signature. Unknown conditions fail closed. These are static models, not evidence of Excel runtime certification.
 
 ### Self-test interface coverage
 
@@ -200,7 +200,7 @@ Maintainers can exercise parser and reporter behavior without running the full s
 python3 tools/checker_development.py --root . --self-test
 ```
 
-The contract directly tests representative YAML, GitHub-style Markdown anchors, EditorConfig parsing, VBA lexical stripping, Markdown/console serialization, CLI flags and operational exit-code mapping. The full `check_repo.py --self-test` and semantic policy-coverage matrix remain separate higher-level gates. Hosted CI keeps both template-maintainer contracts together in `checker-development.yml`; the operational `static-checks.yml` deliberately remains free of template-only policy-coverage tooling so the generated workflow is self-contained.
+The contract directly tests representative YAML, GitHub-style Markdown anchors, EditorConfig parsing, VBA lexical stripping, Markdown/console serialization, CLI flags and operational exit-code mapping. The full `check_repo.py --self-test` and semantic policy-coverage matrix remain separate higher-level gates. Hosted CI keeps both template-maintainer contracts together in `checker-development.yml`. The operational `static-checks.yml` runs no policy-coverage gate; its one template-only step runs the template unit suites only when their files exist, so a generated project's copy is self-contained.
 
 Release-history fixtures are owned by the existing release-semantics suite rather
 than this AST/interface harness. `python3 tools/check_release_semantics.py --root . --self-test`
@@ -223,8 +223,8 @@ version pins still mirror those hosted lock files and the workflow-declared
 Ruff/mypy versions. `actionlint` is a Go binary rather than a Python package,
 so it is documented in `tools/requirements-dev.txt` but not installable from it.
 
-`tools/dev_check.sh` runs the locally reproducible gates in the hosted order and
-prints a pass/fail/skip verdict:
+`tools/dev_check.sh` runs the locally reproducible gates, broadly in the hosted
+order, and prints a pass/fail/skip verdict:
 
 ```bash
 python3 -m pip install -r tools/requirements-dev.txt
@@ -251,9 +251,10 @@ digest-verified `actionlint` binary `static-checks.yml` uses; with it on `PATH`
 the local run covers every tracked workflow and reports no skips.
 
 The script is explicitly not a claim of CI equivalence. Workflow validation
-without `actionlint` on `PATH`, the statement-coverage floor, Excel evidence,
-live GitHub state and the hosted terminal verdicts are reported as SKIPPED
-rather than counted as passes, and remain the hosted gates' responsibility.
+without `actionlint` on `PATH` is reported as SKIPPED. The statement-coverage
+floor, Excel evidence, live GitHub state and the hosted terminal verdicts are
+not run; the closing note lists them as the hosted gates' responsibility, and
+none is ever counted as a pass.
 
 ## 🧰 Registered maintenance tasks
 
