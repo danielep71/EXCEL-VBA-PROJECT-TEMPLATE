@@ -264,7 +264,7 @@ Document startup, shutdown, configuration, data boundaries, deployment,
 upgrade and rollback. The lifecycle reference demonstrates each with executable
 tests; replace its stored state with the application's own. A distributable
 package requires provenance and post-package smoke evidence; a source-only
-release claims neither.
+release records that nothing is packaged and claims neither.
 <!-- template:profile:application:end -->
 
 <a id="repository-shape"></a>

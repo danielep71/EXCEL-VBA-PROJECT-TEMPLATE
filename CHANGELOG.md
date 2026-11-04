@@ -191,7 +191,8 @@ Use only the categories needed by a release.
   running. `LifecycleExample` is the end-to-end smoke and stops only the
   session it started. `RELEASE_EVIDENCE.md`
   maps the application profile's required checks to these entry points; a
-  source-only release claims no packaging. Only generated `application`
+  source-only release still records `packaging`, stating that nothing is
+  distributed. Only generated `application`
   projects receive the four modules (#88).
 - The portable gate's structural `PtrSafe` check treated the `#Else` of an
   `#If ... #ElseIf VBA7 ... #Else` chain as reachable under VBA7, which

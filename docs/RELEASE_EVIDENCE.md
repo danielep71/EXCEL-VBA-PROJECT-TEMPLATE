@@ -58,9 +58,11 @@ repeated stop), `upgrade` (schema-1 migration, current-schema no-op, rollback of
 a failed upgrade) and `recovery` (unclean stop, live session, reset, refused
 corrupt state); cite its `RESULT=PASS` line for each. `end-to-end-smoke` is
 `LifecycleExample.RunLifecycleExample` run in the released artifact.
-`packaging` applies only when the release distributes a workbook or add-in: it
-names that asset and its post-package smoke. A source-only release records no
-package and claims no binary provenance.
+`packaging` is required for every application release. When the release
+distributes a workbook or add-in, its detail names that asset and its
+post-package smoke. For a `source-only` release, record it as `PASS` with a
+detail stating that no workbook or add-in is distributed: the release has no
+assets and claims no binary provenance.
 <!-- template:profile:application:end -->
 
 All checks use `status: "PASS"`, a non-empty `detail`, and the same
