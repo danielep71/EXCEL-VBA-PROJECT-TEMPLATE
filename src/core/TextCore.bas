@@ -38,7 +38,7 @@ Attribute VB_Name = "TextCore"
 '   differ between the two platforms.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-03
 '
 ' AUTHOR
 '   Daniele Penza

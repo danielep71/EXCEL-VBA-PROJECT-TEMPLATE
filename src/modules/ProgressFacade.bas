@@ -50,7 +50,7 @@ Attribute VB_Name = "ProgressFacade"
 '   ProgressEnd in every exit path; ProgressRecover after an interruption.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza

@@ -41,7 +41,7 @@ Attribute VB_Name = "TextFacade"
 '   rooted-path and file-name rules follow the compile-time platform.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza

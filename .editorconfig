@@ -9,9 +9,10 @@
 #   - Exported VBA source uses CRLF and 4-space indentation.
 #   - Documentation, GitHub configuration, and cross-platform tooling use LF.
 #   - YAML, JSON, CFF, XML, JavaScript, and R use 2-space indentation.
-#   - Python and shell scripts use 4-space indentation.
-#   - Trailing whitespace is removed except in Markdown, where two trailing
-#     spaces can represent an explicit line break.
+#   - Python uses 4-space indentation; shell scripts use 2.
+#   - Trailing whitespace is removed everywhere, Markdown included, because
+#     `git diff --check` rejects it. End a Markdown line with a backslash
+#     when an explicit line break is needed.
 #   - VBA source encoding is intentionally not forced. The VBE exports text
 #     using the Windows system code page; a repository should enable a Git
 #     working-tree encoding only after confirming that its source requires one.
@@ -145,8 +146,9 @@ trim_trailing_whitespace = true
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
-# Preserve intentional Markdown hard line breaks.
-trim_trailing_whitespace = false
+# git diff --check rejects trailing spaces; use a trailing backslash for a
+# hard line break.
+trim_trailing_whitespace = true
 
 [*.txt]
 charset = utf-8
@@ -178,8 +180,8 @@ trim_trailing_whitespace = true
 charset = utf-8
 end_of_line = lf
 indent_style = space
-indent_size = 4
-tab_width = 4
+indent_size = 2
+tab_width = 2
 insert_final_newline = true
 trim_trailing_whitespace = true
 

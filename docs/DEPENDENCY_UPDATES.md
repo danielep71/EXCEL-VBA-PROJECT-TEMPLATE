@@ -43,7 +43,10 @@ occurrences and historical evidence. Never rewrite published provenance to make
 an old release appear to use the new dependency.
 
 Python `3.10` selects a runtime series, and `ubuntu-24.04` selects a hosted image
-family; neither freezes every patch or preinstalled utility.
+family; neither freezes every patch or preinstalled utility. Node.js and
+ShellCheck are such utilities: a workflow step that runs `node`, and
+actionlint's ShellCheck pass over `run:` scripts, use the versions the image
+carries.
 <!-- template:tier:full:start -->
 Hosted Python tool
 installs are additionally constrained by reviewed CPython-3.10/Linux-x64 wheel

@@ -32,6 +32,10 @@ concurrency:
   group: labels-sync-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   validate:
     name: Validate label manifest

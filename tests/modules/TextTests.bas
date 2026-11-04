@@ -46,7 +46,7 @@ Attribute VB_Name = "TextTests"
 '   covering the shared starter facade.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza

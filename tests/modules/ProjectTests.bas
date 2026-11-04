@@ -44,7 +44,7 @@ Attribute VB_Name = "ProjectTests"
 '   ProjectTests.RunProjectTests from the VBE Immediate window.
 '
 ' UPDATED
-'   2026-09-09
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza
