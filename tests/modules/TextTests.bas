@@ -510,7 +510,7 @@ Private Sub TestJoin()
 '   Record unexpected case errors and let the remaining suite continue.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '==============================================================================
 '
 
@@ -526,8 +526,8 @@ Private Sub TestJoin()
 '------------------------------------------------------------------------------
 ' PREPARE INPUTS
 '------------------------------------------------------------------------------
-    'Fill the fixed arrays before the case starts so a setup error cannot
-    'be mistaken for a join failure.
+    'Fill the fixed arrays before the case starts. The handler is already
+    'armed, so a setup error is recorded against text.join, not raised.
         On Error GoTo CaseFailed
 
         column(1, 1) = "x"
@@ -763,7 +763,7 @@ Private Sub TestSafeFileName()
 '   Record unexpected case errors and let the remaining suite continue.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '==============================================================================
 '
 
@@ -780,8 +780,9 @@ Private Sub TestSafeFileName()
 '------------------------------------------------------------------------------
 ' SELECT PLATFORM EXPECTATIONS
 '------------------------------------------------------------------------------
-    'macOS rejects only ":" and "/"; Windows also rejects < > " \ | ? *,
-    'drops trailing spaces and dots, and reserves device names.
+    'macOS rejects only ":", "/" and the null character; Windows also
+    'rejects < > " \ | ? * and control characters, drops trailing spaces
+    'and dots, and reserves device names.
 #If Mac Then
         expectedTitle = "Q3_ North_South?.csv"
         expectedDeleted = "a<b>c"

@@ -393,11 +393,11 @@ Public Function TextJoin( _
 '
 ' ERROR POLICY
 '   Raise TEXT_ERROR_INVALID_ARGUMENT from this procedure for
-'   a non-array, a shape with several rows and columns, or an object,
-'   nested array or error value among the items.
+'   a non-array, more than two dimensions, a shape with several rows and
+'   columns, or an object, nested array or error value among the items.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '==============================================================================
 '
 

@@ -137,9 +137,11 @@ Public Sub RunProgressTests()
 '   Run ProgressTests.RunProgressTests from the VBE Immediate window.
 '
 ' STATE OWNERSHIP
-'   Reject an active run before resetting counters. Snapshot four Excel
-'   properties for comparison. Cases change screen updating on purpose; the
-'   runner restores the owned UI found at suite start before comparing.
+'   Reject an active run before resetting counters. Snapshot calculation,
+'   alerts, events and screen updating for comparison. Cases change the
+'   status bar, its visibility, the cursor (Windows), screen updating and
+'   the cancel key on purpose; the runner restores the owned UI found at
+'   suite start before comparing.
 '
 ' ERROR POLICY
 '   Record unexpected runner failures, attempt cleanup, print the summary,
@@ -1954,11 +1956,12 @@ Private Sub ResetRun()
 '   Return all harness-owned state to its idle baseline.
 '
 ' STATE OWNERSHIP
-'   Clear counters, failure text, active-run state, and completion.
+'   Clear counters, failure text, the active-run and completion flags, and
+'   the suite-UI capture flag.
 '   This helper never changes Excel application properties.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '==============================================================================
 '
 

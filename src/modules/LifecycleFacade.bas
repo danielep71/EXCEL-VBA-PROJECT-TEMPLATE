@@ -51,7 +51,7 @@ Attribute VB_Name = "LifecycleFacade"
 '   LifecycleRecover ThisWorkbook clears the unfinished session.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza
@@ -74,7 +74,7 @@ Attribute VB_Name = "LifecycleFacade"
         Public Const LIFECYCLE_ERROR_STATE_INVALID       As Long = LifecycleCore.ERR_STATE_INVALID        'Unreadable state
         Public Const LIFECYCLE_ERROR_STATE_NEWER         As Long = LifecycleCore.ERR_STATE_NEWER          'Newer schema
         Public Const LIFECYCLE_ERROR_RECOVERY_REQUIRED   As Long = LifecycleCore.ERR_RECOVERY_REQUIRED    'Unclean stop
-        Public Const LIFECYCLE_ERROR_START_FAILED        As Long = LifecycleCore.ERR_START_FAILED         'Start rolled back
+        Public Const LIFECYCLE_ERROR_START_FAILED        As Long = LifecycleCore.ERR_START_FAILED         'Start failed; rollback attempted
         Public Const LIFECYCLE_ERROR_STOP_FAILED         As Long = LifecycleCore.ERR_STOP_FAILED          'Stop not recorded
         Public Const LIFECYCLE_SCHEMA_VERSION            As Long = LifecycleCore.SCHEMA_CURRENT           'Current schema
 
@@ -112,11 +112,12 @@ Public Function LifecycleStart( _
 ' ERROR POLICY
 '   Raise LIFECYCLE_ERROR_BUSY, _INVALID_ARGUMENT, _RUNNING,
 '   _STATE_INVALID, _STATE_NEWER or _RECOVERY_REQUIRED before changing
-'   anything. A failed step restores the names exactly as found and
-'   raises LIFECYCLE_ERROR_START_FAILED naming the step.
+'   anything. A failed step restores the names as found and raises
+'   LIFECYCLE_ERROR_START_FAILED naming the step; the message says when
+'   the restore was incomplete.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '==============================================================================
 '
 
@@ -205,10 +206,13 @@ Public Function LifecycleRecover( _
 ' ERROR POLICY
 '   Raise LIFECYCLE_ERROR_BUSY, _INVALID_ARGUMENT, _RUNNING,
 '   _STATE_INVALID or _STATE_NEWER without changing anything; such
-'   state needs LifecycleReset or a newer version.
+'   state needs LifecycleReset or a newer version. A live session for this
+'   host is stopped as LifecycleStop does, so LIFECYCLE_ERROR_STOP_FAILED
+'   can follow. If a stale running status cannot be overwritten, Excel's
+'   error propagates and the stored status stays running.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '==============================================================================
 '
 

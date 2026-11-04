@@ -18,16 +18,17 @@ Attribute VB_Name = "LifecycleCore"
 '
 ' STATE OWNERSHIP
 '   Owns one in-memory session: the lifecycle state, the host workbook
-'   reference and the fault-injection seam. In the host workbook it owns
+'   reference, the start step in progress, the owned-name snapshot taken at
+'   start and the fault-injection seam. In the host workbook it owns
 '   three hidden workbook-level names: LifecycleSchema, LifecycleStatus and
 '   LifecycleStarts. Every other name, sheet, cell, window and Application
 '   property is caller-owned and is never read or changed.
 '
 ' ERROR POLICY
 '   Discovery and argument checks raise before anything changes. A failure
-'   after ownership is taken restores the three names exactly as found and
-'   raises ERR_START_FAILED naming the failed step. Each failure has its own
-'   core-owned number.
+'   after ownership is taken restores the three names as found and raises
+'   ERR_START_FAILED naming the failed step and saying when a name could not
+'   be restored. Each failure has its own core-owned number.
 '
 ' WORKSHEET SAFETY
 '   Never selects or activates a workbook, worksheet or range and never reads
@@ -44,7 +45,7 @@ Attribute VB_Name = "LifecycleCore"
 '   and add-ins alike: hidden names need no window, sheet or activation.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza
@@ -68,7 +69,7 @@ Attribute VB_Name = "LifecycleCore"
         Public Const ERR_STATE_INVALID       As Long = vbObjectError + 2304    'Stored state cannot be read
         Public Const ERR_STATE_NEWER         As Long = vbObjectError + 2305    'Stored schema is newer than supported
         Public Const ERR_RECOVERY_REQUIRED   As Long = vbObjectError + 2306    'Previous session did not stop
-        Public Const ERR_START_FAILED        As Long = vbObjectError + 2307    'A start step failed; state rolled back
+        Public Const ERR_START_FAILED        As Long = vbObjectError + 2307    'A start step failed; rollback attempted
         Public Const ERR_STOP_FAILED         As Long = vbObjectError + 2308    'Stopped status could not be recorded
         Private Const ERR_INJECTED_FAULT     As Long = vbObjectError + 2399    'Test seam failure inside a start step
 
@@ -107,7 +108,8 @@ Attribute VB_Name = "LifecycleCore"
 '------------------------------------------------------------------------------
 ' MODULE STATE
 '------------------------------------------------------------------------------
-    'Describe the one session; everything resets when it stops.
+    'Describe the one session. Stop releases the host, the next start
+    'overwrites the snapshot, and only ClearFault disarms the seam.
         Private mFaultReenter   As Boolean                               'Seam: re-enter instead of failing
         Private mFaultStep      As String                                'Seam: step that fails; empty for none
         Private mHost           As Workbook                              'Host of the running session
@@ -150,10 +152,11 @@ Public Function StartApplication( _
 ' ERROR POLICY
 '   Raise ERR_BUSY, ERR_INVALID_ARGUMENT, ERR_RUNNING, ERR_STATE_INVALID,
 '   ERR_STATE_NEWER or ERR_RECOVERY_REQUIRED before changing anything. A
-'   later failure restores the owned names and raises ERR_START_FAILED.
+'   later failure restores the owned names and raises ERR_START_FAILED; its
+'   message ends "Rollback was incomplete." when a name was not restored.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '==============================================================================
 '
 
@@ -346,10 +349,13 @@ Public Function RecoverApplication( _
 ' ERROR POLICY
 '   Raise ERR_BUSY, ERR_INVALID_ARGUMENT, ERR_RUNNING (another workbook owns
 '   the session), ERR_STATE_INVALID or ERR_STATE_NEWER without changing
-'   anything; such state needs ResetApplication or a newer version.
+'   anything; such state needs ResetApplication or a newer version. A live
+'   session for this host is stopped by StopApplication, so ERR_STOP_FAILED
+'   can follow. If a stale running status cannot be overwritten, Excel's
+'   error propagates and the stored status stays running.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '==============================================================================
 '
 
@@ -1179,13 +1185,14 @@ Private Function RestoreName( _
 '   Restore one owned name from its snapshot.
 '
 ' RETURNS
-'   True when the name matches its snapshot afterwards.
+'   True when the restoring call raised no error; the name is not read back
+'   to compare it with the snapshot.
 '
 ' ERROR POLICY
 '   Contain any error and return False so the other names are still tried.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '==============================================================================
 '
 
