@@ -183,7 +183,7 @@ Use only the categories needed by a release.
   activation and works in workbooks and add-ins alike. `LifecycleStart`
   discovers and validates the stored state before changing anything, then runs
   each schema migration and counts the start; a failed step restores the names
-  exactly as found and names the step. It refuses newer or unreadable state, a
+  as found, names the step and reports an incomplete restore. It refuses newer or unreadable state, a
   session that never stopped, a second workbook and re-entry; a repeated start
   and a stop without a session are no-ops. `LifecycleRecover` clears an unclean
   stop, `LifecycleReset` removes the state, and `LifecycleWriteStatus` writes to
@@ -199,13 +199,6 @@ Use only the categories needed by a release.
   source-only release still records `packaging`, stating that nothing is
   distributed. Only generated `application`
   projects receive the four modules (#88).
-- The portable gate's structural `PtrSafe` check treated the `#Else` of an
-  `#If ... #ElseIf VBA7 ... #Else` chain as reachable under VBA7, which
-  flagged legacy-only declarations. The `#Else` now counts as VBA7-reachable
-  only when no branch of the chain claimed VBA7 (#87).
-- The conditional-compilation gate models Office for Mac as `vba7-mac64`
-  (`Mac` and `VBA7` true, `Win32` and `Win64` false). `Mac` was previously
-  rejected as an unknown symbol (#86).
 
 ### Changed
 
@@ -271,6 +264,13 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- The portable gate's structural `PtrSafe` check treated the `#Else` of an
+  `#If ... #ElseIf VBA7 ... #Else` chain as reachable under VBA7, which
+  flagged legacy-only declarations. The `#Else` now counts as VBA7-reachable
+  only when no branch of the chain claimed VBA7 (#87).
+- The conditional-compilation gate models Office for Mac as `vba7-mac64`
+  (`Mac` and `VBA7` true, `Win32` and `Win64` false). `Mac` was previously
+  rejected as an unknown symbol (#86).
 - *Static repository checks* hardening. The documentation-contract step had
   no `id` or `continue-on-error`, so its failure skipped every later gate
   without naming the cause; it now reports through the final enforcement list

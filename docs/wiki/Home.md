@@ -6,7 +6,7 @@ This guide is for a maintainer creating a **new** Excel/VBA repository. Work thr
 the numbered journey in the sidebar. It explains what to do and where the precise
 rules live; it does not replace those rules.
 
-> **Version scope:** this edition documents the reviewed v1.2.0 development
+> **Version scope:** this edition documents the reviewed v1.3.0 development
 > contract. While that work is on a release branch, GitHub's default-branch
 > template may still contain an earlier edition. Check the source link at the
 > foot of the published page and the template's default branch before adopting.

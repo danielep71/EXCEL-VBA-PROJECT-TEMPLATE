@@ -34,7 +34,7 @@ rather than duplicating a table here that later gates would outdate.
 A CLI with no class, a class for a file that is no longer a CLI, an unknown
 class, a missing rationale, a `run-gate` tool that does not use the runner, or
 any other class that quietly adopts it fails the contract. `_release_closeout.py`
-moved onto `run_gate` in v1.3.0 because its orchestration was identical;
+uses `run_gate` because its orchestration was identical;
 `check_release.py` stays specialized because sharing would weaken its atomicity.
 
 ### Module boundaries
@@ -267,13 +267,11 @@ that work:
 gh workflow run maintenance.yml --ref <branch> -f task=regenerate-wiki-reference
 ```
 
-That command works only after the file has reached the default branch. GitHub
-registers a `workflow_dispatch` workflow from `main` alone, so while this file
-lives only on a release branch the workflow is not dispatchable at all — the
-Actions UI does not offer it and the REST dispatch endpoint answers 404. Naming
-the branch with `--ref` does not work around it. Once the file is on `main`,
-`--ref` may name any branch that carries it, and the task commits to that
-branch.
+GitHub registers a `workflow_dispatch` workflow only from the default branch.
+`maintenance.yml` is on `main`, so `--ref` may name any branch that carries it,
+and the task commits to that branch. A repository whose default branch lacks
+the file cannot dispatch it at all: the Actions UI does not offer it, the REST
+dispatch endpoint answers 404, and `--ref` does not work around it.
 
 It replaces the pattern of adding a disposable workflow per task. Each such
 workflow triggered on its own push, granted itself `contents: write`, ran at the

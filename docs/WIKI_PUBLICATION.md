@@ -149,8 +149,8 @@ repositories can prove preview/apply/idempotence and source checks for all three
 profiles; simulated fixtures cannot prove live GitHub creation, governance,
 Excel execution or a published first release. Keep those distinctions explicit.
 
-The final Markdown audit in #44 reconciles this guide against the finished
-v1.2.0 tree. Refresh the complete inventory when any tracked file is added or
+Before each release, the final Markdown audit reconciles this guide against the
+finished tree. Refresh the complete inventory when any tracked file is added or
 removed, including deletion of the temporary implementation plan. Record final
 publication read-back against that audited source before closing final wiki
 acceptance. Do not edit wiki pages online as an independent policy stream.

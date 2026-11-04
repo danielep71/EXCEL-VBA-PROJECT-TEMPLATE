@@ -73,7 +73,7 @@ candidate. For a historical publication, check out its recorded source first.
 Retain a pilot of the adoption journey and its unresolved live/host steps.
 After the final Markdown audit, regenerate the inventory for the final tree,
 publish the audited revision and retain fresh read-back evidence. A development
-edition is not a claim that the v1.2.0 release has already shipped.
+edition is not a claim that the release it documents has already shipped.
 
 ---
 [Home](Home.md) · [Previous](Glossary.md)

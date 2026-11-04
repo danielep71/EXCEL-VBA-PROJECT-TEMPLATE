@@ -11,7 +11,7 @@ with exact identifiers and links and is removed from generated repositories.
 
 **Historical scope:** these observations belong to the v1.0.0 pilot collected
 on 2026-09-04. The badges describe that recorded state, not today's live settings
-or certification of the v1.2.0 candidate. Preserve the original identities below.
+or certification of any later release candidate. Preserve the original identities below.
 
 ## 🧾 Collection Record
 
