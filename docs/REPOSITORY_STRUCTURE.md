@@ -46,6 +46,7 @@ Create these `src/` subdirectories only when the project has corresponding compo
 | `src/core/` | Internal standard modules for calculations, parsing, validation, and shared implementation |
 | `src/classes/` | Production class modules, state managers, event sinks, and UI hook classes |
 | `src/forms/` | Production UserForms with each `.frm` adjacent to its `.frx` resource |
+| `src/workbook/` | Document-module exports such as `ThisWorkbook`, wiring host events to the application; required by the `application` profile |
 
 ### Public modules
 

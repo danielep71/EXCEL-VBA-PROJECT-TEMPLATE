@@ -92,31 +92,34 @@ For the baseline starter:
 4. `examples/modules/ProjectExample.bas` — optional consumer example
 
 <!-- template:profile:library:start -->
-The library reference follows the same order:
+The library reference adds its own source, test and example. Import its
+source after the starter's façade, as production modules 3 and 4 in
+[`src/README.md`](src/README.md), then its test and example:
 
-1. `src/core/TextCore.bas`
-2. `src/modules/TextFacade.bas`
-3. `tests/modules/TextTests.bas` — development/regression only
-4. `examples/modules/TextExample.bas` — optional consumer example
+- `src/core/TextCore.bas`, then `src/modules/TextFacade.bas`
+- `tests/modules/TextTests.bas` — development/regression only
+- `examples/modules/TextExample.bas` — optional consumer example
 <!-- template:profile:library:end -->
 
 <!-- template:profile:ui-component:start -->
-The ui-component reference follows the same order:
+The ui-component reference adds its own source, test and example. Import its
+source after the starter's façade, as production modules 3 and 4 in
+[`src/README.md`](src/README.md), then its test and example:
 
-1. `src/core/ProgressCore.bas`
-2. `src/modules/ProgressFacade.bas`
-3. `tests/modules/ProgressTests.bas` — development/regression only
-4. `examples/modules/ProgressExample.bas` — optional consumer example
+- `src/core/ProgressCore.bas`, then `src/modules/ProgressFacade.bas`
+- `tests/modules/ProgressTests.bas` — development/regression only
+- `examples/modules/ProgressExample.bas` — optional consumer example
 <!-- template:profile:ui-component:end -->
 
 <!-- template:profile:application:start -->
-The application reference follows the same order:
+The application reference adds its own source, test and example. Import its
+source after the starter's façade, as production modules 3 and 4 in
+[`src/README.md`](src/README.md), then its test and example:
 
-1. `src/core/LifecycleCore.bas`
-2. `src/modules/LifecycleFacade.bas`
-3. `tests/modules/LifecycleTests.bas` — development/regression only
-4. `examples/modules/LifecycleExample.bas` — optional consumer example and
-   reference smoke check
+- `src/core/LifecycleCore.bas`, then `src/modules/LifecycleFacade.bas`
+- `tests/modules/LifecycleTests.bas` — development/regression only
+- `examples/modules/LifecycleExample.bas` — optional consumer example and
+  reference smoke check
 
 Wire `LifecycleStart ThisWorkbook` and `LifecycleStop` into the host's
 `Workbook_Open` and `Workbook_BeforeClose` as shown in

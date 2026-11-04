@@ -19,6 +19,11 @@ authority; the documents own the user-facing contracts.
 | `external-links.yml` | Monday 06:17 UTC; manual | Contents read; anonymous bounded HTTP | Categorized observations and 14-day artifacts; separate from PR source checks |
 | `wiki-checks.yml` | Main/release PR and push; manual | Contents read; no network comparison | Wiki source, inventory, navigation, publication fixtures; template only |
 | `wiki-drift.yml` | Monday 06:47 UTC; manual | Contents read; anonymous wiki clone | Separate network availability and deterministic published-byte comparison; template only |
+| `codeql.yml` | Push and PR to main/release branches; Tuesday 04:17 UTC; manual | Contents read; trusted runs add security-events write; both analysis jobs add actions read; private runs need `ENABLE_PRIVATE_CODEQL` | `security-extended` analysis of the tracked Python and JavaScript; PR runs keep SARIF as an artifact |
+| `scorecard.yml` | Push to main/release branches; branch-protection change; Thursday 05:23 UTC; manual | Read-all; the default-branch publication job adds security-events and id-token write; public repositories only | Exact-commit CLI scan on release branches, publication and badge verification on main |
+| `generated-profile-matrix.yml` | Push and PR to main/release branches; manual | Contents read | Every profile in both tiers, with and without a social preview, generated and gated; minimal results upgraded in place; template only |
+| `release-closeout.yml` | Manual, with tag, candidate SHA, milestone and review inputs | Actions, contents and issues read | Read-only post-release closeout evidence bound to the certified SHA |
+| `maintenance.yml` | Manual, with a registered task | Contents write for the task job only | Registered maintenance tasks that commit their result, such as regenerating the wiki reference; template only |
 
 Schedules start from the default branch. A release-branch file does not activate
 its schedule. Path-filtered label workflows need not run for unrelated changes;

@@ -12,6 +12,7 @@ Create only the subdirectories the project actually needs:
 | `src/core/` | Internal standard modules: parsing, calculation, validation, and other implementation details | Supported public entry points |
 | `src/classes/` | Production class modules, including state managers, event sinks, and UI hooks | Test doubles used only by the harness |
 | `src/forms/` | Production UserForms; each `.frm` stays beside its required `.frx` | Screenshots and distributable workbooks |
+| `src/workbook/` | Document-module exports such as `ThisWorkbook`; the `application` profile requires it for host-event wiring | Standard modules and classes, which belong above |
 
 A small project may keep production components directly in `src/` when further subdivision would add no clarity. If it does, document each component's role in `INSTALLATION.md`.
 

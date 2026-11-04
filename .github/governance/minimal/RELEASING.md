@@ -82,8 +82,21 @@ Use the exact candidate source in each advertised Excel environment:
 
 The neutral starter baseline is `ProjectTests.RunProjectTests`; until replaced by
 the project's own contract it reports four cases, six assertions, zero failures,
-complete execution and passing cleanup. Source inspection is not Excel
-execution. If code changes, recertify.
+complete execution and passing cleanup.
+
+<!-- template:profile:library:start -->
+The library reference adds `TextTests.RunTextTests` (29 cases, 135 assertions).
+<!-- template:profile:library:end -->
+<!-- template:profile:ui-component:start -->
+The ui-component reference adds `ProgressTests.RunProgressTests` (12 cases; 79
+assertions on Windows, 75 on macOS).
+<!-- template:profile:ui-component:end -->
+<!-- template:profile:application:start -->
+The application reference adds `LifecycleTests.RunLifecycleTests` (16 cases, 106
+assertions) and the `LifecycleExample.RunLifecycleExample` end-to-end smoke.
+<!-- template:profile:application:end -->
+
+Source inspection is not Excel execution. If code changes, recertify.
 
 ## 5. Review and merge the release candidate
 

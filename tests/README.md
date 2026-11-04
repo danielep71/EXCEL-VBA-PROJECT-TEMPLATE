@@ -75,9 +75,10 @@ RESULT=PASS; completeness=COMPLETE; cases=16; assertions=106; failures=0; cleanu
 <!-- template:profile:application:end -->
 
 Any assertion, unexpected error, dirty start, incomplete execution, or cleanup
-failure is non-passing. The harness changes no Excel state; cleanup verifies its
-owned run flag and checks that calculation, display alerts, events and screen
-updating match their pre-run values.
+failure is non-passing. The starter's `ProjectTests` changes no Excel state; a
+profile suite above changes only the state it names and restores it. Every
+suite's cleanup verifies its owned run flag and checks that calculation, display
+alerts, events and screen updating match their pre-run values.
 
 <!-- template:tier:full:start -->
 The optional [Windows/Excel evidence interface](../docs/EXCEL_EVIDENCE.md)

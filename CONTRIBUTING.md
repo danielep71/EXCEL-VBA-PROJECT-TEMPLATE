@@ -57,6 +57,8 @@ and narrowly obvious fixes may go directly to a focused pull request.
    output or opportunistic refactoring.
 5. Keep exported VBA and repository policy synchronized with the actual tree.
 6. Run the applicable local static, compile, regression and specialist checks.
+   The regression entry points are `ProjectTests.RunProjectTests` and the
+   profile suite named in [`tests/README.md`](tests/README.md).
 7. Update the authoritative documentation and changelog surface affected by the
    change.
 8. Review the complete diff, then open a pull request with evidence and explicit
