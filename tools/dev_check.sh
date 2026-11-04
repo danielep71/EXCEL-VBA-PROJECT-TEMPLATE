@@ -100,6 +100,19 @@ mirror "actionlint" "$(comment_value v)" \
   "$(workflow_env ACTIONLINT_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
 mirror "actionlint digest" "$(comment_value sha)" \
   "$(workflow_env ACTIONLINT_LINUX_AMD64_SHA256 "$STATIC_CHECKS")" "$STATIC_CHECKS"
+# Other places that pin the same versions must move with the static workflow.
+PROFILE_MATRIX=.github/workflows/generated-profile-matrix.yml
+mirror "actionlint profile matrix" "$(workflow_env ACTIONLINT_VERSION "$PROFILE_MATRIX")" \
+  "$(workflow_env ACTIONLINT_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
+mirror "actionlint digest profile matrix" \
+  "$(workflow_env ACTIONLINT_LINUX_AMD64_SHA256 "$PROFILE_MATRIX")" \
+  "$(workflow_env ACTIONLINT_LINUX_AMD64_SHA256 "$STATIC_CHECKS")" "$STATIC_CHECKS"
+mirror "actionlint validator expectation" \
+  "$(sed -nE 's/^EXPECTED_ACTIONLINT_VERSION = "([^"]+)"$/\1/p' tools/test_workflow_validation.py)" \
+  "$(workflow_env ACTIONLINT_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
+mirror "PyYAML runtime assertion" \
+  "$(sed -nE 's/.*yaml\.__version__ == "([^"]+)".*/\1/p' tools/check_portfolio_drift.py | head -1)" \
+  "$(lock_pin PyYAML "$PORTFOLIO_LOCK")" "$PORTFOLIO_LOCK"
 
 # --- Pinned-version guard -----------------------------------------------------
 # A local run with different tool versions can disagree with CI in both

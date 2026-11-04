@@ -8,6 +8,12 @@
 Local source checks are deterministic. Network collectors and live setup tools
 have separately documented observation, credential and mutation boundaries.
 
+<!-- template:remove:start -->
+This guide is organized by topic and does not list every file. The complete,
+gate-checked inventory of `tools/`, with each file's purpose and whether each
+profile keeps it, is the [file and directory reference](../docs/wiki/File-and-directory-reference.md).
+<!-- template:remove:end -->
+
 <a id="python-presentation-and-lint-policy"></a>
 
 ## 📐 Python presentation and lint policy
