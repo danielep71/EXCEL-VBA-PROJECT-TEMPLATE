@@ -1454,10 +1454,23 @@ def _generated_self_test(source: Path) -> None:
 MINIMAL_GATES = ("check_repo.py", "check_vba_public_api.py", "check_vba_jumps.py", "check_release_semantics.py")
 
 
-def _assert_no_removed_references(root: Path, removed: set[str], label: str) -> None:
-    """No retained file may name a path the tier removed, except template-checkout commands."""
+def _removed_workflow_names(source: Path, removed: set[str]) -> set[str]:
+    """Display names of removed workflows; prose names a workflow this way, not by path."""
+    names = set()
+    for path in removed:
+        if path.startswith(".github/workflows/") and path.endswith(".yml"):
+            match = re.search(r"(?m)^name:\s*(.+?)\s*$", (source / path).read_text(encoding="utf-8"))
+            if match:
+                names.add(match.group(1).strip("'\""))
+    return names
+
+
+def _assert_no_removed_references(
+    root: Path, removed: set[str], label: str, workflow_names: Iterable[str] = ()
+) -> None:
+    """No retained file may name a removed path or workflow, except template-checkout commands."""
     present = {PurePosixPath(path).name for path in _tracked_files(root)}
-    names = sorted({PurePosixPath(path).name for path in removed} - present, key=len, reverse=True)
+    names = sorted(({PurePosixPath(path).name for path in removed} - present) | set(workflow_names), key=len, reverse=True)
     if not names:
         return
     pattern = re.compile(r"(?<![A-Za-z0-9_-])(" + "|".join(map(re.escape, names)) + r")(?![A-Za-z0-9_])")
@@ -1505,7 +1518,7 @@ def _assert_minimal_tier(source: Path, base: Path, profile: str) -> None:
         raise AssertionError(f"{label} accepted a re-run with a different governance tier.")
     _assert_tier_recorded(fixture, "minimal", label)
     _assert_generated_cleanup(fixture, profile)
-    _assert_no_removed_references(fixture, removed, label)
+    _assert_no_removed_references(fixture, removed, label, _removed_workflow_names(source, removed))
     for gate in MINIMAL_GATES:
         for arguments in (["--self-test"], []):
             completed = subprocess.run(

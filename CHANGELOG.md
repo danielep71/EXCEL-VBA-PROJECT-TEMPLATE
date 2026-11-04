@@ -136,7 +136,12 @@ Use only the categories needed by a release.
   blocks the upgrade. The generated-profile CI matrix now covers every profile in
   both tiers, with and without a social preview (12 jobs). Each minimal job
   lints its generated workflows, runs the four gates, then upgrades in place and
-  re-verifies the result as a full-tier project (#90).
+  re-verifies the result as a full-tier project. Minimal-tier
+  documentation no longer tells adopters to run the label workflows, consult
+  Scorecard or run the initializer, lint and typing steps it removes; it
+  describes manual label setup instead. The initializer self-test now also
+  rejects a retained file that names a removed workflow by its display name
+  (#90).
 - Profile-owned components. `profiles.<profile>.owned_paths` names files that
   only that profile generates. The initializer deletes other profiles' owned
   files with their component entries and public-API manifest rows, and prunes

@@ -171,8 +171,9 @@ tier. Select it with `--governance-tier`; `full` is the default.
 | `full` | Everything below, plus release evidence and certification, build provenance, Excel host-evidence validation, documentation-drift and external-link checks, local-action validation, label automation, Scorecard, release closeout and the initializer | Portfolio-grade lifecycle and audited releases |
 | `minimal` | `check_repo.py` (repository integrity, VBA structure, pinned actions, version and changelog), `check_vba_public_api.py`, `check_vba_jumps.py`, `check_release_semantics.py`, their two helpers, the *Static repository checks* and CodeQL workflows, and the provisioning policy | A small team that wants source discipline and a safe release baseline |
 
-Both tiers keep the same VBA source, regression suite, issue forms, labels,
-private security reporting and branch/tag provisioning. The dry-run plan states
+Both tiers keep the same VBA source, regression suite, issue forms, label
+catalogue, private security reporting and branch/tag provisioning; only the
+full tier synchronizes and monitors labels automatically. The dry-run plan states
 the selected tier, the retained tools and every removed path. A `full` project
 records nothing extra; a `minimal` project records `"governance_tier": "minimal"`
 in `.github/repository-profile.json` and `.github/initialization.json`, so its

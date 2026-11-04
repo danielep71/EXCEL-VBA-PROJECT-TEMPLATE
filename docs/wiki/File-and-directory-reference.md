@@ -97,7 +97,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `docs/RELEASE_SEMANTICS.md` / document | Strict SemVer, changelog ordering and comparison-link rules. | T / T / T | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
 | `docs/REPOSITORY_STRUCTURE.md` / document | Source layout, component roles, exports and distribution ownership. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `docs/REUSABLE_WORKFLOWS.md` / document | Immutable workflow interface pin, caller contract and adoption procedure. | T / T / T | [docs/REUSABLE_WORKFLOWS.md](../../docs/REUSABLE_WORKFLOWS.md) |
-| `docs/SUPPLY_CHAIN_ASSURANCE.md` / document | Canonical CodeQL, Dependabot and Scorecard permission/evidence boundaries. | R / R / R | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
+| `docs/SUPPLY_CHAIN_ASSURANCE.md` / document | Canonical CodeQL, Dependabot and Scorecard permission/evidence boundaries. | T / T / T | [docs/SUPPLY_CHAIN_ASSURANCE.md](../../docs/SUPPLY_CHAIN_ASSURANCE.md) |
 | `docs/TEMPLATE_CONTRACT.md` / document | Independent adopted control versions and migration classification. | T / T / T | [docs/TEMPLATE_CONTRACT.md](../../docs/TEMPLATE_CONTRACT.md) |
 | `docs/VBA_HOUSE_STYLE.md` / document | Procedure contracts, declaration annotations and explanatory body comments. | T / T / T | [docs/VBA_HOUSE_STYLE.md](../../docs/VBA_HOUSE_STYLE.md) |
 | `docs/WIKI_PUBLICATION.md` / document | Reviewed wiki source, complete inventory, exact-SHA publication and drift. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |

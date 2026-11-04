@@ -43,15 +43,22 @@ occurrences and historical evidence. Never rewrite published provenance to make
 an old release appear to use the new dependency.
 
 Python `3.10` selects a runtime series, and `ubuntu-24.04` selects a hosted image
-family; neither freezes every patch or preinstalled utility. Hosted Python tool
+family; neither freezes every patch or preinstalled utility.
+<!-- template:tier:full:start -->
+Hosted Python tool
 installs are additionally constrained by reviewed CPython-3.10/Linux-x64 wheel
 hashes in `tools/requirements-*-ci.txt`, installed with
 `--only-binary=:all: --require-hashes`. That materially narrows package
 substitution risk but still does not make the runner image or network path
 hermetic. Capture actual versions in hosted evidence. The cross-platform
 `tools/requirements-dev.txt` remains version-pinned for local use and is
-checked against the CI locks. This policy adds no package manager to VBA runtime
-code.
+checked against the CI locks.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+The minimal tier's gates use only the Python standard library, so its static
+workflow installs no Python packages.
+<!-- template:tier:minimal:end -->
+This policy adds no package manager to VBA runtime code.
 
 <a id="provenance-review"></a>
 
@@ -98,7 +105,9 @@ The SHA/origin and least-privilege principles follow GitHub's
   in the same update. Dependabot scans only `.github/workflows/`, so the
   canonical gate rejects a variant pin that no workflow there still uses.
 <!-- template:remove:end -->
+<!-- template:tier:full:start -->
 - Keep an actionlint version, archive digest and validator expectation together.
+<!-- template:tier:full:end -->
 - Couple a reusable-workflow pin with local CLI changes only when required by
   its documented interface migration; explain and test the pair.
 - Separate unrelated dependencies, major upgrades, ownership changes, new
@@ -116,10 +125,17 @@ Before executing a candidate, finish the source/trust review above. Then:
 
 1. Run `python3 tools/check_repo.py --root .` and `git diff --check`. The
    canonical gate checks full lowercase SHA pins and version-comment syntax.
+<!-- template:tier:full:start -->
 2. Run the complete hosted static workflow, not only the changed tool. It must
    pass lint, typing, authoritative workflow validation, focused/self-tests,
    initializer checks, evidence upload and the final verdict. Record the exact
    tested commit and hosted run; new commits invalidate old candidate evidence.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+2. Run the complete hosted static workflow, not only the changed tool. It must
+   pass every gate, its self-test and the final verdict. Record the exact tested
+   commit and hosted run; new commits invalidate old candidate evidence.
+<!-- template:tier:minimal:end -->
 3. For template gate/workflow/runtime changes, run checker-development and
    policy-coverage checks plus the initializer fixtures for all three profiles.
    Reusable-workflow changes additionally require the hosted consumer fixtures
@@ -145,8 +161,8 @@ The canonical single-maintainer ruleset does not require an independent review.
 Generated repositories must configure and verify their own live merge settings
 using [POST_CREATION_CHECKLIST.md](POST_CREATION_CHECKLIST.md); files alone cannot
 enforce GitHub account settings. Dependabot is the installed proposal bot for
-GitHub Actions only; it must retain immutable pins and manual approval. CodeQL
-and OpenSSF Scorecard provide additional public supply-chain evidence under
+GitHub Actions only; it must retain immutable pins and manual approval. The
+security analyzers provide additional public supply-chain evidence under
 [SUPPLY_CHAIN_ASSURANCE.md](SUPPLY_CHAIN_ASSURANCE.md), not dependency approval.
 
 ## ↩️ Rollback and failed updates

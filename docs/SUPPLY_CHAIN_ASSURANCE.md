@@ -6,6 +6,7 @@ update policy; it does not replace either one.
 
 ## Visibility and analyzer eligibility
 
+<!-- template:tier:full:start -->
 The canonical template is public, so CodeQL and Scorecard are eligible under
 their committed public-repository paths. Initialized projects do not inherit that
 eligibility merely by inheriting the workflow files.
@@ -13,6 +14,12 @@ eligibility merely by inheriting the workflow files.
 Scorecard publication and exact-SHA Scorecard scanning are public-repository
 paths. Private repositories skip those jobs and must not present the skip as a
 successful scan or public Scorecard result.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+The minimal tier keeps CodeQL and Dependabot; it does not include Scorecard.
+Initialized projects do not inherit analyzer eligibility merely by inheriting
+the workflow files.
+<!-- template:tier:minimal:end -->
 
 CodeQL is enabled automatically for public repositories. A private repository
 may opt into the workflow with repository variable `ENABLE_PRIVATE_CODEQL=true`
@@ -36,7 +43,7 @@ must be verified independently during repository setup and release review.
 | --- | --- | --- |
 | CodeQL | Static security analysis of the maintained Python and JavaScript source the repository tracks | `push` to `main` / `release/**`, schedule, or explicit manual dispatch |
 | Dependabot | Weekly discovery of GitHub Actions updates | Proposal-only pull requests; no automatic approval or merge |
-| OpenSSF Scorecard | Exact-commit release-candidate analysis plus public default-branch posture publication | CLI scan on trusted non-default branch push/manual dispatch; published Action on `main`, branch-protection changes, schedule, or main-branch manual dispatch |
+| OpenSSF Scorecard (`.github/workflows/scorecard.yml`) | Exact-commit release-candidate analysis plus public default-branch posture publication | CLI scan on trusted non-default branch push/manual dispatch; published Action on `main`, branch-protection changes, schedule, or main-branch manual dispatch |
 
 All external Actions remain pinned to full immutable commit SHAs with audited
 semantic-version comments. Dependabot may propose a new Actions revision, but a
@@ -44,7 +51,8 @@ proposal is not trusted merely because a bot opened it: the source/tag must be
 reviewed under [DEPENDENCY_UPDATES.md](DEPENDENCY_UPDATES.md), the resulting
 workflow must retain immutable pins, and merge remains manual.
 
-The published Scorecard path uses `ossf/scorecard-action` v2.4.4, resolved to its
+<!-- template:tier:full:start -->
+The published Scorecard path uses `ossf/scorecard-action` v2.5.0, resolved to its
 reviewed commit. OpenSSF restricts published workflows: they may not define
 top-level `env` or `defaults`, the publishing job may not define job-level
 `env` or `defaults`, and that job may use only OpenSSF-approved Actions.
@@ -64,11 +72,15 @@ repository default branch. Release candidates therefore use the official
 Scorecard CLI v5.5.0 with `--commit` bound to the exact candidate SHA. The Linux
 amd64 release archive is verified against its recorded SHA-256 before execution;
 the resulting JSON and CLI version are retained as workflow evidence.
+<!-- template:tier:full:end -->
 
 ## Permission model
 
+<!-- template:tier:full:start -->
 The Scorecard workflow does not use `pull_request` or
-`pull_request_target`. CodeQL uses two distinct trust paths: trusted
+`pull_request_target`.
+<!-- template:tier:full:end -->
+CodeQL uses two distinct trust paths: trusted
 push/schedule/manual runs receive `contents: read` plus
 `security-events: write` for Code Scanning publication, while
 `pull_request` runs use a separate read-only job without
@@ -76,10 +88,13 @@ push/schedule/manual runs receive `contents: read` plus
 artifact. Both analysis jobs also receive `actions: read`, which CodeQL needs
 to read workflow run details in a private repository. No
 `pull_request_target` path exists and untrusted pull-request code receives no
-write-capable token or secrets. The Scorecard release-candidate
+write-capable token or secrets.
+<!-- template:tier:full:start -->
+The Scorecard release-candidate
 CLI job receives only `contents: read`. The default-branch publication job
 receives `contents: read`, `security-events: write`, and `id-token: write`; the
 last permission is used only for authenticated Scorecard result publication.
+<!-- template:tier:full:end -->
 The repository-quality gate rejects `pull_request_target` and rejects
 write-capable permissions in any workflow that runs on `pull_request`. Event
 detection, workflow-level permission analysis, job-level permission analysis,
@@ -96,44 +111,52 @@ A successful trusted CodeQL run means the configured CodeQL queries completed
 against the exact checked source and were eligible for Code Scanning publication.
 A successful pull-request CodeQL run means the same query set analyzed the
 GitHub pull-request merge commit under a read-only token and retained SARIF
-without privileged publication. A successful release-candidate Scorecard CLI run means
+without privileged publication.
+<!-- template:tier:full:start -->
+A successful release-candidate Scorecard CLI run means
 the official scanner completed against the requested commit and its retained
 JSON is candidate-bound; some Scorecard checks necessarily observe current
 repository settings rather than historical settings. The Scorecard Action can
 complete while reporting publication rejection as a warning, so its job result
 alone does **not** prove public publication. Public publication is claimed only
 when the separate verification job retrieves an exact-SHA record from
-`api.scorecard.dev`. A Dependabot proposal means only that GitHub detected a
+`api.scorecard.dev`.
+<!-- template:tier:full:end -->
+A Dependabot proposal means only that GitHub detected a
 candidate dependency update.
 
 None of those outcomes proves VBA compilation, Excel runtime behavior,
 numerical accuracy, UI cleanup, packaging integrity, or release certification.
 Those claims remain owned by their existing specialist and release evidence.
+<!-- template:tier:full:start -->
 Likewise, a public Scorecard score is not the repository's project-quality
 score.
+<!-- template:tier:full:end -->
 
 ## Review and maintenance
 
 Pull-request review uses the existing read-only deterministic gates; analyzer
 publication is deferred until the reviewed change reaches the default branch.
+<!-- template:tier:full:start -->
 Release-branch Scorecard evidence is an exact-commit CLI scan, not a claim that
 the public Scorecard service published that non-default candidate.
+<!-- template:tier:full:end -->
 
-Before merging a CodeQL, Scorecard, or dependency-workflow change:
+Before merging a security-analyzer or dependency-workflow change:
 
 1. resolve every proposed Action release tag to its upstream commit and record
    the immutable SHA; verify downloaded CLI assets against recorded official
    release digests;
 2. review permissions, triggers, checkout behavior, new network activity, and
    publication surfaces;
-3. run repository integrity, authoritative workflow validation and the retained
-   supply-chain fixtures; checker-development tooling applies only to canonical
-   template maintenance and is removed from initialized projects;
+3. run repository integrity and every workflow-validation and supply-chain
+   fixture the repository retains; checker-development tooling applies only to
+   canonical template maintenance and is removed from initialized projects;
 4. preserve manual dependency approval and rollback under
    [DEPENDENCY_UPDATES.md](DEPENDENCY_UPDATES.md);
-5. retain successful exact-revision CodeQL results, Scorecard analysis and
-   exact-SHA publication verification only for the workflow paths that are
-   actually eligible and executed.
+5. retain successful exact-revision analyzer results, and any exact-SHA
+   publication verification, only for the workflow paths that are actually
+   eligible and executed.
 
 If a required security analyzer is unavailable, misconfigured, skipped by the
 visibility/eligibility policy, or denied its required permissions, record that

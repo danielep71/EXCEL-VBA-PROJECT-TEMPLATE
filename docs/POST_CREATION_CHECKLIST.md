@@ -38,6 +38,7 @@ The versioned selection authority is `.github/repository-profile.json`:
 - `label_domains` lists zero or more kebab-case domain overlays; and
 - `.github/labels.json` supplies the core, profile, and domain catalogues.
 
+<!-- template:tier:full:start -->
 ### Trusted reconciliation
 
 On the first trusted push to `main`, or by a deliberate manual dispatch, run
@@ -73,6 +74,19 @@ values in deterministic JSON and Markdown evidence retained for 30 days.
   missing labels, requires recorded exceptions for replacements and never
   deletes extra labels. If extra labels are retained, add them to a selected
   overlay or review `prune: false` before routine synchronization runs.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+### Manual label setup
+
+The minimal tier keeps the label catalogue but not the label workflows, so
+nothing creates or checks labels automatically. Create the resolved core,
+profile and domain labels from `.github/labels.json` in the repository's
+label settings, with the same names, colors and descriptions. Dependabot
+applies `ci` and `tests` to its pull requests, so those two must exist.
+
+- [ ] Every resolved label exists with its catalogue name, color and description.
+- [ ] `ci` and `tests` exist for Dependabot pull requests.
+<!-- template:tier:minimal:end -->
 
 <a id="repository-identity"></a>
 
