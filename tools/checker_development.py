@@ -141,7 +141,7 @@ SELF_TEST_EXCLUSIONS = {
         "Template-only unittest CLI; maintainer-tool failure-path coverage"
     ),
     "test_template_workflow_validation.py": (
-        "Template-only unittest CLI; reusable-workflow maintenance fixtures"
+        "Template-only unittest CLI; consumer-fixture, CodeQL and Scorecard contract tests"
     ),
     "test_wiki.py": "Unittest CLI; normal invocation runs its fixture suite",
     "check_documentation.py": "Offline fixtures: python tools/test_documentation.py -v",
@@ -154,7 +154,7 @@ SELF_TEST_EXCLUSIONS = {
     "provision_repository.py": "Simulated provisioning: python tools/test_provision_repository.py -v",
     "test_workflow_validation.py": "Normal invocation runs authoritative actionlint fixtures",
     "create_reusable_workflow_fixture.py": (
-        "Offline cases: python tools/test_workflow_validation.py; live consumer pilot evidence is separate"
+        "Offline cases: python tools/test_template_workflow_validation.py -v; live consumer pilot evidence is separate"
     ),
 }
 

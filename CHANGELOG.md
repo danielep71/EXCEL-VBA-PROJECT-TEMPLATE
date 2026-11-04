@@ -271,6 +271,14 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- The Scorecard publication contract that generated projects run
+  (`tools/test_workflow_validation.py`) accepted flow-style or quoted `env` and
+  `defaults` keys, such as `env: {FOO: bar}`. A stricter copy existed only in
+  the template-only test module, which duplicated the whole validator and had
+  drifted. The retained validator now rejects those forms and escaped quoted
+  keys. The template module keeps only its unit tests, run against the retained
+  code; the static workflow now runs them as tests, and the coverage job no
+  longer runs a `unittest discover` that found 0 tests.
 - The reusable *Static repository checks* workflow set its concurrency group
   from `github.workflow`, which in a called workflow is the caller's name. A
   caller that kept the documented concurrency therefore shared the group and

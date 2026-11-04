@@ -99,8 +99,8 @@ suites: `python tools/test_documentation.py -v` and `python tools/test_wiki.py -
 CI runs them in `static-checks.yml` and `wiki-checks.yml`, respectively. They remain
 runner consumers; their self-test exclusions do not exempt them from ownership checks.
 The registry also names the separate suites for the other operational CLIs without
-the flag and explicitly discloses the provisioning fixture utility's lack of a
-dedicated offline suite.
+the flag, including `test_template_workflow_validation.py` for the reusable-workflow
+consumer fixture utility; its live consumer pilot evidence is separate.
 
 This check verifies interface declarations, not exhaustive test coverage. Advertising
 the flag does not prove that its fixtures ran or that every branch is covered.

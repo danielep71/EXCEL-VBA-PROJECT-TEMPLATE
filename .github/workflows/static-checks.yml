@@ -189,14 +189,14 @@ jobs:
       - name: Exercise template-maintainer validation suites when present
         id: template-maintainer-suites
         continue-on-error: true
-        env:
-          ACTIONLINT_PATH: ${{ steps.validator-install.outputs.path }}
         run: |
           if [[ -f tools/test_template_workflow_validation.py ]]; then
-            python3 tools/test_template_workflow_validation.py               --root .               --actionlint "$ACTIONLINT_PATH"               --summary test-results/template-workflow-validation.md
+            python3 tools/test_template_workflow_validation.py -v \
+              2>&1 | tee test-results/template-workflow-validation.txt
           fi
           if [[ -f tools/test_template_verification_depth.py ]]; then
-            python3 tools/test_template_verification_depth.py -v               2>&1 | tee test-results/template-verification-depth.txt
+            python3 tools/test_template_verification_depth.py -v \
+              2>&1 | tee test-results/template-verification-depth.txt
           fi
 
       - name: Exercise release-integrity candidates and failures

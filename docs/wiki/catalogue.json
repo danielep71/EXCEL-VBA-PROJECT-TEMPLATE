@@ -870,7 +870,7 @@
       "authority": "tools/README.md"
     },
     "tools/test_template_workflow_validation.py": {
-      "purpose": "Template-only reusable-workflow fixture tests separated from generated-project workflow validation.",
+      "purpose": "Template-only unit tests: reusable-workflow consumer fixtures, CodeQL and Scorecard contracts of the retained validator.",
       "kind": "script",
       "authority": "tools/README.md"
     },
