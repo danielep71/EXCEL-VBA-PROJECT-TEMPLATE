@@ -29,7 +29,9 @@ The schema-1 provisioning adapter supports contract **1.2.0**. Older or unknown
 versions fail explicitly; they are never silently upgraded. The versioned tool
 defines active branch and tag rule payloads for this adapter, including no bypass,
 strict `Repository integrity`, and immutable existing version tags. Stronger
-requirements can be listed in `required_checks`; the universal job remains.
+requirements can be listed in `required_checks`; the universal job remains,
+either as `Repository integrity` or, for a caller of the reusable workflow, as
+`<caller job> / Repository integrity`.
 
 ## 🧭 Preservation and supported operations
 

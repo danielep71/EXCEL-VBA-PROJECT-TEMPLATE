@@ -204,6 +204,15 @@ class ProvisionTests(unittest.TestCase):
         self.assertTrue(any("Extra label retained" in item for item in plan["keep"]))
         self.assertIn("specialist", next(action["body"]["names"] for action in plan["actions"] if action["path"] == "/topics"))
 
+    def test_universal_check_may_be_emitted_by_a_reusable_workflow_caller(self) -> None:
+        # A caller job "generic" that uses the reusable workflow emits "generic / Repository integrity".
+        self.api.files[provision.POLICY]["required_checks"] = ["generic / Repository integrity"]
+        self.assertFalse(self.plan()["blocked"])
+        for missing in (["Static checks"], ["Repository integrity extra"], ["generic/Repository integrity"]):
+            self.api.files[provision.POLICY]["required_checks"] = missing
+            with self.assertRaises(ValueError):
+                self.plan()
+
     def test_feature_disable_needs_recorded_exception(self) -> None:
         self.api.metadata["has_wiki"] = True
         self.assertTrue(self.plan()["blocked"])

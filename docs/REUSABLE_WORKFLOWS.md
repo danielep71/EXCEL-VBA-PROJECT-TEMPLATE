@@ -92,8 +92,13 @@ restrictions in [Reuse workflows](https://docs.github.com/en/actions/how-tos/reu
    Use `needs: generic` when they depend on the generic result; do not use
    `continue-on-error` to turn a required failure into a pass.
 5. Open a PR. Verify the generic job, evidence artifact and specialist jobs.
-   Update required-check settings to the actual emitted job name before retiring
-   the old required check; never leave a protection gap. Do not merge on output
+   Update required-check settings to the actual emitted job name, such as
+   `generic / Repository integrity`, before retiring the old required check, and
+   record the same name in `required_checks` of
+   `.github/provisioning-policy.json`; never leave a protection gap. The
+   provisioner accepts `<caller job> / Repository integrity` as the universal
+   check. The called job uses job-level concurrency, so the caller's own
+   workflow-level concurrency cannot deadlock with it. Do not merge on output
    SHA presence alone.
 
 <!-- template:remove:start -->

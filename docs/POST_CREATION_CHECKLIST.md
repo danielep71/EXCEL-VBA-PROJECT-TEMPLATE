@@ -133,7 +133,9 @@ Create or verify one ruleset targeting the default branch:
 - [ ] deletion and non-fast-forward updates blocked;
 - [ ] changes require a pull request;
 - [ ] zero mandatory approvals for the canonical single-maintainer baseline;
-- [ ] required status check is exactly `Repository integrity` and is strict;
+- [ ] required status check is exactly `Repository integrity`, or
+  `<caller job> / Repository integrity` when the generic job is called from the
+  reusable workflow, and is strict;
 - [ ] conversation resolution and other review controls are enabled only when
   the repository can satisfy them without bypass; and
 - [ ] the rule targets only the intended default branch pattern.

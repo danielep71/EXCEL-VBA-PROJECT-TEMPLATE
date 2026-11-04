@@ -32,10 +32,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: static-checks-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 defaults:
   run:
     shell: bash
@@ -45,6 +41,12 @@ jobs:
     name: Repository integrity
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    # Job-level, so a reusable-workflow caller keeps its own workflow-level
+    # group: there, github.workflow is the caller's name and a shared group
+    # would be cancelled as a caller/callee deadlock.
+    concurrency:
+      group: static-checks-${{ github.workflow }}-${{ github.ref }}-repository-integrity
+      cancel-in-progress: true
     outputs:
       candidate-sha: ${{ steps.candidate.outputs.sha }}
     env:

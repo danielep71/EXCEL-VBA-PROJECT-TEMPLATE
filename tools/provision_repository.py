@@ -113,6 +113,14 @@ def desired_labels(manifest: dict[str, Any], config: dict[str, Any]) -> list[dic
     return sorted(labels, key=lambda row: row["name"].lower())
 
 
+UNIVERSAL_CHECK = "Repository integrity"
+
+
+def is_universal_check(name: str) -> bool:
+    """The universal job, run directly or as the job a reusable-workflow caller names."""
+    return name == UNIVERSAL_CHECK or name.endswith(" / " + UNIVERSAL_CHECK)
+
+
 def validate(before: dict[str, Any], profile: str, version: str) -> dict[str, Any]:
     require(profile in PROFILES and version in CONTRACT_RULE_SETS, "Unsupported contract/profile")
     config, record, policy = (before["source"][path] for path in FILES[:3])
@@ -140,7 +148,8 @@ def validate(before: dict[str, Any], profile: str, version: str) -> dict[str, An
             for topic in policy["topics"]), "Invalid topics")
     require(isinstance(policy["required_checks"], list) and bool(policy["required_checks"]) and
             all(isinstance(name, str) and bool(name.strip()) for name in policy["required_checks"]), "Invalid required checks")
-    require("Repository integrity" in policy["required_checks"], "Universal Repository integrity check cannot be removed")
+    require(any(is_universal_check(name) for name in policy["required_checks"]),
+            "Universal Repository integrity check cannot be removed")
     require(isinstance(policy["exceptions"], dict) and all(isinstance(reason, str) and bool(reason.strip())
             for reason in policy["exceptions"].values()), "Exceptions need reviewed rationale in source policy")
     return policy
