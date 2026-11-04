@@ -56,7 +56,6 @@ pin() { grep -E "^$1==" tools/requirements-dev.txt | head -1 | sed 's/.*==//'; }
 # false negative, so the mirror is verified rather than trusted.
 bold "CI pin mirror"
 STATIC_CHECKS=.github/workflows/static-checks.yml
-CHECKER_DEV=.github/workflows/checker-development.yml
 
 workflow_env() { # workflow_env <name> <workflow>
   grep -E "^[[:space:]]+$1:[[:space:]]" "$2" | head -1 |
@@ -191,6 +190,7 @@ bold "Release and documentation contracts"
 run "Release-integrity self-test"  python3 tools/check_release.py --root . --self-test
 run "Release provenance fixtures"  python3 tools/test_release_provenance.py
 run "Excel evidence fixtures"      python3 tools/test_excel_evidence.py
+run "Verification-depth fixtures"  python3 tools/test_verification_depth.py
 run "Documentation fixtures"       python3 tools/test_documentation.py
 run "Documentation drift"          python3 tools/check_documentation.py --root .
 run "Release-semantics self-test"  python3 tools/check_release_semantics.py --root . --self-test
@@ -223,7 +223,8 @@ run "Wiki fixtures"                python3 tools/test_wiki.py
 run "Portfolio drift fixtures"     python3 tools/test_portfolio_drift.py
 run "Portfolio quality fixtures"   python3 tools/test_portfolio_quality.py
 run "Provisioning fixtures"        python3 tools/test_provision_repository.py
-run "Verification-depth fixtures"  python3 tools/test_verification_depth.py
+run "Template workflow tests"      python3 tools/test_template_workflow_validation.py
+run "Template depth fixtures"      python3 tools/test_template_verification_depth.py
 
 if [[ "$FAST" == "1" ]]; then
   record skip "Initializer self-test (FAST=1)"

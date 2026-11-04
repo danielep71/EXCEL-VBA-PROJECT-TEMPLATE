@@ -158,8 +158,9 @@ maintainers, MIT licence, upstream source and Python >=3.8 compatibility.
 [Parser documentation](https://pyyaml.org/wiki/PyYAMLDocumentation) describes its
 node/event APIs. This evaluator composes nodes and never constructs Python
 objects; aliases/custom tags are refused and input size/depth is bounded.
-Only the dedicated fixture workflow installs it. No new permissions, secret
-inheritance or automatic updates are introduced. The installation is version
-pinned, not a hash-locked transitive build. Rollback is the complete #25 commit
+It is installed hash-locked: from `tools/requirements-portfolio-ci.txt` by the
+fixture workflow and from `tools/requirements-coverage-ci.txt` by the coverage
+job, both template-only. No new permissions, secret inheritance or automatic
+updates are introduced. Rollback is the complete #25 commit
 on top of the prior passing #22 baseline; remove the parser-dependent workflow
 and tools together. Future parser updates follow the dependency-update policy.

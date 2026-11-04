@@ -271,6 +271,22 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- *Static repository checks* hardening. The documentation-contract step had
+  no `id` or `continue-on-error`, so its failure skipped every later gate
+  without naming the cause; it now reports through the final enforcement list
+  like the other gates. The quality-tool install now fails when the installed
+  Ruff or mypy differs from `RUFF_VERSION` or `MYPY_VERSION`, which were
+  declared but never compared. `template-contract.md` joins the job summary,
+  and the template test logs are uploaded. `test_verification_depth.py`,
+  kept by full-tier projects but run by no workflow they keep, now runs in the
+  release-integrity step. `labels-sync.yml` checkouts no longer persist
+  credentials, and both its jobs have a timeout.
+- `required_paths` omitted gates and workflows that generated projects run:
+  CodeQL, Scorecard and closeout workflows, the jump, conditional, public-API,
+  whitespace, local-action and release-semantics gates, the release closeout
+  and certification tools, and the quality-tool lock. They are now required
+  (the minimal tier still drops what it removes). The coverage and portfolio
+  locks, used only by template workflows, are now template-only.
 - The Scorecard publication contract that generated projects run
   (`tools/test_workflow_validation.py`) accepted flow-style or quoted `env` and
   `defaults` keys, such as `env: {FOO: bar}`. A stricter copy existed only in
