@@ -169,8 +169,9 @@ Use only the categories needed by a release.
   `Timer` wraps at midnight. `ProgressTests` (12 cases; 79 assertions on
   Windows, 75 on macOS) executes open, update, cancel, close, re-entry,
   cleanup and recovery, with a negative control proving that a broken
-  restoration is detected. Only generated `ui-component` projects receive
-  the four modules (#87).
+  restoration is detected. The suite refuses to start while another caller's
+  session is active, and the example ends only the session it began. Only
+  generated `ui-component` projects receive the four modules (#87).
 - A substantive application reference: a lifecycle whose versioned state lives
   in three hidden workbook-level names of an explicit host (`LifecycleSchema`,
   `LifecycleStatus`, `LifecycleStarts`), so it needs no sheet, window or
@@ -186,7 +187,9 @@ Use only the categories needed by a release.
   current-schema no-op, rollback mid-migration and mid-upgrade, re-entry,
   ownership, recovery, reset and explicit targets, with negative controls
   proving that an open host, a leaked session and unrecoverable state are
-  detected. `LifecycleExample` is the end-to-end smoke. `RELEASE_EVIDENCE.md`
+  detected; it refuses to start while a session, such as `ThisWorkbook`'s, is
+  running. `LifecycleExample` is the end-to-end smoke and stops only the
+  session it started. `RELEASE_EVIDENCE.md`
   maps the application profile's required checks to these entry points; a
   source-only release claims no packaging. Only generated `application`
   projects receive the four modules (#88).

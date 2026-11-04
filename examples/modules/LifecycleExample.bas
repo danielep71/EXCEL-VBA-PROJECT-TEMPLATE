@@ -19,8 +19,9 @@ Attribute VB_Name = "LifecycleExample"
 '   written to the VBE Immediate window.
 '
 ' ERROR POLICY
-'   Any error stops the session and closes the temporary workbook before it
-'   is re-raised.
+'   Any error stops the session this example started and closes the
+'   temporary workbook before it is re-raised. A session another workbook
+'   started is never stopped here.
 '
 ' WORKSHEET SAFETY
 '   Writes only to its temporary workbook, gives activation back to the
@@ -37,7 +38,7 @@ Attribute VB_Name = "LifecycleExample"
 '   LifecycleExample.RunLifecycleExample from the VBE Immediate window.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza
@@ -74,10 +75,12 @@ Public Sub RunLifecycleExample()
 '   Open and close one temporary workbook; print five lines.
 '
 ' ERROR POLICY
-'   Errors stop the session and close the host, then propagate.
+'   Errors stop the session this example started and close the host, then
+'   propagate. If another workbook's session is running, the start is
+'   refused and that session is left alone.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '==============================================================================
 '
 
@@ -90,6 +93,8 @@ Public Sub RunLifecycleExample()
     Dim savedDescription   As String      'Unexpected error diagnostic for re-raise
     Dim savedNumber        As Long        'Unexpected error number for re-raise
     Dim savedSource        As String      'Unexpected error source for re-raise
+    Dim started            As Boolean     'True while this example's session runs
+    Dim stopped            As Boolean     'Result of LifecycleStop
     Dim target             As Range       'Top-left cell of the status block
 
 '------------------------------------------------------------------------------
@@ -105,7 +110,8 @@ Public Sub RunLifecycleExample()
         Set target = host.Worksheets(1).Range("A1")
 
         Debug.Print "LIFECYCLE EXAMPLE"
-        Debug.Print "Start: " & YesNo(LifecycleFacade.LifecycleStart(host)) & _
+        started = LifecycleFacade.LifecycleStart(host)
+        Debug.Print "Start: " & YesNo(started) & _
             "; status=" & LifecycleFacade.LifecycleStatus() & _
             "; schema=" & CStr(LifecycleFacade.LifecycleStoredSchema(host)) & _
             "; starts=" & CStr(LifecycleFacade.LifecycleStoredStarts(host))
@@ -114,7 +120,9 @@ Public Sub RunLifecycleExample()
             "; " & CStr(target.Offset(1, 0).Value) & "=" & CStr(target.Offset(1, 1).Value) & _
             "; " & CStr(target.Offset(2, 0).Value) & "=" & CStr(target.Offset(2, 1).Value)
         Debug.Print "Repeat start: " & YesNo(LifecycleFacade.LifecycleStart(host))
-        Debug.Print "Stop: " & YesNo(LifecycleFacade.LifecycleStop()) & _
+        stopped = LifecycleFacade.LifecycleStop()
+        started = False
+        Debug.Print "Stop: " & YesNo(stopped) & _
             "; status=" & LifecycleFacade.LifecycleStatus()
 
 '------------------------------------------------------------------------------
@@ -133,7 +141,7 @@ HandleError:
         savedSource = Err.Source
         savedDescription = Err.Description
         On Error GoTo 0
-        If LifecycleFacade.LifecycleIsRunning() Then LifecycleFacade.LifecycleStop
+        If started Then LifecycleFacade.LifecycleStop
         If Not host Is Nothing Then host.Close SaveChanges:=False
         Err.Raise savedNumber, savedSource, savedDescription
 

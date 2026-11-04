@@ -27,7 +27,9 @@ Attribute VB_Name = "LifecycleTests"
 '   Expected facade errors are captured and asserted. Unexpected runner
 '   errors are recorded, cleanup runs, and the original
 '   number/source/description is re-raised. Assertion failures raise one
-'   test-suite error after reporting.
+'   test-suite error after reporting. A lifecycle session already running
+'   at suite start refuses the run before anything changes, so every
+'   session the harness stops is one its own cases started.
 '
 ' WORKSHEET SAFETY
 '   Creates temporary workbooks with Workbooks.Add, gives activation back to
@@ -42,7 +44,8 @@ Attribute VB_Name = "LifecycleTests"
 '
 ' COMPATIBILITY
 '   Excel VBA on Windows and macOS. Run it with a workbook active, such as
-'   the one holding the VBA project, so activation can be given back.
+'   the one holding the VBA project, so activation can be given back, and
+'   with no lifecycle session running (call LifecycleStop first).
 '
 ' USAGE
 '   Import the application production modules first, then run
@@ -51,7 +54,7 @@ Attribute VB_Name = "LifecycleTests"
 '   covering the shared starter.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza
@@ -71,6 +74,8 @@ Attribute VB_Name = "LifecycleTests"
     'the expected counts define when the suite is complete.
         Private Const TEST_ERROR_DIRTY_START          As Long = vbObjectError + 2360    'Refused re-entry or interrupted run
         Private Const TEST_ERROR_FAILURES             As Long = vbObjectError + 2361    'Failed or incomplete suite outcome
+        Private Const TEST_ERROR_SESSION_RUNNING      As Long = vbObjectError + 2362    'A session was running at suite start
+        Private Const TEST_ERROR_ACTIVATION           As Long = vbObjectError + 2363    'Activation could not be given back
         Private Const EXPECTED_CASES                  As Long = 16                      'Required cases for a complete run
         Private Const EXPECTED_ASSERTIONS             As Long = 106                     'Required assertions for a complete run
 
@@ -138,10 +143,11 @@ Public Sub RunLifecycleTests()
 ' ERROR POLICY
 '   Record unexpected runner failures, attempt cleanup, print the summary,
 '   then re-raise the saved error. Other failed outcomes raise the suite error.
-'   A dirty start raises immediately and does not run cleanup.
+'   A dirty start, or a session already running, raises immediately and
+'   does not run cleanup.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-04
 '==============================================================================
 '
 
@@ -172,6 +178,16 @@ Public Sub RunLifecycleTests()
                 TEST_ERROR_DIRTY_START, _
                 "LifecycleTests.RunLifecycleTests", _
                 "A LifecycleTests run is already active. Run ResetLifecycleTests after an interrupted execution."
+        End If
+
+    'The cases need the single session slot. Refuse rather than stop a
+    'session that belongs to another workbook, such as ThisWorkbook.
+        If LifecycleFacade.LifecycleIsRunning() Then
+            Debug.Print "RESULT=FAIL_SESSION_RUNNING; cleanup=NOT_RUN"
+            Err.Raise _
+                TEST_ERROR_SESSION_RUNNING, _
+                "LifecycleTests.RunLifecycleTests", _
+                "A lifecycle session is already running. Call LifecycleFacade.LifecycleStop, then run the suite."
         End If
 
 '------------------------------------------------------------------------------
@@ -299,9 +315,10 @@ Public Sub ResetLifecycleTests()
 '   Run only after the previous execution has stopped; then rerun the suite.
 '
 ' SIDE EFFECTS
-'   Stop a leaked lifecycle session, disarm the seam, close any temporary
-'   host still tracked, and clear counters, failure text, completion, and
-'   the active-run flag. Print confirmation.
+'   Stop a lifecycle session still running, which after an interrupted run
+'   is that run's own, disarm the seam, close any temporary host still
+'   tracked, and clear counters, failure text, completion, and the
+'   active-run flag. Print confirmation.
 '
 ' UPDATED
 '   2026-11-03
@@ -1675,7 +1692,7 @@ Private Function CreateHost() _
         Set CreateHost = host
         If Not RestoreActiveBook() Then
             Err.Raise _
-                TEST_ERROR_FAILURES, _
+                TEST_ERROR_ACTIVATION, _
                 "LifecycleTests.CreateHost", _
                 "The workbook active at suite start could not be activated again."
         End If

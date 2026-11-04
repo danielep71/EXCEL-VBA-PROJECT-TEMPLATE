@@ -23,8 +23,10 @@ Attribute VB_Name = "ProgressTests"
 '   suite-start values before the harness verifies cleanup.
 '
 ' ERROR POLICY
-'   Expected facade errors are captured and asserted. A failed case ends any
-'   session it left active. Unexpected runner errors are recorded, cleanup
+'   Expected facade errors are captured and asserted. A progress session
+'   already active at suite start refuses the run before anything changes,
+'   so every session the harness ends is one its own cases began. A failed
+'   case ends any session it left active. Unexpected runner errors are recorded, cleanup
 '   runs, and the original number/source/description is re-raised.
 '   Assertion failures raise one test-suite error after reporting.
 '
@@ -49,7 +51,7 @@ Attribute VB_Name = "ProgressTests"
 '   bar flickers while it runs. ProjectTests keeps covering the shared starter.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza
@@ -69,6 +71,7 @@ Attribute VB_Name = "ProgressTests"
     'the expected counts define when the suite is complete.
         Private Const TEST_ERROR_DIRTY_START           As Long = vbObjectError + 2260    'Refused re-entry or interrupted run
         Private Const TEST_ERROR_FAILURES              As Long = vbObjectError + 2261    'Failed or incomplete suite outcome
+        Private Const TEST_ERROR_SESSION_ACTIVE        As Long = vbObjectError + 2262    'A session was active at suite start
         Private Const EXPECTED_CASES                   As Long = 12                      'Required cases for a complete run
 #If Mac Then
         Private Const EXPECTED_ASSERTIONS              As Long = 75                      'Required assertions without cursor checks
@@ -141,10 +144,11 @@ Public Sub RunProgressTests()
 ' ERROR POLICY
 '   Record unexpected runner failures, attempt cleanup, print the summary,
 '   then re-raise the saved error. Other failed outcomes raise the suite error.
-'   A dirty start raises immediately and does not run cleanup.
+'   A dirty start, or a session already active, raises immediately and does
+'   not run cleanup.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '==============================================================================
 '
 
@@ -177,6 +181,16 @@ Public Sub RunProgressTests()
                 TEST_ERROR_DIRTY_START, _
                 "ProgressTests.RunProgressTests", _
                 "A ProgressTests run is already active. Run ResetProgressTests after an interrupted execution."
+        End If
+
+    'The cases need the single session slot. Refuse rather than end a
+    'session another caller began.
+        If ProgressFacade.ProgressIsActive() Then
+            Debug.Print "RESULT=FAIL_SESSION_ACTIVE; cleanup=NOT_RUN"
+            Err.Raise _
+                TEST_ERROR_SESSION_ACTIVE, _
+                "ProgressTests.RunProgressTests", _
+                "A progress session is already active. Call ProgressFacade.ProgressEnd, then run the suite."
         End If
 
 '------------------------------------------------------------------------------

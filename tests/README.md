@@ -51,12 +51,16 @@ RESULT=PASS; completeness=COMPLETE; cases=12; assertions=79; failures=0; cleanup
 
 On macOS the expected count is 75 assertions. The status bar flickers while the
 suite runs; the suite restores the values it found before cleanup is verified.
+End any progress session first: the suite refuses to start
+(`RESULT=FAIL_SESSION_ACTIVE`) rather than end a session it did not begin.
 <!-- template:profile:ui-component:end -->
 
 <!-- template:profile:application:start -->
 The application profile adds `modules/LifecycleTests.bas`. Import it after
 `LifecycleCore` and `LifecycleFacade`, then run `LifecycleTests.RunLifecycleTests`
-with a workbook active. Its 16 cases run on temporary workbooks that the suite
+with a workbook active and no lifecycle session running: the suite refuses to
+start (`RESULT=FAIL_SESSION_RUNNING`) rather than stop a session another
+workbook, such as `ThisWorkbook`, started. Its 16 cases run on temporary workbooks that the suite
 closes unsaved: first start, repeated start and stop, restart, migration from
 schema 1, the current-schema no-op, refusals before any change, rollback of a
 start that fails mid-migration or mid-upgrade, re-entry refused as busy, single
