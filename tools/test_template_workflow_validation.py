@@ -334,6 +334,53 @@ class SupplyChainEligibilityTests(unittest.TestCase):
         self.assertFalse(self.codeql_eligibility_guarded(changed))
 
 
+class CodeqlLanguageSelectionTests(unittest.TestCase):
+    """CodeQL analyzes exactly the languages the checked-out tree tracks.
+
+    CodeQL fails a language with no source, so a fixed matrix broke every
+    minimal-tier project once the tier removed the label scripts.
+    """
+
+    def setUp(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        self.codeql = (root / ".github/workflows/codeql.yml").read_text(encoding="utf-8")
+
+    def selection_script(self) -> str:
+        match = re.search(r"        id: languages\n        shell: bash\n        run: \|\n((?:          .*\n|\n)+)", self.codeql)
+        self.assertIsNotNone(match, "codeql.yml must select languages in a step with id 'languages'")
+        assert match is not None
+        return textwrap.dedent(match.group(1))
+
+    def selected(self, files: tuple[str, ...]) -> str:
+        with tempfile.TemporaryDirectory() as temporary:
+            tree = Path(temporary)
+            subprocess.run(["git", "init", "-q", str(tree)], check=True)
+            for name in files:
+                (tree / name).parent.mkdir(parents=True, exist_ok=True)
+                (tree / name).write_text("x = 1\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(tree), "add", "--all"], check=True)
+            output = tree / "github-output"
+            subprocess.run(
+                ["bash", "-c", self.selection_script()],
+                cwd=tree,
+                env={**os.environ, "GITHUB_OUTPUT": str(output)},
+                check=True,
+                capture_output=True,
+            )
+            return output.read_text(encoding="utf-8").strip()
+
+    def test_languages_follow_tracked_sources(self) -> None:
+        self.assertEqual(self.selected(("tools/a.py", ".github/scripts/b.mjs")),
+                         'languages=["python","javascript-typescript"]')
+        self.assertEqual(self.selected(("tools/a.py",)), 'languages=["python"]')
+        self.assertEqual(self.selected(("README.md",)), "languages=[]")
+
+    def test_both_analysis_jobs_use_the_selection(self) -> None:
+        self.assertEqual(self.codeql.count("language: ${{ fromJSON(needs.eligibility.outputs.languages) }}"), 2)
+        self.assertEqual(self.codeql.count("needs.eligibility.outputs.languages != '[]'"), 2)
+        self.assertNotIn("          - javascript-typescript", self.codeql)
+
+
 class ScorecardReviewRegressionTests(unittest.TestCase):
     """Hold the Scorecard publication contract: job environment and defaults,
     the file-mode input binding, and the SVG badge script, against the retained workflow."""

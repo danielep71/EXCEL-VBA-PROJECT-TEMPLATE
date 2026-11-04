@@ -21,6 +21,12 @@ is eligible for private CodeQL. The variable is an execution switch, not
 evidence of entitlement. If the eligibility job is skipped, downstream CodeQL
 analysis is unavailable and that is an assurance limitation.
 
+The eligibility job also selects the languages to analyze from the tracked
+files: Python when any `*.py` is tracked, JavaScript/TypeScript when any
+`*.js`, `*.mjs`, `*.cjs`, `*.jsx`, `*.ts`, `*.mts`, `*.cts` or `*.tsx` is.
+CodeQL fails a language that has no source, so a project without the label
+scripts, such as a minimal-tier one, analyzes Python only.
+
 Neither path changes repository visibility. Visibility and platform capability
 must be verified independently during repository setup and release review.
 
@@ -28,7 +34,7 @@ must be verified independently during repository setup and release review.
 
 | Control | Purpose | Trusted execution boundary |
 | --- | --- | --- |
-| CodeQL | Static security analysis of maintained Python and JavaScript source | `push` to `main` / `release/**`, schedule, or explicit manual dispatch |
+| CodeQL | Static security analysis of the maintained Python and JavaScript source the repository tracks | `push` to `main` / `release/**`, schedule, or explicit manual dispatch |
 | Dependabot | Weekly discovery of GitHub Actions updates | Proposal-only pull requests; no automatic approval or merge |
 | OpenSSF Scorecard | Exact-commit release-candidate analysis plus public default-branch posture publication | CLI scan on trusted non-default branch push/manual dispatch; published Action on `main`, branch-protection changes, schedule, or main-branch manual dispatch |
 
@@ -65,8 +71,10 @@ The Scorecard workflow does not use `pull_request` or
 `pull_request_target`. CodeQL uses two distinct trust paths: trusted
 push/schedule/manual runs receive `contents: read` plus
 `security-events: write` for Code Scanning publication, while
-`pull_request` runs use a separate read-only job with `contents: read` only,
-set `upload: never`, and retain SARIF as an Actions artifact. No
+`pull_request` runs use a separate read-only job without
+`security-events: write`, set `upload: never`, and retain SARIF as an Actions
+artifact. Both analysis jobs also receive `actions: read`, which CodeQL needs
+to read workflow run details in a private repository. No
 `pull_request_target` path exists and untrusted pull-request code receives no
 write-capable token or secrets. The Scorecard release-candidate
 CLI job receives only `contents: read`. The default-branch publication job

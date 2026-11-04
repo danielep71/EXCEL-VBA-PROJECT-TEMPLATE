@@ -1994,8 +1994,11 @@ def _workflow_job_blocks(lines: list[str]) -> list[tuple[int, list[str]]]:
 
 
 def _job_excludes_pull_request(block: list[str]) -> bool:
+    # A conjunction with the exclusion still excludes pull requests; any "|"
+    # could add an alternative that admits them, so it is not recognized.
     exclusion = re.compile(
-        r"^    if:\s*github\.event_name\s*!=\s*(['\"])pull_request\1\s*(?:#.*)?$"
+        r"^    if:\s*github\.event_name\s*!=\s*(['\"])pull_request\1"
+        r"(?:\s*&&\s*[^|#\s][^|#]*?)?\s*(?:#.*)?$"
     )
     return any(exclusion.match(line) for line in block)
 

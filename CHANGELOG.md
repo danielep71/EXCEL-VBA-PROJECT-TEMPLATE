@@ -262,6 +262,14 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- CodeQL analyzed a fixed Python and JavaScript/TypeScript matrix. The minimal
+  tier removes the label scripts, the template's only JavaScript, and CodeQL
+  fails a language with no source, so every minimal-tier analysis would fail.
+  The eligibility job now selects the languages from the tracked files, both
+  analysis jobs use that list and skip when it is empty, and both receive
+  `actions: read`, which CodeQL needs in a private repository. `check_repo.py`
+  now also treats `github.event_name != 'pull_request' && …` as excluding pull
+  requests; a condition containing `|` is still not trusted.
 - `check_repo.py` reports issue-form evidence fields that must be mandatory in
   a fixed, sorted order. They were visited in set order, so with more than one
   such finding the report order changed with Python's hash seed (#92).

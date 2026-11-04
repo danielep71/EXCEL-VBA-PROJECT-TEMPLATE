@@ -2,8 +2,8 @@ name: CodeQL security analysis
 run-name: CodeQL — ${{ github.ref_name }} @ ${{ github.sha }}
 
 # Private runs require confirmed eligibility and ENABLE_PRIVATE_CODEQL=true.
-# This analyzes maintained Python and JavaScript source; it does not execute
-# Excel or certify a release candidate.
+# This analyzes the maintained Python and JavaScript source the repository
+# actually tracks; it does not execute Excel or certify a release candidate.
 
 on:
   push:
@@ -30,27 +30,48 @@ jobs:
     name: Check CodeQL eligibility
     if: github.event.repository.private == false || vars.ENABLE_PRIVATE_CODEQL == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
+    outputs:
+      languages: ${{ steps.languages.outputs.languages }}
     steps:
-      - name: Record eligible analysis
-        run: echo 'CodeQL is enabled for this repository visibility and eligibility policy.'
+      - name: Check out the exact SHA under analysis
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select languages with tracked source
+        id: languages
+        shell: bash
+        run: |
+          # CodeQL fails a language that has no source, and the minimal tier
+          # (or an adopter) may remove the label scripts, the only JavaScript.
+          languages=()
+          if [ -n "$(git ls-files -- '*.py')" ]; then
+            languages+=('"python"')
+          fi
+          if [ -n "$(git ls-files -- '*.js' '*.mjs' '*.cjs' '*.jsx' '*.ts' '*.mts' '*.cts' '*.tsx')" ]; then
+            languages+=('"javascript-typescript"')
+          fi
+          joined=$(IFS=,; echo "${languages[*]}")
+          echo "languages=[${joined}]" >> "$GITHUB_OUTPUT"
+          echo "CodeQL is enabled for this repository visibility and eligibility policy; languages: [${joined}]"
 
   analyze:
     name: Analyze ${{ matrix.language }}
     needs: eligibility
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.eligibility.outputs.languages != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
+      actions: read
       contents: read
       security-events: write
     strategy:
       fail-fast: false
       matrix:
-        language:
-          - python
-          - javascript-typescript
+        language: ${{ fromJSON(needs.eligibility.outputs.languages) }}
 
     steps:
       - name: Check out the exact SHA under analysis
@@ -74,17 +95,16 @@ jobs:
   analyze-pr:
     name: Analyze PR ${{ matrix.language }} (read-only)
     needs: eligibility
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && needs.eligibility.outputs.languages != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
+      actions: read
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        language:
-          - python
-          - javascript-typescript
+        language: ${{ fromJSON(needs.eligibility.outputs.languages) }}
 
     steps:
       - name: Check out the pull-request merge commit

@@ -2236,5 +2236,22 @@ class VbaStructureDirectiveTests(unittest.TestCase):
                          ["Declare in an active VBA7 branch must include PtrSafe."])
 
 
+class WorkflowPullRequestExclusionTests(unittest.TestCase):
+    """A job counts as unreachable from pull_request only through a pure exclusion."""
+
+    @staticmethod
+    def excludes(condition: str) -> bool:
+        return repo_gate._job_excludes_pull_request(["  publish:", f"    if: {condition}"])
+
+    def test_plain_exclusion_and_conjunction_are_recognized(self) -> None:
+        self.assertTrue(self.excludes("github.event_name != 'pull_request'"))
+        self.assertTrue(self.excludes("github.event_name != 'pull_request' && needs.select.outputs.items != '[]'"))
+
+    def test_alternatives_and_inclusions_are_not_recognized(self) -> None:
+        self.assertFalse(self.excludes("github.event_name != 'pull_request' || always()"))
+        self.assertFalse(self.excludes("github.event_name == 'pull_request' && true"))
+        self.assertFalse(self.excludes("github.event_name != 'pull_request' &&"))
+
+
 if __name__ == "__main__":
     unittest.main()
