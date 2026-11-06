@@ -8,10 +8,26 @@
 Local source checks are deterministic. Network collectors and live setup tools
 have separately documented observation, credential and mutation boundaries.
 
+This guide is organized by topic and does not list every file. Besides the
+gates below, a project keeps these tools, each documented by its authority:
+
+| Tool | Authority |
+| --- | --- |
+| `check_release_semantics.py` | [Release semantics](../docs/RELEASE_SEMANTICS.md) |
+| `release_provenance.py`, `test_release_provenance.py` | [Release provenance](../docs/RELEASE_PROVENANCE.md) |
+| `check_excel_evidence.py`, `test_excel_evidence.py` | [Excel evidence](../docs/EXCEL_EVIDENCE.md) |
+| `check_documentation.py`, `check_external_links.py`, `test_documentation.py` | [Documentation checks](../docs/DOCUMENTATION_CHECKS.md) |
+| `check_local_actions.py` | [Local actions](LOCAL_ACTIONS.md) |
+| `release_certification.py` | [Release evidence](../docs/RELEASE_EVIDENCE.md) |
+| `_release_closeout.py` | [Release closeout](../docs/RELEASE_CLOSEOUT.md) |
+| `test_verification_depth.py` | Depth tests for the release, contract, whitespace, link, local-action, initializer and closeout tooling; run by *Static repository checks* |
+
 <!-- template:remove:start -->
-This guide is organized by topic and does not list every file. The complete,
-gate-checked inventory of `tools/`, with each file's purpose and whether each
-profile keeps it, is the [file and directory reference](../docs/wiki/File-and-directory-reference.md).
+The complete, gate-checked inventory of `tools/`, with each file's purpose and
+whether each profile keeps it, is the
+[file and directory reference](../docs/wiki/File-and-directory-reference.md).
+The template-only `dev_check.sh` runs the local pre-push suite; see
+[checker development](../docs/CHECKER_DEVELOPMENT.md#-local-pre-push-validation).
 <!-- template:remove:end -->
 
 <a id="python-presentation-and-lint-policy"></a>
@@ -40,10 +56,12 @@ The canonical reproducible coverage command is the complete `Exercise maintained
 tooling under coverage` shell block in
 [`.github/workflows/checker-development.yml`](../.github/workflows/checker-development.yml).
 It is intentionally CI-independent: after installing the pinned dependencies below, run
-that block verbatim from the repository root in Bash.
+that block from the repository root under `bash -eo pipefail`, as the hosted
+`shell: bash` does. In a plain Bash a failing line does not stop the block and
+`coverage report | tee` exits 0 below the floor, so the floor is not enforced.
 
 ```bash
-python -m pip install --disable-pip-version-check "coverage[toml]==7.10.6" "tomli==2.2.1; python_version < '3.11'" "PyYAML==6.0.3"
+python -m pip install --disable-pip-version-check -r tools/requirements-dev.txt
 ```
 
 The measurement scope is maintained `tools/*.py`. Test drivers matching

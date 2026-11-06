@@ -38,7 +38,7 @@ Attribute VB_Name = "TextCore"
 '   differ between the two platforms.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-06
 '
 ' AUTHOR
 '   Daniele Penza
@@ -604,15 +604,15 @@ Public Function JoinPathText( _
 '   basePath, one PATH_SEPARATOR and childPath. An empty basePath returns
 '   childPath; a root such as "C:\" or "/" keeps its separator.
 '
+' SIDE EFFECTS
+'   None. The path is text; the file system is never consulted.
+'
 ' ERROR POLICY
 '   Raise ERR_INVALID_ARGUMENT when childPath is rooted: it starts with a
 '   separator, or on Windows it names a drive such as "D:".
 '
-' SIDE EFFECTS
-'   None. The path is text; the file system is never consulted.
-'
 ' UPDATED
-'   2026-09-30
+'   2026-11-06
 '==============================================================================
 '
 

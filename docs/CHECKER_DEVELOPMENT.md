@@ -304,7 +304,7 @@ Every development-contract report records the SHA-256 of `tools/check_repo.py`. 
 3. Run `python3 tools/check_repo.py --root . --self-test`.
 4. Run `python3 tools/check_policy_coverage.py --root . --self-test` so every canonical blocking finding remains exercised.
 5. Run `tools/dev_check.sh` to reproduce the locally checkable part of hosted CI before pushing.
-6. Run the normal repository gate and require successful hosted terminal verdicts from both `Checker development` and `Repository integrity`.
+6. Run the normal repository gate and require successful hosted terminal verdicts from `Checker development`, `Python statement coverage` (the 95% floor) and `Repository integrity`.
 7. If a deliberate internal boundary, CLI contract or canonical check order changes, update this document and `checker_development.py` in the same reviewed change.
 
 ## 🚫 Non-goals
