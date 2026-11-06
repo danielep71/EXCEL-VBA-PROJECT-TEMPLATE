@@ -11,6 +11,7 @@ from typing import Any
 from check_wiki import (
     compare_bundle,
     directories,
+    footer,
     read_json,
     render_page,
     sidebar,
@@ -22,7 +23,9 @@ from check_wiki import (
 def catalogue_fixture(root: Path) -> tuple[dict[str, Any], set[str]]:
     (root / 'docs/wiki').mkdir(parents=True)
     (root / 'docs/Authority.md').write_text('Authority')
-    (root / 'docs/wiki/Home.md').write_text('> **Guide, not policy:** [Authority](../Authority.md) governs.\n')
+    (root / 'docs/wiki/Home.md').write_text(
+        '> **Guide, not policy:** [Authority](../Authority.md) governs.\n\n---\n[Home](Home.md)\n'
+    )
     files = {'docs/Authority.md', 'docs/wiki/Home.md', 'docs/wiki/_Sidebar.md', 'docs/wiki/catalogue.json'}
     row = {'kind': 'document', 'purpose': 'Explains a maintained contract', 'authority': 'docs/Authority.md'}
     data = {'schema_version': 1, 'pages': [{'name': 'Home', 'title': 'Start', 'authority': 'docs/Authority.md'}],
@@ -66,6 +69,24 @@ class WikiTests(unittest.TestCase):
                         variant['files']['docs/Authority.md']['kind'] = 'unknown'
                     with self.assertRaises(ValueError):
                         validate_catalogue(root, variant, files)
+
+    def test_footer_follows_page_order(self) -> None:
+        data = {'pages': [{'name': 'Home'}, {'name': 'Middle'}, {'name': 'Last'}]}
+        self.assertEqual(footer(data, 'Home'), '[Home](Home.md) · [Next](Middle.md)')
+        self.assertEqual(footer(data, 'Middle'),
+                         '[Home](Home.md) · [Previous](Home.md) · [Next](Last.md)')
+        self.assertEqual(footer(data, 'Last'), '[Home](Home.md) · [Previous](Middle.md)')
+
+    def test_wrong_footer_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data, files = catalogue_fixture(root)
+            (root / 'docs/wiki/Home.md').write_text(
+                '> **Guide, not policy:** [Authority](../Authority.md) governs.\n\n---\n'
+                '[Home](Home.md) · [Next](Elsewhere.md)\n'
+            )
+            with self.assertRaisesRegex(ValueError, 'navigation footer'):
+                validate_catalogue(root, data, files)
 
     def test_notice_requires_actual_authority_link(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

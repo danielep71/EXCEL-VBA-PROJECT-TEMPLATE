@@ -25,7 +25,7 @@ workbook. The ratio example is a working starting point, not a pricing library.
 | Requirement | Verify |
 | --- | --- |
 | Git and Git Bash on Windows | `git --version`; commands below use Bash syntax |
-| Python 3.10 or later | `python --version`; use the same interpreter throughout |
+| Python 3.10 or later | `python --version`; this wiki writes `python`, so use `python3` wherever that is the name of Python 3.10+ |
 | Excel desktop for host validation | Check Office version, build and bitness |
 | GitHub access | Create the intended repository and administer its settings |
 | Editor and VBE access | Edit text exports and import modules into a test workbook |
@@ -36,7 +36,7 @@ and Git's credential manager. Never paste tokens into commands, issues or this w
 
 ## Journey and checkpoints
 
-1. **Choose** a profile and its owner/state boundary.
+1. **Choose** a profile and its owner/state boundary, and a governance tier.
 2. **Create** only the new repository; record the template source.
 3. **Initialize** from a clean tree: preview, review, apply, commit, verify no-op.
 4. **Configure GitHub** and read settings back.
@@ -46,9 +46,10 @@ and Git's credential manager. Never paste tokens into commands, issues or this w
 Stop at the first failed checkpoint. A skipped network check or unavailable
 Excel installation is not a passing result.
 
-Use the file reference when a filename is unfamiliar, the tool reference to
-understand automation, and troubleshooting to diagnose failures. The publication
-page is for maintainers of this template's wiki; generated projects remove that
+Use the [file reference](File-and-directory-reference.md) when a filename is
+unfamiliar, the [tool reference](Workflow-and-tool-reference.md) to understand
+automation, and [troubleshooting](Troubleshooting.md) to diagnose failures. The
+[publication page](Publish-the-wiki.md) is for maintainers of this template's wiki; generated projects remove that
 template-maintenance source rather than inheriting a second documentation system.
 
 ---

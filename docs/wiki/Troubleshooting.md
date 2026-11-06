@@ -13,13 +13,17 @@ sanitized output. Do not fix a failure by weakening an unrelated gate.
 | Dirty-tree initialization refusal | Review changes; commit intended setup inputs or use a fresh clean checkout; do not discard unrelated work |
 | Unknown/missing/unused substitution | Compare the exact catalogue and argument categories in Initialization |
 | Second initialization fails | Use identical recorded inputs from a clean committed tree; different inputs are not an upgrade |
-| Expected maintenance tools disappeared | Check X entries in the inventory: template-only removal is intentional |
+| Expected maintenance tools disappeared | Check X entries in the inventory, or the minimal-tier removal list in [Initialization](../INITIALIZATION.md#governance-tiers): template-only and tier removal is intentional |
+| A documented tool is missing in a minimal project | The minimal tier keeps only the integrity, public-API, jump and release-semantics gates; adopt the rest with `--upgrade-tier full` |
+| `--upgrade-tier full` exits 2 | A file has an adopter change that overlaps a tier difference; resolve the named conflicts and rerun the dry run |
+| First *Static repository checks* run on a new copy fails at *Validate release semantics* | Expected before initialization: the template's history policy names commits the copy lacks; judge the initialized setup branch |
+| First provisioning plan is blocked by Wikis/Projects | GitHub enables both on a new repository; untick them in Settings, then plan again |
 | New file not inspected | Stage the intended file; canonical inventory uses tracked paths |
 | README-only source is rejected | Keep the mandatory facade, core and substantive tests; empty roles do not meet the contract |
 | CRLF or encoding failure | Follow attributes and export rules; preserve CP1252-compatible VBA without BOM |
 | VBE imports a duplicate module | Replace the existing component through the documented installation procedure; verify its exported name |
 | API manifest mismatch | Compare normalized public signatures and declared roles; update the contract only for an intentional API change |
-| Test run says dirty start | Stop the interrupted execution, use `ProjectTests.ResetProjectTests`, then run the complete suite |
+| Test run says dirty start | Stop the interrupted execution, run the suite's reset (`ResetProjectTests`, `ResetTextTests`, `ResetProgressTests` or `ResetLifecycleTests`), then run the complete suite |
 | Counts or cleanup fail | Keep the entire output and diagnose the first failure; do not relabel an incomplete result PASS |
 | Required check is waiting | Compare branch/path triggers and actual job context with the ruleset; preserve protection while repairing configuration |
 | Ruleset read gives 403 | Record unverified access; obtain authorized administration access or a UI read-back |

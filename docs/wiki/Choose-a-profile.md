@@ -43,6 +43,16 @@ remain project-private. Keep that dependency direction when adding functionality
 The initializer may create directory README files. They explain reserved
 locations and are not claims that those roles have been implemented.
 
+## Choose a governance tier
+
+The tier is a second, independent choice: how much maintenance tooling the
+project keeps. `full` (the default) keeps release evidence and certification,
+provenance, Excel host evidence, documentation and link checks, label
+automation, Scorecard and release closeout. `minimal` keeps the integrity,
+public-API, jump and release-semantics gates with *Static repository checks* and
+CodeQL. A minimal project can later move to full in place; there is no way back
+from full to minimal. See [governance tiers](../INITIALIZATION.md#governance-tiers).
+
 ## Record the decision
 
 Write a short project boundary: supported callers, owned state, lifecycle,
