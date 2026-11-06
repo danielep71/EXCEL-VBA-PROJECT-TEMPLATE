@@ -2,7 +2,7 @@
 
 [![Status: certified](https://img.shields.io/badge/status-certified-success)](#-verified-final-state)
 [![Profiles: 3/3](https://img.shields.io/badge/profiles-3%2F3-217346)](#-exact-pilot-identities)
-[![Labels: exact match](https://img.shields.io/badge/labels-exact%20match-1D76DB)](#-live-read--back-links)
+[![Labels: exact match](https://img.shields.io/badge/labels-exact%20match-1D76DB)](#-live-read-back-links)
 [![Governance: protected](https://img.shields.io/badge/governance-protected-6f42c1)](#-verified-final-state)
 
 This record preserves the post-creation read-back evidence for the three clean

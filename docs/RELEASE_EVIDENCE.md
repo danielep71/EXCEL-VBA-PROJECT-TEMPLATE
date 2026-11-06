@@ -3,7 +3,7 @@
 [![Binding: exact SHA](https://img.shields.io/badge/binding-exact%20SHA-217346)](#-evidence-json)
 [![Profiles: 4](https://img.shields.io/badge/profiles-4-6f42c1)](#-policy)
 [![Tags: template SSH-signed](https://img.shields.io/badge/tags-template%20SSH--signed-1D76DB)](#-commands)
-[![Assets: digest verified](https://img.shields.io/badge/assets-digest%20verified-success)](#-source--only-and-binary-distributions)
+[![Assets: digest verified](https://img.shields.io/badge/assets-digest%20verified-success)](#-source-only-and-binary-distributions)
 [![Certification: retained release assets](https://img.shields.io/badge/certification-release%20assets-0969da)](#-durable-canonical-template-certification)
 
 This contract defines the machine-readable evidence consumed by

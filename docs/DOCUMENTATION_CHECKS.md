@@ -11,7 +11,9 @@ separate verdicts, so a temporary service outage cannot weaken local validation.
 ## 📚 Local and Offline Checks
 
 `tools/check_repo.py` retains its existing deterministic, blocking local-link
-and anchor validation. `tools/check_documentation.py` additionally checks:
+and anchor validation. It reads the outer target of a linked image, such as a
+badge, as well as the image, and computes heading anchors as GitHub does: a
+heading that starts with an emoji gets a leading hyphen. `tools/check_documentation.py` additionally checks:
 
 - literal Python invocations of tracked scripts under `tools/` in maintained Markdown,
   including inline and continued examples, against tracked filenames;
@@ -57,7 +59,8 @@ Use the actual UTC observation date for `--as-of`; expiry is evaluated against
 it. The workflow supplies that date automatically. The report contains
 observations, not a permanent certification of remote content.
 
-The checker discovers Markdown destinations/reference definitions, HTML
+The checker discovers Markdown destinations/reference definitions (including
+the outer target of a linked image), HTML
 `href`/`src` values and angle-bracket HTTP links outside fenced examples. It
 does not crawl linked pages or validate remote fragment anchors. Duplicate URLs
 share one probe; all referring file/line locations are retained in JSON.

@@ -264,6 +264,13 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- The local-link rule of `check_repo.py` missed broken badge targets. It read
+  only the image of a badge, an image wrapped in a link, and it trimmed
+  the leading hyphen GitHub gives a heading that starts with an emoji. It now
+  reads the outer target and computes anchors as GitHub does; two broken badge
+  anchors in `PILOT_CERTIFICATION.md` and `RELEASE_EVIDENCE.md` are corrected
+  and two self-test fixtures cover both cases. The external-link checker shares
+  the extractor, so badge targets are now probed too.
 - The portable gate's structural `PtrSafe` check treated the `#Else` of an
   `#If ... #ElseIf VBA7 ... #Else` chain as reachable under VBA7, which
   flagged legacy-only declarations. The `#Else` now counts as VBA7-reachable
