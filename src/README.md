@@ -4,13 +4,16 @@
 
 ## Canonical separation
 
-Create only the subdirectories the project actually needs:
+`src/core/` and `src/modules/` always exist. The initializer creates the
+directories the selected profile requires (`src/classes/` for `application` and
+`ui-component`, `src/workbook/` for `application`) with an explanatory README;
+create any other subdirectory only when the project needs it:
 
 | Location | Contents | Excludes |
 | --- | --- | --- |
 | `src/modules/` | Public standard modules: supported procedures, worksheet functions, constants, and thin facades | Test harnesses and private implementation engines |
 | `src/core/` | Internal standard modules: parsing, calculation, validation, and other implementation details | Supported public entry points |
-| `src/classes/` | Production class modules, including state managers, event sinks, and UI hooks | Test doubles used only by the harness |
+| `src/classes/` | Production class modules, including state managers, event sinks, and UI hooks; the `application` and `ui-component` profiles require it | Test doubles used only by the harness |
 | `src/forms/` | Production UserForms; each `.frm` stays beside its required `.frx` | Screenshots and distributable workbooks |
 | `src/workbook/` | Document-module exports such as `ThisWorkbook`; the `application` profile requires it for host-event wiring | Standard modules and classes, which belong above |
 

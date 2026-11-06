@@ -69,7 +69,8 @@ Destructive operations such as deleting labels/rulesets, changing visibility,
 renaming/deleting a repository, bypass grants and source/ref writes are outside
 the supported API surface. Even an exception does not enable these operations;
 they require separate reviewed work. Review label overlays or `prune: false`
-before the existing sync workflow runs if extra local labels should survive.
+before the label sync workflow (full tier) runs if extra local labels should
+survive.
 
 <a id="plan"></a>
 

@@ -117,13 +117,20 @@ use the `template` evidence profile.
 
 ## 4. Run repository and release gates
 
-At minimum:
+At minimum, on the candidate:
 
 ```bash
 python3 tools/check_repo.py --root . --self-test
 python3 tools/check_repo.py --root .
+python3 tools/check_vba_public_api.py --root .
+python3 tools/check_vba_jumps.py --root .
+python3 tools/check_vba_conditionals.py --root .
 python3 tools/check_release.py --root . --self-test
 ```
+
+and a green *Repository integrity* run on the candidate SHA, which adds the
+focused gates (whitespace, local actions, template contract, documentation and
+workflow syntax) and their self-tests.
 
 Run every project-specific numerical, UI, lifecycle, performance or packaging
 gate as well. A stronger specialist gate is additive; the generic repository

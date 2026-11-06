@@ -21,7 +21,8 @@ initializer. The template's `<template-checkout>/tools/initialize_repository.py`
 is dependency-free and dry-run-first. It:
 <!-- template:tier:minimal:end -->
 
-1. requires a clean Git working tree;
+1. requires a clean Git working tree in template mode and for `--upgrade-tier`
+   (a generated tree may be dirty for the idempotence re-run);
 2. validates the complete input set before rendering any file;
 3. renders all changes in memory and reports content digests;
 4. changes files only when `--apply` is present;
@@ -67,20 +68,20 @@ exists.
 
 | Name | Category | Purpose |
 | --- | --- | --- |
-| `PROJECT_NAME` | Required | Human-readable name in documentation and release text |
-| `PROJECT_TAGLINE` | Required | Short identity line below the project name |
-| `PROJECT_DESCRIPTION` | Required | One-sentence supported problem and audience |
-| `REPOSITORY_PATH` | Required | GitHub `owner/name` used by clone commands, badges, and links |
-| `MAINTAINER_NAME` | Required | Person or organization responsible for maintained decisions |
-| `SUPPORT_CONTACT` | Required | Private-reporting email address or maintained HTTPS URL |
-| `COPYRIGHT_YEAR` | Required | Four-digit MIT-licence copyright year |
-| `SOCIAL_PREVIEW_PATH` | Optional | Tracked repository-relative banner image |
-| `PROFILE_NAME` | Profile-specific | Human-readable selected profile |
-| `PROFILE_PURPOSE` | Profile-specific | Selected profile's ownership boundary |
-| `PROFILE_SOURCE_CONTRACT` | Profile-specific | Selected profile's expected production structure |
-| `PROFILE_EVIDENCE` | Profile-specific | Selected profile's minimum runtime evidence |
-| `ADDITIONAL_TEST_COMMAND` | Repeatable | Additional project-specific validation command |
-| `KNOWN_LIMITATION` | Repeatable | Honest user-visible limitation rendered as a list item |
+| `PROJECT_NAME` | `required` | Human-readable name in documentation and release text |
+| `PROJECT_TAGLINE` | `required` | Short identity line below the project name |
+| `PROJECT_DESCRIPTION` | `required` | One-sentence supported problem and audience |
+| `REPOSITORY_PATH` | `required` | GitHub `owner/name` used by clone commands, badges, and links |
+| `MAINTAINER_NAME` | `required` | Person or organization responsible for maintained decisions |
+| `SUPPORT_CONTACT` | `required` | Private-reporting email address or maintained HTTPS URL |
+| `COPYRIGHT_YEAR` | `required` | Four-digit MIT-licence copyright year |
+| `SOCIAL_PREVIEW_PATH` | `optional` | Tracked repository-relative banner image |
+| `PROFILE_NAME` | `profile-specific` | Human-readable selected profile |
+| `PROFILE_PURPOSE` | `profile-specific` | Selected profile's ownership boundary |
+| `PROFILE_SOURCE_CONTRACT` | `profile-specific` | Selected profile's expected production structure |
+| `PROFILE_EVIDENCE` | `profile-specific` | Selected profile's minimum runtime evidence |
+| `ADDITIONAL_TEST_COMMAND` | `repeatable` | Additional project-specific validation command |
+| `KNOWN_LIMITATION` | `repeatable` | Honest user-visible limitation rendered as a list item |
 
 Tokens are permitted only in documentation and licence text. They are
 prohibited in VBA exports, identifiers, workflows, executable scripts, and
@@ -135,7 +136,7 @@ inputs fail rather than silently rewriting an initialized repository.
 
 A repository created with **Use this template** runs its copied workflows on the
 uninitialized initial commit. That *Static repository checks* run fails at
-*Release semantics*, because the template's own release-history policy refers to
+the *Validate release semantics* step, because the template's own release-history policy refers to
 commits absent from the new history. The failure is expected before
 initialization, which removes the template-only policy. Judge the repository by
 the run on the initialized setup branch.
@@ -168,8 +169,8 @@ tier. Select it with `--governance-tier`; `full` is the default.
 
 | Tier | Keeps | Suits |
 | --- | --- | --- |
-| `full` | Everything below, plus release evidence and certification, build provenance, Excel host-evidence validation, documentation-drift and external-link checks, local-action validation, label automation, Scorecard, release closeout and the initializer | Portfolio-grade lifecycle and audited releases |
-| `minimal` | `check_repo.py` (repository integrity, VBA structure, pinned actions, version and changelog), `check_vba_public_api.py`, `check_vba_jumps.py`, `check_release_semantics.py`, their two helpers, the *Static repository checks* and CodeQL workflows, and the provisioning policy | A small team that wants source discipline and a safe release baseline |
+| `full` | Everything below, plus release evidence and certification, build provenance, Excel host-evidence validation, documentation-drift and external-link checks, local-action validation, the committed-whitespace and template-contract gates, workflow-syntax validation, Python lint and type checks (Ruff, mypy, `pyproject.toml`), label automation, Scorecard, release closeout and the initializer | Portfolio-grade lifecycle and audited releases |
+| `minimal` | `check_repo.py` (repository integrity, VBA structure, pinned actions, version and changelog), `check_vba_public_api.py`, `check_vba_jumps.py`, `check_release_semantics.py`, their two helpers (`_gatelib.py` and `check_vba_conditionals.py`), the *Static repository checks* and CodeQL workflows, and the provisioning policy | A small team that wants source discipline and a safe release baseline |
 
 Both tiers keep the same VBA source, regression suite, issue forms, label
 catalogue, private security reporting and branch/tag provisioning; only the
@@ -184,8 +185,11 @@ never as missing.
 ### ⬆️ Upgrade from minimal to full
 
 A minimal project adopts the full tier in place. From a clean, committed project
-root, run the initializer of a template checkout at the project's recorded
-`template_contract` version:
+root, run the initializer of a checkout of the same template release that
+generated the project. `--upgrade-tier` exists from v1.3.0. The record holds
+only the `template_contract` version, which several template releases share,
+and a different release with the same contract can report spurious `replace`
+or `conflict` actions:
 
 ```bash
 python3 <template-checkout>/tools/initialize_repository.py --root . --upgrade-tier full
@@ -263,16 +267,24 @@ be reproduced manually:
    `assets/social-preview.png` when that exact path was deliberately supplied
    as `SOCIAL_PREVIEW_PATH`. No other template-only path may be retained through
    that placeholder.
-6. Reset `CHANGELOG.md` under `Unreleased` to project-owned content only and set
+6. Delete the `owned_paths` of every profile other than the selected one, and
+   remove their rows from `docs/PUBLIC_API.txt`.
+7. For the `minimal` tier, delete every path in
+   `governance_tiers.tiers.minimal.remove_paths` and give each
+   `replace_paths` key the content of its source file.
+8. Reset `CHANGELOG.md` under `Unreleased` to project-owned content only and set
    `VERSION` to the `0.0.0` development sentinel.
-7. Set configuration mode, profile, and repository; create
+9. Set configuration mode, profile, and repository; remove `governance_tiers`
+   and, for the minimal tier, record `"governance_tier": "minimal"`. Drop every
+   deleted path from `required_paths`, `placeholders.exclude_paths`, each
+   profile's `required_paths` and `owned_paths`, and `vba.components`. Create
    `.github/initialization.json` using the same schema as the initializer.
-8. Add an explanatory or substantive tracked file to every directory required
+10. Add an explanatory or substantive tracked file to every directory required
    by the selected profile.
-9. Search for the configured token grammar, template identity, marker prefix,
-   and deleted template-only paths. All searches must be empty outside the
-   policy files that define those checks.
-10. Review `git diff --check`, stage the candidate tree, and run the checker.
+11. Search for the configured token grammar, template identity, marker prefix,
+    and deleted paths. All searches must be empty outside the policy files that
+    define those checks.
+12. Review `git diff --check`, stage the candidate tree, and run the checker.
 
 Manual initialization is incomplete if its resulting tree differs in policy or
 content from what the deterministic initializer would produce for the same

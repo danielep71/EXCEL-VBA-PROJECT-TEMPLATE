@@ -31,7 +31,7 @@ handling by [`SECURITY.md`](SECURITY.md), and release publication/provenance by
 ## 🧭 Support baseline
 
 Before a release is installable, document the actual supported Excel/Office
-versions, Windows scope, Office bitness, references/dependencies and deployment
+versions, operating-system scope (Windows, macOS), Office bitness, references/dependencies and deployment
 model. Compatibility claims apply only to environments actually certified for
 that release.
 

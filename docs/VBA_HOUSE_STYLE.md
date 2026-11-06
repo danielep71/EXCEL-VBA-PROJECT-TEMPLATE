@@ -154,7 +154,9 @@ checks.
 <!-- template:tier:full:start -->
 Also run the initializer self-test for the recorded generated profile.
 <!-- template:tier:full:end -->
+<!-- template:remove:start -->
 Canonical template maintainers additionally exercise all three profile fixtures.
+<!-- template:remove:end -->
 Verify CRLF working-tree exports and clean whitespace. These checks confirm
 source contracts; they do not execute Excel or prove VBE importability by
 themselves.

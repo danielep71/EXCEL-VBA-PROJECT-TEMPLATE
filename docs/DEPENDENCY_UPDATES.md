@@ -34,7 +34,10 @@ explicit maintainer review cadence.
 <!-- template:remove:start -->
 | Template maintenance tools | `tools/requirements-coverage-ci.txt` (coverage) and `tools/requirements-portfolio-ci.txt` (PyYAML snapshot parser, version asserted in `check_portfolio_drift.py`); [parser review](PORTFOLIO_DRIFT.md) and official PyPI/upstream metadata | Same reviewed hash-lock discipline; keep the PyYAML lock and runtime assertion synchronized; template maintenance only |
 <!-- template:remove:end -->
-| Runtime and execution environment | `PYTHON_VERSION`, `runs-on`, Action `runs.using`, `pyproject.toml` target/lint/type configuration and workflow install commands | Explicit compatibility change, not an incidental pin refresh |
+| Runtime and execution environment | `PYTHON_VERSION`, `runs-on`, Action `runs.using` and workflow install commands | Explicit compatibility change, not an incidental pin refresh |
+<!-- template:tier:full:start -->
+| Python lint and type configuration | `pyproject.toml` target-version, Ruff and mypy settings | Explicit compatibility change, reviewed with the runtime |
+<!-- template:tier:full:end -->
 | Local validation code and fixtures | Retained `tools/` scripts, template-only checker-development tools, generated consumer fixtures and their embedded pins | Reviewed source commit; not a separately fetched package |
 
 Search all tracked workflows, scripts, documentation examples and fixture
@@ -43,10 +46,12 @@ occurrences and historical evidence. Never rewrite published provenance to make
 an old release appear to use the new dependency.
 
 Python `3.10` selects a runtime series, and `ubuntu-24.04` selects a hosted image
-family; neither freezes every patch or preinstalled utility. Node.js and
-ShellCheck are such utilities: a workflow step that runs `node`, and
-actionlint's ShellCheck pass over `run:` scripts, use the versions the image
-carries.
+family; neither freezes every patch or preinstalled utility.
+<!-- template:tier:full:start -->
+Node.js and ShellCheck are such utilities: a workflow step that runs `node`,
+and actionlint's ShellCheck pass over `run:` scripts, use the versions the
+image carries.
+<!-- template:tier:full:end -->
 <!-- template:tier:full:start -->
 Hosted Python tool
 installs are additionally constrained by reviewed CPython-3.10/Linux-x64 wheel

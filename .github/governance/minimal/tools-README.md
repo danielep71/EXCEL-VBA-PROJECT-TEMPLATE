@@ -17,15 +17,17 @@ all are deterministic: identical commits produce identical reports.
 Two helpers support them: `_gatelib.py` owns the shared Git, report and
 command-line mechanics, and `check_vba_conditionals.py` evaluates conditional
 compilation for the public-API gate. `check_repo.py` imports neither, so it
-stays a self-contained file.
+stays a self-contained file. `check_vba_conditionals.py --root .` also runs on
+its own, with `--self-test`, when a change touches conditional compilation.
 
 Every gate exits `0` when all rules pass, `1` when it reports findings and `2`
 when it could not complete. `--self-test` exercises each gate's own passing and
 deliberately degraded fixtures.
 
 Release evidence, provenance, host-evidence validation, documentation-drift and
-external-link checks, local-action validation and the initializer belong to the
-full tier. Adopt them with the documented
+external-link checks, local-action validation, committed-whitespace and
+template-contract gates, workflow-syntax validation, Python lint and type checks
+and the initializer belong to the full tier. Adopt them with the documented
 [upgrade to the full tier](../docs/INITIALIZATION.md#governance-tiers).
 
 <a id="canonical-repository-quality-gate"></a>
@@ -45,7 +47,8 @@ python3 tools/check_release_semantics.py --root .
 
 Add `--output <file>.json --summary <file>.md` to any gate for machine-readable
 and Markdown evidence. The hosted *Static repository checks* workflow runs the
-same commands on every pull request.
+same commands on pull requests and pushes to `main` and `release/**`, and on
+`v*` tags.
 
 These gates validate repository evidence and exported VBA source. They do not
 execute Excel, compile a VBA project or prove numerical accuracy; the regression

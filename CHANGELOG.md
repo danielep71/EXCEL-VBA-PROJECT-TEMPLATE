@@ -169,9 +169,9 @@ Use only the categories needed by a release.
   calculation, events, alerts and selection stay caller-owned. It refuses a
   second session, turns Esc into a cancel request that stops the next
   `ProgressUpdate`, and `ProgressRecover` restores Excel defaults when a VBA
-  reset has lost the snapshot. Elapsed time uses the Windows performance
-  counter behind VBA7/`PtrSafe`, legacy-VBA and macOS branches, because
-  `Timer` wraps at midnight. `ProgressTests` (12 cases; 79 assertions on
+  reset has lost the snapshot. On Windows, elapsed time uses the
+  performance counter, declared for VBA7/`PtrSafe` and for legacy VBA; on
+  macOS it uses `Timer`, corrected for the wrap at midnight. `ProgressTests` (12 cases; 79 assertions on
   Windows, 75 on macOS) executes open, update, cancel, close, re-entry,
   cleanup and recovery, with a negative control proving that a broken
   restoration is detected. The suite refuses to start while another caller's

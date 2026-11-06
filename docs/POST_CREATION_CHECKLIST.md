@@ -164,10 +164,13 @@ authorization; the ruleset makes every matching tag immutable after creation.
 Do not create the first stable tag until the release gate, selected-profile
 pilot or equivalent deployment proof, and exact-SHA Excel evidence are
 <!-- template:tier:full:start -->
-complete. The canonical template itself additionally requires all three
-generated-profile pilots. Follow the
+complete. Follow the
 [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) contract for the final candidate.
 <!-- template:tier:full:end -->
+<!-- template:remove:start -->
+The canonical template itself additionally requires all three
+generated-profile pilots.
+<!-- template:remove:end -->
 <!-- template:tier:minimal:start -->
 complete. Follow [`RELEASING.md`](../RELEASING.md) for the final candidate.
 <!-- template:tier:minimal:end -->
@@ -190,9 +193,14 @@ test, issue-intake, branch, tag, or evidence baseline.
 Preserve links or JSON responses for:
 
 - repository metadata and enabled features;
+<!-- template:tier:full:start -->
 - resolved labels and the successful trusted reconciliation run;
 - the latest successful read-only label-drift check, or the exact drift report
   when a difference is detected;
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+- the manually created labels, read back from the repository's label list;
+<!-- template:tier:minimal:end -->
 - default-branch ruleset and exact required status context;
 - protected-tag ruleset;
 - private vulnerability-reporting state;
