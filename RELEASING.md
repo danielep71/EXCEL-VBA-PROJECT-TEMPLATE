@@ -462,6 +462,13 @@ publication.
 
 Do not announce broad availability until these checks pass.
 
+Then close the release milestone and run the **Release closeout** workflow
+with the tag, the certified candidate SHA and the milestone number, as
+[`docs/RELEASE_CLOSEOUT.md`](docs/RELEASE_CLOSEOUT.md) describes. It is
+read-only: it captures the published tag, tag CI, Release, assets, changelog
+links and milestone state, and fails on any mismatch. Retain its evidence with
+the release record.
+
 ## 🧯 Recovery
 
 Before publication, repair the candidate and rerun every affected gate. An
@@ -476,6 +483,8 @@ handling follows [`SECURITY.md`](SECURITY.md).
 - [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) — exact version/changelog/history semantics
 - [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) — evidence and asset-manifest schema
 - [`docs/RELEASE_PROVENANCE.md`](docs/RELEASE_PROVENANCE.md) — build-record and signature trust policy
+- [`docs/EXCEL_EVIDENCE.md`](docs/EXCEL_EVIDENCE.md) — structured Excel host-evidence interface
+- [`docs/RELEASE_CLOSEOUT.md`](docs/RELEASE_CLOSEOUT.md) — read-only post-release closeout
 - [`INSTALLATION.md`](INSTALLATION.md) — clean install/upgrade validation
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — change/review workflow
 - [`SECURITY.md`](SECURITY.md) — vulnerability handling

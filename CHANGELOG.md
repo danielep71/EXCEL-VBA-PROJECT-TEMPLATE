@@ -299,7 +299,8 @@ Use only the categories needed by a release.
   from `github.workflow`, which in a called workflow is the caller's name. A
   caller that kept the documented concurrency therefore shared the group and
   was cancelled as a caller/callee deadlock. The group is now job-level and
-  named for the job. The provisioner also required the literal check name
+  named for the job. The published interface `1.0.0` pin still has the old
+  group, so the adoption guide now tells its callers to rename theirs. The provisioner also required the literal check name
   `Repository integrity`, while a caller emits `<caller job> / Repository
   integrity`; it now accepts either, and the adoption guide says to record the
   emitted name in `provisioning-policy.json`.

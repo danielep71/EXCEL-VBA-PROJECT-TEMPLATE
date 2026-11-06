@@ -8,7 +8,8 @@ catalogue, optional values and manual fallback.
 
 ## 1. Prepare values
 
-Choose the profile and seven required values. Use a real public project name,
+Choose the profile, the [governance tier](../INITIALIZATION.md#governance-tiers)
+and seven required values. Use a real public project name,
 specific description, repository path and monitored security contact. The values
 are recorded in `.github/initialization.json`; they must not contain secrets.
 `VERSION` becomes `0.0.0`, a pre-release setup sentinel, not a published version.
@@ -43,6 +44,11 @@ To retain the supplied PNG, add
 preview and apply. A custom preview must already be tracked in the clean tree.
 Repeatable test commands and limitations follow the authority's `--add` rules.
 
+The array selects the default `full` tier. For the `minimal` tier, add
+`--governance-tier minimal` to it before both preview and apply. A minimal
+project keeps only the integrity, public-API, jump and release-semantics gates,
+and removes the initializer itself during apply.
+
 ## 3. Apply the reviewed inputs
 
 ```bash
@@ -69,6 +75,10 @@ python tools/initialize_repository.py "${init_args[@]}"
 git status --short
 git push -u origin setup/initialize
 ```
+
+A minimal project no longer has the initializer, so run the idempotence check
+from the template checkout used to generate it instead:
+`python <template-checkout>/tools/initialize_repository.py --root . "${init_args[@]}"`.
 
 Expected: the same inputs yield `no-op`; status is empty. Repeating different
 inputs must fail. Commit before this check so the initializer sees a clean tree.

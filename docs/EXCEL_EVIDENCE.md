@@ -49,6 +49,11 @@ count and expected-error case IDs. Change it with the harness, before freezing
 the candidate. An empty expected-error list is permitted only when the suite
 has no expected-error cases; document that design in the project tests.
 
+The policy names one entry point, the starter suite. A profile reference suite
+(`TextTests`, `ProgressTests` or `LifecycleTests`) is imported and compiled with
+it but is not run by this interface; record its run as a base or profile check
+in the [release evidence](RELEASE_EVIDENCE.md), citing its `RESULT=` line.
+
 The implementation order for an adapter is:
 
 1. Check out the exact candidate in an isolated workspace; verify
@@ -58,7 +63,8 @@ The implementation order for an adapter is:
    modules and forms with their resources into a fresh test workbook. Populate
    workbook/worksheet document modules in their corresponding host objects;
    do not import them as ordinary classes. Record reference resolution and any
-   host-specific setup. The neutral starter imports core, facade and tests.
+   host-specific setup. A generated project imports the starter's core, facade
+   and tests plus its profile's reference core, facade and tests.
 3. Compile with an adapter capable of observing the actual compile outcome.
    Do not equate a successful import or a button click with compilation. A
    complete successful harness run also demonstrates that its executed VBA
@@ -83,7 +89,10 @@ not a generic COM controller or a claimed automated compile implementation.
 
 Automated and manual execution use exactly the same top-level fields. This
 example is a shape guide, not usable runtime evidence; replace illustrative
-values, all digest markers, environment and timestamps with observed values:
+values, all digest markers, environment and timestamps with observed values.
+It shows a generated `library` project: `sources` must list every configured
+non-example component, sorted by path, so it holds the starter and the Text
+modules. Other profiles list their own reference modules instead:
 
 ```json
 {
@@ -109,8 +118,11 @@ values, all digest markers, environment and timestamps with observed values:
   },
   "sources": [
     {"path": "src/core/ProjectCore.bas", "sha256": "REPLACE_WITH_SOURCE_DIGEST"},
+    {"path": "src/core/TextCore.bas", "sha256": "REPLACE_WITH_SOURCE_DIGEST"},
     {"path": "src/modules/ProjectFacade.bas", "sha256": "REPLACE_WITH_SOURCE_DIGEST"},
-    {"path": "tests/modules/ProjectTests.bas", "sha256": "REPLACE_WITH_SOURCE_DIGEST"}
+    {"path": "src/modules/TextFacade.bas", "sha256": "REPLACE_WITH_SOURCE_DIGEST"},
+    {"path": "tests/modules/ProjectTests.bas", "sha256": "REPLACE_WITH_SOURCE_DIGEST"},
+    {"path": "tests/modules/TextTests.bas", "sha256": "REPLACE_WITH_SOURCE_DIGEST"}
   ],
   "stages": {
     "import": {"status": "PASS", "detail": "Imported exact inventory into fresh test project", "log": {"path": "session.log", "sha256": "REPLACE_WITH_LOG_DIGEST"}},

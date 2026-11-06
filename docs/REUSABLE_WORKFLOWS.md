@@ -38,8 +38,17 @@ This is commit-based publication of the workflow interface, **not** publication
 of the v1.2.0 product release, and no product tag was created or moved. The
 verified development snapshot was promoted unchanged; its historical fixture
 comments say `v1.0.0-dev`. Use the exact SHA above, not the current branch head.
-Completion evidence is maintained in upstream issue #23. Fixture test refs are
+Completion evidence is recorded in upstream issue #23. Fixture test refs are
 disposable and are never consumer pins or merge candidates.
+
+> **Known limitation of `1.0.0`:** the called workflow declares workflow-level
+> concurrency with the group `static-checks-${{ github.workflow }}-${{ github.ref }}`.
+> In a called workflow `github.workflow` is the caller's name, so a caller that
+> kept the same group in its own workflow-level `concurrency` waits on itself
+> and GitHub cancels the run as a deadlock. With this pin, give the caller's
+> group a different name (for example `static-checks-caller-…`) or drop it.
+> The next interface revision moves the called concurrency to job level; it is
+> listed here only once its hosted consumer fixtures pass.
 
 | Surface | Contract |
 | --- | --- |
@@ -83,8 +92,10 @@ restrictions in [Reuse workflows](https://docs.github.com/en/actions/how-tos/reu
 3. Replace the generic job in the caller's `static-checks.yml` with a job-level
    call to `SOURCE/.github/workflows/static-checks.yml@SHA`, where `SOURCE` is
    `template_contract.source`,
-   substituting that exact 40-character SHA. Preserve caller triggers, branch
-   filters and concurrency. Set workflow permissions to `contents: read`.
+   substituting that exact 40-character SHA. Preserve caller triggers and branch
+   filters. Keep caller concurrency only under a group name the called workflow
+   does not use (see the `1.0.0` limitation above). Set workflow permissions to
+   `contents: read`.
    The identity gate permits this exact upstream reference in workflow files;
    floating refs, other sources and leftover template branding remain rejected.
 4. Under the call's `with`, set `expected-profile` to your initialized profile.
@@ -97,9 +108,7 @@ restrictions in [Reuse workflows](https://docs.github.com/en/actions/how-tos/reu
    record the same name in `required_checks` of
    `.github/provisioning-policy.json`; never leave a protection gap. The
    provisioner accepts `<caller job> / Repository integrity` as the universal
-   check. The called job uses job-level concurrency, so the caller's own
-   workflow-level concurrency cannot deadlock with it. Do not merge on output
-   SHA presence alone.
+   check. Do not merge on output SHA presence alone.
 
 <!-- template:remove:start -->
 The template's `tools/create_reusable_workflow_fixture.py` produces
