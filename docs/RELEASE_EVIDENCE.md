@@ -56,7 +56,8 @@ profile checks from it. `LifecycleTests.RunLifecycleTests` exercises `startup`
 (first start, repeated start, re-entry, single ownership), `shutdown` (stop,
 repeated stop), `upgrade` (schema-1 migration, current-schema no-op, rollback of
 a failed upgrade) and `recovery` (unclean stop, live session, reset, refused
-corrupt state); cite its `RESULT=PASS` line for each. `end-to-end-smoke` is
+corrupt state); cite the suite's single `RESULT=PASS` line and the `CASE=`
+names that cover each check. `end-to-end-smoke` is
 `LifecycleExample.RunLifecycleExample` run in the released artifact.
 `packaging` is required for every application release. When the release
 distributes a workbook or add-in, its detail names that asset and its
@@ -64,6 +65,31 @@ post-package smoke. For a `source-only` release, record it as `PASS` with a
 detail stating that no workbook or add-in is distributed: the release has no
 assets and claims no binary provenance.
 <!-- template:profile:application:end -->
+<!-- template:profile:library:start -->
+### Library reference evidence
+
+A generated library that keeps the Text reference can source its profile checks
+from it. `public-api` cites a passing `check_vba_public_api.py` run on the
+candidate and the `RESULT=PASS` line of `TextTests.RunTextTests`, whose cases
+include `api.repeatability` and the invalid-argument cases that assert number,
+source and description. `caller-contract` cites `TextExample.RunTextExample`,
+which calls only `TextFacade`, with its output. Add the project's own functions
+to both checks as it grows beyond the reference.
+<!-- template:profile:library:end -->
+<!-- template:profile:ui-component:start -->
+### UI component reference evidence
+
+A generated UI component that keeps the Progress reference can source most of
+its profile checks from `ProgressTests.RunProgressTests`; cite its `RESULT=PASS`
+line and the covering `CASE=` names. `ui-state` is `session.begin`,
+`session.update`, `session.keep-screen-updating` and
+`session.restores-caller-state`; `cleanup` is `session.restores-caller-state`
+and `negative.cleanup-detection`; `recovery` is `session.recover` and
+`session.cancel`; `lifecycle` is `session.repeat`, `session.reentrancy` and
+`session.inactive`. The reference has no form or Ribbon, so `dpi-accessibility`
+needs the project's own review; a component that draws nothing beyond the
+status bar states that in the detail.
+<!-- template:profile:ui-component:end -->
 
 All checks use `status: "PASS"`, a non-empty `detail`, and the same
 `candidate_sha`. Project-specific checks may be added with lower-case,

@@ -73,7 +73,7 @@ exists.
 | `PROJECT_DESCRIPTION` | `required` | One-sentence supported problem and audience |
 | `REPOSITORY_PATH` | `required` | GitHub `owner/name` used by clone commands, badges, and links |
 | `MAINTAINER_NAME` | `required` | Person or organization responsible for maintained decisions |
-| `SUPPORT_CONTACT` | `required` | Private-reporting email address or maintained HTTPS URL |
+| `SUPPORT_CONTACT` | `required` | Private-reporting email address or maintained HTTPS URL; it receives security and code-of-conduct reports, so choose a route that accepts both |
 | `COPYRIGHT_YEAR` | `required` | Four-digit MIT-licence copyright year |
 | `SOCIAL_PREVIEW_PATH` | `optional` | Tracked repository-relative banner image |
 | `PROFILE_NAME` | `profile-specific` | Human-readable selected profile |

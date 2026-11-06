@@ -10,6 +10,11 @@ Use subdirectories only when they contain real material:
 | `tests/fixtures/` | Deterministic inputs, manifests, and reusable test workbooks |
 | `tests/expected/` | Reviewed expected outputs or golden files |
 
+Office files are ignored and rejected by default. To commit a test workbook, add
+its exact path to `allowed_office_binary_globs` in
+`.github/repository-profile.json` and a matching `!/tests/fixtures/...`
+exception to `.gitignore`, in the same reviewed change.
+
 ## Neutral regression harness
 
 Import `modules/ProjectTests.bas` after `ProjectCore` and `ProjectFacade`, compile

@@ -56,6 +56,6 @@ Stop: yes; status=stopped
 
 Use `demo/` instead only when an interactive demo is itself a distinct project deliverable, an established public path must remain stable, or packaging automation requires that profile. Document the reason in the root README and do not maintain both `examples/` and `demo/` for the same purpose.
 
-Do not commit opaque generated workbooks here unless the repository's release policy explicitly treats them as reviewed source artifacts. Published binaries normally belong to GitHub Releases.
+Do not commit opaque generated workbooks here. A workbook that is a reviewed source artifact needs its exact path in `allowed_office_binary_globs` (`.github/repository-profile.json`) and a matching `!/examples/...` exception in `.gitignore`; otherwise `check_repo.py` rejects it. Published binaries normally belong to GitHub Releases.
 
 Delete this README only if real examples and equivalent instructions make the directory's role equally explicit.

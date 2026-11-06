@@ -54,8 +54,11 @@ installation date, or a timestamp inferred from Git history.
 
 Tagging and publication may occur later than the cut/freeze date. That delay does
 not make the changelog heading stale and must not cause a published historical
-section to be rewritten. The canonical v1.2.0 record is therefore valid with a
-`2026-09-10` changelog cut/freeze date and tag/publication on `2026-09-12`.
+section to be rewritten.
+<!-- template:remove:start -->
+The canonical v1.2.0 record is therefore valid with a `2026-09-10` changelog
+cut/freeze date and tag/publication on `2026-09-12`.
+<!-- template:remove:end -->
 
 If a candidate is abandoned and the release section is materially reopened, a
 later reviewed candidate may be cut/frozen again with a new date. That is a new
@@ -105,6 +108,7 @@ When at least one release exists:
 Missing, duplicated, stale, or mismatched comparison links fail release
 semantics.
 
+<!-- template:remove:start -->
 ## Canonical-template history policy
 
 The canonical template additionally applies a squash-by-default history rule to
@@ -148,6 +152,7 @@ The same policy file retains historical records for the v1.2.0 stabilization
 merges in PRs #68, #71, and #74. Those records are descriptive only: they keep
 published ancestry visible without exempting any later candidate range or
 requiring a rewrite of the immutable v1.2.0 history.
+<!-- template:remove:end -->
 
 Release notes remain curated from the changelog, issues, and reviewed release
 evidence. Raw commit subjects are never treated as an authoritative release-note

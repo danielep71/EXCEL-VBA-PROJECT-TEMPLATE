@@ -260,7 +260,7 @@
       },
       "SUPPORT_CONTACT": {
         "category": "required",
-        "description": "Private security-reporting email address or maintained private reporting URL."
+        "description": "Private reporting email address or maintained private reporting URL; it receives security and code-of-conduct reports."
       }
     },
     "block_markers": {
