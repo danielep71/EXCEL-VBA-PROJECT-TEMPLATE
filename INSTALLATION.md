@@ -52,7 +52,7 @@ release the project. The repository's `.gitattributes` deliberately marks
 repository-plumbing paths such as `.github/`, `.gitignore`, `.editorconfig`, and
 `.gitattributes` as `export-ignore`; GitHub source archives are generated with
 `git archive`, so **Code → Download ZIP is not a complete maintainer checkout**.
-In particular, a ZIP snapshot can omit workflows and
+In particular, a ZIP snapshot omits the workflows and
 `.github/repository-profile.json`, and repository gates that require those files
 will fail by design.
 
@@ -185,6 +185,7 @@ assertions=106; failures=0; cleanup=PASS`. `LifecycleExample.RunLifecycleExample
 is its end-to-end smoke; run it against the packaged workbook or add-in too when
 the release distributes one.
 <!-- template:profile:application:end -->
+
 A generated project must replace these baseline expectations when it changes the
 starter contract.
 

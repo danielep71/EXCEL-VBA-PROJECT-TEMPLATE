@@ -34,8 +34,10 @@ The ui-component profile adds `modules/ProgressExample.bas`. Run
 `ProgressExample.RunProgressExample` after importing `ProgressCore` and
 `ProgressFacade`. It sums the squares of 1 to 25 while the status bar shows
 progress and elapsed time, then prints `Completed 25 of 25; sum of squares =
-5525`. Press Esc while it runs to see the cancellation path; the caller's status
-bar, cursor, screen updating and Esc handling are restored either way.
+5525`. The 25 steps finish almost at once, so Esc seldom lands in time;
+`ProgressTests` exercises cancellation deterministically (`session.cancel`).
+The caller's status bar, cursor, screen updating and Esc handling are restored
+either way.
 <!-- template:profile:ui-component:end -->
 
 <!-- template:profile:application:start -->

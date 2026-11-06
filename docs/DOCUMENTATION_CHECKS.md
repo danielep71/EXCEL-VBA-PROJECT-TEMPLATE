@@ -51,7 +51,7 @@ so a workflow added only on a release branch has not started its weekly schedule
 Dispatch it after publication, or run the same command locally:
 
 ```bash
-python3 tools/check_external_links.py --root . --as-of 2026-09-09 \
+python3 tools/check_external_links.py --root . --as-of "$(date -u +%F)" \
   --output test-results/external-links.json --summary test-results/external-links.md
 ```
 

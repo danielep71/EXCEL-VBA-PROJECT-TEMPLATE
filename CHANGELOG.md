@@ -108,11 +108,12 @@ Use only the categories needed by a release.
   `check_release_semantics`) and their two helpers, a dependency-free *Static
   repository checks* workflow with the same **Repository integrity** job name,
   and CodeQL. Release evidence and provenance, host-evidence validation,
-  documentation drift and external-link checks, local-action validation, label
-  automation, Scorecard, Ruff/mypy and the initializer stay in the default
-  `full` tier. A minimal project retains 6 Python files (6,868 lines) instead of
-  22 (18,471 lines), and 53–55 tracked files instead of 89–91, depending on the
-  profile (one more with a social preview). The tier is recorded as
+  documentation drift and external-link checks, local-action validation, the
+  committed-whitespace and template-contract gates, label automation, Scorecard,
+  Ruff/mypy, release closeout and the initializer stay in the default `full`
+  tier. A minimal project retains 6 Python files (about 6,900 lines) instead of
+  22 (about 18,500 lines), and 53–55 tracked files instead of 89–91, depending
+  on the profile (one more with a social preview). The tier is recorded as
   `"governance_tier": "minimal"` in the generated profile and initialization
   record; `full` is never recorded, so existing generated repositories are
   unaffected. Documentation shared by both tiers uses tier blocks, and table
@@ -162,43 +163,42 @@ Use only the categories needed by a release.
   assertions) covers every public member, each error rule and both platforms'
   expectations, and `TextExample` prints six deterministic operations. Only
   generated `library` projects receive the four modules (#86).
-- A substantive ui-component reference: a progress session that owns the
-  Excel status bar, display of the status bar, cursor (Windows), screen
-  updating and Esc handling for a long operation. It snapshots all five at
-  `ProgressBegin` and restores them in reverse order at `ProgressEnd`;
-  calculation, events, alerts and selection stay caller-owned. It refuses a
-  second session, turns Esc into a cancel request that stops the next
-  `ProgressUpdate`, and `ProgressRecover` restores Excel defaults when a VBA
-  reset has lost the snapshot. On Windows, elapsed time uses the
-  performance counter, declared for VBA7/`PtrSafe` and for legacy VBA; on
-  macOS it uses `Timer`, corrected for the wrap at midnight. `ProgressTests` (12 cases; 79 assertions on
-  Windows, 75 on macOS) executes open, update, cancel, close, re-entry,
-  cleanup and recovery, with a negative control proving that a broken
-  restoration is detected. The suite refuses to start while another caller's
-  session is active, and the example ends only the session it began. Only
-  generated `ui-component` projects receive the four modules (#87).
+- A substantive ui-component reference: a progress session that owns the Excel
+  status bar, display of the status bar, cursor (Windows), screen updating and
+  Esc handling for a long operation. It snapshots all five at `ProgressBegin`
+  and restores them in reverse order at `ProgressEnd`; calculation, events,
+  alerts and selection stay caller-owned. It refuses a second session, turns Esc
+  into a cancel request that stops the next `ProgressUpdate`, and
+  `ProgressRecover` restores Excel defaults when a VBA reset has lost the
+  snapshot. On Windows, elapsed time uses the performance counter, declared for
+  VBA7/`PtrSafe` and for legacy VBA; on macOS it uses `Timer`, corrected for the
+  wrap at midnight. `ProgressTests` (12 cases; 79 assertions on Windows, 75 on
+  macOS) executes open, update, cancel, close, re-entry, cleanup and recovery,
+  with a negative control proving that a broken restoration is detected. The
+  suite refuses to start while another caller's session is active, and the
+  example ends only the session it began. Only generated `ui-component` projects
+  receive the four modules (#87).
 - A substantive application reference: a lifecycle whose versioned state lives
   in three hidden workbook-level names of an explicit host (`LifecycleSchema`,
   `LifecycleStatus`, `LifecycleStarts`), so it needs no sheet, window or
   activation and works in workbooks and add-ins alike. `LifecycleStart`
   discovers and validates the stored state before changing anything, then runs
   each schema migration and counts the start; a failed step restores the names
-  as found, names the step and reports an incomplete restore. It refuses newer or unreadable state, a
-  session that never stopped, a second workbook and re-entry; a repeated start
-  and a stop without a session are no-ops. `LifecycleRecover` clears an unclean
-  stop, `LifecycleReset` removes the state, and `LifecycleWriteStatus` writes to
-  an explicit range only. `LifecycleTests` (16 cases, 106 assertions) runs on
-  temporary workbooks: startup, repeat, shutdown, upgrade from schema 1,
-  current-schema no-op, rollback mid-migration and mid-upgrade, re-entry,
-  ownership, recovery, reset and explicit targets, with negative controls
-  proving that an open host, a leaked session and unrecoverable state are
-  detected; it refuses to start while a session, such as `ThisWorkbook`'s, is
-  running. `LifecycleExample` is the end-to-end smoke and stops only the
-  session it started. `RELEASE_EVIDENCE.md`
-  maps the application profile's required checks to these entry points; a
-  source-only release still records `packaging`, stating that nothing is
-  distributed. Only generated `application`
-  projects receive the four modules (#88).
+  as found, names the step and reports an incomplete restore. It refuses newer
+  or unreadable state, a session that never stopped, a second workbook and
+  re-entry; a repeated start and a stop without a session are no-ops.
+  `LifecycleRecover` clears an unclean stop, `LifecycleReset` removes the state,
+  and `LifecycleWriteStatus` writes to an explicit range only. `LifecycleTests`
+  (16 cases, 106 assertions) runs on temporary workbooks: startup, repeat,
+  shutdown, upgrade from schema 1, current-schema no-op, rollback mid-migration
+  and mid-upgrade, re-entry, ownership, recovery, reset and explicit targets,
+  with negative controls proving that an open host, a leaked session and
+  unrecoverable state are detected; it refuses to start while a session, such as
+  `ThisWorkbook`'s, is running. `LifecycleExample` is the end-to-end smoke and
+  stops only the session it started. `docs/RELEASE_EVIDENCE.md` maps the
+  application profile's required checks to these entry points; a source-only
+  release still records `packaging`, stating that nothing is distributed. Only
+  generated `application` projects receive the four modules (#88).
 
 ### Changed
 
@@ -216,10 +216,10 @@ Use only the categories needed by a release.
   `restricted_observations`, listed in the report, raised as a warning
   annotation, and still never counted as reachable. Previously every run was
   red by design, so a genuine defect was indistinguishable from the standing
-  restricted set.
+  restricted set (#139).
 - Removed the two temporary `pending-publication` classifications for the
   v1.2.1 comparison links now that the tag is published; both links again
-  receive the normal anonymous external-link check.
+  receive the normal anonymous external-link check (#138).
 - The enforced McCabe complexity ceiling for maintained Python tooling is now
   15 instead of 20. The 18 functions above 15 were split along their existing
   responsibilities (validation stages, table-driven self-test cases, per-rule
@@ -246,8 +246,8 @@ Use only the categories needed by a release.
   - the initializer's `copy_fixture` / `fixture_arguments` / `build_changes` /
     `apply_changes`.
 
-  Production uses of another module's `_private` members fell from 68 (21
-  members) to 4 reviewed parser unit tests. The checker-development contract
+  Cross-module uses of `_private` members fell from 68 (21 members) to 4, all
+  in reviewed parser unit tests. The checker-development contract
   rejects any new private coupling outside test modules unless it has a
   reviewed allow-list entry. It also rejects import cycles and any sibling
   import in `check_repo.py`. Every maintained CLI now has exactly one
@@ -304,13 +304,13 @@ Use only the categories needed by a release.
   longer runs a `unittest discover` that found 0 tests.
 - The reusable *Static repository checks* workflow set its concurrency group
   from `github.workflow`, which in a called workflow is the caller's name. A
-  caller that kept the documented concurrency therefore shared the group and
-  was cancelled as a caller/callee deadlock. The group is now job-level and
-  named for the job. The published interface `1.0.0` pin still has the old
-  group, so the adoption guide now tells its callers to rename theirs. The provisioner also required the literal check name
-  `Repository integrity`, while a caller emits `<caller job> / Repository
-  integrity`; it now accepts either, and the adoption guide says to record the
-  emitted name in `provisioning-policy.json`.
+  caller that kept the documented concurrency therefore shared the group and was
+  cancelled as a caller/callee deadlock. The group is now job-level and named
+  for the job. The published interface `1.0.0` pin still has the old group, so
+  the adoption guide now tells its callers to rename theirs. The provisioner
+  also required the literal check name `Repository integrity`, while a caller
+  emits `<caller job> / Repository integrity`; it now accepts either, and the
+  adoption guide says to record the emitted name in `provisioning-policy.json`.
 - CodeQL analyzed a fixed Python and JavaScript/TypeScript matrix. The minimal
   tier removes the label scripts, the template's only JavaScript, and CodeQL
   fails a language with no source, so every minimal-tier analysis would fail.

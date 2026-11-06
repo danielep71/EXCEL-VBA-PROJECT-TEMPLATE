@@ -250,7 +250,7 @@ python3 tools/check_release.py --root . --tag v1.0.0 \
 Checksums prove byte identity. A verified tag signature authenticates the trusted
 signer's Git tag; a verified certification signature authenticates the durable
 certification ZIP; a verified provenance-record signature authenticates the
-approved signer's assertions in that separate record. Neither independently
+approved signer's assertions in that separate record. None of them independently
 proves that Excel imported the recorded source, that an environment description
 is truthful, or that a named workflow ran successfully. Review exact source,
 logs and outcomes separately. The default static workflow supplies validation

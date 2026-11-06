@@ -14,8 +14,8 @@ The template's public presentation uses
 [`social-preview.png`](social-preview.png), rendered at GitHub's recommended
 1280×640 resolution from the editable
 [`social-preview.svg`](social-preview.svg). Both files are template-only and are
-removed during initialization unless `SOCIAL_PREVIEW_PATH` explicitly selects
-the PNG. Generated projects should replace the artwork with their own identity
+removed during initialization; only the PNG can be kept, by setting
+`SOCIAL_PREVIEW_PATH=assets/social-preview.png`. Generated projects should replace the artwork with their own identity
 before retaining it.
 <!-- template:remove:end -->
 

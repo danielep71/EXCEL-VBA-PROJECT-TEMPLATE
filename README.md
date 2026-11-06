@@ -200,8 +200,11 @@ python3 tools/check_repo.py --root . --self-test
 python3 tools/check_repo.py --root . \
   --output test-results/static-checks.json \
   --summary test-results/static-checks.md
+python3 tools/check_vba_public_api.py --root . --self-test
 python3 tools/check_vba_public_api.py --root .
+python3 tools/check_vba_jumps.py --root . --self-test
 python3 tools/check_vba_jumps.py --root .
+python3 tools/check_release_semantics.py --root . --self-test
 python3 tools/check_release_semantics.py --root .
 ```
 <!-- template:tier:minimal:end -->
@@ -216,7 +219,8 @@ Run the project-specific check as well:
 
 Then import the applicable VBA components into a supported Excel host, run
 **Debug → Compile VBAProject**, and execute the documented regression or smoke
-entry point. The neutral baseline is `ProjectTests.RunProjectTests`.
+entry point. The neutral baseline is `ProjectTests.RunProjectTests`; also run
+the selected profile's reference suite listed in [tests/README.md](tests/README.md).
 
 ### 3. Provision GitHub settings
 

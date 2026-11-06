@@ -23,7 +23,7 @@ A step-level local action reference must:
 5. use a supported baseline runtime shape:
    - `composite`, with `runs.steps`;
    - `node20` or `node24`, with a tracked in-directory `runs.main` and any declared `pre`/`post` entrypoints; or
-   - `docker`, with a tracked in-directory `Dockerfile`;
+   - `docker`, with `runs.image: Dockerfile` and a tracked in-directory `Dockerfile` (registry images such as `docker://…` are rejected);
 6. keep all required entrypoints inside the action directory and under Git control.
 
 The checker fails closed on missing directories, path traversal, untracked metadata, dual `action.yml`/`action.yaml`, malformed required metadata, unsupported runtimes, missing entrypoints, untracked entrypoints, or entrypoint traversal.

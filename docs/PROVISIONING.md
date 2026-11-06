@@ -5,8 +5,8 @@
 
 The provisioner configures one explicitly initialized generated repository.
 It does not create repositories, initialize source, merge branches, publish
-releases or migrate the existing portfolio. This milestone develops the tooling
-and tests it against a simulated GitHub API; no existing portfolio is modified.
+releases or migrate the existing portfolio. The tool is tested against a
+simulated GitHub API; it has not modified any existing portfolio repository.
 The tool, guide and fixtures are template-maintenance files removed during
 generation. The optional `.github/provisioning-policy.json` remains in generated
 source and resolves the project description from the immutable initialization
@@ -49,8 +49,8 @@ protection**. Coverage is judged by content, not name, so repositories
 provisioned earlier keep their **Template default branch** / **Template version
 tags** rulesets while those still cover the baseline; nothing is duplicated or
 renamed. An existing ruleset with a baseline name, new or legacy, but
-insufficient controls blocks apply and requires a separately reviewed migration. Rules with bypass or exclusions
-cannot prove coverage. Adding baseline protection does not remove existing
+insufficient controls blocks apply and requires a separately reviewed
+migration. Rules with bypass or exclusions cannot prove coverage. Adding baseline protection does not remove existing
 reviewers, specialist checks, scope restrictions or stronger controls.
 
 Examples of exception keys in the committed policy:
@@ -166,4 +166,5 @@ all profiles, exact request scope, plan repeatability, idempotence, stale
 approval, mismatched target/version/SHA, preserved stronger controls, reviewed
 exceptions, missing bypass evidence, ignored/partial writes and journal failure.
 They do not demonstrate a live administrative deployment or Excel execution.
-No production credentials are used by the fixture workflow.
+No production credentials are used by the *Portfolio drift fixtures* workflow
+(`portfolio-drift.yml`).

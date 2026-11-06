@@ -68,7 +68,8 @@ python3 tools/check_vba_jumps.py --root .
 ```
 
 The hosted *Static repository checks* workflow runs the same gates, with their
-self-tests, on every pull request.
+self-tests and the release-semantics gate, on pull requests and pushes to `main`
+and `release/**`, and on `v*` tags.
 
 ## 4. Certify in Excel
 
@@ -118,6 +119,7 @@ release_version="$(tr -d '\r\n' < VERSION)" || exit $?
 release_tag="v${release_version}"
 python3 tools/check_release_semantics.py --root . || exit $?
 git tag -a "$release_tag" "$candidate_sha" -m "{{PROJECT_NAME}} ${release_version}" || exit $?
+test "$(git cat-file -t "$release_tag")" = tag || exit $?
 test "$(git rev-parse "${release_tag}^{commit}")" = "$candidate_sha" || exit $?
 git push origin "refs/tags/$release_tag:refs/tags/$release_tag" || exit $?
 )

@@ -96,7 +96,8 @@ receives `contents: read`, `security-events: write`, and `id-token: write`; the
 last permission is used only for authenticated Scorecard result publication.
 <!-- template:tier:full:end -->
 The repository-quality gate rejects `pull_request_target` and rejects
-write-capable permissions in any workflow that runs on `pull_request`. Event
+write-capable permissions in any job that can run on `pull_request`; a job
+guarded by `github.event_name != 'pull_request'` is excluded. Event
 detection, workflow-level permission analysis, job-level permission analysis,
 and immutable Action pin validation remain separate checker routines so each
 finding is independently testable and the canonical gate stays within its

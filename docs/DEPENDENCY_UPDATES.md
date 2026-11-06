@@ -1,7 +1,7 @@
 # 🔄 Controlled Dependency Updates
 
 [![Policy: reviewed updates](https://img.shields.io/badge/policy-reviewed%20updates-217346)](#review-and-merge)
-[![Pins: immutable](https://img.shields.io/badge/actions-full%20SHA-1D76DB)](#provenance-review)
+[![Actions: full SHA](https://img.shields.io/badge/actions-full%20SHA-1D76DB)](#provenance-review)
 [![Merge: manual](https://img.shields.io/badge/merge-manual-6f42c1)](#review-and-merge)
 
 This document owns dependency discovery, update evidence, approval and rollback.
@@ -17,7 +17,7 @@ The repository maintainer reviews the following sources weekly and before a
 release candidate is selected. Security advisories are triaged when received,
 without waiting for the weekly review. Record the review date, reviewer, sources
 checked, candidates, disposition and next action in a tracking issue; a no-change
-review must say so. Dependabot now performs weekly proposal discovery for GitHub
+review must say so. Dependabot performs weekly proposal discovery for GitHub
 Actions. It never auto-approves or auto-merges; provenance review and the manual
 merge decision below remain mandatory. Other dependency surfaces retain their
 explicit maintainer review cadence.
@@ -110,6 +110,9 @@ The SHA/origin and least-privilege principles follow GitHub's
 ## 🧩 Grouping and compatibility
 
 - Group repeated occurrences of the same Action pin in one coherent update.
+- Move every `github/codeql-action` path (`init`, `analyze`, `upload-sarif`)
+  together: the action rejects a mixed release, so Dependabot groups them as
+  `codeql-action`.
 <!-- template:remove:start -->
 - Include the minimal-tier workflow variant under `.github/governance/minimal/`
   in the same update. Dependabot scans only `.github/workflows/`, so the

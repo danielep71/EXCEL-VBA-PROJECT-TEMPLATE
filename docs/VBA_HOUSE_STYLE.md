@@ -126,7 +126,8 @@ or failure consequence. Add further comments before distinct steps within a
 larger phase, particularly error capture, cleanup, validation and propagation.
 Section titles alone do not supply this explanation. Put a handler's entry
 label before its explanatory comment so the comment accompanies the statements
-executed at that label.
+executed at that label. Likewise, a column-one `#If` directive that guards a whole
+phase precedes the phase's explanatory comment.
 
 Keep module dates at least as recent as the procedures changed in that module;
 do not refresh untouched procedure dates merely to make all dates identical.

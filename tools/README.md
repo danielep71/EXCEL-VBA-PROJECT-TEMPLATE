@@ -304,8 +304,9 @@ The reusable policy deliberately prohibits implicit public visibility. Supported
 API declarations must use explicit `Public` visibility; `Global` is accepted for
 legacy public variables. The gate normalizes line continuations and covers
 public Subs, Functions, Property Get/Let/Set members, constants, events,
-Declare Function/Sub members, variables, Enums, and Types. Public variable
-statements contain one identifier each so signatures remain unambiguous.
+Declare Function/Sub members, variables, Enums, and Types. Public constant
+and variable statements contain one identifier each so signatures remain
+unambiguous.
 
 `PUBLIC_API.txt` remains the single manifest. Its traditional three-column rows
 preserve compatibility with the canonical repository checker, while `# SIG`
@@ -386,7 +387,8 @@ report, or artifact fails the terminal verdict.
 `test_workflow_validation.py` requires that exact actionlint version. It
 accepts the tracked workflows and a valid local composite action, and requires
 rejection of malformed YAML, duplicate job IDs, an invalid job key, missing
-local-action metadata, and a missing local Node entry point. Run it locally with
+local-action metadata, and a missing local Node entry point. It also enforces
+the Scorecard publication contract, reported as its own row. Run it locally with
 an independently verified binary:
 
 ```bash
@@ -420,7 +422,10 @@ python3 tools/check_release.py --root . --self-test \
 Candidate validation requires `--tag`, `--candidate-sha`, and `--evidence`.
 Binary UI/application distributions also require `--asset-manifest`; a
 source-only release omits it. After creating the local annotated tag, add
-`--require-tag-ref` to prove its object type and target. See
+`--require-tag-ref` to prove its object type and target. `--provenance` and
+`--provenance-signature` add the build record and its signature
+([RELEASE_PROVENANCE.md](../docs/RELEASE_PROVENANCE.md)); `--excel-evidence`
+adds a structured host record ([EXCEL_EVIDENCE.md](../docs/EXCEL_EVIDENCE.md)). See
 [`docs/RELEASE_EVIDENCE.md`](../docs/RELEASE_EVIDENCE.md) for the exact JSON,
 manifest, profile, and command contracts.
 
@@ -433,8 +438,8 @@ Excel or claim that a manually packaged Office file was built from source.
 `initialize_repository.py` converts a clean generated repository from template
 mode to one explicit profile. It validates the complete substitution set,
 defaults to a deterministic dry-run, applies only with `--apply`, removes
-non-applicable/template-only content, resets inherited changelog history, and
-resets the generated version to the `0.0.0` sentinel, and supports an idempotent
+non-applicable/template-only content, resets inherited changelog history,
+resets the generated version to the `0.0.0` sentinel and supports an idempotent
 second run. `--governance-tier minimal` generates the lighter tier, and
 `--upgrade-tier full`, run from a template checkout, upgrades a minimal project
 in place without overwriting adopter changes; see
@@ -443,7 +448,7 @@ in place without overwriting adopter changes; see
 See [`docs/INITIALIZATION.md`](../docs/INITIALIZATION.md) for the token catalogue,
 profile commands, optional and repeatable values, and the transparent manual
 fallback. In canonical template mode the self-test constructs and validates all
-three supported profile fixtures. In an initialized generated repository it
+three profiles in both governance tiers, plus minimal-to-full upgrades. In an initialized generated repository it
 validates only the recorded selected profile, identity, cleanup, quality checks,
 and repeat-run safety; it does not restore or require removed maintainer-only
 tooling. Run:

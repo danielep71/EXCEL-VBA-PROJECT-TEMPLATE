@@ -66,17 +66,9 @@ runner tests cover CLI flags, defaults/help, self-test dispatch, diagnostic
 prefixes, exit mapping, deterministic evidence, write failures and propagation
 of non-operational exceptions.
 
-The canonical-template merge-history control introduced after v1.2.0 does **not**
-add another focused-gate entry point. Its ownership sits inside the already
-registered `check_release_semantics.py` consumer: the normal SemVer/changelog
-report gains a template-only history branch, while generated repositories report
-that branch as not applicable. The deterministic history fixtures therefore run
-through `check_release_semantics.py --self-test`, preserving the existing
-shared-runner registry and avoiding a parallel orchestration path.
-
 `tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused operational gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary in the canonical template. The checker-development workflow, this document, and the `policy_coverage_*` semantic-coverage harness are template-maintainer assets and are removed by initialization rather than shipped into generated projects.
 
-The public API gate also uses `check_vba_conditionals.py` to evaluate the same four supported compilation environments (`vba6-win32`, `vba7-win32`, `vba7-win64` and `vba7-mac64`). It checks name collisions only where declarations can coexist, and requires one manifest declaration row plus a `# SIG` record for every distinct reachable signature. Unknown conditions fail closed. These are static models, not evidence of Excel runtime certification.
+The public API gate's use of `check_vba_conditionals.py` and its four compilation environments are described in the [tools guide](../tools/README.md).
 
 ### Self-test interface coverage
 
@@ -95,7 +87,7 @@ also recognizes a main-only `else` branch. Unknown operands remain unknown, so
 this is a bounded syntactic model, not general Python control-flow analysis.
 
 `check_documentation.py` and `check_wiki.py` intentionally use dedicated offline
-suites: `python tools/test_documentation.py -v` and `python tools/test_wiki.py -v`.
+suites: `python3 tools/test_documentation.py -v` and `python3 tools/test_wiki.py -v`.
 CI runs them in `static-checks.yml` and `wiki-checks.yml`, respectively. They remain
 runner consumers; their self-test exclusions do not exempt them from ownership checks.
 The registry also names the separate suites for the other operational CLIs without
@@ -207,18 +199,26 @@ than this AST/interface harness. `python3 tools/check_release_semantics.py --roo
 proves compliant squash history, reviewed merge exceptions, unapproved merge
 rejection and duplicate-subject rejection using temporary Git repositories.
 
+The canonical-template merge-history control introduced in v1.2.1 does **not**
+add another focused-gate entry point. Its ownership sits inside the already
+registered `check_release_semantics.py` consumer: the normal SemVer/changelog
+report gains a template-only history branch, while generated repositories report
+that branch as not applicable. The deterministic history fixtures therefore run
+through `check_release_semantics.py --self-test`, preserving the existing
+shared-runner registry and avoiding a parallel orchestration path.
+
 ## 🖥️ Local pre-push validation
 
 Hosted CI is authoritative, but a maintainer should be able to reach the same
-verdict before pushing. Two files make that reproducible.
+verdict before pushing. These files make that reproducible.
 
 `tools/requirements-dev.txt` pins the cross-platform local Python tooling to
 the exact direct versions used by hosted CI. The hosted CPython 3.10 / Ubuntu
 x64 installs are additionally locked by `tools/requirements-quality-ci.txt`,
 `tools/requirements-coverage-ci.txt`, and
 `tools/requirements-portfolio-ci.txt`, which carry the reviewed wheel hashes
-consumed by `static-checks.yml`, `checker-development.yml`, and
-`portfolio-drift.yml` respectively. `tools/dev_check.sh` verifies the local
+consumed by `static-checks.yml` (and `generated-profile-matrix.yml`),
+`checker-development.yml`, and `portfolio-drift.yml` respectively. `tools/dev_check.sh` verifies the local
 version pins still mirror those hosted lock files and the workflow-declared
 Ruff/mypy versions. `actionlint` is a Go binary rather than a Python package,
 so it is documented in `tools/requirements-dev.txt` but not installable from it.
@@ -238,7 +238,10 @@ Ruff/mypy lock entries still match `RUFF_VERSION` and `MYPY_VERSION` in
 `static-checks.yml`, that both hosted PyYAML lock files agree with the local
 pin, and that the `actionlint` version/digest still match
 `static-checks.yml`. A lock or workflow pin that moves without the other
-surfaces therefore cannot turn a clean local run into a false negative. It then
+surfaces therefore cannot turn a clean local run into a false negative. The same
+mirror covers the actionlint pin in `generated-profile-matrix.yml`,
+`EXPECTED_ACTIONLINT_VERSION` in `test_workflow_validation.py` and the PyYAML
+runtime assertion in `check_portfolio_drift.py`. It then
 checks that every installed local tool version matches the pin. Both are
 failures rather than warnings, because a local run on different versions can
 disagree with CI in both directions. A mismatched PyYAML is the clearest case:
@@ -248,12 +251,14 @@ resulting failure names the portfolio suites rather than the real cause.
 Workflow validation is the one gate that needs a non-Python tool.
 `tools/requirements-dev.txt` carries the command that installs the same pinned,
 digest-verified `actionlint` binary `static-checks.yml` uses; with it on `PATH`
-the local run covers every tracked workflow and reports no skips.
+the local run covers every tracked workflow and reports no skips (unless
+`FAST=1`, which skips two gates).
 
 The script is explicitly not a claim of CI equivalence. Workflow validation
 without `actionlint` on `PATH` is reported as SKIPPED. The statement-coverage
-floor, Excel evidence, live GitHub state and the hosted terminal verdicts are
-not run; the closing note lists them as the hosted gates' responsibility, and
+floor, committed-mode whitespace (the local run checks the working tree only),
+external links, live portfolio drift, Excel evidence, live GitHub state and the
+hosted terminal verdicts are not run; the closing note lists them as the hosted gates' responsibility, and
 none is ever counted as a pass.
 
 ## 🧰 Registered maintenance tasks

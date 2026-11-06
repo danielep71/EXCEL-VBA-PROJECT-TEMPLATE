@@ -344,6 +344,9 @@ python3 tools/check_release.py --root . --self-test \
 python3 tools/release_certification.py --self-test
 ```
 
+The certification self-test signs and verifies fixtures, so it needs OpenSSH's
+`ssh-keygen` on `PATH`; without it the self-test fails.
+
 Before tagging, validate an external evidence file and any staged product
 assets:
 
@@ -396,13 +399,15 @@ rejects:
 - an invalid or missing dated changelog release;
 - unresolved template syntax, template identity, or inherited construction
   history in a generated project release;
-- a template release carrying a generated-project initialization record or
-  missing its pilot/governance evidence;
 - missing evidence or missing profile-specific checks;
 - evidence or product assets bound to another candidate SHA;
 - unapproved library or profile binaries;
 - an absent product-asset manifest or incorrect asset digest; and
 - a lightweight or moved tag.
+
+The gate also rejects a template release that carries a generated-project
+initialization record or lacks its pilot/governance evidence; the self-test has
+no fixture for those two cases yet.
 
 The certification-bundle self-test additionally rejects missing required roles,
 secret-like public evidence, non-deterministic output, a same-filename bundle

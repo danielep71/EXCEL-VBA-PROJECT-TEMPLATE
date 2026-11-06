@@ -46,9 +46,9 @@ The ui-component profile adds `modules/ProgressTests.bas`. Import it after
 `ProgressCore` and `ProgressFacade`, then run `ProgressTests.RunProgressTests`.
 Its 12 cases cover begin, update, caller-state restoration, re-entry refusal,
 calls without a session, cancellation, every invalid argument, the elapsed-time
-seam, repeated sessions and recovery. A negative control breaks a restored
-property and requires the check to detect it. Cursor checks run on Windows
-only, so success ends with:
+seam, the keep-screen-updating option, repeated sessions and recovery. A
+negative control breaks a restored property and requires the check to detect
+it. Cursor checks run on Windows only, so on Windows success ends with:
 
 ```text
 RESULT=PASS; completeness=COMPLETE; cases=12; assertions=79; failures=0; cleanup=PASS
@@ -65,8 +65,8 @@ The application profile adds `modules/LifecycleTests.bas`. Import it after
 `LifecycleCore` and `LifecycleFacade`, then run `LifecycleTests.RunLifecycleTests`
 with a workbook active and no lifecycle session running: the suite refuses to
 start (`RESULT=FAIL_SESSION_RUNNING`) rather than stop a session another
-workbook, such as `ThisWorkbook`, started. Its 16 cases run on temporary workbooks that the suite
-closes unsaved: first start, repeated start and stop, restart, migration from
+workbook, such as `ThisWorkbook`, started. Its 16 cases run on temporary
+workbooks that the suite closes unsaved: first start, repeated start and stop, restart, migration from
 schema 1, the current-schema no-op, refusals before any change, rollback of a
 start that fails mid-migration or mid-upgrade, re-entry refused as busy, single
 ownership, recovery after an unclean stop and of a live session, reset, and a

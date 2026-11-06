@@ -15,15 +15,17 @@ certify releases. Generated projects do not inherit the reporter or its fixtures
 | Dimension | Evidence and boundary |
 | --- | --- |
 | Adoption | Recorded contract source/version, project profile and governance tier, or explicit ADOPT; no inferred replacement |
-| Structural conformance | Version- and [tier](PORTFOLIO_DRIFT.md#governance-tiers)-selected #25 predicates; a control the recorded tier omits is `NOT_APPLICABLE`, not missing; file presence is not implementation correctness |
+| Structural conformance | Version- and [tier](PORTFOLIO_DRIFT.md#governance-tiers)-selected [drift](PORTFOLIO_DRIFT.md) predicates; a control the recorded tier omits is `NOT_APPLICABLE`, not missing; file presence is not implementation correctness |
 | Required workflow health | Exact inspected SHA, default branch, latest push/dispatch run per workflow and its captured attempt; all required named jobs and their runs must succeed |
-| Branch and tag protection | Observed active rulesets and #25 scope predicates; unavailable policy is not a passing control |
+| Branch protection | Observed active default-branch rulesets and the drift scope predicates; unavailable policy is not a passing control |
+| Release-tag protection | Observed active `v*` tag rulesets and the drift scope predicates; unavailable policy is not a passing control |
 | Latest stable release | Most recently published non-draft, non-prerelease release, resolved tag commit, release text and asset metadata; publication is not certification |
-| Specialist claims | Original score, scale, rationale, source file and SHA; attributed as REPORTED, never normalized into a portfolio ranking |
+| Specialist claims (outside the status verdict) | Original score, scale, rationale, source file and SHA; attributed as REPORTED, never normalized into a portfolio ranking |
 
 There is no overall numerical score. Stars, forks, traffic, downloads, watchers
 and other popularity metrics are not quality inputs. A report's `status: pass`
-means all six main evidence dimensions have acceptable observations, **not** that
+means the six evidence dimensions above the specialist row have acceptable
+observations, **not** that
 the software or a release is certified. `UNRELEASED` is an observed absence of a
 stable release, not a defect. `OBSERVED` records publication without endorsing it.
 Certification is always `NOT_ASSESSED` here; release certification uses the
@@ -55,7 +57,7 @@ Changing `--as-of` intentionally changes the report and may change freshness.
 ## 📸 Capture and render
 
 Use a template-maintenance environment with the parser dependency described in
-[the drift guide](PORTFOLIO_DRIFT.md#capture). No new dependency is introduced.
+[the drift guide](PORTFOLIO_DRIFT.md#capture); the reporter needs nothing more.
 
 ```bash
 python3 tools/collect_portfolio_snapshot.py --quality --contract-commit FULL_EVALUATOR_SHA owner/repo-one owner/repo-two > snapshot.json
@@ -70,7 +72,7 @@ The public CI workflow exercises synthetic fixtures only, without portfolio
 credentials, remote changes or public uploads of private snapshots.
 
 `--quality` preserves snapshot schema 1 and adds optional `quality` evidence to
-each repository. Without that flag, #25's existing evaluator remains usable.
+each repository. Without that flag, the drift evaluator works unchanged.
 The reporter accepts older snapshots, but absent timestamps and quality evidence
 remain UNVERIFIED rather than being filled from the current clock.
 
@@ -94,7 +96,7 @@ Each repository's optional `quality` object contains:
 
 An optional repository-level `specialist` list contains `name`, `score`, `scale`,
 `rationale`, `evidence_path`, exact `commit` and `observed_at`. Preserve the
-underlying review file in `files`/`paths`, using the #25 snapshot rules. No score
+underlying review file in `files`/`paths`, using the drift snapshot rules. No score
 is invented when a specialist review is absent. These operator annotations
 do not assert that the repository adopted the template.
 
