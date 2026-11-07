@@ -168,6 +168,54 @@ four-case/six-assertion PASS proves its three expected-error assertions passed;
 the JSON result records that inference, not a separate instrumented observation.
 Never infer an expected-error PASS from a `CASE=` line alone or an incomplete run.
 
+<a id="one-command-certification"></a>
+
+## 🖱️ One-Command Certification
+
+`tools/Certify-Excel.ps1` performs the manual procedure below on a Windows
+host with desktop Excel, from a clean checkout of the candidate:
+
+```bat
+tools\Certify-Excel.cmd
+```
+
+or, from PowerShell, with a generated project as the candidate:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Certify-Excel.ps1 -RepoRoot C:\work\my-project
+```
+
+It records Windows, Excel version and build, Office bitness, the macro setting
+and *Trust access to the VBA project object model* as found, and changes none
+of them; the import needs that access on. It then starts a visible Excel, adds
+a new workbook, imports every component of `vba.components` from the checkout
+in role order (internal, public, test, example), compiles with **Debug →
+Compile VBAProject**, and runs every test module's `Module.RunModule` entry
+point, the policy's harness first. Each suite prints through `TestLog.Say`,
+whose log the script opens with `TestLog.OpenLog` before the run and closes
+after it, so `harness.log` and `Module.log` hold the complete report with
+`CANDIDATE=` and the SHA as their first line, written by the project itself. It
+then runs every example's `Module.RunModule`, saves the workbook in the bundle
+for inspection, closes it and quits Excel.
+
+`tools/write_excel_evidence.py` writes `host.json` from `session.json`,
+`session.log` and the logs, exactly as the schema above and with
+`execution: "manual"`, validates it with `check_excel_evidence.py`, and judges
+every other suite by its single `RESULT=` line against the `EXPECTED_CASES` and
+`EXPECTED_ASSERTIONS` its source declares (the non-`Mac` branch). It writes
+`suites.json` and `certification.md`, and exits `0` only when `host.json`
+validates as `PASS`, every suite passed with its expected counts and every
+example ran without error. A bundle is never overwritten and a record never
+replaced: a failed run stays as it is.
+
+```bash
+python3 tools/write_excel_evidence.py --root . --candidate-sha FULL_CANDIDATE_SHA --bundle ../excel-evidence-SHORTSHA
+```
+
+The result is the same manual evidence the fallback produces, collected by a
+script instead of by hand; it is not a hosted execution. Attach the bundle to
+the release evidence and cite `certification.md` for the profile suites.
+
 ## 🧑‍💻 Manual Fallback
 
 1. Use a fresh checkout of the reviewed SHA, with no modified tracked files.

@@ -139,6 +139,31 @@
       "kind": "git-policy",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
+    ".github/ISSUE_TEMPLATE/bug.yml": {
+      "purpose": "Structured reproducible-defect intake with environment and evidence.",
+      "kind": "policy",
+      "authority": "docs/POST_CREATION_CHECKLIST.md"
+    },
+    ".github/ISSUE_TEMPLATE/config.yml": {
+      "purpose": "Disable blank issues and route vulnerabilities to the project security policy.",
+      "kind": "policy",
+      "authority": "docs/POST_CREATION_CHECKLIST.md"
+    },
+    ".github/ISSUE_TEMPLATE/documentation.yml": {
+      "purpose": "Documentation defect intake identifying the authority and proposed correction.",
+      "kind": "policy",
+      "authority": "docs/DOCUMENTATION_CHECKS.md"
+    },
+    ".github/ISSUE_TEMPLATE/feature.yml": {
+      "purpose": "Feature/change intake with scope, compatibility and acceptance criteria.",
+      "kind": "policy",
+      "authority": "docs/POST_CREATION_CHECKLIST.md"
+    },
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "purpose": "PR review/evidence checklist, including dependency-update information.",
+      "kind": "document",
+      "authority": "CONTRIBUTING.md"
+    },
     ".github/dependabot.yml": {
       "purpose": "Weekly proposal-only GitHub Actions dependency discovery.",
       "kind": "policy",
@@ -169,26 +194,6 @@
       "kind": "document",
       "authority": "docs/INITIALIZATION.md"
     },
-    ".github/ISSUE_TEMPLATE/bug.yml": {
-      "purpose": "Structured reproducible-defect intake with environment and evidence.",
-      "kind": "policy",
-      "authority": "docs/POST_CREATION_CHECKLIST.md"
-    },
-    ".github/ISSUE_TEMPLATE/config.yml": {
-      "purpose": "Disable blank issues and route vulnerabilities to the project security policy.",
-      "kind": "policy",
-      "authority": "docs/POST_CREATION_CHECKLIST.md"
-    },
-    ".github/ISSUE_TEMPLATE/documentation.yml": {
-      "purpose": "Documentation defect intake identifying the authority and proposed correction.",
-      "kind": "policy",
-      "authority": "docs/DOCUMENTATION_CHECKS.md"
-    },
-    ".github/ISSUE_TEMPLATE/feature.yml": {
-      "purpose": "Feature/change intake with scope, compatibility and acceptance criteria.",
-      "kind": "policy",
-      "authority": "docs/POST_CREATION_CHECKLIST.md"
-    },
     ".github/labels.json": {
       "purpose": "Canonical core/profile/domain label definitions and reconciliation policy.",
       "kind": "policy",
@@ -198,11 +203,6 @@
       "purpose": "Reviewed metadata/features/merge/required-check goals and exception rationale.",
       "kind": "policy",
       "authority": "docs/PROVISIONING.md"
-    },
-    ".github/PULL_REQUEST_TEMPLATE.md": {
-      "purpose": "PR review/evidence checklist, including dependency-update information.",
-      "kind": "document",
-      "authority": "CONTRIBUTING.md"
     },
     ".github/release-history-policy.json": {
       "purpose": "Canonical-template merge-history rules, exact-SHA reviewed exceptions and preserved historical records.",
@@ -304,21 +304,6 @@
       "kind": "git-policy",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
-    "assets/README.md": {
-      "purpose": "Rules for maintained visual/support assets.",
-      "kind": "document",
-      "authority": "docs/REPOSITORY_STRUCTURE.md"
-    },
-    "assets/social-preview.png": {
-      "purpose": "Optional raster social preview removed unless explicitly selected.",
-      "kind": "asset",
-      "authority": "docs/REPOSITORY_STRUCTURE.md"
-    },
-    "assets/social-preview.svg": {
-      "purpose": "Editable template preview source; removed during generation.",
-      "kind": "asset",
-      "authority": "docs/REPOSITORY_STRUCTURE.md"
-    },
     "CHANGELOG.md": {
       "purpose": "User-visible release history, version comparison links and Unreleased changes.",
       "kind": "document",
@@ -333,6 +318,51 @@
       "purpose": "Change scope, review discipline, source ownership and validation evidence.",
       "kind": "document",
       "authority": "CONTRIBUTING.md"
+    },
+    "INSTALLATION.md": {
+      "purpose": "Import, upgrade, recovery and removal procedure for exported VBA.",
+      "kind": "document",
+      "authority": "INSTALLATION.md"
+    },
+    "LICENSE": {
+      "purpose": "MIT reuse terms and copyright attribution.",
+      "kind": "document",
+      "authority": "LICENSE"
+    },
+    "README.md": {
+      "purpose": "Project identity, profile overview, quick start and main navigation.",
+      "kind": "document",
+      "authority": "README.md"
+    },
+    "RELEASING.md": {
+      "purpose": "Ordered release preparation, certification, tagging and publication procedure.",
+      "kind": "document",
+      "authority": "RELEASING.md"
+    },
+    "SECURITY.md": {
+      "purpose": "Vulnerability scope, private reporting, disclosure and response.",
+      "kind": "document",
+      "authority": "SECURITY.md"
+    },
+    "VERSION": {
+      "purpose": "Single product-version value; initializer resets it to the 0.0.0 sentinel.",
+      "kind": "policy",
+      "authority": "docs/RELEASE_SEMANTICS.md"
+    },
+    "assets/README.md": {
+      "purpose": "Rules for maintained visual/support assets.",
+      "kind": "document",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "assets/social-preview.png": {
+      "purpose": "Optional raster social preview removed unless explicitly selected.",
+      "kind": "asset",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
+    "assets/social-preview.svg": {
+      "purpose": "Editable template preview source; removed during generation.",
+      "kind": "asset",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
     "docs/CHECKER_DEVELOPMENT.md": {
       "purpose": "Independent checker-development and policy-coverage requirements.",
@@ -444,16 +474,6 @@
       "kind": "document",
       "authority": "docs/WIKI_PUBLICATION.md"
     },
-    "docs/wiki/_Sidebar.md": {
-      "purpose": "Generated ordered Wiki navigation; edit the page registry rather than this output.",
-      "kind": "wiki",
-      "authority": "docs/WIKI_PUBLICATION.md"
-    },
-    "docs/wiki/catalogue.json": {
-      "purpose": "Ordered page registry, per-path purpose/authority and shared inventory editing rules.",
-      "kind": "wiki",
-      "authority": "docs/WIKI_PUBLICATION.md"
-    },
     "docs/wiki/Choose-a-profile.md": {
       "purpose": "Guided choose a profile page; summarizes and links to the owning repository contracts.",
       "kind": "wiki",
@@ -524,6 +544,21 @@
       "kind": "wiki",
       "authority": "tools/README.md"
     },
+    "docs/wiki/_Sidebar.md": {
+      "purpose": "Generated ordered Wiki navigation; edit the page registry rather than this output.",
+      "kind": "wiki",
+      "authority": "docs/WIKI_PUBLICATION.md"
+    },
+    "docs/wiki/catalogue.json": {
+      "purpose": "Ordered page registry, per-path purpose/authority and shared inventory editing rules.",
+      "kind": "wiki",
+      "authority": "docs/WIKI_PUBLICATION.md"
+    },
+    "examples/README.md": {
+      "purpose": "Ownership and scope of reproducible usage examples.",
+      "kind": "document",
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
+    },
     "examples/modules/LifecycleExample.bas": {
       "purpose": "Application example and reference smoke: one complete lifecycle session on a temporary workbook.",
       "kind": "vba",
@@ -544,40 +579,15 @@
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
-    "examples/README.md": {
-      "purpose": "Ownership and scope of reproducible usage examples.",
-      "kind": "document",
-      "authority": "docs/REPOSITORY_STRUCTURE.md"
-    },
-    "INSTALLATION.md": {
-      "purpose": "Import, upgrade, recovery and removal procedure for exported VBA.",
-      "kind": "document",
-      "authority": "INSTALLATION.md"
-    },
-    "LICENSE": {
-      "purpose": "MIT reuse terms and copyright attribution.",
-      "kind": "document",
-      "authority": "LICENSE"
-    },
     "pyproject.toml": {
       "purpose": "Python compatibility target, advisory line length, enforced lint selection, complexity ceiling and typing scope.",
       "kind": "policy",
       "authority": "tools/README.md"
     },
-    "README.md": {
-      "purpose": "Project identity, profile overview, quick start and main navigation.",
+    "src/README.md": {
+      "purpose": "Production export organization and public/internal boundaries.",
       "kind": "document",
-      "authority": "README.md"
-    },
-    "RELEASING.md": {
-      "purpose": "Ordered release preparation, certification, tagging and publication procedure.",
-      "kind": "document",
-      "authority": "RELEASING.md"
-    },
-    "SECURITY.md": {
-      "purpose": "Vulnerability scope, private reporting, disclosure and response.",
-      "kind": "document",
-      "authority": "SECURITY.md"
+      "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
     "src/core/LifecycleCore.bas": {
       "purpose": "Application lifecycle state: discovery, schema migration, start with rollback, stop, recovery and reset in hidden workbook names.",
@@ -619,8 +629,8 @@
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
-    "src/README.md": {
-      "purpose": "Production export organization and public/internal boundaries.",
+    "tests/README.md": {
+      "purpose": "Regression entry point, output contract, repeatability and cleanup expectations.",
       "kind": "document",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
@@ -639,15 +649,35 @@
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
+    "tests/modules/TestLog.bas": {
+      "purpose": "Report sink: prints every suite line and, during a certification run, writes it to the open log.",
+      "kind": "vba",
+      "authority": "docs/EXCEL_EVIDENCE.md"
+    },
     "tests/modules/TextTests.bas": {
       "purpose": "Library-profile suite: 29 cases and 135 assertions over every supported TextFacade member.",
       "kind": "vba",
       "authority": "docs/REPOSITORY_STRUCTURE.md"
     },
-    "tests/README.md": {
-      "purpose": "Regression entry point, output contract, repeatability and cleanup expectations.",
+    "tools/Certify-Excel.cmd": {
+      "purpose": "Double-click launcher for Certify-Excel.ps1.",
+      "kind": "script",
+      "authority": "docs/EXCEL_EVIDENCE.md"
+    },
+    "tools/Certify-Excel.ps1": {
+      "purpose": "One-command Excel certification: import, compile, run every suite and example, write and validate the evidence bundle.",
+      "kind": "script",
+      "authority": "docs/EXCEL_EVIDENCE.md"
+    },
+    "tools/LOCAL_ACTIONS.md": {
+      "purpose": "Repository-local composite/Node/Docker action validation boundaries.",
       "kind": "document",
-      "authority": "docs/REPOSITORY_STRUCTURE.md"
+      "authority": "tools/LOCAL_ACTIONS.md"
+    },
+    "tools/README.md": {
+      "purpose": "Operational tool commands, reports and focused-gate responsibilities.",
+      "kind": "document",
+      "authority": "tools/README.md"
     },
     "tools/_gatelib.py": {
       "purpose": "Shared Git, tracked-file, report and focused CLI orchestration primitives; imported helper.",
@@ -694,15 +724,15 @@
       "kind": "script",
       "authority": "docs/PORTFOLIO_DRIFT.md"
     },
-    "tools/check_release_semantics.py": {
-      "purpose": "Enforce strict version, dated changelog, comparison and canonical-template history semantics.",
-      "kind": "script",
-      "authority": "docs/RELEASE_SEMANTICS.md"
-    },
     "tools/check_release.py": {
       "purpose": "Validate an actual release candidate/evidence/assets/tag or synthetic self-tests.",
       "kind": "script",
       "authority": "docs/RELEASE_EVIDENCE.md"
+    },
+    "tools/check_release_semantics.py": {
+      "purpose": "Enforce strict version, dated changelog, comparison and canonical-template history semantics.",
+      "kind": "script",
+      "authority": "docs/RELEASE_SEMANTICS.md"
     },
     "tools/check_repo.py": {
       "purpose": "Self-contained dependency-free canonical 21-rule repository-quality gate.",
@@ -759,11 +789,6 @@
       "kind": "script",
       "authority": "docs/INITIALIZATION.md"
     },
-    "tools/LOCAL_ACTIONS.md": {
-      "purpose": "Repository-local composite/Node/Docker action validation boundaries.",
-      "kind": "document",
-      "authority": "tools/LOCAL_ACTIONS.md"
-    },
     "tools/policy_coverage_cases_config.py": {
       "purpose": "Synthetic configuration and policy-validation branch cases; imported helper.",
       "kind": "script",
@@ -793,11 +818,6 @@
       "purpose": "Plan live new-repository settings or apply a reviewed digest with a durable journal.",
       "kind": "script",
       "authority": "docs/PROVISIONING.md"
-    },
-    "tools/README.md": {
-      "purpose": "Operational tool commands, reports and focused-gate responsibilities.",
-      "kind": "document",
-      "authority": "tools/README.md"
     },
     "tools/release_certification.py": {
       "purpose": "Build or verify deterministic, candidate-bound release certification bundles.",
@@ -889,10 +909,15 @@
       "kind": "script",
       "authority": "tools/README.md"
     },
-    "VERSION": {
-      "purpose": "Single product-version value; initializer resets it to the 0.0.0 sentinel.",
-      "kind": "policy",
-      "authority": "docs/RELEASE_SEMANTICS.md"
+    "tools/test_write_excel_evidence.py": {
+      "purpose": "Bundle fixtures for the evidence writer; no Office execution.",
+      "kind": "script",
+      "authority": "docs/EXCEL_EVIDENCE.md"
+    },
+    "tools/write_excel_evidence.py": {
+      "purpose": "Write host.json from a certification run's logs, validate the bundle and summarize every suite.",
+      "kind": "script",
+      "authority": "docs/EXCEL_EVIDENCE.md"
     }
   },
   "directories": {

@@ -12,8 +12,9 @@ Attribute VB_Name = "TextTests"
 '   Module keeps both procedures out of the external workbook automation API.
 '
 ' DEPENDENCIES
-'   TextFacade and the built-in VBA/Excel object models only. No external
-'   references, workbook fixture, worksheet, donor project, or test framework.
+'   TextFacade, TestLog for every printed line, and the built-in VBA/Excel
+'   object models only. No external references, workbook fixture, worksheet,
+'   donor project, or test framework.
 '
 ' STATE OWNERSHIP
 '   Owns private counters, failure text, suite-completeness state, and a re-entry
@@ -46,7 +47,7 @@ Attribute VB_Name = "TextTests"
 '   covering the shared starter facade.
 '
 ' UPDATED
-'   2026-11-04
+'   2026-11-07
 '
 ' AUTHOR
 '   Daniele Penza
@@ -112,7 +113,7 @@ Public Sub RunTextTests()
 '   A dirty start raises immediately and does not run cleanup.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-07
 '==============================================================================
 '
 
@@ -138,7 +139,7 @@ Public Sub RunTextTests()
     'Refuse an active run before clearing its counters or failure details.
     'An interrupted execution must be reset explicitly by the caller.
         If mRunActive Then
-            Debug.Print "RESULT=FAIL_DIRTY_START; cleanup=NOT_RUN"
+            TestLog.Say "RESULT=FAIL_DIRTY_START; cleanup=NOT_RUN"
             Err.Raise _
                 TEST_ERROR_DIRTY_START, _
                 "TextTests.RunTextTests", _
@@ -264,7 +265,7 @@ Public Sub ResetTextTests()
 '   Print confirmation; do not alter Excel application properties.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-07
 '==============================================================================
 '
 
@@ -274,7 +275,7 @@ Public Sub ResetTextTests()
     'Recover only harness-owned state after execution has stopped; the
     'confirmation distinguishes an explicit reset from a completed test run.
         ResetRun
-        Debug.Print "TEXT TESTS RESET; run_active=no; counters=0"
+        TestLog.Say "TEXT TESTS RESET; run_active=no; counters=0"
 
 End Sub
 
@@ -961,7 +962,7 @@ Private Sub BeginCase( _
 '   caseName: stable identifier used by the evidence contract.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-07
 '==============================================================================
 '
 
@@ -971,7 +972,7 @@ Private Sub BeginCase( _
     'Count a case when it starts, even if its first assertion later fails;
     'the matching log record identifies which case was reached.
         mCaseCount = mCaseCount + 1
-        Debug.Print "CASE=" & caseName
+        TestLog.Say "CASE=" & caseName
 
 End Sub
 
@@ -1600,7 +1601,7 @@ Private Sub PrintEnvironment()
 '   Host-property read failures propagate to the runner error path.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-07
 '==============================================================================
 '
 
@@ -1609,8 +1610,8 @@ Private Sub PrintEnvironment()
 '------------------------------------------------------------------------------
     'Write the preamble before the host fields so retained output can be
     'recognized and attributed to the environment that produced it.
-        Debug.Print "TEXT TESTS"
-        Debug.Print "ENVIRONMENT=" & EnvironmentSummary()
+        TestLog.Say "TEXT TESTS"
+        TestLog.Say "ENVIRONMENT=" & EnvironmentSummary()
 
 End Sub
 
@@ -1694,7 +1695,7 @@ Private Sub PrintSummary( _
 '   PASS requires zero failures, successful cleanup, and a complete suite.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-07
 '==============================================================================
 '
 
@@ -1720,18 +1721,18 @@ Private Sub PrintSummary( _
 '------------------------------------------------------------------------------
     'Write the retained counts and cleanup first, then any diagnostics and
     'the final result record consumed by the evidence validator.
-        Debug.Print "CASES=" & CStr(mCaseCount)
-        Debug.Print "ASSERTIONS=" & CStr(mAssertionCount)
-        Debug.Print "FAILURES=" & CStr(mFailureCount)
-        Debug.Print "CLEANUP=" & IIf(cleanupPassed, "PASS", "FAIL") & _
+        TestLog.Say "CASES=" & CStr(mCaseCount)
+        TestLog.Say "ASSERTIONS=" & CStr(mAssertionCount)
+        TestLog.Say "FAILURES=" & CStr(mFailureCount)
+        TestLog.Say "CLEANUP=" & IIf(cleanupPassed, "PASS", "FAIL") & _
             "; detail=" & cleanupDetail
 
     'Omit the diagnostic record on a clean run; retain all details on failure.
         If Len(mFailureDetails) > 0 Then
-            Debug.Print "FAILURE_DETAILS=" & mFailureDetails
+            TestLog.Say "FAILURE_DETAILS=" & mFailureDetails
         End If
 
-        Debug.Print _
+        TestLog.Say _
             "RESULT=" & verdict & _
             "; completeness=" & IIf(mSuiteCompleted, "COMPLETE", "INCOMPLETE") & _
             "; cases=" & CStr(mCaseCount) & _

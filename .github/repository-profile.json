@@ -58,6 +58,8 @@
     "tests/README.md",
     "tools/_gatelib.py",
     "tools/_release_closeout.py",
+    "tools/Certify-Excel.cmd",
+    "tools/Certify-Excel.ps1",
     "tools/check_committed_whitespace.py",
     "tools/check_documentation.py",
     "tools/check_excel_evidence.py",
@@ -81,6 +83,8 @@
     "tools/test_template_verification_depth.py",
     "tools/test_template_workflow_validation.py",
     "tools/test_workflow_validation.py",
+    "tools/test_write_excel_evidence.py",
+    "tools/write_excel_evidence.py",
     "VERSION"
   ],
   "required_directories": [
@@ -118,7 +122,8 @@
         "required_components": {
           "src/core/ProjectCore.bas": "internal",
           "src/modules/ProjectFacade.bas": "public",
-          "tests/modules/ProjectTests.bas": "test"
+          "tests/modules/ProjectTests.bas": "test",
+          "tests/modules/TestLog.bas": "test"
         }
       }
     },
@@ -146,7 +151,8 @@
         "required_components": {
           "src/core/ProjectCore.bas": "internal",
           "src/modules/ProjectFacade.bas": "public",
-          "tests/modules/ProjectTests.bas": "test"
+          "tests/modules/ProjectTests.bas": "test",
+          "tests/modules/TestLog.bas": "test"
         }
       }
     },
@@ -175,7 +181,8 @@
         "required_components": {
           "src/core/ProjectCore.bas": "internal",
           "src/modules/ProjectFacade.bas": "public",
-          "tests/modules/ProjectTests.bas": "test"
+          "tests/modules/ProjectTests.bas": "test",
+          "tests/modules/TestLog.bas": "test"
         }
       }
     }
@@ -378,6 +385,7 @@
       "tests/modules/LifecycleTests.bas": "test",
       "tests/modules/ProgressTests.bas": "test",
       "tests/modules/ProjectTests.bas": "test",
+      "tests/modules/TestLog.bas": "test",
       "tests/modules/TextTests.bas": "test"
     },
     "public_api_manifest": "docs/PUBLIC_API.txt"
@@ -412,6 +420,8 @@
           "docs/REUSABLE_WORKFLOWS.md",
           "pyproject.toml",
           "tools/_release_closeout.py",
+          "tools/Certify-Excel.cmd",
+          "tools/Certify-Excel.ps1",
           "tools/check_committed_whitespace.py",
           "tools/check_documentation.py",
           "tools/check_excel_evidence.py",
@@ -430,7 +440,9 @@
           "tools/test_excel_evidence.py",
           "tools/test_release_provenance.py",
           "tools/test_verification_depth.py",
-          "tools/test_workflow_validation.py"
+          "tools/test_workflow_validation.py",
+          "tools/test_write_excel_evidence.py",
+          "tools/write_excel_evidence.py"
         ],
         "replace_paths": {
           ".github/workflows/static-checks.yml": ".github/governance/minimal/static-checks.yml",

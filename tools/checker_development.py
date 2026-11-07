@@ -98,6 +98,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "collect_portfolio_snapshot.py": ("utility", "GET-only evidence capture, not a report gate"),
     "create_reusable_workflow_fixture.py": ("utility", "disposable consumer provisioning, not a report gate"),
     "initialize_repository.py": ("utility", "repository provisioning CLI, not a report gate"),
+    "write_excel_evidence.py": ("utility", "evidence-bundle record writer, not a report gate"),
     "test_documentation.py": ("test-runner", _UNITTEST),
     "test_excel_evidence.py": ("test-runner", _UNITTEST),
     "test_portfolio_drift.py": ("test-runner", _UNITTEST),
@@ -108,6 +109,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "test_template_workflow_validation.py": ("test-runner", _UNITTEST),
     "test_verification_depth.py": ("test-runner", _UNITTEST),
     "test_wiki.py": ("test-runner", _UNITTEST),
+    "test_write_excel_evidence.py": ("test-runner", _UNITTEST),
     "check_repo.py": (
         "canonical", "self-contained distributable; must not import _gatelib or any sibling",
     ),
@@ -144,6 +146,8 @@ SELF_TEST_EXCLUSIONS = {
         "Template-only unittest CLI; consumer-fixture, CodeQL and Scorecard contract tests"
     ),
     "test_wiki.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_write_excel_evidence.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "write_excel_evidence.py": "Bundle fixtures: python tools/test_write_excel_evidence.py -v; no Office execution",
     "check_documentation.py": "Offline fixtures: python tools/test_documentation.py -v",
     "check_wiki.py": "Offline fixtures: python tools/test_wiki.py -v",
     "check_external_links.py": "Simulated HTTP fixtures: python tools/test_documentation.py -v",

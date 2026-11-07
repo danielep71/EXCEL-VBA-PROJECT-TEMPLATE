@@ -204,6 +204,7 @@ bold "Release and documentation contracts"
 run "Release-integrity self-test"  python3 tools/check_release.py --root . --self-test
 run "Release provenance fixtures"  python3 tools/test_release_provenance.py
 run "Excel evidence fixtures"      python3 tools/test_excel_evidence.py
+run "Excel evidence writer"        python3 tools/test_write_excel_evidence.py
 run "Verification-depth fixtures"  python3 tools/test_verification_depth.py
 run "Documentation fixtures"       python3 tools/test_documentation.py
 run "Documentation drift"          python3 tools/check_documentation.py --root .

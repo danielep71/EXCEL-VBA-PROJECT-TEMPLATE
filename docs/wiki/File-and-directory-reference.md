@@ -137,7 +137,10 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tests/modules/LifecycleTests.bas` / vba | Application suite: 16 lifecycle, upgrade, rollback, recovery and negative-control cases. | R / X / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tests/modules/ProgressTests.bas` / vba | UI-component suite: 12 lifecycle, restoration and negative-control cases. | X / X / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `tests/modules/ProjectTests.bas` / vba | Four-case, six-assertion harness with host-state comparison and full reporting. | R / R / R | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `tests/modules/TestLog.bas` / vba | Report sink: prints every suite line and, during a certification run, writes it to the open log. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `tests/modules/TextTests.bas` / vba | Library-profile suite: 29 cases and 135 assertions over every supported TextFacade member. | X / R / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
+| `tools/Certify-Excel.cmd` / script | Double-click launcher for Certify-Excel.ps1. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
+| `tools/Certify-Excel.ps1` / script | One-command Excel certification: import, compile, run every suite and example, write and validate the evidence bundle. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `tools/LOCAL_ACTIONS.md` / document | Repository-local composite/Node/Docker action validation boundaries. | R / R / R | [tools/LOCAL_ACTIONS.md](../../tools/LOCAL_ACTIONS.md) |
 | `tools/README.md` / document | Operational tool commands, reports and focused-gate responsibilities. | T / T / T | [tools/README.md](../../tools/README.md) |
 | `tools/_gatelib.py` / script | Shared Git, tracked-file, report and focused CLI orchestration primitives; imported helper. | R / R / R | [tools/README.md](../../tools/README.md) |
@@ -186,6 +189,8 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/test_verification_depth.py` / script | Focused behavioral failure-path coverage for release, release-semantics, template-contract, whitespace, external-link, local-action, initializer and closeout tooling. | R / R / R | [.github/workflows/static-checks.yml](../../.github/workflows/static-checks.yml) |
 | `tools/test_wiki.py` / script | Offline publication link, source identity, missing/extra/modified page and safe-export fixtures. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `tools/test_workflow_validation.py` / script | Authoritative pinned-actionlint validation of workflows and invalid fixtures. | R / R / R | [tools/README.md](../../tools/README.md) |
+| `tools/test_write_excel_evidence.py` / script | Bundle fixtures for the evidence writer; no Office execution. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
+| `tools/write_excel_evidence.py` / script | Write host.json from a certification run's logs, validate the bundle and summarize every suite. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 
 ## Tracked directories
 

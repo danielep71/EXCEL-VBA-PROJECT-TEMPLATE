@@ -102,6 +102,18 @@ Use only the categories needed by a release.
 
 ### Added
 
+- One-command Excel certification. `tools/Certify-Excel.ps1` (or the
+  double-click `Certify-Excel.cmd`) imports the configured VBA of a clean
+  checkout into a new workbook, compiles it, runs every test module's entry
+  point and every example, and leaves an evidence bundle next to the checkout;
+  `tools/write_excel_evidence.py` writes and validates `host.json` from the
+  logs, checks each suite's counts against the constants its source declares
+  and writes `certification.md`. The new `TestLog` module is the print routine
+  of every test module: `TestLog.Say` writes to the Immediate window and, while
+  a certification log is open, to that suite's log, so a complete report is
+  kept without reading the Immediate window; examples keep `Debug.Print`.
+  `-RepoRoot` certifies a generated project with the template's tools
+  (#86, #87, #88, #90).
 - Governance tiers. `initialize_repository.py --governance-tier minimal`
   generates a lighter project that keeps the four standard-library gates
   (`check_repo`, `check_vba_public_api`, `check_vba_jumps`,
