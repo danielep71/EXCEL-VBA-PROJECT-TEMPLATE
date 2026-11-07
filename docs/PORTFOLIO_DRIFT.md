@@ -128,13 +128,16 @@ plan-restricted rulesets is captured as unavailable, not absent or compliant.
 No upgrade or public-visibility change is performed.
 
 Snapshot schema 1 contains `contract_source`, `contract_commit` and nonempty
-`repositories`. Each entry has `repository`, exact `commit`, complete `paths`
+`repositories`. Each entry has `repository`, exact `commit`, `captured_at`,
+complete `paths`
 (or null for unavailable/truncated trees), captured UTF-8 `files`, `metadata`,
 `labels`, `rulesets`, and `decisions`. Metadata is a selected REST repository
 response; labels are complete paginated label objects; rulesets are full details,
 not collection summaries. Unavailable collections are null; an observed empty
 collection is `[]`. `unavailable` records collection limitations. Missing file
-content is not equivalent to missing a file from a complete tree.
+content is not equivalent to missing a file from a complete tree. An entry may
+also carry optional `quality` (from `--quality`), `specialist` and `policy`
+keys, which the quality reporter and evaluators read when present.
 
 Code is read at an immutable commit. Live settings cannot be atomically bound to
 that commit: snapshots record observations, not signed attestations. Reports
@@ -152,14 +155,14 @@ fixtures and has no portfolio credentials or private artifacts.
 
 ## 🔒 Parser dependency review
 
-PyYAML 6.0.3 is a new template-maintenance dependency, not a VBA runtime dependency.
+PyYAML 6.0.3 is a template-maintenance dependency, not a VBA runtime dependency.
 Its official [PyPI release](https://pypi.org/project/PyYAML/6.0.3/) identifies the
 maintainers, MIT licence, upstream source and Python >=3.8 compatibility.
 [Parser documentation](https://pyyaml.org/wiki/PyYAMLDocumentation) describes its
 node/event APIs. This evaluator composes nodes and never constructs Python
 objects; aliases/custom tags are refused and input size/depth is bounded.
-Only the dedicated fixture workflow installs it. No new permissions, secret
-inheritance or automatic updates are introduced. The installation is version
-pinned, not a hash-locked transitive build. Rollback is the complete #25 commit
-on top of the prior passing #22 baseline; remove the parser-dependent workflow
-and tools together. Future parser updates follow the dependency-update policy.
+It is installed hash-locked: from `tools/requirements-portfolio-ci.txt` by the
+fixture workflow and from `tools/requirements-coverage-ci.txt` by the coverage
+job, both template-only. It adds no permissions, secret inheritance or automatic
+updates. Removing it means removing the parser-dependent workflow and tools
+together. Parser updates follow the dependency-update policy.

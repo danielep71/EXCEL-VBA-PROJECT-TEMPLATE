@@ -72,8 +72,8 @@ The contract version and a project's `VERSION` are deliberately unrelated:
   updating the template.
 
 The template's own release history and the contract history therefore diverge
-over time. They currently share numbers only because every release so far has
-changed the required control set.
+over time. They first diverged at v1.2.1, a patch release that kept contract
+`1.2.0`.
 
 <a id="version-history"></a>
 
@@ -87,9 +87,9 @@ Each entry classifies its changes as **breaking**, **required**, **optional** or
 | Change | Class | Adopter action |
 | --- | --- | --- |
 | `template_contract` is recorded in `.github/repository-profile.json` | Required | Add the object with the adopted version and the template source |
-| Deterministic documentation drift checks | Required | Adopt `.github/documentation-policy.json`, the documented-command/reference gate and its fixtures. This extends the published 1.2.0 contract. [External-link observations](DOCUMENTATION_CHECKS.md) run separately on schedule or dispatch and are not a required PR check. |
-| Profile-aware release provenance | Required | Adopt `.github/release-provenance.json`, `tools/release_provenance.py`, its fixtures and [RELEASE_PROVENANCE.md](RELEASE_PROVENANCE.md). Binary releases need build records; all releases enforce complete `dist/` inventory. Source-only releases need no artificial assets. External provenance-record SSH signatures are optional until enabled in committed policy; canonical Git-tag and certification-bundle signatures have separate mandatory trust requirements. This extends the published 1.2.0 contract; published rule sets remain unchanged. |
-| Controlled dependency updates and `docs/DEPENDENCY_UPDATES.md` | Required | Adopt the policy and PR evidence block; record provenance and rollback, run applicable fixtures, and keep approval/merge manual. This is a minor-level addition to the published 1.2.0 contract; earlier rule sets are unchanged. |
+| Deterministic documentation drift checks | Required | Adopt `.github/documentation-policy.json`, the documented-command/reference gate and its fixtures. [External-link observations](DOCUMENTATION_CHECKS.md) run separately on schedule or dispatch and are not a required PR check. |
+| Profile-aware release provenance | Required | Adopt `.github/release-provenance.json`, `tools/release_provenance.py`, its fixtures and [RELEASE_PROVENANCE.md](RELEASE_PROVENANCE.md). Binary releases need build records; all releases enforce complete `dist/` inventory. Source-only releases need no artificial assets. External provenance-record SSH signatures are optional until enabled in committed policy; canonical Git-tag and certification-bundle signatures have separate mandatory trust requirements. |
+| Controlled dependency updates and `docs/DEPENDENCY_UPDATES.md` | Required | Adopt the policy and PR evidence block; record provenance and rollback, run applicable fixtures, and keep approval/merge manual. |
 | `docs/TEMPLATE_CONTRACT.md` is a required path | Required | Adopt this document so the recorded baseline is explainable |
 | `tools/check_template_contract.py` validates the recorded contract | Required | Run it locally and in CI alongside the canonical checker |
 | Focused-gate CLI orchestration consolidated into `tools/_gatelib.py` | Not applicable | Internal to the template's tooling; no public CLI changed |
@@ -98,6 +98,7 @@ Each entry classifies its changes as **breaking**, **required**, **optional** or
 | Governance tiers | Optional | A project may record `"governance_tier": "minimal"`. The tier narrows the recorded version's rule set by the minimal entry of `TIER_EXCLUDED_RULES`; it adds no control and changes no published rule set. Projects without a recorded tier keep the full rule set and need no action. Conformance reports an omitted control as not applicable; see [governance tiers](INITIALIZATION.md#governance-tiers). |
 | Library-profile text and path reference | Optional | Newly generated `library` projects receive `TextCore`, `TextFacade`, `TextTests` and `TextExample` as reference code, not as a required control. An existing library project may adopt it by copying the four modules, their `vba.components` entries, `profiles.library.owned_paths` and the `TextFacade` manifest rows, or ignore it. |
 | UI-component progress-session reference | Optional | Newly generated `ui-component` projects receive `ProgressCore`, `ProgressFacade`, `ProgressTests` and `ProgressExample` as reference code, not as a required control. An existing UI-component project may adopt it by copying the four modules, their `vba.components` entries, `profiles.ui-component.owned_paths` and the `ProgressFacade` manifest rows, or ignore it. |
+| Application-profile lifecycle reference | Optional | Newly generated `application` projects receive `LifecycleCore`, `LifecycleFacade`, `LifecycleTests` and `LifecycleExample` as reference code, not as a required control. An existing application project may adopt it by copying the four modules, their `vba.components` entries, `profiles.application.owned_paths` and the `LifecycleFacade` manifest rows, or ignore it. |
 | Profile-owned paths and the `vba7-mac64` conditional-compilation environment | Not applicable | Template mechanics: `owned_paths` controls which profile generates a file, and the conditional gate now models `Mac`. `#If Mac` code that the gate previously rejected as an unknown symbol is now evaluated, and a `Declare` reachable on Mac must use `PtrSafe`. |
 | Generated workflow identity checks recognize immutable references to the recorded template source | Optional | Update the canonical checker before adopting a reusable workflow; no broad identity-path exclusion is needed |
 

@@ -168,6 +168,7 @@ def build_report(root: Path) -> dict[str, Any]:
         "tools/check_local_actions.py",
         "tools/check_release_semantics.py",
         "tools/check_release.py",
+        "tools/check_template_contract.py",
     )
     focused = [run_tool_selftest(root, path) for path in focused_tools]
     operational = operational_exit_fixture(root)
@@ -253,7 +254,7 @@ def run_self_test(root: Path) -> int:
             print(f"[FAIL] {message}")
         print(markdown_report(first).rstrip())
         return 1
-    print("SELF-TEST PASS: every canonical finding site, focused hardening gate, delegated authoritative workflow fixture, and operational-error mapping is covered deterministically.")
+    print("SELF-TEST PASS: every canonical finding site, focused hardening gate self-test, declared authoritative workflow fixture, and operational-error mapping is covered deterministically.")
     return 0
 
 

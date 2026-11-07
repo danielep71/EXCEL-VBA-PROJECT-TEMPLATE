@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Focused behavioral tests for release-critical Python verification depth."""
+"""Focused behavioral tests for template-maintainer tool verification depth.
+
+The retained ``test_verification_depth`` covers the release-critical gates that
+generated projects keep; this template-only suite covers the maintainer tools
+(checker development, policy coverage, wiki, portfolio, provisioning and the
+initializer) and the canonical gate's cross-module contracts.
+"""
 
 from __future__ import annotations
 
@@ -2234,6 +2240,33 @@ class VbaStructureDirectiveTests(unittest.TestCase):
         )
         self.assertEqual([item["message"] for item in failures],
                          ["Declare in an active VBA7 branch must include PtrSafe."])
+
+
+class TextFileClassificationTests(unittest.TestCase):
+    """The release scan and the initializer treat the same files as text as the canonical gate."""
+
+    def test_text_suffixes_and_names_match_the_canonical_gate(self) -> None:
+        self.assertEqual(release.TEXT_SUFFIXES, repo_gate.TEXT_SUFFIXES)
+        self.assertEqual(release.TEXT_NAMES, repo_gate.TEXT_NAMES)
+        self.assertEqual(initializer.TEXT_SUFFIXES, repo_gate.TEXT_SUFFIXES)
+        self.assertEqual(initializer.TEXT_NAMES, repo_gate.TEXT_NAMES)
+
+
+class WorkflowPullRequestExclusionTests(unittest.TestCase):
+    """A job counts as unreachable from pull_request only through a pure exclusion."""
+
+    @staticmethod
+    def excludes(condition: str) -> bool:
+        return repo_gate._job_excludes_pull_request(["  publish:", f"    if: {condition}"])
+
+    def test_plain_exclusion_and_conjunction_are_recognized(self) -> None:
+        self.assertTrue(self.excludes("github.event_name != 'pull_request'"))
+        self.assertTrue(self.excludes("github.event_name != 'pull_request' && needs.select.outputs.items != '[]'"))
+
+    def test_alternatives_and_inclusions_are_not_recognized(self) -> None:
+        self.assertFalse(self.excludes("github.event_name != 'pull_request' || always()"))
+        self.assertFalse(self.excludes("github.event_name == 'pull_request' && true"))
+        self.assertFalse(self.excludes("github.event_name != 'pull_request' &&"))
 
 
 if __name__ == "__main__":

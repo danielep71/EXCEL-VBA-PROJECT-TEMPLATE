@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Run the locally reproducible part of hosted CI, in the same order, with the
-# same pinned tools.
+# Run the locally reproducible part of hosted CI with the same pinned tools.
 #
 # Purpose: let a maintainer find a failure before pushing instead of after a CI
-# round trip. Every check below is exactly the command the hosted workflows run.
+# round trip. Each check runs the same tool and arguments as its hosted
+# counterpart, broadly in the hosted order; the slow initializer and policy-
+# coverage checks run last, and the working-tree whitespace check is local only.
 #
 # This is NOT a claim of CI equivalence. It deliberately cannot cover:
 #   - actionlint workflow validation, unless actionlint is already on PATH
-#     (hosted CI installs a SHA-256-verified 1.7.12 binary);
-#   - anything requiring Excel, a Windows host, or live GitHub state;
-#   - hosted evidence upload, job summaries and the terminal CI verdict.
-# Those remain the hosted gates' responsibility and are reported as SKIPPED
-# rather than counted as passes.
+#     (hosted CI installs a SHA-256-verified 1.7.12 binary): reported as SKIPPED;
+#   - the statement-coverage floor, anything requiring Excel, a Windows host or
+#     live GitHub state, hosted evidence upload, job summaries and the terminal
+#     CI verdict: listed in the closing note, never counted as passes.
 #
 # Usage:
 #   python3 -m pip install -r tools/requirements-dev.txt
@@ -48,7 +48,7 @@ run() { # run <name> <command...>
   fi
 }
 
-pin() { grep -E "^$1==" tools/requirements-dev.txt | head -1 | sed 's/.*==//'; }
+pin() { grep -E "^$1==" tools/requirements-dev.txt | head -1 | sed -E 's/.*==([^;[:space:]]+).*/\1/'; }
 
 # --- CI pin-mirror guard ------------------------------------------------------
 # requirements-dev.txt only means anything while it still mirrors the workflows.
@@ -56,7 +56,6 @@ pin() { grep -E "^$1==" tools/requirements-dev.txt | head -1 | sed 's/.*==//'; }
 # false negative, so the mirror is verified rather than trusted.
 bold "CI pin mirror"
 STATIC_CHECKS=.github/workflows/static-checks.yml
-CHECKER_DEV=.github/workflows/checker-development.yml
 
 workflow_env() { # workflow_env <name> <workflow>
   grep -E "^[[:space:]]+$1:[[:space:]]" "$2" | head -1 |
@@ -91,6 +90,7 @@ mirror "mypy CI lock" "$(lock_pin mypy "$QUALITY_LOCK")" \
   "$(workflow_env MYPY_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
 mirror coverage "$(pin 'coverage\[toml\]')" \
   "$(lock_pin 'coverage\[toml\]' "$COVERAGE_LOCK")" "$COVERAGE_LOCK"
+mirror tomli "$(pin tomli)" "$(lock_pin tomli "$COVERAGE_LOCK")" "$COVERAGE_LOCK"
 mirror PyYAML "$(pin PyYAML)" "$(lock_pin PyYAML "$COVERAGE_LOCK")" "$COVERAGE_LOCK"
 mirror "PyYAML portfolio lock" "$(pin PyYAML)" \
   "$(lock_pin PyYAML "$PORTFOLIO_LOCK")" "$PORTFOLIO_LOCK"
@@ -100,6 +100,19 @@ mirror "actionlint" "$(comment_value v)" \
   "$(workflow_env ACTIONLINT_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
 mirror "actionlint digest" "$(comment_value sha)" \
   "$(workflow_env ACTIONLINT_LINUX_AMD64_SHA256 "$STATIC_CHECKS")" "$STATIC_CHECKS"
+# Other places that pin the same versions must move with the static workflow.
+PROFILE_MATRIX=.github/workflows/generated-profile-matrix.yml
+mirror "actionlint profile matrix" "$(workflow_env ACTIONLINT_VERSION "$PROFILE_MATRIX")" \
+  "$(workflow_env ACTIONLINT_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
+mirror "actionlint digest profile matrix" \
+  "$(workflow_env ACTIONLINT_LINUX_AMD64_SHA256 "$PROFILE_MATRIX")" \
+  "$(workflow_env ACTIONLINT_LINUX_AMD64_SHA256 "$STATIC_CHECKS")" "$STATIC_CHECKS"
+mirror "actionlint validator expectation" \
+  "$(sed -nE 's/^EXPECTED_ACTIONLINT_VERSION = "([^"]+)"$/\1/p' tools/test_workflow_validation.py)" \
+  "$(workflow_env ACTIONLINT_VERSION "$STATIC_CHECKS")" "$STATIC_CHECKS"
+mirror "PyYAML runtime assertion" \
+  "$(sed -nE 's/.*yaml\.__version__ == "([^"]+)".*/\1/p' tools/check_portfolio_drift.py | head -1)" \
+  "$(lock_pin PyYAML "$PORTFOLIO_LOCK")" "$PORTFOLIO_LOCK"
 
 # --- Pinned-version guard -----------------------------------------------------
 # A local run with different tool versions can disagree with CI in both
@@ -191,6 +204,7 @@ bold "Release and documentation contracts"
 run "Release-integrity self-test"  python3 tools/check_release.py --root . --self-test
 run "Release provenance fixtures"  python3 tools/test_release_provenance.py
 run "Excel evidence fixtures"      python3 tools/test_excel_evidence.py
+run "Verification-depth fixtures"  python3 tools/test_verification_depth.py
 run "Documentation fixtures"       python3 tools/test_documentation.py
 run "Documentation drift"          python3 tools/check_documentation.py --root .
 run "Release-semantics self-test"  python3 tools/check_release_semantics.py --root . --self-test
@@ -223,7 +237,8 @@ run "Wiki fixtures"                python3 tools/test_wiki.py
 run "Portfolio drift fixtures"     python3 tools/test_portfolio_drift.py
 run "Portfolio quality fixtures"   python3 tools/test_portfolio_quality.py
 run "Provisioning fixtures"        python3 tools/test_provision_repository.py
-run "Verification-depth fixtures"  python3 tools/test_verification_depth.py
+run "Template workflow tests"      python3 tools/test_template_workflow_validation.py
+run "Template depth fixtures"      python3 tools/test_template_verification_depth.py
 
 if [[ "$FAST" == "1" ]]; then
   record skip "Initializer self-test (FAST=1)"

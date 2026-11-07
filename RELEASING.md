@@ -117,13 +117,20 @@ use the `template` evidence profile.
 
 ## 4. Run repository and release gates
 
-At minimum:
+At minimum, on the candidate:
 
 ```bash
 python3 tools/check_repo.py --root . --self-test
 python3 tools/check_repo.py --root .
+python3 tools/check_vba_public_api.py --root .
+python3 tools/check_vba_jumps.py --root .
+python3 tools/check_vba_conditionals.py --root .
 python3 tools/check_release.py --root . --self-test
 ```
+
+and a green *Repository integrity* run on the candidate SHA, which adds the
+focused gates (whitespace, local actions, template contract, documentation and
+workflow syntax) and their self-tests.
 
 Run every project-specific numerical, UI, lifecycle, performance or packaging
 gate as well. A stronger specialist gate is additive; the generic repository
@@ -148,6 +155,18 @@ Use the exact candidate source in each advertised Excel environment:
 The neutral starter baseline is `ProjectTests.RunProjectTests`; until replaced by
 the generated project's own contract it reports four cases, six assertions,
 zero failures, complete execution and passing cleanup.
+
+<!-- template:profile:library:start -->
+The library reference adds `TextTests.RunTextTests` (29 cases, 135 assertions).
+<!-- template:profile:library:end -->
+<!-- template:profile:ui-component:start -->
+The ui-component reference adds `ProgressTests.RunProgressTests` (12 cases; 79
+assertions on Windows, 75 on macOS).
+<!-- template:profile:ui-component:end -->
+<!-- template:profile:application:start -->
+The application reference adds `LifecycleTests.RunLifecycleTests` (16 cases, 106
+assertions) and the `LifecycleExample.RunLifecycleExample` end-to-end smoke.
+<!-- template:profile:application:end -->
 
 Source inspection is not Excel execution. If code changes, recertify.
 
@@ -226,8 +245,8 @@ creates a new source identity: retain original evidence attribution and obtain
 the required final-candidate evidence rather than silently rebinding old results.
 
 <!-- template:remove:start -->
-**Historical exception:** the v1.1.0 release PR used squash merging. The v1.2.0
-implementation entered `main` through PR #49 at
+**Historical exception:** v1.1.0 followed the squash convention; v1.2.0 did
+not. Its implementation entered `main` through PR #49 at
 `ac78ddca5de9de1fbfbf89d504b8ba93b06220c4` using a history-preserving merge
 during the move to stabilization on `main`. The later v1.2.0 clean-room
 stabilization merge commits from PRs #68, #71 and #74 are retained in
@@ -385,9 +404,14 @@ green.
 <!-- template:remove:end -->
 
 Add `--asset-manifest ../release-assets.sha256` to both applicable release-gate
-invocations when the release distributes binary assets. For contract 1.2.0 add
-the build record and any required provenance-record signature using
-[the provenance procedure](docs/RELEASE_PROVENANCE.md). The provenance-record
+invocations when the release distributes binary assets. When it distributes
+binaries, or committed policy enables provenance signing, also add
+`--provenance` (and `--provenance-signature` when signing is enabled) using
+[the provenance procedure](docs/RELEASE_PROVENANCE.md). If the release uses the
+optional [host evidence interface](docs/EXCEL_EVIDENCE.md), include its
+`excel-host-evidence` check and `--excel-evidence` in both invocations too; a
+manual run remains explicitly manual, and an unavailable runner is not compile
+or regression evidence. The provenance-record
 signature is an independent assertion signature; it never substitutes for the
 canonical template's Git-tag signature.
 
@@ -398,11 +422,6 @@ a tag has been pushed or published, never move, delete, recreate, or replace it
 to hide an error; publish a corrected patch release instead.
 
 ## 10. Publish the GitHub Release
-
-If using the optional [host evidence interface](docs/EXCEL_EVIDENCE.md), include
-its `excel-host-evidence` check and `--excel-evidence` in both pre-tag and
-post-tag validations. A manual run remains explicitly manual; an unavailable
-runner is not compile or regression evidence.
 
 After verifying the required protection controls, create the release from the certified annotated tag. Include:
 
@@ -450,6 +469,13 @@ publication.
 
 Do not announce broad availability until these checks pass.
 
+Then close the release milestone and run the **Release closeout** workflow
+with the tag, the certified candidate SHA and the milestone number, as
+[`docs/RELEASE_CLOSEOUT.md`](docs/RELEASE_CLOSEOUT.md) describes. It is
+read-only: it captures the published tag, tag CI, Release, assets, changelog
+links and milestone state, and fails on any mismatch. Retain its evidence with
+the release record.
+
 ## 🧯 Recovery
 
 Before publication, repair the candidate and rerun every affected gate. An
@@ -464,6 +490,8 @@ handling follows [`SECURITY.md`](SECURITY.md).
 - [`docs/RELEASE_SEMANTICS.md`](docs/RELEASE_SEMANTICS.md) — exact version/changelog/history semantics
 - [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md) — evidence and asset-manifest schema
 - [`docs/RELEASE_PROVENANCE.md`](docs/RELEASE_PROVENANCE.md) — build-record and signature trust policy
+- [`docs/EXCEL_EVIDENCE.md`](docs/EXCEL_EVIDENCE.md) — structured Excel host-evidence interface
+- [`docs/RELEASE_CLOSEOUT.md`](docs/RELEASE_CLOSEOUT.md) — read-only post-release closeout
 - [`INSTALLATION.md`](INSTALLATION.md) — clean install/upgrade validation
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — change/review workflow
 - [`SECURITY.md`](SECURITY.md) — vulnerability handling

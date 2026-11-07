@@ -41,7 +41,7 @@ Attribute VB_Name = "TextFacade"
 '   rooted-path and file-name rules follow the compile-time platform.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza
@@ -393,11 +393,11 @@ Public Function TextJoin( _
 '
 ' ERROR POLICY
 '   Raise TEXT_ERROR_INVALID_ARGUMENT from this procedure for
-'   a non-array, a shape with several rows and columns, or an object,
-'   nested array or error value among the items.
+'   a non-array, more than two dimensions, a shape with several rows and
+'   columns, or an object, nested array or error value among the items.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '==============================================================================
 '
 
@@ -570,11 +570,12 @@ Public Function TextSafeFileName( _
 '   underscore.
 '
 ' ERROR POLICY
-'   Raise TEXT_ERROR_INVALID_ARGUMENT from this procedure for
-'   an unusable replacement, or a value with no usable characters.
+'   Raise TEXT_ERROR_INVALID_ARGUMENT from this procedure for an unusable
+'   replacement, a value that cleans to the directory alias "." or "..",
+'   or a value with no usable characters.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-03
 '==============================================================================
 '
 

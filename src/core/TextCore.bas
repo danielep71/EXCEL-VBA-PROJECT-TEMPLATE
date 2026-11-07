@@ -38,7 +38,7 @@ Attribute VB_Name = "TextCore"
 '   differ between the two platforms.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-06
 '
 ' AUTHOR
 '   Daniele Penza
@@ -604,15 +604,15 @@ Public Function JoinPathText( _
 '   basePath, one PATH_SEPARATOR and childPath. An empty basePath returns
 '   childPath; a root such as "C:\" or "/" keeps its separator.
 '
+' SIDE EFFECTS
+'   None. The path is text; the file system is never consulted.
+'
 ' ERROR POLICY
 '   Raise ERR_INVALID_ARGUMENT when childPath is rooted: it starts with a
 '   separator, or on Windows it names a drive such as "D:".
 '
-' SIDE EFFECTS
-'   None. The path is text; the file system is never consulted.
-'
 ' UPDATED
-'   2026-09-30
+'   2026-11-06
 '==============================================================================
 '
 
@@ -746,10 +746,11 @@ Public Function SafeFileNameText( _
 '
 ' ERROR POLICY
 '   Raise ERR_INVALID_ARGUMENT when replacement is longer than one character
-'   or is itself invalid, or when no usable character remains.
+'   or is itself invalid, when the cleaned name is "." or ".." (directory
+'   aliases on every platform), or when no usable character remains.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-03
 '==============================================================================
 '
 
@@ -786,6 +787,16 @@ Public Function SafeFileNameText( _
                 result = result & character
             End If
         Next index
+
+'------------------------------------------------------------------------------
+' REJECT DIRECTORY ALIASES
+'------------------------------------------------------------------------------
+    '"." and ".." name the current and parent directory, also when replacement
+    'or deletion produced them. Windows trimming below removes trailing dots,
+    'so it cannot produce either name and this one check covers both platforms.
+        If result = "." Or result = ".." Then
+            RaiseInvalid "TextCore.SafeFileNameText", "value must not reduce to . or .."
+        End If
 
 '------------------------------------------------------------------------------
 ' APPLY WINDOWS NAME RULES

@@ -31,7 +31,7 @@ handling by [`SECURITY.md`](SECURITY.md), and release publication/provenance by
 ## 🧭 Support baseline
 
 Before a release is installable, document the actual supported Excel/Office
-versions, Windows scope, Office bitness, references/dependencies and deployment
+versions, operating-system scope (Windows, macOS), Office bitness, references/dependencies and deployment
 model. Compatibility claims apply only to environments actually certified for
 that release.
 
@@ -52,7 +52,7 @@ release the project. The repository's `.gitattributes` deliberately marks
 repository-plumbing paths such as `.github/`, `.gitignore`, `.editorconfig`, and
 `.gitattributes` as `export-ignore`; GitHub source archives are generated with
 `git archive`, so **Code → Download ZIP is not a complete maintainer checkout**.
-In particular, a ZIP snapshot can omit workflows and
+In particular, a ZIP snapshot omits the workflows and
 `.github/repository-profile.json`, and repository gates that require those files
 will fail by design.
 
@@ -92,22 +92,39 @@ For the baseline starter:
 4. `examples/modules/ProjectExample.bas` — optional consumer example
 
 <!-- template:profile:library:start -->
-The library reference follows the same order:
+The library reference adds its own source, test and example. Import its
+source after the starter's façade, as production modules 3 and 4 in
+[`src/README.md`](src/README.md), then its test and example:
 
-1. `src/core/TextCore.bas`
-2. `src/modules/TextFacade.bas`
-3. `tests/modules/TextTests.bas` — development/regression only
-4. `examples/modules/TextExample.bas` — optional consumer example
+- `src/core/TextCore.bas`, then `src/modules/TextFacade.bas`
+- `tests/modules/TextTests.bas` — development/regression only
+- `examples/modules/TextExample.bas` — optional consumer example
 <!-- template:profile:library:end -->
 
 <!-- template:profile:ui-component:start -->
-The ui-component reference follows the same order:
+The ui-component reference adds its own source, test and example. Import its
+source after the starter's façade, as production modules 3 and 4 in
+[`src/README.md`](src/README.md), then its test and example:
 
-1. `src/core/ProgressCore.bas`
-2. `src/modules/ProgressFacade.bas`
-3. `tests/modules/ProgressTests.bas` — development/regression only
-4. `examples/modules/ProgressExample.bas` — optional consumer example
+- `src/core/ProgressCore.bas`, then `src/modules/ProgressFacade.bas`
+- `tests/modules/ProgressTests.bas` — development/regression only
+- `examples/modules/ProgressExample.bas` — optional consumer example
 <!-- template:profile:ui-component:end -->
+
+<!-- template:profile:application:start -->
+The application reference adds its own source, test and example. Import its
+source after the starter's façade, as production modules 3 and 4 in
+[`src/README.md`](src/README.md), then its test and example:
+
+- `src/core/LifecycleCore.bas`, then `src/modules/LifecycleFacade.bas`
+- `tests/modules/LifecycleTests.bas` — development/regression only
+- `examples/modules/LifecycleExample.bas` — optional consumer example and
+  reference smoke check
+
+Wire `LifecycleStart ThisWorkbook` and `LifecycleStop` into the host's
+`Workbook_Open` and `Workbook_BeforeClose` as shown in
+[`src/README.md`](src/README.md#application-reference).
+<!-- template:profile:application:end -->
 
 A generated project may replace or extend this layout. The authoritative source
 and component-role rules are in
@@ -150,7 +167,7 @@ Run `ProjectExample.RunProjectExample` separately for the minimal consumer smoke
 
 <!-- template:profile:library:start -->
 For the library reference, also run `TextTests.RunTextTests`; a passing run ends
-with `RESULT=PASS; completeness=COMPLETE; cases=26; assertions=123; failures=0;
+with `RESULT=PASS; completeness=COMPLETE; cases=29; assertions=135; failures=0;
 cleanup=PASS`. `TextExample.RunTextExample` is its consumer smoke.
 <!-- template:profile:library:end -->
 
@@ -160,6 +177,15 @@ passing Windows run ends with `RESULT=PASS; completeness=COMPLETE; cases=12;
 assertions=79; failures=0; cleanup=PASS` (75 assertions on macOS).
 `ProgressExample.RunProgressExample` is its consumer smoke.
 <!-- template:profile:ui-component:end -->
+
+<!-- template:profile:application:start -->
+For the application reference, also run `LifecycleTests.RunLifecycleTests`; a
+passing run ends with `RESULT=PASS; completeness=COMPLETE; cases=16;
+assertions=106; failures=0; cleanup=PASS`. `LifecycleExample.RunLifecycleExample`
+is its end-to-end smoke; run it against the packaged workbook or add-in too when
+the release distributes one.
+<!-- template:profile:application:end -->
+
 A generated project must replace these baseline expectations when it changes the
 starter contract.
 

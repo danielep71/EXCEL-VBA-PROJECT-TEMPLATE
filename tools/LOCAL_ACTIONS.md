@@ -23,7 +23,7 @@ A step-level local action reference must:
 5. use a supported baseline runtime shape:
    - `composite`, with `runs.steps`;
    - `node20` or `node24`, with a tracked in-directory `runs.main` and any declared `pre`/`post` entrypoints; or
-   - `docker`, with a tracked in-directory `Dockerfile`;
+   - `docker`, with `runs.image: Dockerfile` and a tracked in-directory `Dockerfile` (registry images such as `docker://…` are rejected);
 6. keep all required entrypoints inside the action directory and under Git control.
 
 The checker fails closed on missing directories, path traversal, untracked metadata, dual `action.yml`/`action.yaml`, malformed required metadata, unsupported runtimes, missing entrypoints, untracked entrypoints, or entrypoint traversal.
@@ -44,4 +44,4 @@ python3 tools/check_local_actions.py \
   --summary test-results/local-actions.md
 ```
 
-The self-test covers valid tracked composite and Node actions plus every blocking boundary above. External action references are intentionally ignored by this tool because their immutable-pin contract is enforced separately.
+The self-test covers valid tracked composite, Node and Docker actions (including quoted references) and these rejections: a missing path, `..` traversal, an untracked action, an untracked Dockerfile, two metadata files, an empty name or description, malformed metadata, and a missing, untracked or traversing entrypoint. Its reusable-workflow cases accept a tracked job-level workflow and reject a missing, untracked, traversing or nested one, an action directory used as a job and a workflow file used as a step. An unsupported runtime, a composite action without `runs.steps`, a Docker image other than `Dockerfile` and Node `pre`/`post` entrypoints are enforced by the gate but have no fixture yet. External action references are intentionally ignored by this tool because their immutable-pin contract is enforced separately.

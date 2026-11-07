@@ -17,7 +17,9 @@
 
 [![Static checks](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/static-checks.yml/badge.svg?branch=main)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/static-checks.yml)
 [![CodeQL](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/actions/workflows/codeql.yml)
+<!-- template:tier:full:start -->
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/badge)](https://scorecard.dev/viewer/?uri=github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE)
+<!-- template:tier:full:end -->
 [![Release](https://img.shields.io/github/v/release/danielep71/EXCEL-VBA-PROJECT-TEMPLATE?style=flat-square&label=release&color=217346)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/releases)
 [![P1 issues](https://img.shields.io/github/issues/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/P1?style=flat-square&label=P1&color=B60205)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues?q=is%3Aissue%20is%3Aopen%20label%3AP1)
 [![P2 issues](https://img.shields.io/github/issues/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/P2?style=flat-square&label=P2&color=D93F0B)](https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/issues?q=is%3Aissue%20is%3Aopen%20label%3AP2)
@@ -163,6 +165,23 @@ operation and restores each one exactly as found.
 Keep, adapt or remove it as one coherent change, like the starter.
 <!-- template:profile:ui-component:end -->
 
+<!-- template:profile:application:start -->
+The application profile adds a substantive reference: an application lifecycle
+that starts, migrates, stops, recovers and resets an application whose
+versioned state lives in an explicit host workbook or add-in.
+
+- [`LifecycleCore`](src/core/LifecycleCore.bas) — discovery, schema
+  migrations, rollback, recovery and the fault-injection seam;
+- [`LifecycleFacade`](src/modules/LifecycleFacade.bas) — supported public
+  façade;
+- [`LifecycleTests`](tests/modules/LifecycleTests.bas) — lifecycle, upgrade,
+  rollback, recovery and negative-control suite; and
+- [`LifecycleExample`](examples/modules/LifecycleExample.bas) — one complete
+  session on a temporary workbook, the reference smoke check.
+
+Keep, adapt or remove it as one coherent change, like the starter.
+<!-- template:profile:application:end -->
+
 ### 2. Validate locally
 
 <!-- template:tier:full:start -->
@@ -181,8 +200,11 @@ python3 tools/check_repo.py --root . --self-test
 python3 tools/check_repo.py --root . \
   --output test-results/static-checks.json \
   --summary test-results/static-checks.md
+python3 tools/check_vba_public_api.py --root . --self-test
 python3 tools/check_vba_public_api.py --root .
+python3 tools/check_vba_jumps.py --root . --self-test
 python3 tools/check_vba_jumps.py --root .
+python3 tools/check_release_semantics.py --root . --self-test
 python3 tools/check_release_semantics.py --root .
 ```
 <!-- template:tier:minimal:end -->
@@ -197,7 +219,8 @@ Run the project-specific check as well:
 
 Then import the applicable VBA components into a supported Excel host, run
 **Debug → Compile VBAProject**, and execute the documented regression or smoke
-entry point. The neutral baseline is `ProjectTests.RunProjectTests`.
+entry point. The neutral baseline is `ProjectTests.RunProjectTests`; also run
+the selected profile's reference suite listed in [tests/README.md](tests/README.md).
 
 ### 3. Provision GitHub settings
 
@@ -244,8 +267,10 @@ changes.
 ### Application commitments
 
 Document startup, shutdown, configuration, data boundaries, deployment,
-upgrade and rollback. A distributable package requires provenance and
-post-package smoke evidence.
+upgrade and rollback. The lifecycle reference demonstrates each with executable
+tests; replace its stored state with the application's own. A distributable
+package requires provenance and post-package smoke evidence; a source-only
+release records that nothing is packaged and claims neither.
 <!-- template:profile:application:end -->
 
 <a id="repository-shape"></a>
@@ -286,9 +311,9 @@ Installation, import, upgrade and removal procedures are authoritative in
 
 ## ✅ Validation
 
-The hosted `Repository integrity` workflow checks source/repository facts and
-fails closed when a required validator or evidence report does not complete. It
-does **not** compile VBA or execute Excel.
+The `Repository integrity` job of the hosted *Static repository checks* workflow
+checks source/repository facts and fails closed when a required validator or
+evidence report does not complete. It does **not** compile VBA or execute Excel.
 
 <!-- template:remove:start -->
 For checker maintenance, the independent

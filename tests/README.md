@@ -10,6 +10,11 @@ Use subdirectories only when they contain real material:
 | `tests/fixtures/` | Deterministic inputs, manifests, and reusable test workbooks |
 | `tests/expected/` | Reviewed expected outputs or golden files |
 
+Office files are ignored and rejected by default. To commit a test workbook, add
+its exact path to `allowed_office_binary_globs` in
+`.github/repository-profile.json` and a matching `!/tests/fixtures/...`
+exception to `.gitignore`, in the same reviewed change.
+
 ## Neutral regression harness
 
 Import `modules/ProjectTests.bas` after `ProjectCore` and `ProjectFacade`, compile
@@ -26,13 +31,13 @@ RESULT=PASS; completeness=COMPLETE; cases=4; assertions=6; failures=0; cleanup=P
 
 <!-- template:profile:library:start -->
 The library profile adds `modules/TextTests.bas`. Import it after `TextCore` and
-`TextFacade`, then run `TextTests.RunTextTests`. Its 26 cases and 123 assertions
+`TextFacade`, then run `TextTests.RunTextTests`. Its 29 cases and 135 assertions
 cover every supported `TextFacade` member: normal and boundary behavior, each
 documented invalid-argument rule with its number, source and description, the
 Windows and macOS path rules, and repeatability. Success ends with:
 
 ```text
-RESULT=PASS; completeness=COMPLETE; cases=26; assertions=123; failures=0; cleanup=PASS
+RESULT=PASS; completeness=COMPLETE; cases=29; assertions=135; failures=0; cleanup=PASS
 ```
 <!-- template:profile:library:end -->
 
@@ -41,9 +46,9 @@ The ui-component profile adds `modules/ProgressTests.bas`. Import it after
 `ProgressCore` and `ProgressFacade`, then run `ProgressTests.RunProgressTests`.
 Its 12 cases cover begin, update, caller-state restoration, re-entry refusal,
 calls without a session, cancellation, every invalid argument, the elapsed-time
-seam, repeated sessions and recovery. A negative control breaks a restored
-property and requires the check to detect it. Cursor checks run on Windows
-only, so success ends with:
+seam, the keep-screen-updating option, repeated sessions and recovery. A
+negative control breaks a restored property and requires the check to detect
+it. Cursor checks run on Windows only, so on Windows success ends with:
 
 ```text
 RESULT=PASS; completeness=COMPLETE; cases=12; assertions=79; failures=0; cleanup=PASS
@@ -51,12 +56,34 @@ RESULT=PASS; completeness=COMPLETE; cases=12; assertions=79; failures=0; cleanup
 
 On macOS the expected count is 75 assertions. The status bar flickers while the
 suite runs; the suite restores the values it found before cleanup is verified.
+End any progress session first: the suite refuses to start
+(`RESULT=FAIL_SESSION_ACTIVE`) rather than end a session it did not begin.
 <!-- template:profile:ui-component:end -->
 
+<!-- template:profile:application:start -->
+The application profile adds `modules/LifecycleTests.bas`. Import it after
+`LifecycleCore` and `LifecycleFacade`, then run `LifecycleTests.RunLifecycleTests`
+with a workbook active and no lifecycle session running: the suite refuses to
+start (`RESULT=FAIL_SESSION_RUNNING`) rather than stop a session another
+workbook, such as `ThisWorkbook`, started. Its 16 cases run on temporary
+workbooks that the suite closes unsaved: first start, repeated start and stop, restart, migration from
+schema 1, the current-schema no-op, refusals before any change, rollback of a
+start that fails mid-migration or mid-upgrade, re-entry refused as busy, single
+ownership, recovery after an unclean stop and of a live session, reset, and a
+status block written to an explicit range while another workbook is active.
+Two negative controls prove that an open host, a leaked session and corrupt
+state that recovery cannot repair are reported. Success ends with:
+
+```text
+RESULT=PASS; completeness=COMPLETE; cases=16; assertions=106; failures=0; cleanup=PASS
+```
+<!-- template:profile:application:end -->
+
 Any assertion, unexpected error, dirty start, incomplete execution, or cleanup
-failure is non-passing. The harness changes no Excel state; cleanup verifies its
-owned run flag and checks that calculation, display alerts, events and screen
-updating match their pre-run values.
+failure is non-passing. The starter's `ProjectTests` changes no Excel state; a
+profile suite above changes only the state it names and restores it. Every
+suite's cleanup verifies its owned run flag and checks that calculation, display
+alerts, events and screen updating match their pre-run values.
 
 <!-- template:tier:full:start -->
 The optional [Windows/Excel evidence interface](../docs/EXCEL_EVIDENCE.md)

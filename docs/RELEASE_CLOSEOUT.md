@@ -9,7 +9,7 @@ After the annotated tag, tag-triggered static checks, GitHub Release, release mi
 - `tag`: the published tag, for example `v1.2.1`;
 - `candidate_sha`: the exact 40-character SHA that was certified before tagging;
 - `milestone_number`: the GitHub milestone number used for that release;
-- `wiki_browser_reviewed`: `true` only after a human has opened the published Wiki and checked Home, sidebar/navigation, and representative links in a browser;
+- `wiki_browser_reviewed`: `true` only after a human has opened the published Wiki and checked Home, the sidebar and the complete page-navigation set in a browser, as `RELEASING.md` requires;
 - `expect_prerelease`: normally `false`; set it only for an intentionally prerelease publication;
 - `allow_not_latest`: normally `false`; set it only when the release is intentionally not expected to be GitHub's current latest release.
 
@@ -32,7 +32,7 @@ An unexpected uploaded asset, lightweight or moved tag, failed/missing tag CI, d
 
 ## Release asset partitioning and source archives
 
-Three distinct provider surfaces must not be conflated:
+Four distinct provider surfaces must not be conflated:
 
 - **raw uploaded Release assets**: every entry returned by the GitHub Release API;
 - **certification-evidence attachments**: for a canonical template release, the four durable files required by [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md) — the certification ZIP, detached ZIP signature, manifest and SHA-256 file;
@@ -69,7 +69,7 @@ The workflow retains its diagnostic reports as Actions artifacts for 90 days, in
 - `release-closeout.json`: machine-readable closeout result;
 - `release-closeout.md`: concise human-readable closeout result.
 
-`release-closeout.json` records the SHA-256 of `snapshot.json`, the candidate/tag/profile identity, deterministic and observation status, tag/CI/Release/product-asset/comparison/milestone/Wiki state, certification status and categorized findings. Retaining the snapshot makes the conclusion replayable without relying on a maintainer workstation.
+`release-closeout.json` records the SHA-256 of `snapshot.json`, the candidate/tag/profile identity, deterministic and observation status, tag/CI/Release/product-asset/comparison/milestone/Wiki state and categorized findings. Certification status is recorded in `certification-verification.json` and enforced by the workflow's final step, not by this report. Retaining the snapshot makes the conclusion replayable without relying on a maintainer workstation.
 
 The 90-day Actions retention is **not** the durability contract for canonical certification. The certification plan records that durable policy as `retention_lifetime: published-release-lifetime`: the four certification attachments must remain attached unchanged to the GitHub Release for the lifetime of that release as required by [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md). An expiring workflow artifact does not replace that durable record.
 
@@ -81,7 +81,7 @@ The helper has a deterministic self-test:
 python3 tools/_release_closeout.py --self-test
 ```
 
-The fixture matrix covers the valid path plus VERSION/tag mismatch, lightweight and moved tags, failed tag CI, draft/unexpected-prerelease/not-latest Release state, unexpected source-only assets, missing source-archive exposure, unresolved comparison, open milestone membership/state, stale milestone counters, Wiki drift, and source-archive retrieval failure. These fixtures do not call GitHub and do not mutate live provider state.
+The fixture matrix covers the valid path plus VERSION/tag mismatch, lightweight and moved tags, failed tag CI, draft/unexpected-prerelease/not-latest Release state, an absent `/releases/latest` accepted when latest status is not expected, a comparison whose candidate appears on a later page, unexpected source-only assets, missing source-archive exposure, unresolved comparison, open milestone membership/state, stale milestone counters, Wiki drift, and source-archive retrieval failure. These fixtures do not call GitHub and do not mutate live provider state.
 
 ## Scope boundary
 

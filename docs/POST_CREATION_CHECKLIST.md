@@ -38,6 +38,7 @@ The versioned selection authority is `.github/repository-profile.json`:
 - `label_domains` lists zero or more kebab-case domain overlays; and
 - `.github/labels.json` supplies the core, profile, and domain catalogues.
 
+<!-- template:tier:full:start -->
 ### Trusted reconciliation
 
 On the first trusted push to `main`, or by a deliberate manual dispatch, run
@@ -73,6 +74,19 @@ values in deterministic JSON and Markdown evidence retained for 30 days.
   missing labels, requires recorded exceptions for replacements and never
   deletes extra labels. If extra labels are retained, add them to a selected
   overlay or review `prune: false` before routine synchronization runs.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+### Manual label setup
+
+The minimal tier keeps the label catalogue but not the label workflows, so
+nothing creates or checks labels automatically. Create the resolved core,
+profile and domain labels from `.github/labels.json` in the repository's
+label settings, with the same names, colors and descriptions. Dependabot
+applies `ci` and `tests` to its pull requests, so those two must exist.
+
+- [ ] Every resolved label exists with its catalogue name, color and description.
+- [ ] `ci` and `tests` exist for Dependabot pull requests.
+<!-- template:tier:minimal:end -->
 
 <a id="repository-identity"></a>
 
@@ -119,7 +133,9 @@ Create or verify one ruleset targeting the default branch:
 - [ ] deletion and non-fast-forward updates blocked;
 - [ ] changes require a pull request;
 - [ ] zero mandatory approvals for the canonical single-maintainer baseline;
-- [ ] required status check is exactly `Repository integrity` and is strict;
+- [ ] required status check is exactly `Repository integrity`, or
+  `<caller job> / Repository integrity` when the generic job is called from the
+  reusable workflow, and is strict;
 - [ ] conversation resolution and other review controls are enabled only when
   the repository can satisfy them without bypass; and
 - [ ] the rule targets only the intended default branch pattern.
@@ -148,10 +164,13 @@ authorization; the ruleset makes every matching tag immutable after creation.
 Do not create the first stable tag until the release gate, selected-profile
 pilot or equivalent deployment proof, and exact-SHA Excel evidence are
 <!-- template:tier:full:start -->
-complete. The canonical template itself additionally requires all three
-generated-profile pilots. Follow the
+complete. Follow the
 [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) contract for the final candidate.
 <!-- template:tier:full:end -->
+<!-- template:remove:start -->
+The canonical template itself additionally requires all three
+generated-profile pilots.
+<!-- template:remove:end -->
 <!-- template:tier:minimal:start -->
 complete. Follow [`RELEASING.md`](../RELEASING.md) for the final candidate.
 <!-- template:tier:minimal:end -->
@@ -174,9 +193,14 @@ test, issue-intake, branch, tag, or evidence baseline.
 Preserve links or JSON responses for:
 
 - repository metadata and enabled features;
+<!-- template:tier:full:start -->
 - resolved labels and the successful trusted reconciliation run;
 - the latest successful read-only label-drift check, or the exact drift report
   when a difference is detected;
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+- the manually created labels, read back from the repository's label list;
+<!-- template:tier:minimal:end -->
 - default-branch ruleset and exact required status context;
 - protected-tag ruleset;
 - private vulnerability-reporting state;

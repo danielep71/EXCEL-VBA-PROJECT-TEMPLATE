@@ -200,12 +200,20 @@ def scorecard_git_input(published: str) -> bool:
     ) is not None
 
 
+def escaped_mapping_key(text: str, indent: str) -> bool:
+    """Reject escaped quoted keys rather than guessing at YAML decoding."""
+    pattern = rf'(?m)^{indent}"((?:[^"\\\n]|\\[^\n])*)"[ \t]*:'
+    return any("\\" in key for key in re.findall(pattern, text))
+
+
 def scorecard_published_job_failures(published: str) -> list[str]:
     """The published job may carry no env, defaults, or unapproved steps."""
     failures: list[str] = []
-    if re.search(r"(?m)^    env:\s*(?:#.*)?$", published):
+    if escaped_mapping_key(published, "    "):
+        failures.append("Scorecard publication does not support escaped published-job mapping keys")
+    if re.search(r"(?m)^    (?:env|'env'|\"env\")[ \t]*:", published):
         failures.append("Scorecard published job must not define job-level env")
-    if re.search(r"(?m)^    defaults:\s*(?:#.*)?$", published):
+    if re.search(r"(?m)^    (?:defaults|'defaults'|\"defaults\")[ \t]*:", published):
         failures.append("Scorecard published job must not define job-level defaults")
     if re.search(r"(?m)^        run:", published):
         failures.append("Scorecard published job may use only OpenSSF-approved actions")
@@ -248,9 +256,11 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
         return "N/A", []
 
     failures: list[str] = []
-    if re.search(r"(?m)^env:\s*(?:#.*)?$", text):
+    if escaped_mapping_key(text, ""):
+        failures.append("Scorecard publication does not support escaped top-level mapping keys")
+    if re.search(r"(?m)^(?:env|'env'|\"env\")[ \t]*:", text):
         failures.append("Scorecard publication workflow must not define top-level env")
-    if re.search(r"(?m)^defaults:\s*(?:#.*)?$", text):
+    if re.search(r"(?m)^(?:defaults|'defaults'|\"defaults\")[ \t]*:", text):
         failures.append("Scorecard publication workflow must not define top-level defaults")
 
     match = re.search(

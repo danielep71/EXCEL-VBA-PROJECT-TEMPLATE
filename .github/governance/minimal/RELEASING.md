@@ -68,7 +68,8 @@ python3 tools/check_vba_jumps.py --root .
 ```
 
 The hosted *Static repository checks* workflow runs the same gates, with their
-self-tests, on every pull request.
+self-tests and the release-semantics gate, on pull requests and pushes to `main`
+and `release/**`, and on `v*` tags.
 
 ## 4. Certify in Excel
 
@@ -82,8 +83,21 @@ Use the exact candidate source in each advertised Excel environment:
 
 The neutral starter baseline is `ProjectTests.RunProjectTests`; until replaced by
 the project's own contract it reports four cases, six assertions, zero failures,
-complete execution and passing cleanup. Source inspection is not Excel
-execution. If code changes, recertify.
+complete execution and passing cleanup.
+
+<!-- template:profile:library:start -->
+The library reference adds `TextTests.RunTextTests` (29 cases, 135 assertions).
+<!-- template:profile:library:end -->
+<!-- template:profile:ui-component:start -->
+The ui-component reference adds `ProgressTests.RunProgressTests` (12 cases; 79
+assertions on Windows, 75 on macOS).
+<!-- template:profile:ui-component:end -->
+<!-- template:profile:application:start -->
+The application reference adds `LifecycleTests.RunLifecycleTests` (16 cases, 106
+assertions) and the `LifecycleExample.RunLifecycleExample` end-to-end smoke.
+<!-- template:profile:application:end -->
+
+Source inspection is not Excel execution. If code changes, recertify.
 
 ## 5. Review and merge the release candidate
 
@@ -105,6 +119,7 @@ release_version="$(tr -d '\r\n' < VERSION)" || exit $?
 release_tag="v${release_version}"
 python3 tools/check_release_semantics.py --root . || exit $?
 git tag -a "$release_tag" "$candidate_sha" -m "{{PROJECT_NAME}} ${release_version}" || exit $?
+test "$(git cat-file -t "$release_tag")" = tag || exit $?
 test "$(git rev-parse "${release_tag}^{commit}")" = "$candidate_sha" || exit $?
 git push origin "refs/tags/$release_tag:refs/tags/$release_tag" || exit $?
 )

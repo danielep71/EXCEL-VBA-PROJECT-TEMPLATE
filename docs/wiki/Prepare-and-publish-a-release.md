@@ -6,6 +6,11 @@
 [RELEASING.md](../../RELEASING.md) owns the sequence;
 [Release Evidence](../RELEASE_EVIDENCE.md) owns schemas and required checks.
 
+> **Governance tier:** this page follows the `full` tier. A `minimal` project
+> has no release policy, evidence bundle, `check_release.py` or closeout
+> workflow; its own `RELEASING.md` gives the shorter sequence (release
+> semantics, integrity, public-API and jump gates, annotated tag).
+
 ## 1. Choose the version and freeze source
 
 Replace the initializer's `0.0.0` sentinel with the intended nonzero version.
@@ -71,12 +76,13 @@ This is the source-only command. Add the asset/provenance/signature/Excel flags
 from the authorities when that branch applies:
 
 ```bash
-python tools/check_release.py --root . --tag "$release_tag" --candidate-sha "$candidate_sha" --evidence ../release-evidence.json
-git tag -a "$release_tag" "$candidate_sha" -m "Release ${release_version}"
+python tools/check_release.py --root . --tag "$release_tag" --candidate-sha "$candidate_sha" --evidence ../release-evidence.json --output test-results/release-integrity.json --summary test-results/release-integrity.md
+git tag -a "$release_tag" "$candidate_sha" -m "PROJECT_NAME ${release_version}"
 python tools/check_release.py --root . --tag "$release_tag" --candidate-sha "$candidate_sha" --evidence ../release-evidence.json --require-tag-ref
 ```
 
-Run each line only if the preceding line passed. The second check verifies the
+Replace `PROJECT_NAME` in the tag message with the project's name, as the
+authority's command does. Run each line only if the preceding line passed. The second check verifies the
 annotated tag and target. If it fails, do not push. Repair the unpublished
 candidate through review and regenerate affected evidence.
 
@@ -98,6 +104,14 @@ installation in a clean environment. For source-only releases, inspect the sourc
 archive and its expected files. Record the result before announcing availability.
 Never move a public tag or silently replace an asset to hide a defect; follow
 the documented patch-release recovery procedure.
+
+## 6. Close out
+
+Close the release milestone, then run the **Release closeout** workflow with the
+tag, the certified candidate SHA and the milestone number. It changes nothing:
+it re-reads the published tag, tag CI, Release, assets, changelog links and
+milestone, and fails on any mismatch. Retain its evidence. See
+[Release closeout](../RELEASE_CLOSEOUT.md) for every input.
 
 ---
 [Home](Home.md) · [Previous](Develop-safely.md) · [Next](File-and-directory-reference.md)

@@ -8,6 +8,28 @@
 Local source checks are deterministic. Network collectors and live setup tools
 have separately documented observation, credential and mutation boundaries.
 
+This guide is organized by topic and does not list every file. Besides the
+gates below, a project keeps these tools, each documented by its authority:
+
+| Tool | Authority |
+| --- | --- |
+| `check_release_semantics.py` | [Release semantics](../docs/RELEASE_SEMANTICS.md) |
+| `release_provenance.py`, `test_release_provenance.py` | [Release provenance](../docs/RELEASE_PROVENANCE.md) |
+| `check_excel_evidence.py`, `test_excel_evidence.py` | [Excel evidence](../docs/EXCEL_EVIDENCE.md) |
+| `check_documentation.py`, `check_external_links.py`, `test_documentation.py` | [Documentation checks](../docs/DOCUMENTATION_CHECKS.md) |
+| `check_local_actions.py` | [Local actions](LOCAL_ACTIONS.md) |
+| `release_certification.py` | [Release evidence](../docs/RELEASE_EVIDENCE.md) |
+| `_release_closeout.py` | [Release closeout](../docs/RELEASE_CLOSEOUT.md) |
+| `test_verification_depth.py` | Depth tests for the release, contract, whitespace, link, local-action, initializer and closeout tooling; run by *Static repository checks* |
+
+<!-- template:remove:start -->
+The complete, gate-checked inventory of `tools/`, with each file's purpose and
+whether each profile keeps it, is the
+[file and directory reference](../docs/wiki/File-and-directory-reference.md).
+The template-only `dev_check.sh` runs the local pre-push suite; see
+[checker development](../docs/CHECKER_DEVELOPMENT.md#-local-pre-push-validation).
+<!-- template:remove:end -->
+
 <a id="python-presentation-and-lint-policy"></a>
 
 ## 📐 Python presentation and lint policy
@@ -34,10 +56,12 @@ The canonical reproducible coverage command is the complete `Exercise maintained
 tooling under coverage` shell block in
 [`.github/workflows/checker-development.yml`](../.github/workflows/checker-development.yml).
 It is intentionally CI-independent: after installing the pinned dependencies below, run
-that block verbatim from the repository root in Bash.
+that block from the repository root under `bash -eo pipefail`, as the hosted
+`shell: bash` does. In a plain Bash a failing line does not stop the block and
+`coverage report | tee` exits 0 below the floor, so the floor is not enforced.
 
 ```bash
-python -m pip install --disable-pip-version-check "coverage[toml]==7.10.6" "PyYAML==6.0.3"
+python -m pip install --disable-pip-version-check -r tools/requirements-dev.txt
 ```
 
 The measurement scope is maintained `tools/*.py`. Test drivers matching
@@ -97,9 +121,10 @@ Appropriate contents include:
 
 Focused report gates use the shared runner. Distinct CLI contracts retain their
 own entry points: release validation has atomic evidence writes and separate
-console rendering; workflow validation emits text-only evidence; initialization
-and disposable fixture creation provision source; snapshot collection captures
-observations. The canonical checker remains self-contained.
+console rendering; release certification has mutually exclusive build/verify
+modes that emit JSON to stdout; workflow validation emits text-only evidence;
+initialization and disposable fixture creation provision source; snapshot
+collection captures observations. The canonical checker remains self-contained.
 
 <!-- template:remove:start -->
 The complete consumer/exclusion registry is maintained and enforced in
@@ -279,8 +304,9 @@ The reusable policy deliberately prohibits implicit public visibility. Supported
 API declarations must use explicit `Public` visibility; `Global` is accepted for
 legacy public variables. The gate normalizes line continuations and covers
 public Subs, Functions, Property Get/Let/Set members, constants, events,
-Declare Function/Sub members, variables, Enums, and Types. Public variable
-statements contain one identifier each so signatures remain unambiguous.
+Declare Function/Sub members, variables, Enums, and Types. Public constant
+and variable statements contain one identifier each so signatures remain
+unambiguous.
 
 `PUBLIC_API.txt` remains the single manifest. Its traditional three-column rows
 preserve compatibility with the canonical repository checker, while `# SIG`
@@ -291,7 +317,7 @@ definitions, and Enum/Type bodies. The dedicated gate detects missing, stale,
 duplicate, or changed signatures and case-insensitive public-name collisions in
 standard modules.
 
-Conditional declarations are collected separately for the three supported
+Conditional declarations are collected separately for the four supported
 compilation environments described above. Mutually exclusive variants share one
 three-column manifest row and require one `# SIG` record for each distinct
 reachable signature. Duplicate records, missing or stale variants, and declarations
@@ -321,9 +347,9 @@ compatibility view cannot hide an unsupported or unrecorded public declaration.
 versioned identity of the control set a repository adopts, recorded as
 `template_contract` in `.github/repository-profile.json`.
 
-The canonical checker only requires the key to exist among the configuration
-keys; every rule about its content lives in this gate, so the portable checker's
-policy-branch inventory is unchanged.
+The canonical checker requires the key to exist and reads only its `source`, to
+recognize the recorded upstream in workflow references; every rule about the
+contract's content lives in this gate.
 
 The gate requires exactly `version` and `source`, rejects a non-canonical or
 unsupported version with a message naming the supported set, resolves the rule
@@ -361,7 +387,8 @@ report, or artifact fails the terminal verdict.
 `test_workflow_validation.py` requires that exact actionlint version. It
 accepts the tracked workflows and a valid local composite action, and requires
 rejection of malformed YAML, duplicate job IDs, an invalid job key, missing
-local-action metadata, and a missing local Node entry point. Run it locally with
+local-action metadata, and a missing local Node entry point. It also enforces
+the Scorecard publication contract, reported as its own row. Run it locally with
 an independently verified binary:
 
 ```bash
@@ -395,7 +422,10 @@ python3 tools/check_release.py --root . --self-test \
 Candidate validation requires `--tag`, `--candidate-sha`, and `--evidence`.
 Binary UI/application distributions also require `--asset-manifest`; a
 source-only release omits it. After creating the local annotated tag, add
-`--require-tag-ref` to prove its object type and target. See
+`--require-tag-ref` to prove its object type and target. `--provenance` and
+`--provenance-signature` add the build record and its signature
+([RELEASE_PROVENANCE.md](../docs/RELEASE_PROVENANCE.md)); `--excel-evidence`
+adds a structured host record ([EXCEL_EVIDENCE.md](../docs/EXCEL_EVIDENCE.md)). See
 [`docs/RELEASE_EVIDENCE.md`](../docs/RELEASE_EVIDENCE.md) for the exact JSON,
 manifest, profile, and command contracts.
 
@@ -408,8 +438,8 @@ Excel or claim that a manually packaged Office file was built from source.
 `initialize_repository.py` converts a clean generated repository from template
 mode to one explicit profile. It validates the complete substitution set,
 defaults to a deterministic dry-run, applies only with `--apply`, removes
-non-applicable/template-only content, resets inherited changelog history, and
-resets the generated version to the `0.0.0` sentinel, and supports an idempotent
+non-applicable/template-only content, resets inherited changelog history,
+resets the generated version to the `0.0.0` sentinel and supports an idempotent
 second run. `--governance-tier minimal` generates the lighter tier, and
 `--upgrade-tier full`, run from a template checkout, upgrades a minimal project
 in place without overwriting adopter changes; see
@@ -418,7 +448,7 @@ in place without overwriting adopter changes; see
 See [`docs/INITIALIZATION.md`](../docs/INITIALIZATION.md) for the token catalogue,
 profile commands, optional and repeatable values, and the transparent manual
 fallback. In canonical template mode the self-test constructs and validates all
-three supported profile fixtures. In an initialized generated repository it
+three profiles in both governance tiers, plus minimal-to-full upgrades. In an initialized generated repository it
 validates only the recorded selected profile, identity, cleanup, quality checks,
 and repeat-run safety; it does not restore or require removed maintainer-only
 tooling. Run:

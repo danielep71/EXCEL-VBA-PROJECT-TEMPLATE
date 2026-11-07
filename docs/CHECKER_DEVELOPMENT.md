@@ -27,14 +27,14 @@ rather than duplicating a table here that later gates would outdate.
 | --- | --- | --- |
 | `run-gate` | Focused report gate | Imports `_gatelib.run_gate`, or delegates `main` to a `run-gate` tool (the `check_policy_coverage.py` alias) |
 | `specialized-gate` | Gate whose parser, report, write or exit semantics differ | Must not use `run_gate`; the rationale names the difference (for example `check_release.py`'s atomic evidence writes) |
-| `utility` | Provisioning or evidence capture, not a report gate | Must not use `run_gate`; rationale required |
+| `utility` | Provisioning or evidence capture that does not report through `run_gate` (a provisioning tool with a gate report, such as `provision_repository.py`, is a `run-gate`) | Must not use `run_gate`; rationale required |
 | `test-runner` | Unittest suite | Must not use `run_gate`; rationale required |
 | `canonical` | `check_repo.py` only | Self-contained; imports no sibling |
 
 A CLI with no class, a class for a file that is no longer a CLI, an unknown
 class, a missing rationale, a `run-gate` tool that does not use the runner, or
 any other class that quietly adopts it fails the contract. `_release_closeout.py`
-moved onto `run_gate` in v1.3.0 because its orchestration was identical;
+uses `run_gate` because its orchestration was identical;
 `check_release.py` stays specialized because sharing would weaken its atomicity.
 
 ### Module boundaries
@@ -66,17 +66,9 @@ runner tests cover CLI flags, defaults/help, self-test dispatch, diagnostic
 prefixes, exit mapping, deterministic evidence, write failures and propagation
 of non-operational exceptions.
 
-The canonical-template merge-history control introduced after v1.2.0 does **not**
-add another focused-gate entry point. Its ownership sits inside the already
-registered `check_release_semantics.py` consumer: the normal SemVer/changelog
-report gains a template-only history branch, while generated repositories report
-that branch as not applicable. The deterministic history fixtures therefore run
-through `check_release_semantics.py --self-test`, preserving the existing
-shared-runner registry and avoiding a parallel orchestration path.
-
 `tools/check_repo.py` must never import `_gatelib.py`. Generated repositories retain `_gatelib.py` for the focused operational gates, while the canonical checker remains independently copyable and executable as one standard-library-only file. `checker_development.py` enforces this ownership boundary in the canonical template. The checker-development workflow, this document, and the `policy_coverage_*` semantic-coverage harness are template-maintainer assets and are removed by initialization rather than shipped into generated projects.
 
-The public API gate also uses `check_vba_conditionals.py` to evaluate the same three supported compilation environments. It checks name collisions only where declarations can coexist, and requires one manifest declaration row plus a `# SIG` record for every distinct reachable signature. Unknown conditions fail closed. These are static models, not evidence of Excel runtime certification.
+The public API gate's use of `check_vba_conditionals.py` and its four compilation environments are described in the [tools guide](../tools/README.md).
 
 ### Self-test interface coverage
 
@@ -95,12 +87,12 @@ also recognizes a main-only `else` branch. Unknown operands remain unknown, so
 this is a bounded syntactic model, not general Python control-flow analysis.
 
 `check_documentation.py` and `check_wiki.py` intentionally use dedicated offline
-suites: `python tools/test_documentation.py -v` and `python tools/test_wiki.py -v`.
+suites: `python3 tools/test_documentation.py -v` and `python3 tools/test_wiki.py -v`.
 CI runs them in `static-checks.yml` and `wiki-checks.yml`, respectively. They remain
 runner consumers; their self-test exclusions do not exempt them from ownership checks.
 The registry also names the separate suites for the other operational CLIs without
-the flag and explicitly discloses the provisioning fixture utility's lack of a
-dedicated offline suite.
+the flag, including `test_template_workflow_validation.py` for the reusable-workflow
+consumer fixture utility; its live consumer pilot evidence is separate.
 
 This check verifies interface declarations, not exhaustive test coverage. Advertising
 the flag does not prove that its fixtures ran or that every branch is covered.
@@ -200,31 +192,39 @@ Maintainers can exercise parser and reporter behavior without running the full s
 python3 tools/checker_development.py --root . --self-test
 ```
 
-The contract directly tests representative YAML, GitHub-style Markdown anchors, EditorConfig parsing, VBA lexical stripping, Markdown/console serialization, CLI flags and operational exit-code mapping. The full `check_repo.py --self-test` and semantic policy-coverage matrix remain separate higher-level gates. Hosted CI keeps both template-maintainer contracts together in `checker-development.yml`; the operational `static-checks.yml` deliberately remains free of template-only policy-coverage tooling so the generated workflow is self-contained.
+The contract directly tests representative YAML, GitHub-style Markdown anchors, EditorConfig parsing, VBA lexical stripping, Markdown/console serialization, CLI flags and operational exit-code mapping. The full `check_repo.py --self-test` and semantic policy-coverage matrix remain separate higher-level gates. Hosted CI keeps both template-maintainer contracts together in `checker-development.yml`. The operational `static-checks.yml` runs no policy-coverage gate; its one template-only step runs the template unit suites only when their files exist, so a generated project's copy is self-contained.
 
 Release-history fixtures are owned by the existing release-semantics suite rather
 than this AST/interface harness. `python3 tools/check_release_semantics.py --root . --self-test`
 proves compliant squash history, reviewed merge exceptions, unapproved merge
 rejection and duplicate-subject rejection using temporary Git repositories.
 
+The canonical-template merge-history control introduced in v1.2.1 does **not**
+add another focused-gate entry point. Its ownership sits inside the already
+registered `check_release_semantics.py` consumer: the normal SemVer/changelog
+report gains a template-only history branch, while generated repositories report
+that branch as not applicable. The deterministic history fixtures therefore run
+through `check_release_semantics.py --self-test`, preserving the existing
+shared-runner registry and avoiding a parallel orchestration path.
+
 ## 🖥️ Local pre-push validation
 
 Hosted CI is authoritative, but a maintainer should be able to reach the same
-verdict before pushing. Two files make that reproducible.
+verdict before pushing. These files make that reproducible.
 
 `tools/requirements-dev.txt` pins the cross-platform local Python tooling to
 the exact direct versions used by hosted CI. The hosted CPython 3.10 / Ubuntu
 x64 installs are additionally locked by `tools/requirements-quality-ci.txt`,
 `tools/requirements-coverage-ci.txt`, and
 `tools/requirements-portfolio-ci.txt`, which carry the reviewed wheel hashes
-consumed by `static-checks.yml`, `checker-development.yml`, and
-`portfolio-drift.yml` respectively. `tools/dev_check.sh` verifies the local
+consumed by `static-checks.yml` (and `generated-profile-matrix.yml`),
+`checker-development.yml`, and `portfolio-drift.yml` respectively. `tools/dev_check.sh` verifies the local
 version pins still mirror those hosted lock files and the workflow-declared
 Ruff/mypy versions. `actionlint` is a Go binary rather than a Python package,
 so it is documented in `tools/requirements-dev.txt` but not installable from it.
 
-`tools/dev_check.sh` runs the locally reproducible gates in the hosted order and
-prints a pass/fail/skip verdict:
+`tools/dev_check.sh` runs the locally reproducible gates, broadly in the hosted
+order, and prints a pass/fail/skip verdict:
 
 ```bash
 python3 -m pip install -r tools/requirements-dev.txt
@@ -238,7 +238,10 @@ Ruff/mypy lock entries still match `RUFF_VERSION` and `MYPY_VERSION` in
 `static-checks.yml`, that both hosted PyYAML lock files agree with the local
 pin, and that the `actionlint` version/digest still match
 `static-checks.yml`. A lock or workflow pin that moves without the other
-surfaces therefore cannot turn a clean local run into a false negative. It then
+surfaces therefore cannot turn a clean local run into a false negative. The same
+mirror covers the actionlint pin in `generated-profile-matrix.yml`,
+`EXPECTED_ACTIONLINT_VERSION` in `test_workflow_validation.py` and the PyYAML
+runtime assertion in `check_portfolio_drift.py`. It then
 checks that every installed local tool version matches the pin. Both are
 failures rather than warnings, because a local run on different versions can
 disagree with CI in both directions. A mismatched PyYAML is the clearest case:
@@ -248,12 +251,15 @@ resulting failure names the portfolio suites rather than the real cause.
 Workflow validation is the one gate that needs a non-Python tool.
 `tools/requirements-dev.txt` carries the command that installs the same pinned,
 digest-verified `actionlint` binary `static-checks.yml` uses; with it on `PATH`
-the local run covers every tracked workflow and reports no skips.
+the local run covers every tracked workflow and reports no skips (unless
+`FAST=1`, which skips two gates).
 
 The script is explicitly not a claim of CI equivalence. Workflow validation
-without `actionlint` on `PATH`, the statement-coverage floor, Excel evidence,
-live GitHub state and the hosted terminal verdicts are reported as SKIPPED
-rather than counted as passes, and remain the hosted gates' responsibility.
+without `actionlint` on `PATH` is reported as SKIPPED. The statement-coverage
+floor, committed-mode whitespace (the local run checks the working tree only),
+external links, live portfolio drift, Excel evidence, live GitHub state and the
+hosted terminal verdicts are not run; the closing note lists them as the hosted gates' responsibility, and
+none is ever counted as a pass.
 
 ## 🧰 Registered maintenance tasks
 
@@ -266,13 +272,11 @@ that work:
 gh workflow run maintenance.yml --ref <branch> -f task=regenerate-wiki-reference
 ```
 
-That command works only after the file has reached the default branch. GitHub
-registers a `workflow_dispatch` workflow from `main` alone, so while this file
-lives only on a release branch the workflow is not dispatchable at all — the
-Actions UI does not offer it and the REST dispatch endpoint answers 404. Naming
-the branch with `--ref` does not work around it. Once the file is on `main`,
-`--ref` may name any branch that carries it, and the task commits to that
-branch.
+GitHub registers a `workflow_dispatch` workflow only from the default branch.
+`maintenance.yml` is on `main`, so `--ref` may name any branch that carries it,
+and the task commits to that branch. A repository whose default branch lacks
+the file cannot dispatch it at all: the Actions UI does not offer it, the REST
+dispatch endpoint answers 404, and `--ref` does not work around it.
 
 It replaces the pattern of adding a disposable workflow per task. Each such
 workflow triggered on its own push, granted itself `contents: write`, ran at the
@@ -305,7 +309,7 @@ Every development-contract report records the SHA-256 of `tools/check_repo.py`. 
 3. Run `python3 tools/check_repo.py --root . --self-test`.
 4. Run `python3 tools/check_policy_coverage.py --root . --self-test` so every canonical blocking finding remains exercised.
 5. Run `tools/dev_check.sh` to reproduce the locally checkable part of hosted CI before pushing.
-6. Run the normal repository gate and require successful hosted terminal verdicts from both `Checker development` and `Repository integrity`.
+6. Run the normal repository gate and require successful hosted terminal verdicts from `Checker development`, `Python statement coverage` (the 95% floor) and `Repository integrity`.
 7. If a deliberate internal boundary, CLI contract or canonical check order changes, update this document and `checker_development.py` in the same reviewed change.
 
 ## 🚫 Non-goals

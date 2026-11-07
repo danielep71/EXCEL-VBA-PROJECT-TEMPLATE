@@ -3,7 +3,7 @@
 [![Binding: exact SHA](https://img.shields.io/badge/binding-exact%20SHA-217346)](#-evidence-json)
 [![Profiles: 4](https://img.shields.io/badge/profiles-4-6f42c1)](#-policy)
 [![Tags: template SSH-signed](https://img.shields.io/badge/tags-template%20SSH--signed-1D76DB)](#-commands)
-[![Assets: digest verified](https://img.shields.io/badge/assets-digest%20verified-success)](#-source--only-and-binary-distributions)
+[![Assets: digest verified](https://img.shields.io/badge/assets-digest%20verified-success)](#-source-only-and-binary-distributions)
 [![Certification: retained release assets](https://img.shields.io/badge/certification-release%20assets-0969da)](#-durable-canonical-template-certification)
 
 This contract defines the machine-readable evidence consumed by
@@ -47,6 +47,49 @@ Additional required checks are profile-specific:
 | `ui-component` | UI state, cleanup, recovery, DPI/accessibility, and lifecycle evidence |
 | `application` | Startup, shutdown, upgrade, recovery, packaging, and end-to-end smoke evidence |
 | `template` | All three generated-profile pilots, live branch/tag governance evidence, the separately verified canonical Git-tag trust policy once the release tag exists, and the durable certification bundle described below |
+
+<!-- template:profile:application:start -->
+### Application reference evidence
+
+A generated application that keeps the lifecycle reference can source its
+profile checks from it. `LifecycleTests.RunLifecycleTests` exercises `startup`
+(first start, repeated start, re-entry, single ownership), `shutdown` (stop,
+repeated stop), `upgrade` (schema-1 migration, current-schema no-op, rollback of
+a failed upgrade) and `recovery` (unclean stop, live session, reset, refused
+corrupt state); cite the suite's single `RESULT=PASS` line and the `CASE=`
+names that cover each check. `end-to-end-smoke` is
+`LifecycleExample.RunLifecycleExample` run in the released artifact.
+`packaging` is required for every application release. When the release
+distributes a workbook or add-in, its detail names that asset and its
+post-package smoke. For a `source-only` release, record it as `PASS` with a
+detail stating that no workbook or add-in is distributed: the release has no
+assets and claims no binary provenance.
+<!-- template:profile:application:end -->
+<!-- template:profile:library:start -->
+### Library reference evidence
+
+A generated library that keeps the Text reference can source its profile checks
+from it. `public-api` cites a passing `check_vba_public_api.py` run on the
+candidate and the `RESULT=PASS` line of `TextTests.RunTextTests`, whose cases
+include `api.repeatability` and the invalid-argument cases that assert number,
+source and description. `caller-contract` cites `TextExample.RunTextExample`,
+which calls only `TextFacade`, with its output. Add the project's own functions
+to both checks as it grows beyond the reference.
+<!-- template:profile:library:end -->
+<!-- template:profile:ui-component:start -->
+### UI component reference evidence
+
+A generated UI component that keeps the Progress reference can source most of
+its profile checks from `ProgressTests.RunProgressTests`; cite its `RESULT=PASS`
+line and the covering `CASE=` names. `ui-state` is `session.begin`,
+`session.update`, `session.keep-screen-updating` and
+`session.restores-caller-state`; `cleanup` is `session.restores-caller-state`
+and `negative.cleanup-detection`; `recovery` is `session.recover` and
+`session.cancel`; `lifecycle` is `session.repeat`, `session.reentrancy` and
+`session.inactive`. The reference has no form or Ribbon, so `dpi-accessibility`
+needs the project's own review; a component that draws nothing beyond the
+status bar states that in the detail.
+<!-- template:profile:ui-component:end -->
 
 All checks use `status: "PASS"`, a non-empty `detail`, and the same
 `candidate_sha`. Project-specific checks may be added with lower-case,
@@ -301,6 +344,9 @@ python3 tools/check_release.py --root . --self-test \
 python3 tools/release_certification.py --self-test
 ```
 
+The certification self-test signs and verifies fixtures, so it needs OpenSSH's
+`ssh-keygen` on `PATH`; without it the self-test fails.
+
 Before tagging, validate an external evidence file and any staged product
 assets:
 
@@ -353,13 +399,15 @@ rejects:
 - an invalid or missing dated changelog release;
 - unresolved template syntax, template identity, or inherited construction
   history in a generated project release;
-- a template release carrying a generated-project initialization record or
-  missing its pilot/governance evidence;
 - missing evidence or missing profile-specific checks;
 - evidence or product assets bound to another candidate SHA;
 - unapproved library or profile binaries;
 - an absent product-asset manifest or incorrect asset digest; and
 - a lightweight or moved tag.
+
+The gate also rejects a template release that carries a generated-project
+initialization record or lacks its pilot/governance evidence; the self-test has
+no fixture for those two cases yet.
 
 The certification-bundle self-test additionally rejects missing required roles,
 secret-like public evidence, non-deterministic output, a same-filename bundle

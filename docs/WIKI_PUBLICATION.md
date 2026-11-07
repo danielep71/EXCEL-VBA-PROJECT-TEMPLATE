@@ -21,18 +21,20 @@ provide ownership, when to edit, invariants/unsafe edits, and validation. The
 rendered reference includes all those fields without repeating the same rule
 paragraph for every helper file. Per-profile lifecycle is computed by calling
 the real initializer's dry-run renderer with its synthetic fixture values:
-retained, transformed or removed. Generated-only paths are a separate table.
+retained, transformed or removed, for the default full tier; the minimal tier's
+removals are listed in [Initialization](INITIALIZATION.md#governance-tiers).
+Generated-only paths are a separate table.
 The social-preview retention exception is stated explicitly.
 
 From the template root, stage intended new files, update the catalogue and run:
 
 ```bash
-python tools/check_wiki.py --root . --write-reference
+python3 tools/check_wiki.py --root . --write-reference
 git add docs/wiki
-python tools/check_wiki.py --root .
-python tools/test_wiki.py -v
-python tools/check_documentation.py --root .
-python tools/check_repo.py --root .
+python3 tools/check_wiki.py --root .
+python3 tools/test_wiki.py -v
+python3 tools/check_documentation.py --root .
+python3 tools/check_repo.py --root .
 ```
 
 The default check is read-only. It rejects missing/extra inventory paths, stale
@@ -75,7 +77,7 @@ fetches, commits, pushes or supplies credentials:
 ```bash
 git status --short
 git rev-parse HEAD
-python tools/check_wiki.py --root . --export-dir ../wiki-export
+python3 tools/check_wiki.py --root . --export-dir ../wiki-export
 git clone https://github.com/OWNER/TEMPLATE-REPOSITORY.wiki.git ../wiki-checkout
 git -C ../wiki-checkout branch --show-current
 git -C ../wiki-checkout rev-parse HEAD
@@ -88,14 +90,14 @@ review removed pages separately; do not delete all files blindly.
 
 ```bash
 cp ../wiki-export/*.md ../wiki-export/Wiki-Source.json ../wiki-checkout/
-python tools/check_wiki.py --root . --published-dir ../wiki-checkout
+python3 tools/check_wiki.py --root . --published-dir ../wiki-checkout
 git -C ../wiki-checkout add -- '*.md' Wiki-Source.json
 git -C ../wiki-checkout diff --cached --check
 git -C ../wiki-checkout diff --cached --stat
 git -C ../wiki-checkout commit -m "Publish wiki from REVIEWED_SOURCE_SHA"
 git -C ../wiki-checkout push origin HEAD
 git clone https://github.com/OWNER/TEMPLATE-REPOSITORY.wiki.git ../wiki-readback
-python tools/check_wiki.py --root . --published-dir ../wiki-readback
+python3 tools/check_wiki.py --root . --published-dir ../wiki-readback
 git -C ../wiki-readback rev-parse HEAD
 ```
 
@@ -149,8 +151,8 @@ repositories can prove preview/apply/idempotence and source checks for all three
 profiles; simulated fixtures cannot prove live GitHub creation, governance,
 Excel execution or a published first release. Keep those distinctions explicit.
 
-The final Markdown audit in #44 reconciles this guide against the finished
-v1.2.0 tree. Refresh the complete inventory when any tracked file is added or
-removed, including deletion of the temporary implementation plan. Record final
+Before each release, the final Markdown audit reconciles this guide against the
+finished tree. Refresh the complete inventory when any tracked file is added or
+removed. Record final
 publication read-back against that audited source before closing final wiki
 acceptance. Do not edit wiki pages online as an independent policy stream.

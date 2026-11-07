@@ -56,10 +56,10 @@ operations, permissions and recovery behavior.
 | --- | --- |
 | Identity and features | Check description, topics, Issues and the owner of every enabled feature |
 | Issue chooser | Open New issue; confirm three forms, no blank issues and private security routing |
-| Labels | Verify resolved names, colors and descriptions after trusted synchronization |
+| Labels | Verify resolved names, colors and descriptions after trusted synchronization (full tier) or manual setup (minimal tier) |
 | Default branch | Confirm the intended branch; source branch names alone do not set GitHub's default |
 | Merge policy | Review methods, manual merge, automatic branch deletion and message defaults |
-| Branch protection | Active PR requirement, strict `Repository integrity`, deletion/force-push protection, intended scope and no unintended bypass |
+| Branch protection | Active PR requirement, strict `Repository integrity` (or `<caller job> / Repository integrity` for a reusable-workflow caller), deletion/force-push protection, intended scope and no unintended bypass |
 | Version tags | Protect existing `v*` tags against update and deletion while allowing new tag creation |
 | Security | Enable private vulnerability reporting and check the monitored reporting route |
 | Wiki | Enable only with a maintainer and a version/drift procedure |

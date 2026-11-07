@@ -38,14 +38,19 @@ Git does not track empty directories. Until a directory contains project materia
 <a id="vba-source-separation"></a>
 ## 🧩 VBA source separation
 
-Create these `src/` subdirectories only when the project has corresponding components:
+Every profile has `src/core/` and `src/modules/`. The initializer also creates
+the directories the selected profile requires, `src/classes/` for `application`
+and `ui-component` and `src/workbook/` for `application`, with an explanatory
+README until real components arrive. Create any other subdirectory only when the
+project has corresponding components:
 
 | Location | Canonical responsibility |
 | --- | --- |
 | `src/modules/` | Public standard modules and thin supported facades |
 | `src/core/` | Internal standard modules for calculations, parsing, validation, and shared implementation |
-| `src/classes/` | Production class modules, state managers, event sinks, and UI hook classes |
+| `src/classes/` | Production class modules, state managers, event sinks, and UI hook classes; required by the `application` and `ui-component` profiles |
 | `src/forms/` | Production UserForms with each `.frm` adjacent to its `.frx` resource |
+| `src/workbook/` | Document-module exports such as `ThisWorkbook`, wiring host events to the application; required by the `application` profile |
 
 ### Public modules
 

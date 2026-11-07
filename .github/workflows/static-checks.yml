@@ -32,10 +32,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: static-checks-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 defaults:
   run:
     shell: bash
@@ -45,6 +41,12 @@ jobs:
     name: Repository integrity
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    # Job-level, so a reusable-workflow caller keeps its own workflow-level
+    # group: there, github.workflow is the caller's name and a shared group
+    # would be cancelled as a caller/callee deadlock.
+    concurrency:
+      group: static-checks-${{ github.workflow }}-${{ github.ref }}-repository-integrity
+      cancel-in-progress: true
     outputs:
       candidate-sha: ${{ steps.candidate.outputs.sha }}
     env:
@@ -108,6 +110,13 @@ jobs:
             ruff --version
             mypy --version
           } | tee test-results/python-quality-versions.txt
+          # The lock installs the tools; the declared versions must agree with it.
+          installed_ruff="$(ruff --version | awk '{print $2}')"
+          installed_mypy="$(mypy --version | awk '{print $2}')"
+          if [[ "$installed_ruff" != "$RUFF_VERSION" || "$installed_mypy" != "$MYPY_VERSION" ]]; then
+            echo "::error::Installed ruff $installed_ruff and mypy $installed_mypy differ from RUFF_VERSION $RUFF_VERSION and MYPY_VERSION $MYPY_VERSION."
+            exit 1
+          fi
 
       - name: Enforce Python lint baseline
         id: ruff
@@ -187,14 +196,14 @@ jobs:
       - name: Exercise template-maintainer validation suites when present
         id: template-maintainer-suites
         continue-on-error: true
-        env:
-          ACTIONLINT_PATH: ${{ steps.validator-install.outputs.path }}
         run: |
           if [[ -f tools/test_template_workflow_validation.py ]]; then
-            python3 tools/test_template_workflow_validation.py               --root .               --actionlint "$ACTIONLINT_PATH"               --summary test-results/template-workflow-validation.md
+            python3 tools/test_template_workflow_validation.py -v \
+              2>&1 | tee test-results/template-workflow-validation.txt
           fi
           if [[ -f tools/test_template_verification_depth.py ]]; then
-            python3 tools/test_template_verification_depth.py -v               2>&1 | tee test-results/template-verification-depth.txt
+            python3 tools/test_template_verification_depth.py -v \
+              2>&1 | tee test-results/template-verification-depth.txt
           fi
 
       - name: Exercise release-integrity candidates and failures
@@ -204,8 +213,11 @@ jobs:
           python3 tools/check_release.py --root . --self-test --summary test-results/release-self-test.md
           python3 tools/test_release_provenance.py -v
           python3 tools/test_excel_evidence.py -v
+          python3 tools/test_verification_depth.py -v
 
       - name: Check maintained documentation contracts
+        id: documentation
+        continue-on-error: true
         run: |
           python3 tools/test_documentation.py -v
           python3 tools/check_documentation.py --root .
@@ -354,6 +366,7 @@ jobs:
               test-results/vba-public-api.md \
               test-results/local-actions.md \
               test-results/workflow-validation.md \
+              test-results/template-contract.md \
               test-results/release-self-test.md \
               test-results/release-semantics.md; do
               if [[ ! -f "$report" ]]; then
@@ -394,6 +407,8 @@ jobs:
             test-results/template-contract.md
             test-results/actionlint-version.txt
             test-results/workflow-validation.md
+            test-results/template-workflow-validation.txt
+            test-results/template-verification-depth.txt
             test-results/release-self-test.md
             test-results/release-semantics.json
             test-results/release-semantics.md
@@ -414,6 +429,7 @@ jobs:
           AUTHORITATIVE_WORKFLOWS_OUTCOME: ${{ steps.authoritative-workflows.outcome }}
           TEMPLATE_MAINTAINER_SUITES_OUTCOME: ${{ steps.template-maintainer-suites.outcome }}
           RELEASE_SELF_TEST_OUTCOME: ${{ steps.release-self-test.outcome }}
+          DOCUMENTATION_OUTCOME: ${{ steps.documentation.outcome }}
           RELEASE_SEMANTICS_SELF_TEST_OUTCOME: ${{ steps.release-semantics-self-test.outcome }}
           RELEASE_SEMANTICS_OUTCOME: ${{ steps.release-semantics.outcome }}
           WHITESPACE_SELF_TEST_OUTCOME: ${{ steps.whitespace-self-test.outcome }}
@@ -444,6 +460,7 @@ jobs:
             "Authoritative workflow-validation:$AUTHORITATIVE_WORKFLOWS_OUTCOME" \
             "Template-maintainer validation suites:$TEMPLATE_MAINTAINER_SUITES_OUTCOME" \
             "Release-integrity self-test:$RELEASE_SELF_TEST_OUTCOME" \
+            "Documentation contracts:$DOCUMENTATION_OUTCOME" \
             "Release-semantics self-test:$RELEASE_SEMANTICS_SELF_TEST_OUTCOME" \
             "Release semantics:$RELEASE_SEMANTICS_OUTCOME" \
             "Initializer self-test:$INITIALIZER_SELF_TEST_OUTCOME" \

@@ -30,6 +30,9 @@
 | Source-only | Distribution without artificial binary assets; profile evidence still applies |
 | Template contract | Version of the reusable repository control baseline, independent of product version |
 | Normative authority | The single maintained document or configuration that owns a rule |
+| Governance tier | How much maintenance tooling a generated project keeps: `full` (default) or `minimal`; independent of the profile |
+| Reference component | A profile's worked core, facade, tests and example (Text, Progress or Lifecycle); its files are profile-owned paths that other profiles remove |
+| Version sentinel | `0.0.0` in `VERSION` after initialization: setup state, never a publishable version |
 
 ---
 [Home](Home.md) · [Previous](Troubleshooting.md) · [Next](Publish-the-wiki.md)

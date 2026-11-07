@@ -71,7 +71,8 @@ A new maintainer should normally need only this sequence:
    [`POST_CREATION_CHECKLIST.md`](POST_CREATION_CHECKLIST.md).
 5. For changes, use [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 6. For publication, use [`RELEASING.md`](../RELEASING.md) together with the
-   release-semantics and release-evidence contracts.
+   release-semantics contract and, in the full tier, the release-evidence
+   contract.
 
 Security reports always follow [`SECURITY.md`](../SECURITY.md), regardless of
 where a problem is discovered.

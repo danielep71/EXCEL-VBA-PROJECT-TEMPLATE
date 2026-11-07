@@ -64,3 +64,41 @@ ProgressFacade	Function	ProgressElapsedSeconds
 # SIG	ProgressFacade	Function	ProgressElapsedSeconds	Public Function ProgressElapsedSeconds() As Double
 ProgressFacade	Function	ProgressText
 # SIG	ProgressFacade	Function	ProgressText	Public Function ProgressText() As String
+LifecycleFacade	Const	LIFECYCLE_ERROR_RUNNING
+# SIG	LifecycleFacade	Const	LIFECYCLE_ERROR_RUNNING	Public Const LIFECYCLE_ERROR_RUNNING As Long = LifecycleCore.ERR_RUNNING
+LifecycleFacade	Const	LIFECYCLE_ERROR_NOT_RUNNING
+# SIG	LifecycleFacade	Const	LIFECYCLE_ERROR_NOT_RUNNING	Public Const LIFECYCLE_ERROR_NOT_RUNNING As Long = LifecycleCore.ERR_NOT_RUNNING
+LifecycleFacade	Const	LIFECYCLE_ERROR_BUSY
+# SIG	LifecycleFacade	Const	LIFECYCLE_ERROR_BUSY	Public Const LIFECYCLE_ERROR_BUSY As Long = LifecycleCore.ERR_BUSY
+LifecycleFacade	Const	LIFECYCLE_ERROR_INVALID_ARGUMENT
+# SIG	LifecycleFacade	Const	LIFECYCLE_ERROR_INVALID_ARGUMENT	Public Const LIFECYCLE_ERROR_INVALID_ARGUMENT As Long = LifecycleCore.ERR_INVALID_ARGUMENT
+LifecycleFacade	Const	LIFECYCLE_ERROR_STATE_INVALID
+# SIG	LifecycleFacade	Const	LIFECYCLE_ERROR_STATE_INVALID	Public Const LIFECYCLE_ERROR_STATE_INVALID As Long = LifecycleCore.ERR_STATE_INVALID
+LifecycleFacade	Const	LIFECYCLE_ERROR_STATE_NEWER
+# SIG	LifecycleFacade	Const	LIFECYCLE_ERROR_STATE_NEWER	Public Const LIFECYCLE_ERROR_STATE_NEWER As Long = LifecycleCore.ERR_STATE_NEWER
+LifecycleFacade	Const	LIFECYCLE_ERROR_RECOVERY_REQUIRED
+# SIG	LifecycleFacade	Const	LIFECYCLE_ERROR_RECOVERY_REQUIRED	Public Const LIFECYCLE_ERROR_RECOVERY_REQUIRED As Long = LifecycleCore.ERR_RECOVERY_REQUIRED
+LifecycleFacade	Const	LIFECYCLE_ERROR_START_FAILED
+# SIG	LifecycleFacade	Const	LIFECYCLE_ERROR_START_FAILED	Public Const LIFECYCLE_ERROR_START_FAILED As Long = LifecycleCore.ERR_START_FAILED
+LifecycleFacade	Const	LIFECYCLE_ERROR_STOP_FAILED
+# SIG	LifecycleFacade	Const	LIFECYCLE_ERROR_STOP_FAILED	Public Const LIFECYCLE_ERROR_STOP_FAILED As Long = LifecycleCore.ERR_STOP_FAILED
+LifecycleFacade	Const	LIFECYCLE_SCHEMA_VERSION
+# SIG	LifecycleFacade	Const	LIFECYCLE_SCHEMA_VERSION	Public Const LIFECYCLE_SCHEMA_VERSION As Long = LifecycleCore.SCHEMA_CURRENT
+LifecycleFacade	Function	LifecycleStart
+# SIG	LifecycleFacade	Function	LifecycleStart	Public Function LifecycleStart( ByVal host As Workbook) As Boolean
+LifecycleFacade	Function	LifecycleStop
+# SIG	LifecycleFacade	Function	LifecycleStop	Public Function LifecycleStop() As Boolean
+LifecycleFacade	Function	LifecycleRecover
+# SIG	LifecycleFacade	Function	LifecycleRecover	Public Function LifecycleRecover( ByVal host As Workbook) As Boolean
+LifecycleFacade	Function	LifecycleReset
+# SIG	LifecycleFacade	Function	LifecycleReset	Public Function LifecycleReset( ByVal host As Workbook) As Long
+LifecycleFacade	Function	LifecycleWriteStatus
+# SIG	LifecycleFacade	Function	LifecycleWriteStatus	Public Function LifecycleWriteStatus( ByVal target As Range) As Long
+LifecycleFacade	Function	LifecycleIsRunning
+# SIG	LifecycleFacade	Function	LifecycleIsRunning	Public Function LifecycleIsRunning() As Boolean
+LifecycleFacade	Function	LifecycleStatus
+# SIG	LifecycleFacade	Function	LifecycleStatus	Public Function LifecycleStatus() As String
+LifecycleFacade	Function	LifecycleStoredSchema
+# SIG	LifecycleFacade	Function	LifecycleStoredSchema	Public Function LifecycleStoredSchema( ByVal host As Workbook) As Long
+LifecycleFacade	Function	LifecycleStoredStarts
+# SIG	LifecycleFacade	Function	LifecycleStoredStarts	Public Function LifecycleStoredStarts( ByVal host As Workbook) As Long

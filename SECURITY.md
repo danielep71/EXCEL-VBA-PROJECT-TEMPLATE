@@ -94,7 +94,7 @@ Include only the information needed to assess the issue:
 | Evidence | Requested detail |
 | --- | --- |
 | Identity | Repository, exact tag/SHA, component/procedure and affected artifact |
-| Environment | Excel/Office build, bitness, Windows version and deployment model |
+| Environment | Excel/Office build, bitness, operating system (Windows or macOS) and version, and deployment model |
 | Impact | Confidentiality, integrity, availability, execution or supply-chain consequence |
 | Reproduction | Minimal steps using synthetic data |
 | Exploitability | Preconditions, privileges, user interaction and persistence |

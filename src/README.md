@@ -4,14 +4,18 @@
 
 ## Canonical separation
 
-Create only the subdirectories the project actually needs:
+`src/core/` and `src/modules/` always exist. The initializer creates the
+directories the selected profile requires (`src/classes/` for `application` and
+`ui-component`, `src/workbook/` for `application`) with an explanatory README;
+create any other subdirectory only when the project needs it:
 
 | Location | Contents | Excludes |
 | --- | --- | --- |
 | `src/modules/` | Public standard modules: supported procedures, worksheet functions, constants, and thin facades | Test harnesses and private implementation engines |
 | `src/core/` | Internal standard modules: parsing, calculation, validation, and other implementation details | Supported public entry points |
-| `src/classes/` | Production class modules, including state managers, event sinks, and UI hooks | Test doubles used only by the harness |
+| `src/classes/` | Production class modules, including state managers, event sinks, and UI hooks; the `application` and `ui-component` profiles require it | Test doubles used only by the harness |
 | `src/forms/` | Production UserForms; each `.frm` stays beside its required `.frx` | Screenshots and distributable workbooks |
+| `src/workbook/` | Document-module exports such as `ThisWorkbook`; the `application` profile requires it for host-event wiring | Standard modules and classes, which belong above |
 
 A small project may keep production components directly in `src/` when further subdivision would add no clarity. If it does, document each component's role in `INSTALLATION.md`.
 
@@ -74,6 +78,47 @@ assumption. Esc is the keyboard cancel. Excel exposes the status bar to
 assistive technology; no further accessibility is claimed. The cursor is left
 unchanged on macOS.
 <!-- template:profile:ui-component:end -->
+
+<!-- template:profile:application:start -->
+## Application reference
+
+| Import order | Path | Component | Role |
+| ---: | --- | --- | --- |
+| 3 | `core/LifecycleCore.bas` | `LifecycleCore` | Lifecycle state, migrations, rollback and the fault seam, guarded by `Option Private Module` |
+| 4 | `modules/LifecycleFacade.bas` | `LifecycleFacade` | Supported lifecycle façade recorded in `docs/PUBLIC_API.txt` |
+
+The application keeps versioned state in three hidden workbook-level names of
+the host it is given, usually `ThisWorkbook`: `LifecycleSchema`,
+`LifecycleStatus` and `LifecycleStarts`. Hidden names need no sheet, window or
+activation, so the same code serves a workbook and an add-in. Nothing else in
+the host, and no Application property, is read or changed.
+
+| Phase | Behavior |
+| --- | --- |
+| Discover | Read and validate the stored schema and status without changing anything. Unreadable state, a newer schema or a session that never stopped is refused here, before ownership is taken. |
+| Start | Snapshot the three names, run each migration from the stored schema to the current one, record `running` and count the start. Any failure restores the names exactly as found and raises `LIFECYCLE_ERROR_START_FAILED` naming the step. |
+| Operate | `LifecycleWriteStatus` writes a status block to the range the caller passes; nothing is selected or activated. |
+| Stop | Record `stopped` and release the session. Without a session it returns `False`, so it is safe in every exit path. |
+| Recover | Stop this host's live session, or clear a `running` status left by a crash or VBA reset. Invalid state is refused; `LifecycleReset` removes it. |
+
+One session runs at a time. A repeated start of the same host is a no-op; a
+start for another workbook, or any call while a start or stop is in progress,
+is refused. To add schema 3, add a migration case and raise the current schema;
+schema-1 and schema-2 hosts then upgrade on their next start.
+
+Wire the lifecycle to the host's events in `ThisWorkbook`, and keep that
+document module's export under `src/workbook/`:
+
+```vb
+Private Sub Workbook_Open()
+    LifecycleFacade.LifecycleStart ThisWorkbook
+End Sub
+
+Private Sub Workbook_BeforeClose(Cancel As Boolean)
+    LifecycleFacade.LifecycleStop
+End Sub
+```
+<!-- template:profile:application:end -->
 
 ## Rules
 

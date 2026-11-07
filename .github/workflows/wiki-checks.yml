@@ -7,6 +7,12 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: wiki-checks-${{ github.ref }}
+  cancel-in-progress: true
+defaults:
+  run:
+    shell: bash
 jobs:
   wiki-source:
     name: Wiki source integrity

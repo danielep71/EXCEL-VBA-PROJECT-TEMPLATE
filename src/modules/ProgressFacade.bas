@@ -50,7 +50,7 @@ Attribute VB_Name = "ProgressFacade"
 '   ProgressEnd in every exit path; ProgressRecover after an interruption.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza
@@ -109,16 +109,17 @@ Public Sub ProgressBegin( _
 '
 ' SIDE EFFECTS
 '   Snapshot StatusBar, DisplayStatusBar, Cursor (Windows), ScreenUpdating
-'   and EnableCancelKey; show the first progress text, set the wait cursor,
-'   turn screen updating off unless kept, and make Esc raise error 18 in the
-'   caller's code. Every changed property is restored by ProgressEnd.
+'   and EnableCancelKey; show the first progress text, set the wait cursor
+'   (Windows), turn screen updating off unless kept, and make Esc raise
+'   error 18 in the caller's code. Every changed property is restored by
+'   ProgressEnd.
 '
 ' ERROR POLICY
 '   Raise PROGRESS_ERROR_INVALID_ARGUMENT or PROGRESS_ERROR_ACTIVE before
 '   changing anything. A failure while taking state is rolled back first.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '==============================================================================
 '
 

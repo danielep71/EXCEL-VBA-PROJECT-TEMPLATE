@@ -38,7 +38,7 @@ Attribute VB_Name = "ProgressExample"
 '   Esc while it runs to see cancellation.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza
@@ -74,13 +74,15 @@ Public Sub RunProgressExample()
 ' SIDE EFFECTS
 '   The status bar shows the progress, the elapsed time and the current step
 '   while the loop runs; the caller's status bar, cursor, screen updating and
-'   Esc handling are restored afterwards. One result line is printed.
+'   Esc handling are restored afterwards. One result line is printed,
+'   preceded by "Cancelled by the user." when Esc was pressed.
 '
 ' ERROR POLICY
-'   Esc cancels cleanly. Other errors end the session, then propagate.
+'   Esc cancels cleanly. Other errors end the session this example began,
+'   then propagate; a session begun elsewhere is never ended here.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '==============================================================================
 '
 
@@ -89,6 +91,7 @@ Public Sub RunProgressExample()
 '------------------------------------------------------------------------------
     'Keep the work deterministic: an uncancelled run always prints 5525.
     Const STEPS              As Long = 25       'Loop length and progress total
+    Dim begun                As Boolean         'True once this example's session began
     Dim completed            As Long            'Steps finished before any cancel
     Dim savedDescription     As String          'Unexpected error diagnostic for re-raise
     Dim savedNumber          As Long            'Unexpected error number for re-raise
@@ -105,6 +108,7 @@ Public Sub RunProgressExample()
         On Error GoTo HandleError
 
         ProgressFacade.ProgressBegin "Summing squares", STEPS, ProgressShowElapsed
+        begun = True
         For stepIndex = 1 To STEPS
             sumOfSquares = sumOfSquares + stepIndex * stepIndex
             completed = stepIndex
@@ -139,12 +143,13 @@ HandleError:
         End If
 
     'Anything else is unexpected: give the Excel state back first, then
-    'let the caller see the original error.
+    'let the caller see the original error. A failed begin, such as one
+    'refused because another caller's session is active, owns nothing.
         savedNumber = Err.Number
         savedSource = Err.Source
         savedDescription = Err.Description
         On Error GoTo 0
-        ProgressFacade.ProgressEnd
+        If begun Then ProgressFacade.ProgressEnd
         Err.Raise savedNumber, savedSource, savedDescription
 
 End Sub

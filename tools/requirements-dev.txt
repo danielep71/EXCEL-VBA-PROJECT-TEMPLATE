@@ -8,7 +8,7 @@
 # Sources of truth this file mirrors:
 #   ruff, mypy       -> .github/workflows/static-checks.yml (RUFF_VERSION, MYPY_VERSION)
 #                       and tools/requirements-quality-ci.txt
-#   coverage, PyYAML -> tools/requirements-coverage-ci.txt
+#   coverage, tomli, PyYAML -> tools/requirements-coverage-ci.txt
 #   PyYAML            -> tools/requirements-portfolio-ci.txt
 #
 # Hosted Ubuntu/Python 3.10 jobs install from the platform-specific hash locks
@@ -39,4 +39,6 @@
 ruff==0.16.6
 mypy==2.3.1
 coverage[toml]==7.10.6
+# coverage reads pyproject.toml through tomli before Python 3.11 (tomllib after).
+tomli==2.2.1; python_version < "3.11"
 PyYAML==6.0.3

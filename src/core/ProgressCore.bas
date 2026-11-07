@@ -17,8 +17,9 @@ Attribute VB_Name = "ProgressCore"
 '   QueryPerformanceCounter/QueryPerformanceFrequency for elapsed time.
 '
 ' STATE OWNERSHIP
-'   Owns one session: an active flag, the caption, counts, options, a cancel
-'   request, the start time and a snapshot of five Application properties.
+'   Owns one session: an active flag, the caption, counts, detail text,
+'   options, a cancel request, the start time and a snapshot of five
+'   Application properties.
 '   During a session it owns StatusBar, DisplayStatusBar, Cursor (Windows),
 '   ScreenUpdating and EnableCancelKey. Calculation, EnableEvents,
 '   DisplayAlerts, selection, workbooks and worksheets stay caller-owned and
@@ -43,7 +44,7 @@ Attribute VB_Name = "ProgressCore"
 '   midnight wrap corrected and leaves the cursor unchanged.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '
 ' AUTHOR
 '   Daniele Penza
@@ -99,7 +100,8 @@ Attribute VB_Name = "ProgressCore"
 '------------------------------------------------------------------------------
 ' MODULE STATE
 '------------------------------------------------------------------------------
-    'Describe the one active session; everything resets when it ends.
+    'Describe the one active session. ResetSession clears all but the
+    'snapshot and the start time, which the next begin overwrites.
         Private mActive            As Boolean            'True from a successful begin until end
         Private mCaption           As String             'Caption shown before the progress figures
         Private mCancelRequested   As Boolean            'Set by RequestCancel; cleared by end
@@ -714,11 +716,11 @@ Private Sub ResetSession()
 '
 ' STATE OWNERSHIP
 '   Clear the active flag, caption, counts, detail, options and cancel
-'   request. The snapshot is left in place until the next begin overwrites
-'   it; it is never read without an active session.
+'   request. The snapshot and the start time are left in place until the
+'   next begin overwrites them; neither is read without an active session.
 '
 ' UPDATED
-'   2026-09-30
+'   2026-11-04
 '==============================================================================
 '
 

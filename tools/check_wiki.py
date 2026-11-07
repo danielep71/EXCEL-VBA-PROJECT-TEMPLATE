@@ -83,6 +83,11 @@ def validate_catalogue(root: Path, data: dict[str, Any], files: set[str]) -> Non
         require(any((root / WIKI / target.split('#')[0]).resolve()
                     == (root / page['authority']).resolve() for target in targets),
                 f'authority notice does not link its registered contract: {page["name"]}')
+        # The generated reference gets its footer from inventory() and is
+        # compared byte for byte with that output instead.
+        require(page['name'] == Path(INVENTORY).stem
+                or text.rstrip('\n').splitlines()[-1] == footer(data, page['name']),
+                f'navigation footer does not follow the page order: {page["name"]}')
     for path, row in {**data['files'], **data['directories']}.items():
         require(row['kind'] in data['kinds'], f'unknown kind: {path}')
         require(row['authority'] in files, f'missing inventory authority: {path}')
@@ -90,6 +95,18 @@ def validate_catalogue(root: Path, data: dict[str, Any], files: set[str]) -> Non
     for kind, row in data['kinds'].items():
         require(all(isinstance(row.get(key), str) and row[key].strip()
                     for key in ('owner', 'edit', 'guard', 'validation')), f'incomplete kind: {kind}')
+
+
+def footer(data: dict[str, Any], name: str) -> str:
+    """The navigation line a page ends with: Home, then its neighbours in page order."""
+    names = [page['name'] for page in data['pages']]
+    index = names.index(name)
+    links = ['[Home](Home.md)']
+    if index > 0:
+        links.append(f'[Previous]({names[index - 1]}.md)')
+    if index < len(names) - 1:
+        links.append(f'[Next]({names[index + 1]}.md)')
+    return ' · '.join(links)
 
 
 def sidebar(data: dict[str, Any]) -> str:
@@ -111,7 +128,8 @@ def inventory(root: Path, data: dict[str, Any], files: set[str]) -> str:
            'standard synthetic values. Supplying optional/repeatable values changes rendered text.',
            'The optional `assets/social-preview.png` is retained when selected; otherwise removed.',
            'Columns show the default full governance tier; the minimal tier also removes or replaces',
-           'the paths listed under [Governance Tiers](../INITIALIZATION.md#governance-tiers).',
+           'the paths in `governance_tiers.tiers.minimal` of `.github/repository-profile.json`,',
+           'summarized under [Governance Tiers](../INITIALIZATION.md#governance-tiers).',
            'An untracked directory is not a Git artifact. Directory retention follows its children.', '',
            '## Editing and validation rules by kind', '',
            '| Kind / owner | When to edit | Invariants and unsafe edits | Validation |',
@@ -138,6 +156,7 @@ def inventory(root: Path, data: dict[str, Any], files: set[str]) -> str:
                    if path.endswith('initialization.json') else
                    'Directory guidance; replace with applicable exported source when that role is implemented.')
         out.append(f'| `{path}` | {", ".join(profiles)} | {purpose} |')
+    out += ['', '---', footer(data, Path(INVENTORY).stem)]
     return '\n'.join(out) + '\n'
 
 

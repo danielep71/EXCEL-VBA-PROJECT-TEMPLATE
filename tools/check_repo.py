@@ -1128,6 +1128,9 @@ def markdown_destinations(text: str) -> Iterable[tuple[int, str]]:
     fenced = False
     fence = ""
     inline = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+    # A linked image, such as a badge, nests an image inside a link:
+    # [![alt](image)](target). The inline pattern yields only the image.
+    linked_image = re.compile(r"\[!\[[^\]]*\]\([^)]*\)\]\(([^)]+)\)")
     reference = re.compile(r"^\s*\[[^\]]+\]:\s*(\S+)")
     code_fence = chr(96) * 3
     for number, line in enumerate(text.splitlines(), start=1):
@@ -1143,6 +1146,8 @@ def markdown_destinations(text: str) -> Iterable[tuple[int, str]]:
         if fenced:
             continue
         for match in inline.finditer(line):
+            yield number, match.group(1).strip()
+        for match in linked_image.finditer(line):
             yield number, match.group(1).strip()
         reference_match = reference.match(line)
         if reference_match:
@@ -1189,7 +1194,9 @@ def _github_slugs(text: str) -> set[str]:
         heading = re.sub(r"<[^>]+>", "", match.group(1)).casefold()
         heading = re.sub(r"[*_~]", "", heading).replace(chr(96), "")
         heading = re.sub(r"[^\w\- ]", "", heading, flags=re.UNICODE)
-        base = re.sub(r"\s+", "-", heading.strip())
+        # GitHub replaces every space with a hyphen and does not trim, so a
+        # heading that starts with an emoji gets a leading hyphen.
+        base = heading.replace(" ", "-")
         occurrence = counts.get(base, 0)
         counts[base] = occurrence + 1
         slugs.add(base if occurrence == 0 else f"{base}-{occurrence}")
@@ -1994,8 +2001,11 @@ def _workflow_job_blocks(lines: list[str]) -> list[tuple[int, list[str]]]:
 
 
 def _job_excludes_pull_request(block: list[str]) -> bool:
+    # A conjunction with the exclusion still excludes pull requests; any "|"
+    # could add an alternative that admits them, so it is not recognized.
     exclusion = re.compile(
-        r"^    if:\s*github\.event_name\s*!=\s*(['\"])pull_request\1\s*(?:#.*)?$"
+        r"^    if:\s*github\.event_name\s*!=\s*(['\"])pull_request\1"
+        r"(?:\s*&&\s*[^|#\s][^|#]*?)?\s*(?:#.*)?$"
     )
     return any(exclusion.match(line) for line in block)
 
@@ -3341,6 +3351,22 @@ def _degrade_markdown_links(root: Path) -> None:
     write_fixture(root / "README.md", "# Fixture\n\n[Missing](docs/MISSING.md)\n")
 
 
+def _degrade_markdown_badge_anchor(root: Path) -> None:
+    write_fixture(
+        root / "README.md",
+        "# Fixture\n\n"
+        "[![Badge](https://img.shields.io/badge/a-b-blue)](#-local--checks)\n\n"
+        "## \U0001f9ea Local checks\n",
+    )
+
+
+def _degrade_markdown_trimmed_slug(root: Path) -> None:
+    write_fixture(
+        root / "README.md",
+        "# Fixture\n\n[Checks](#local-checks)\n\n## \U0001f9ea Local checks\n",
+    )
+
+
 def _degrade_text_integrity(root: Path) -> None:
     marker = "<" * 7
     write_fixture(root / "README.md", f"# Fixture\n\n{marker} HEAD\n")
@@ -3523,6 +3549,8 @@ SELF_TEST_CASES: tuple[tuple[str, Callable[[Path], None]], ...] = (
 BRANCH_SELF_TEST_CASES: tuple[
     tuple[str, str, Callable[[Path], None]], ...
 ] = (
+    ("markdown-badge-anchor", "markdown-links", _degrade_markdown_badge_anchor),
+    ("markdown-trimmed-slug", "markdown-links", _degrade_markdown_trimmed_slug),
     ("structured-yaml", "structured-data", _degrade_structured_yaml),
     ("structured-xml", "structured-data", _degrade_structured_xml),
     ("structured-xml-encoding", "structured-data", _degrade_structured_xml_encoding),

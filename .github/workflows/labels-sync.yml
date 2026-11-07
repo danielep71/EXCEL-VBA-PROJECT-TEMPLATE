@@ -32,17 +32,24 @@ concurrency:
   group: labels-sync-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   validate:
     name: Validate label manifest
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
 
     steps:
       - name: Check out the exact SHA under review
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Exercise validation, overlays, and reconciliation paths
         run: node .github/scripts/labels-sync.mjs --self-test
@@ -54,6 +61,7 @@ jobs:
     name: Reconcile live labels
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
       issues: write
@@ -61,6 +69,8 @@ jobs:
     steps:
       - name: Check out the exact SHA to apply
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Exercise validation, overlays, and reconciliation paths
         run: node .github/scripts/labels-sync.mjs --self-test

@@ -108,33 +108,41 @@ Use only the categories needed by a release.
   `check_release_semantics`) and their two helpers, a dependency-free *Static
   repository checks* workflow with the same **Repository integrity** job name,
   and CodeQL. Release evidence and provenance, host-evidence validation,
-  documentation drift and external-link checks, local-action validation, label
-  automation, Scorecard, Ruff/mypy and the initializer stay in the default
-  `full` tier. A minimal project retains 6 Python files (6,865 lines) instead of
-  22 (18,368 lines), and 51–54 tracked files instead of 89–92, depending on the
-  profile. The tier is recorded as `"governance_tier": "minimal"` in the
-  generated profile and initialization record; `full` is never recorded, so
-  existing generated repositories are unaffected. Documentation shared by both
-  tiers uses tier blocks, and table rows or list items that reference only
-  removed files are pruned. The template profile declares the tier matrix,
-  which the canonical gate validates, and the initializer self-test generates
-  every profile in both tiers and runs the four gates inside each minimal
-  result. Portfolio drift and quality reports honour the recorded tier: the
-  six controls a minimal project omits are `NOT_APPLICABLE`, never missing,
-  and `release-integrity` and `template-contract-version` check the artifacts
-  the minimal tier keeps. The tier narrows the recorded contract's rule set and
-  changes no published rule set, so the contract version stays `1.2.0`; an
-  evaluator that predates tiers reports the omitted controls as drift, never as
-  a pass. `initialize_repository.py --upgrade-tier full`, run from a template
-  checkout at the project's recorded contract, upgrades a minimal project in
-  place from its recorded inputs. It adds full-tier files, replaces files still
-  at their minimal version, three-way merges adopter edits that do not overlap a
-  tier difference, keeps adopter deletions and never deletes. Any conflict
-  stops it before writing. An unedited project upgrades to exactly the direct
-  full-tier result. The generated-profile CI matrix now covers every profile in
-  both tiers, with and without a social preview (12 jobs). Each minimal job
-  lints its generated workflows, runs the four gates, then upgrades in place and
-  re-verifies the result as a full-tier project (#90).
+  documentation drift and external-link checks, local-action validation, the
+  committed-whitespace and template-contract gates, label automation, Scorecard,
+  Ruff/mypy, release closeout and the initializer stay in the default `full`
+  tier. A minimal project retains 6 Python files (about 6,900 lines) instead of
+  22 (about 18,500 lines), and 53–55 tracked files instead of 89–91, depending
+  on the profile (one more with a social preview). The tier is recorded as
+  `"governance_tier": "minimal"` in the generated profile and initialization
+  record; `full` is never recorded, so existing generated repositories are
+  unaffected. Documentation shared by both tiers uses tier blocks, and table
+  rows or list items that reference only removed files are pruned. The template
+  profile declares the tier matrix, which the canonical gate validates, and the
+  initializer self-test generates every profile in both tiers and runs the four
+  gates inside each minimal result. Portfolio drift and quality reports honour
+  the recorded tier: the six controls a minimal project omits are
+  `NOT_APPLICABLE`, never missing, and `release-integrity` and
+  `template-contract-version` check the artifacts the minimal tier keeps. The
+  tier narrows the recorded contract's rule set and changes no published rule
+  set, so the contract version stays `1.2.0`; an evaluator that predates tiers
+  reports the omitted controls as drift, never as a pass.
+  `initialize_repository.py --upgrade-tier full`, run from a template checkout
+  at the project's recorded contract, upgrades a minimal project in place from
+  its recorded inputs. It adds full-tier files, replaces files still at their
+  minimal version, three-way merges adopter edits that do not overlap a tier
+  difference, keeps adopter deletions and never deletes. Any conflict stops it
+  before writing. An unedited project upgrades to exactly the direct full-tier
+  result. A recorded social preview is checked against the project, so an
+  adopter's own preview image, absent from the template, no longer blocks the
+  upgrade. The generated-profile CI matrix now covers every profile in both
+  tiers, with and without a social preview (12 jobs). Each minimal job lints its
+  generated workflows, runs the four gates, then upgrades in place and
+  re-verifies the result as a full-tier project. Minimal-tier documentation no
+  longer tells adopters to run the label workflows, consult Scorecard or run the
+  initializer, lint and typing steps it removes; it describes manual label setup
+  instead. The initializer self-test now also rejects a retained file that names
+  a removed workflow by its display name (#90).
 - Profile-owned components. `profiles.<profile>.owned_paths` names files that
   only that profile generates. The initializer deletes other profiles' owned
   files with their component entries and public-API manifest rows, and prunes
@@ -150,31 +158,47 @@ Use only the categories needed by a release.
   blank detection and path composition, splitting and sanitizing. Every
   rejected argument raises one invalid-argument code with the facade procedure
   as source. `#If Mac` selects the path separator, accepted separators, rooted
-  forms and file-name rules. `TextTests` (26 cases, 123 assertions) covers
-  every public member, each error rule and both platforms' expectations, and
-  `TextExample` prints six deterministic operations. Only generated `library`
-  projects receive the four modules (#86).
-- A substantive ui-component reference: a progress session that owns the
-  Excel status bar, display of the status bar, cursor (Windows), screen
-  updating and Esc handling for a long operation. It snapshots all five at
-  `ProgressBegin` and restores them in reverse order at `ProgressEnd`;
-  calculation, events, alerts and selection stay caller-owned. It refuses a
-  second session, turns Esc into a cancel request that stops the next
-  `ProgressUpdate`, and `ProgressRecover` restores Excel defaults when a VBA
-  reset has lost the snapshot. Elapsed time uses the Windows performance
-  counter behind VBA7/`PtrSafe`, legacy-VBA and macOS branches, because
-  `Timer` wraps at midnight. `ProgressTests` (12 cases; 79 assertions on
-  Windows, 75 on macOS) executes open, update, cancel, close, re-entry,
-  cleanup and recovery, with a negative control proving that a broken
-  restoration is detected. Only generated `ui-component` projects receive
-  the four modules (#87).
-- The portable gate's structural `PtrSafe` check treated the `#Else` of an
-  `#If ... #ElseIf VBA7 ... #Else` chain as reachable under VBA7, which
-  flagged legacy-only declarations. The `#Else` now counts as VBA7-reachable
-  only when no branch of the chain claimed VBA7 (#87).
-- The conditional-compilation gate models Office for Mac as `vba7-mac64`
-  (`Mac` and `VBA7` true, `Win32` and `Win64` false). `Mac` was previously
-  rejected as an unknown symbol (#86).
+  forms and file-name rules; a name that cleans to the directory alias `.`
+  or `..` is rejected on both platforms. `TextTests` (29 cases, 135
+  assertions) covers every public member, each error rule and both platforms'
+  expectations, and `TextExample` prints six deterministic operations. Only
+  generated `library` projects receive the four modules (#86).
+- A substantive ui-component reference: a progress session that owns the Excel
+  status bar, display of the status bar, cursor (Windows), screen updating and
+  Esc handling for a long operation. It snapshots all five at `ProgressBegin`
+  and restores them in reverse order at `ProgressEnd`; calculation, events,
+  alerts and selection stay caller-owned. It refuses a second session, turns Esc
+  into a cancel request that stops the next `ProgressUpdate`, and
+  `ProgressRecover` restores Excel defaults when a VBA reset has lost the
+  snapshot. On Windows, elapsed time uses the performance counter, declared for
+  VBA7/`PtrSafe` and for legacy VBA; on macOS it uses `Timer`, corrected for the
+  wrap at midnight. `ProgressTests` (12 cases; 79 assertions on Windows, 75 on
+  macOS) executes open, update, cancel, close, re-entry, cleanup and recovery,
+  with a negative control proving that a broken restoration is detected. The
+  suite refuses to start while another caller's session is active, and the
+  example ends only the session it began. Only generated `ui-component` projects
+  receive the four modules (#87).
+- A substantive application reference: a lifecycle whose versioned state lives
+  in three hidden workbook-level names of an explicit host (`LifecycleSchema`,
+  `LifecycleStatus`, `LifecycleStarts`), so it needs no sheet, window or
+  activation and works in workbooks and add-ins alike. `LifecycleStart`
+  discovers and validates the stored state before changing anything, then runs
+  each schema migration and counts the start; a failed step restores the names
+  as found, names the step and reports an incomplete restore. It refuses newer
+  or unreadable state, a session that never stopped, a second workbook and
+  re-entry; a repeated start and a stop without a session are no-ops.
+  `LifecycleRecover` clears an unclean stop, `LifecycleReset` removes the state,
+  and `LifecycleWriteStatus` writes to an explicit range only. `LifecycleTests`
+  (16 cases, 106 assertions) runs on temporary workbooks: startup, repeat,
+  shutdown, upgrade from schema 1, current-schema no-op, rollback mid-migration
+  and mid-upgrade, re-entry, ownership, recovery, reset and explicit targets,
+  with negative controls proving that an open host, a leaked session and
+  unrecoverable state are detected; it refuses to start while a session, such as
+  `ThisWorkbook`'s, is running. `LifecycleExample` is the end-to-end smoke and
+  stops only the session it started. `docs/RELEASE_EVIDENCE.md` maps the
+  application profile's required checks to these entry points; a source-only
+  release still records `packaging`, stating that nothing is distributed. Only
+  generated `application` projects receive the four modules (#88).
 
 ### Changed
 
@@ -192,10 +216,10 @@ Use only the categories needed by a release.
   `restricted_observations`, listed in the report, raised as a warning
   annotation, and still never counted as reachable. Previously every run was
   red by design, so a genuine defect was indistinguishable from the standing
-  restricted set.
+  restricted set (#139).
 - Removed the two temporary `pending-publication` classifications for the
   v1.2.1 comparison links now that the tag is published; both links again
-  receive the normal anonymous external-link check.
+  receive the normal anonymous external-link check (#138).
 - The enforced McCabe complexity ceiling for maintained Python tooling is now
   15 instead of 20. The 18 functions above 15 were split along their existing
   responsibilities (validation stages, table-driven self-test cases, per-rule
@@ -222,8 +246,8 @@ Use only the categories needed by a release.
   - the initializer's `copy_fixture` / `fixture_arguments` / `build_changes` /
     `apply_changes`.
 
-  Production uses of another module's `_private` members fell from 68 (21
-  members) to 4 reviewed parser unit tests. The checker-development contract
+  Cross-module uses of `_private` members fell from 68 (21 members) to 4, all
+  in reviewed parser unit tests. The checker-development contract
   rejects any new private coupling outside test modules unless it has a
   reviewed allow-list entry. It also rejects import cycles and any sibling
   import in `check_repo.py`. Every maintained CLI now has exactly one
@@ -240,6 +264,61 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- The local-link rule of `check_repo.py` missed broken badge targets. It read
+  only the image of a badge, an image wrapped in a link, and it trimmed
+  the leading hyphen GitHub gives a heading that starts with an emoji. It now
+  reads the outer target and computes anchors as GitHub does; two broken badge
+  anchors in `PILOT_CERTIFICATION.md` and `RELEASE_EVIDENCE.md` are corrected
+  and two self-test fixtures cover both cases. The external-link checker shares
+  the extractor, so badge targets are now probed too.
+- The portable gate's structural `PtrSafe` check treated the `#Else` of an
+  `#If ... #ElseIf VBA7 ... #Else` chain as reachable under VBA7, which
+  flagged legacy-only declarations. The `#Else` now counts as VBA7-reachable
+  only when no branch of the chain claimed VBA7 (#87).
+- The conditional-compilation gate models Office for Mac as `vba7-mac64`
+  (`Mac` and `VBA7` true, `Win32` and `Win64` false). `Mac` was previously
+  rejected as an unknown symbol (#86).
+- *Static repository checks* hardening. The documentation-contract step had
+  no `id` or `continue-on-error`, so its failure skipped every later gate
+  without naming the cause; it now reports through the final enforcement list
+  like the other gates. The quality-tool install now fails when the installed
+  Ruff or mypy differs from `RUFF_VERSION` or `MYPY_VERSION`, which were
+  declared but never compared. `template-contract.md` joins the job summary,
+  and the template test logs are uploaded. `test_verification_depth.py`,
+  kept by full-tier projects but run by no workflow they keep, now runs in the
+  release-integrity step. `labels-sync.yml` checkouts no longer persist
+  credentials, and both its jobs have a timeout.
+- `required_paths` omitted gates and workflows that generated projects run:
+  CodeQL, Scorecard and closeout workflows, the jump, conditional, public-API,
+  whitespace, local-action and release-semantics gates, the release closeout
+  and certification tools, and the quality-tool lock. They are now required
+  (the minimal tier still drops what it removes). The coverage and portfolio
+  locks, used only by template workflows, are now template-only.
+- The Scorecard publication contract that generated projects run
+  (`tools/test_workflow_validation.py`) accepted flow-style or quoted `env` and
+  `defaults` keys, such as `env: {FOO: bar}`. A stricter copy existed only in
+  the template-only test module, which duplicated the whole validator and had
+  drifted. The retained validator now rejects those forms and escaped quoted
+  keys. The template module keeps only its unit tests, run against the retained
+  code; the static workflow now runs them as tests, and the coverage job no
+  longer runs a `unittest discover` that found 0 tests.
+- The reusable *Static repository checks* workflow set its concurrency group
+  from `github.workflow`, which in a called workflow is the caller's name. A
+  caller that kept the documented concurrency therefore shared the group and was
+  cancelled as a caller/callee deadlock. The group is now job-level and named
+  for the job. The published interface `1.0.0` pin still has the old group, so
+  the adoption guide now tells its callers to rename theirs. The provisioner
+  also required the literal check name `Repository integrity`, while a caller
+  emits `<caller job> / Repository integrity`; it now accepts either, and the
+  adoption guide says to record the emitted name in `provisioning-policy.json`.
+- CodeQL analyzed a fixed Python and JavaScript/TypeScript matrix. The minimal
+  tier removes the label scripts, the template's only JavaScript, and CodeQL
+  fails a language with no source, so every minimal-tier analysis would fail.
+  The eligibility job now selects the languages from the tracked files, both
+  analysis jobs use that list and skip when it is empty, and both receive
+  `actions: read`, which CodeQL needs in a private repository. `check_repo.py`
+  now also treats `github.event_name != 'pull_request' && …` as excluding pull
+  requests; a condition containing `|` is still not trusted.
 - `check_repo.py` reports issue-form evidence fields that must be mandatory in
   a fixed, sorted order. They were visited in set order, so with more than one
   such finding the report order changed with Python's hash seed (#92).

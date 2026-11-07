@@ -42,6 +42,10 @@ defaults:
   run:
     shell: bash
 
+concurrency:
+  group: release-closeout-${{ inputs.tag }}
+  cancel-in-progress: false
+
 jobs:
   closeout:
     name: Post-release closeout

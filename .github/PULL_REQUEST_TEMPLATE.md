@@ -23,7 +23,7 @@
 ---
 
 > [!IMPORTANT]
-> Complete the per-PR response fields below and delete optional review blocks that do not apply to this change. Generated project identity and profile are already resolved by initialization.
+> Complete the per-PR response fields below and delete optional review blocks that do not apply to this change. In a generated project, identity and profile are already resolved by initialization.
 
 ## 📌 Summary
 
@@ -125,6 +125,8 @@ Missing provenance, failed checks or unreviewed authority expansion blocks merge
 Automatic approval and merging are prohibited; the evidence review is a human
 merge gate, not a result the static checker infers from this template.
 
+### Design notes
+
 ```text
 Approach and key invariant:
 Alternatives considered:
@@ -153,6 +155,9 @@ Evidence from another commit does not certify this candidate.
 ### Static and repository checks
 
 - `python3 tools/check_repo.py --root .`
+- `python3 tools/check_vba_public_api.py --root .`
+- `python3 tools/check_vba_jumps.py --root .`
+- `python3 tools/check_release_semantics.py --root .`
 - `git diff --check`
 
 | Check | Result / evidence |
@@ -171,6 +176,15 @@ Evidence from another commit does not certify this candidate.
 Relevant entry points:
 
 - `ProjectTests.RunProjectTests`
+<!-- template:profile:library:start -->
+- `TextTests.RunTextTests` (the Text reference suite)
+<!-- template:profile:library:end -->
+<!-- template:profile:ui-component:start -->
+- `ProgressTests.RunProgressTests` (the Progress reference suite)
+<!-- template:profile:ui-component:end -->
+<!-- template:profile:application:start -->
+- `LifecycleTests.RunLifecycleTests` and `LifecycleExample.RunLifecycleExample` (the Lifecycle reference suite and smoke)
+<!-- template:profile:application:end -->
 - Additional focused/UI/manual entry point, if applicable: <!-- procedure or NOT APPLICABLE + reason -->
 
 | Evidence | Result |
@@ -189,13 +203,13 @@ Relevant entry points:
 ```text
 Excel product, version, and build:
 Office bitness:                    32-bit / 64-bit
-Windows version/build:
+Operating system and version:      Windows / macOS
 Workbook or add-in host:
 Deployment model:
 Additional host or tool version, if applicable:
 ```
 
-Record only tested environments. Source inspection does not constitute host execution, and one Office bitness does not execute the other conditional branch.
+Record only tested environments. Source inspection does not constitute host execution, and one Office bitness or operating system does not execute another conditional branch (for example the `Mac` branch).
 
 ### Regression coverage
 
@@ -283,7 +297,7 @@ Keep only for workbooks, UserForms, RibbonX, WinAPI, events, timers, shapes, or 
 
 - [ ] Caller-owned Excel state is recorded before mutation and restored on success and failure.
 - [ ] Every registration, callback, timer, hook, form, or shape has an ownership and teardown rule.
-- [ ] 32-bit and 64-bit declarations and supported host boundaries are assessed.
+- [ ] 32-bit and 64-bit declarations, the `Mac` branch and supported host boundaries are assessed.
 - [ ] Multi-window, reset, cancellation, partial-success, and recovery paths are covered as applicable.
 - [ ] Interactive checks name the exact scenario and environment.
 

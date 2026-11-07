@@ -48,11 +48,11 @@ CHANGELOG_HEADING_PATTERN = re.compile(
 TEXT_SUFFIXES = {
     ".bas", ".bat", ".cfg", ".cff", ".cjs", ".cls", ".cmd", ".csv",
     ".frm", ".ini", ".js", ".json", ".jsonc", ".md", ".mjs", ".ps1",
-    ".psd1", ".psm1", ".py", ".r", ".reg", ".sh", ".svg", ".toml",
+    ".psd1", ".psm1", ".py", ".pyw", ".r", ".reg", ".sh", ".svg", ".toml",
     ".tsv", ".txt", ".vbs", ".xml", ".yaml", ".yml",
 }
 TEXT_NAMES = {
-    ".editorconfig", ".gitattributes", ".gitignore", "Dockerfile", "LICENSE",
+    ".editorconfig", ".gitattributes", ".gitignore", ".gitkeep", "Dockerfile", "LICENSE",
     "Makefile", "VERSION",
 }
 TOP_LEVEL_EVIDENCE_KEYS = {

@@ -1,7 +1,7 @@
 # 🔄 Controlled Dependency Updates
 
 [![Policy: reviewed updates](https://img.shields.io/badge/policy-reviewed%20updates-217346)](#review-and-merge)
-[![Pins: immutable](https://img.shields.io/badge/actions-full%20SHA-1D76DB)](#provenance-review)
+[![Actions: full SHA](https://img.shields.io/badge/actions-full%20SHA-1D76DB)](#provenance-review)
 [![Merge: manual](https://img.shields.io/badge/merge-manual-6f42c1)](#review-and-merge)
 
 This document owns dependency discovery, update evidence, approval and rollback.
@@ -17,7 +17,7 @@ The repository maintainer reviews the following sources weekly and before a
 release candidate is selected. Security advisories are triaged when received,
 without waiting for the weekly review. Record the review date, reviewer, sources
 checked, candidates, disposition and next action in a tracking issue; a no-change
-review must say so. Dependabot now performs weekly proposal discovery for GitHub
+review must say so. Dependabot performs weekly proposal discovery for GitHub
 Actions. It never auto-approves or auto-merges; provenance review and the manual
 merge decision below remain mandatory. Other dependency surfaces retain their
 explicit maintainer review cadence.
@@ -30,11 +30,14 @@ explicit maintainer review cadence.
 | Scorecard analyzer | `.github/workflows/scorecard.yml` | Reviewed Action pin, analyzer behavior, permissions, triggers, and publication boundary |
 | Reusable workflows | Caller job-level `uses:`, [published interface pin](REUSABLE_WORKFLOWS.md), template source and its compatibility notes | Full provider SHA plus interface revision; review coupled caller-local scripts separately |
 | actionlint | `ACTIONLINT_VERSION` and archive digest in the static workflow; `EXPECTED_ACTIONLINT_VERSION` in `tools/test_workflow_validation.py`; official `rhysd/actionlint` releases | Version, platform-specific archive SHA-256 and expected validator version together |
-| Python quality tools | `RUFF_VERSION` and `MYPY_VERSION` in the static workflow; `tools/requirements-quality-ci.txt`, `tools/requirements-coverage-ci.txt` and `tools/requirements-portfolio-ci.txt`; official PyPI distribution metadata and upstream release notes | Exact direct/transitive versions plus reviewed wheel SHA-256 hashes for hosted CPython 3.10/Ubuntu x64; local cross-platform pins must mirror the CI locks |
+| Python quality tools | `RUFF_VERSION` and `MYPY_VERSION` in the static workflow; `tools/requirements-quality-ci.txt`; official PyPI distribution metadata and upstream release notes | Exact direct/transitive versions plus reviewed wheel SHA-256 hashes for hosted CPython 3.10/Ubuntu x64; local cross-platform pins must mirror the CI locks |
 <!-- template:remove:start -->
-| Template snapshot parser | PyYAML pin in `portfolio-drift.yml` and `check_portfolio_drift.py`; [parser review](PORTFOLIO_DRIFT.md) and official PyPI/upstream metadata | Keep installer and runtime version assertion synchronized; template maintenance only |
+| Template maintenance tools | `tools/requirements-coverage-ci.txt` (coverage) and `tools/requirements-portfolio-ci.txt` (PyYAML snapshot parser, version asserted in `check_portfolio_drift.py`); [parser review](PORTFOLIO_DRIFT.md) and official PyPI/upstream metadata | Same reviewed hash-lock discipline; keep the PyYAML lock and runtime assertion synchronized; template maintenance only |
 <!-- template:remove:end -->
-| Runtime and execution environment | `PYTHON_VERSION`, `runs-on`, Action `runs.using`, `pyproject.toml` target/lint/type configuration and workflow install commands | Explicit compatibility change, not an incidental pin refresh |
+| Runtime and execution environment | `PYTHON_VERSION`, `runs-on`, Action `runs.using` and workflow install commands | Explicit compatibility change, not an incidental pin refresh |
+<!-- template:tier:full:start -->
+| Python lint and type configuration | `pyproject.toml` target-version, Ruff and mypy settings | Explicit compatibility change, reviewed with the runtime |
+<!-- template:tier:full:end -->
 | Local validation code and fixtures | Retained `tools/` scripts, template-only checker-development tools, generated consumer fixtures and their embedded pins | Reviewed source commit; not a separately fetched package |
 
 Search all tracked workflows, scripts, documentation examples and fixture
@@ -43,15 +46,29 @@ occurrences and historical evidence. Never rewrite published provenance to make
 an old release appear to use the new dependency.
 
 Python `3.10` selects a runtime series, and `ubuntu-24.04` selects a hosted image
-family; neither freezes every patch or preinstalled utility. Hosted Python tool
+family; neither freezes every patch or preinstalled utility.
+<!-- template:tier:full:start -->
+Node.js and ShellCheck are such utilities: a workflow step that runs `node`,
+and actionlint's ShellCheck pass over `run:` scripts, use the versions the
+image carries.
+<!-- template:tier:full:end -->
+<!-- template:tier:full:start -->
+Hosted Python tool
 installs are additionally constrained by reviewed CPython-3.10/Linux-x64 wheel
 hashes in `tools/requirements-*-ci.txt`, installed with
 `--only-binary=:all: --require-hashes`. That materially narrows package
 substitution risk but still does not make the runner image or network path
-hermetic. Capture actual versions in hosted evidence. The cross-platform
-`tools/requirements-dev.txt` remains version-pinned for local use and is
-checked against the CI locks. This policy adds no package manager to VBA runtime
-code.
+hermetic. Capture actual versions in hosted evidence.
+<!-- template:tier:full:end -->
+<!-- template:remove:start -->
+The cross-platform `tools/requirements-dev.txt` remains version-pinned for local
+use and is checked against the CI locks.
+<!-- template:remove:end -->
+<!-- template:tier:minimal:start -->
+The minimal tier's gates use only the Python standard library, so its static
+workflow installs no Python packages.
+<!-- template:tier:minimal:end -->
+This policy adds no package manager to VBA runtime code.
 
 <a id="provenance-review"></a>
 
@@ -93,12 +110,17 @@ The SHA/origin and least-privilege principles follow GitHub's
 ## 🧩 Grouping and compatibility
 
 - Group repeated occurrences of the same Action pin in one coherent update.
+- Move every `github/codeql-action` path (`init`, `analyze`, `upload-sarif`)
+  together: the action rejects a mixed release, so Dependabot groups them as
+  `codeql-action`.
 <!-- template:remove:start -->
 - Include the minimal-tier workflow variant under `.github/governance/minimal/`
   in the same update. Dependabot scans only `.github/workflows/`, so the
   canonical gate rejects a variant pin that no workflow there still uses.
 <!-- template:remove:end -->
+<!-- template:tier:full:start -->
 - Keep an actionlint version, archive digest and validator expectation together.
+<!-- template:tier:full:end -->
 - Couple a reusable-workflow pin with local CLI changes only when required by
   its documented interface migration; explain and test the pair.
 - Separate unrelated dependencies, major upgrades, ownership changes, new
@@ -116,10 +138,17 @@ Before executing a candidate, finish the source/trust review above. Then:
 
 1. Run `python3 tools/check_repo.py --root .` and `git diff --check`. The
    canonical gate checks full lowercase SHA pins and version-comment syntax.
+<!-- template:tier:full:start -->
 2. Run the complete hosted static workflow, not only the changed tool. It must
    pass lint, typing, authoritative workflow validation, focused/self-tests,
    initializer checks, evidence upload and the final verdict. Record the exact
    tested commit and hosted run; new commits invalidate old candidate evidence.
+<!-- template:tier:full:end -->
+<!-- template:tier:minimal:start -->
+2. Run the complete hosted static workflow, not only the changed tool. It must
+   pass every gate, its self-test and the final verdict. Record the exact tested
+   commit and hosted run; new commits invalidate old candidate evidence.
+<!-- template:tier:minimal:end -->
 3. For template gate/workflow/runtime changes, run checker-development and
    policy-coverage checks plus the initializer fixtures for all three profiles.
    Reusable-workflow changes additionally require the hosted consumer fixtures
@@ -145,8 +174,8 @@ The canonical single-maintainer ruleset does not require an independent review.
 Generated repositories must configure and verify their own live merge settings
 using [POST_CREATION_CHECKLIST.md](POST_CREATION_CHECKLIST.md); files alone cannot
 enforce GitHub account settings. Dependabot is the installed proposal bot for
-GitHub Actions only; it must retain immutable pins and manual approval. CodeQL
-and OpenSSF Scorecard provide additional public supply-chain evidence under
+GitHub Actions only; it must retain immutable pins and manual approval. The
+security analyzers provide additional public supply-chain evidence under
 [SUPPLY_CHAIN_ASSURANCE.md](SUPPLY_CHAIN_ASSURANCE.md), not dependency approval.
 
 ## ↩️ Rollback and failed updates

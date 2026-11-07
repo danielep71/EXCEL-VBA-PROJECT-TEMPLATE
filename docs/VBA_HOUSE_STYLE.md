@@ -21,7 +21,8 @@ Keep the following order:
    state ownership, error policy, relevant worksheet safety/test seam,
    compatibility, usage where applicable, updated date and author.
 3. `MODULE SETTINGS`: `Option Explicit` and the role's existing visibility.
-4. Separate `MODULE CONSTANTS` and `MODULE STATE` sections when needed.
+4. Separate `MODULE CONSTANTS`, `MODULE TYPES` (`Enum` and `Type`) and
+   `MODULE STATE` sections, in that order, when needed.
 5. Centered, uppercase procedure-group headings, followed by the procedures.
 
 Use an apostrophe followed by 78 equals signs for banners and 78 hyphens for
@@ -34,22 +35,81 @@ The facade remains externally visible. Core, tests and examples keep
 in-project calls; they do not become the supported external API. Copying a
 reference module's visibility would change that contract.
 
+### Error numbers
+
+Every raised error is `vbObjectError +` a number the module owns. Each component
+family reserves a block of numbers: its core errors at the start, its test
+suite's errors from `+60` and a test-seam error at `+99`. The template's
+components use:
+
+| Family | Block | Core | Tests | Test seam |
+| --- | --- | --- | --- | --- |
+| Project (starter) | 2048–2099 | 2048 | 2060–2061 | — |
+| Text | 2100–2199 | 2100 | 2160–2161 | — |
+| Progress | 2200–2299 | 2200–2203 | 2260–2262 | — |
+| Lifecycle | 2300–2399 | 2300–2308 | 2360–2363 | 2399 |
+
+A new family takes the next free block, starting at 2400. The core declares
+`Public Const ERR_<NAME>`; the facade re-exports each as
+`Public Const <FAMILY>_ERROR_<NAME>` equal to the core constant, which is the
+supported name; a test suite declares `Private Const TEST_ERROR_<NAME>`, and a
+test seam stays `Private` to the core. Never reuse a number for a different
+meaning.
+
 ## 📝 Procedure layout
 
 Put the procedure signature first, followed immediately by its comment banner
 inside the procedure. Use a centered procedure name, then the sections needed
-to explain its contract:
+to explain its contract, in this order:
 
 | Section | Explain |
 | --- | --- |
 | `PURPOSE` | Why the procedure exists and the responsibility it owns |
+| `USAGE` | Entry-point instructions or a useful calling example |
 | `INPUTS` | Meaning, valid values, units and ownership where relevant |
 | `RETURNS` | Result meaning, output parameters and failure sentinels |
+| `STATE OWNERSHIP` / `SIDE EFFECTS` | State read, changed, retained or released |
 | `ERROR POLICY` | Expected errors, propagation, containment and cleanup |
 | `DEPENDENCIES` | Boundaries that matter to callers or maintainers |
-| `STATE OWNERSHIP` / `SIDE EFFECTS` | State read, changed, retained or released |
-| `USAGE` | Entry-point instructions or a useful calling example |
 | `UPDATED` | Date this procedure's code or documentation was last revised |
+
+The banner opens with a lone `'` line and a full-width `=` rule, then the
+centered name, a full-width `-` rule, the sections separated by lone `'` lines,
+a closing `=` rule and a lone `'` line:
+
+```vb
+Public Function ProjectRatio( _
+    ByVal numerator As Double, _
+    ByVal denominator As Double) _
+    As Double
+'
+'==============================================================================
+'                                 ProjectRatio
+'------------------------------------------------------------------------------
+' PURPOSE
+'   Expose checked division through the supported facade.
+'
+' INPUTS
+'   numerator, denominator: explicit scalar Double values.
+'
+' RETURNS
+'   Double quotient when the core call succeeds.
+'
+' ERROR POLICY
+'   Normalize the error source to ProjectFacade.ProjectRatio; preserve the
+'   number, description, help file, and help context supplied by the core.
+'
+' DEPENDENCIES
+'   ProjectCore.DivideChecked. No host-state access.
+'
+' UPDATED
+'   2026-09-09
+'==============================================================================
+'
+```
+
+A procedure-group heading uses the same lone `'` lines around full-width `-`
+rules and a centered uppercase title.
 
 Document every starter procedure, including assertion, reporting, reset and
 cleanup helpers. Keep short helpers' contracts concise; omit empty sections.
@@ -66,7 +126,8 @@ or failure consequence. Add further comments before distinct steps within a
 larger phase, particularly error capture, cleanup, validation and propagation.
 Section titles alone do not supply this explanation. Put a handler's entry
 label before its explanatory comment so the comment accompanies the statements
-executed at that label.
+executed at that label. Likewise, a column-one `#If` directive that guards a whole
+phase precedes the phase's explanatory comment.
 
 Keep module dates at least as recent as the procedures changed in that module;
 do not refresh untouched procedure dates merely to make all dates identical.
@@ -150,8 +211,13 @@ test cases, assertion counts, cleanup and machine-readable output must remain
 unchanged. A discovered semantic defect belongs in a separate change.
 
 Run the canonical repository gate, public API, jump and conditional-compilation
-checks, plus the initializer self-test for the recorded generated profile.
+checks.
+<!-- template:tier:full:start -->
+Also run the initializer self-test for the recorded generated profile.
+<!-- template:tier:full:end -->
+<!-- template:remove:start -->
 Canonical template maintainers additionally exercise all three profile fixtures.
+<!-- template:remove:end -->
 Verify CRLF working-tree exports and clean whitespace. These checks confirm
 source contracts; they do not execute Excel or prove VBE importability by
 themselves.

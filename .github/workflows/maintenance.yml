@@ -111,14 +111,18 @@ jobs:
       - name: Commit and push only when the tree changed
         env:
           TASK: ${{ inputs.task }}
+          # The person who dispatched the task authors the commit; the
+          # workflow that produced the change commits it.
+          GIT_AUTHOR_NAME: ${{ github.actor }}
+          GIT_AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898699+github-actions[bot]@users.noreply.github.com
         run: |
           set -euo pipefail
           if git diff --quiet && git diff --cached --quiet; then
             echo "Task $TASK produced no change; nothing to commit."
             exit 0
           fi
-          git config user.name "Daniele Penza"
-          git config user.email "104122869+danielep71@users.noreply.github.com"
           git add -A
           git commit -m "Run maintenance task: $TASK"
           git push origin "HEAD:${GITHUB_REF_NAME}"

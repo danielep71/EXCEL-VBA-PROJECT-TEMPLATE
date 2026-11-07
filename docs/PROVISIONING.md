@@ -5,8 +5,8 @@
 
 The provisioner configures one explicitly initialized generated repository.
 It does not create repositories, initialize source, merge branches, publish
-releases or migrate the existing portfolio. This milestone develops the tooling
-and tests it against a simulated GitHub API; no existing portfolio is modified.
+releases or migrate the existing portfolio. The tool is tested against a
+simulated GitHub API; it has not modified any existing portfolio repository.
 The tool, guide and fixtures are template-maintenance files removed during
 generation. The optional `.github/provisioning-policy.json` remains in generated
 source and resolves the project description from the immutable initialization
@@ -29,7 +29,9 @@ The schema-1 provisioning adapter supports contract **1.2.0**. Older or unknown
 versions fail explicitly; they are never silently upgraded. The versioned tool
 defines active branch and tag rule payloads for this adapter, including no bypass,
 strict `Repository integrity`, and immutable existing version tags. Stronger
-requirements can be listed in `required_checks`; the universal job remains.
+requirements can be listed in `required_checks`; the universal job remains,
+either as `Repository integrity` or, for a caller of the reusable workflow, as
+`<caller job> / Repository integrity`.
 
 ## 🧭 Preservation and supported operations
 
@@ -47,8 +49,8 @@ protection**. Coverage is judged by content, not name, so repositories
 provisioned earlier keep their **Template default branch** / **Template version
 tags** rulesets while those still cover the baseline; nothing is duplicated or
 renamed. An existing ruleset with a baseline name, new or legacy, but
-insufficient controls blocks apply and requires a separately reviewed migration. Rules with bypass or exclusions
-cannot prove coverage. Adding baseline protection does not remove existing
+insufficient controls blocks apply and requires a separately reviewed
+migration. Rules with bypass or exclusions cannot prove coverage. Adding baseline protection does not remove existing
 reviewers, specialist checks, scope restrictions or stronger controls.
 
 Examples of exception keys in the committed policy:
@@ -67,7 +69,8 @@ Destructive operations such as deleting labels/rulesets, changing visibility,
 renaming/deleting a repository, bypass grants and source/ref writes are outside
 the supported API surface. Even an exception does not enable these operations;
 they require separate reviewed work. Review label overlays or `prune: false`
-before the existing sync workflow runs if extra local labels should survive.
+before the label sync workflow (full tier) runs if extra local labels should
+survive.
 
 <a id="plan"></a>
 
@@ -163,4 +166,5 @@ all profiles, exact request scope, plan repeatability, idempotence, stale
 approval, mismatched target/version/SHA, preserved stronger controls, reviewed
 exceptions, missing bypass evidence, ignored/partial writes and journal failure.
 They do not demonstrate a live administrative deployment or Excel execution.
-No production credentials are used by the fixture workflow.
+No production credentials are used by the *Portfolio drift fixtures* workflow
+(`portfolio-drift.yml`).
