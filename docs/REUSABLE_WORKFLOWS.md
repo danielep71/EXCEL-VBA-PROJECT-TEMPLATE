@@ -47,8 +47,9 @@ disposable and are never consumer pins or merge candidates.
 > kept the same group in its own workflow-level `concurrency` waits on itself
 > and GitHub cancels the run as a deadlock. With this pin, give the caller's
 > group a different name (for example `static-checks-caller-…`) or drop it.
-> The next interface revision moves the called concurrency to job level; it is
-> listed here only once its hosted consumer fixtures pass.
+> The next interface revision, `1.0.1`, moves the called concurrency to job
+> level. It is published with the next template release and listed here only
+> once its hosted consumer fixtures pass.
 
 | Surface | Contract |
 | --- | --- |

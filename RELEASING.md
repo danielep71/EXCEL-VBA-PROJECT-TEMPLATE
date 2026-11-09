@@ -261,6 +261,18 @@ merges conform retroactively. Apply this convention to future merges.
 <!-- template:remove:start -->
 ### Canonical-template release certification
 
+When the called *Static repository checks* workflow changed since the last
+published interface pin, publish the next interface revision **before**
+freezing the final candidate. Run the three hosted consumer fixtures of
+[`docs/REUSABLE_WORKFLOWS.md`](docs/REUSABLE_WORKFLOWS.md#-consumer-acceptance-fixtures)
+against an existing release-branch commit that a retained ref keeps reachable
+after the squash merge, then add its row there with that provider commit, the publication date and the fixture evidence. The pin names
+that earlier, immutable provider commit, never the final candidate: recording
+the row creates a later commit. The called workflow must be byte-identical
+between the provider commit and the final candidate; any later change to it
+needs a new fixture run and row. A compatible fix is a patch revision (`1.0.0`
+to `1.0.1`); keep every earlier row and its known limitations.
+
 Before creating a release tag for the canonical template, complete and retain
 all of these additional checks against the same exact candidate SHA:
 

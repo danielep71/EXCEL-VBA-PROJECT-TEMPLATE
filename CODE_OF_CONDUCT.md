@@ -205,7 +205,8 @@ GitHub's platform policies and community standards also apply where relevant.
 This Code of Conduct is informed by and adapted from the
 [Contributor Covenant, version 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html).
 Its project-specific conduct and confidentiality provisions are maintained for
-this repository.
+this repository. Version 2.1 is kept deliberately; a later Covenant version is
+adopted only through a reviewed change to this document.
 
 ## 📚 Related authorities
 
