@@ -367,13 +367,29 @@ async function applyChanges(repository, token, changes) {
   }
 }
 
-function markdownEscape(value) {
-  return String(value).replaceAll("|", "\\|").replaceAll("\n", " ");
+// Render a value as one inline code span that stays intact in a Markdown line
+// or table cell: the delimiter is one backtick longer than the longest run of
+// backticks in the value, a space pads a value that starts or ends with a
+// backtick or space (or is empty), line breaks become spaces, and in a table
+// cell pipes are escaped.
+export function inlineCode(value, { table = false } = {}) {
+  let text = String(value).replace(/\r\n|\r|\n/g, " ");
+  if (table) text = text.replaceAll("|", "\\|");
+  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map(run => run.length));
+  const fence = "`".repeat(longest + 1);
+  if (text === "") return "` `";
+  const pad = /^[` ]|[` ]$/.test(text) ? " " : "";
+  return `${fence}${pad}${text}${pad}${fence}`;
+}
+
+// Plain text in a table cell: line breaks become spaces and pipes are escaped.
+function cellText(value) {
+  return String(value).replace(/\r\n|\r|\n/g, " ").replaceAll("|", "\\|");
 }
 
 function renderLabelNames(labels) {
   if (labels.length === 0) return "none";
-  return labels.map(label => markdownEscape(JSON.stringify(label.name))).join(", ");
+  return labels.map(label => inlineCode(label.name)).join(", ");
 }
 
 function renderSummary({
@@ -400,9 +416,9 @@ function renderSummary({
   const lines = [
     "# Repository label synchronization",
     "",
-    `- Mode: \`${mode}\`${dryRun ? " (dry run)" : ""}`,
-    `- Policy source: \`${policyPath ?? "unavailable"}\``,
-    `- Label manifest: \`${manifestPath ?? "unavailable"}\``,
+    `- Mode: ${inlineCode(mode)}${dryRun ? " (dry run)" : ""}`,
+    `- Policy source: ${inlineCode(policyPath ?? "unavailable")}`,
+    `- Label manifest: ${inlineCode(manifestPath ?? "unavailable")}`,
     `- Schema: **${manifest?.schema_version ?? "unavailable"}**`,
     `- Core / selected labels: **${coreLabels.length} / ${resolvedLabels.length}**`,
     `- Profile overlay: **${profile ?? "none"}**`,
@@ -422,14 +438,14 @@ function renderSummary({
     `- Complete resolved set (${resolvedLabels.length}): ${renderLabelNames(resolvedLabels)}`
   );
   if (error) {
-    lines.push("", "## Failure", "", `\`${markdownEscape(error)}\``);
+    lines.push("", "## Failure", "", inlineCode(error));
   } else if (changes.length === 0) {
     lines.push("", "No label changes are required.");
   } else {
     lines.push("", "| Action | Label | Detail |", "|---|---|---|");
     for (const change of changes) {
       const detail = change.action === "update" ? change.fields.join(", ") : change.action === "delete" ? "outside selected manifest" : "missing live label";
-      lines.push(`| ${change.action} | \`${markdownEscape(change.name)}\` | ${markdownEscape(detail)} |`);
+      lines.push(`| ${change.action} | ${inlineCode(change.name, { table: true })} | ${cellText(detail)} |`);
     }
   }
   return `${lines.join("\n")}\n`;
@@ -442,6 +458,37 @@ async function publishSummary(summary) {
 
 function expectFailure(operation, pattern) {
   assert.throws(operation, pattern);
+}
+
+// Unescaped pipes delimit table cells: a row of n cells has n + 1 of them.
+function cellDelimiters(row) {
+  return row.match(/(?<!\\)\|/g)?.length ?? 0;
+}
+
+function assertHostileSummary(baseline) {
+  assert.equal(inlineCode("plain"), "`plain`");
+  assert.equal(inlineCode("a`b"), "``a`b``");
+  assert.equal(inlineCode("`edge`"), "`` `edge` ``");
+  assert.equal(inlineCode("x|y"), "`x|y`");
+  assert.equal(inlineCode("x|y", { table: true }), "`x\\|y`");
+  assert.equal(inlineCode("a\r\nb\rc\nd"), "`a b c d`");
+  assert.equal(inlineCode(""), "` `");
+  const changes = ["a`b", "x|y", "c\r\nd ` |"].map(name => ({ action: "delete", name, currentName: name }));
+  const summary = renderSummary({
+    mode: "reconcile", manifest: baseline, manifestPath: "labels`|.json", policyPath: "policy\r\n.json",
+    desiredLabels: [], profile: null, domains: [], changes
+  });
+  const rows = summary.split("\n").filter(line => line.startsWith("| delete |"));
+  assert.equal(rows.length, 3, "every hostile name must stay on one table row");
+  for (const row of rows) assert.equal(cellDelimiters(row), 4, `three intact cells: ${row}`);
+  assert.ok(summary.includes("| ``a`b`` |") && summary.includes("| `x\\|y` |"), summary);
+  assert.ok(summary.includes("- Label manifest: ``labels`|.json``"), summary);
+  assert.ok(summary.includes("- Policy source: `policy .json`"), summary);
+  const failed = renderSummary({
+    mode: "failed", manifest: null, manifestPath: null, policyPath: null, desiredLabels: [],
+    profile: null, domains: [], error: "GET /labels failed\r\nwith `HTTP` | 502"
+  });
+  assert.ok(failed.includes("\n``GET /labels failed with `HTTP` | 502``\n"), failed);
 }
 
 async function runSelfTest(manifestPath, policyPath) {
@@ -587,10 +634,11 @@ async function runSelfTest(manifestPath, policyPath) {
   });
   assert.match(summary, /Policy source: `fixture-policy\.json`/);
   assert.match(summary, /Label manifest: `fixture-labels\.json`/);
-  assert.match(summary, /Profile labels \(library; 1\): "library"/);
-  assert.match(summary, /Domain labels \(example; 1\): "example"/);
+  assert.match(summary, /Profile labels \(library; 1\): `library`/);
+  assert.match(summary, /Domain labels \(example; 1\): `example`/);
   assert.match(summary, new RegExp(`Complete resolved set \\(${selectedLabels.length}\\):`));
-  for (const label of selectedLabels) assert.match(summary, new RegExp(`"${label.name}"`));
+  for (const label of selectedLabels) assert.ok(summary.includes(inlineCode(label.name)), label.name);
+  assertHostileSummary(baseline);
 
   process.stdout.write("SELF-TEST PASS: retry delays, validation, policy, overlay, and reconciliation fixtures\n");
 }

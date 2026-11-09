@@ -277,6 +277,15 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- The label synchronization and drift summaries no longer break on backticks
+  or carriage returns. Values were wrapped in single backticks with only `\n`
+  and `|` handled, so a backtick in a label name closed the code span and a
+  `\r` in a colour, description or API error, which the API can return, split
+  a table row. Every name, colour, path, mode and error now goes through one
+  helper whose delimiter is one backtick longer than the longest backtick run,
+  padded at an edge backtick or space, with all line breaks turned into spaces
+  and, in a table cell, pipes escaped. The design follows
+  `danielep71/MyTemplate`, recorded in `docs/DESIGN_PROVENANCE.md` (#159).
 - The local-link rule of `check_repo.py` missed broken badge targets. It read
   only the image of a badge, an image wrapped in a link, and it trimmed
   the leading hyphen GitHub gives a heading that starts with an emoji. It now
