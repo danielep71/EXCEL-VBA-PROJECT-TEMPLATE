@@ -88,8 +88,17 @@ For the baseline starter:
 
 1. `src/core/ProjectCore.bas`
 2. `src/modules/ProjectFacade.bas`
-3. `tests/modules/ProjectTests.bas` — development/regression only
-4. `examples/modules/ProjectExample.bas` — optional consumer example
+3. `tests/modules/TestLog.bas` — development/regression only; the report sink
+   every test module prints through
+4. `tests/modules/ProjectTests.bas` — development/regression only
+5. `examples/modules/ProjectExample.bas` — optional consumer example
+
+Import every test module after `TestLog`.
+<!-- template:tier:full:start -->
+The one-command certification in
+[`docs/EXCEL_EVIDENCE.md`](docs/EXCEL_EVIDENCE.md) imports, compiles and runs
+all of this from a clean checkout.
+<!-- template:tier:full:end -->
 
 <!-- template:profile:library:start -->
 The library reference adds its own source, test and example. Import its

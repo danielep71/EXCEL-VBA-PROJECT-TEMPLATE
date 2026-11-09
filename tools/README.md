@@ -15,9 +15,10 @@ gates below, a project keeps these tools, each documented by its authority:
 | --- | --- |
 | `check_release_semantics.py` | [Release semantics](../docs/RELEASE_SEMANTICS.md) |
 | `release_provenance.py`, `test_release_provenance.py` | [Release provenance](../docs/RELEASE_PROVENANCE.md) |
-| `check_excel_evidence.py`, `test_excel_evidence.py` | [Excel evidence](../docs/EXCEL_EVIDENCE.md) |
+| `check_excel_evidence.py`, `test_excel_evidence.py`, `Certify-Excel.ps1`, `Certify-Excel.cmd`, `write_excel_evidence.py`, `test_write_excel_evidence.py` | [Excel evidence](../docs/EXCEL_EVIDENCE.md) |
 | `check_documentation.py`, `check_external_links.py`, `test_documentation.py` | [Documentation checks](../docs/DOCUMENTATION_CHECKS.md) |
 | `check_local_actions.py` | [Local actions](LOCAL_ACTIONS.md) |
+| `check_repository_settings.py`, `test_repository_settings.py` | [Post-creation checklist](../docs/POST_CREATION_CHECKLIST.md#capture-read-back-evidence): GET-only comparison of the live settings with the committed policy |
 | `release_certification.py` | [Release evidence](../docs/RELEASE_EVIDENCE.md) |
 | `_release_closeout.py` | [Release closeout](../docs/RELEASE_CLOSEOUT.md) |
 | `test_verification_depth.py` | Depth tests for the release, contract, whitespace, link, local-action, initializer and closeout tooling; run by *Static repository checks* |
@@ -104,6 +105,18 @@ ephemeral signatures without Office or publishing credentials.
 [Windows/Excel host interface](../docs/EXCEL_EVIDENCE.md), using the shared
 `run_gate` runner. Its `test_excel_evidence.py` fixtures exercise synthetic
 manual/automated records and non-green outcomes; neither tool runs Office.
+
+`Certify-Excel.ps1` (or `Certify-Excel.cmd`, double-clicked) runs the Excel
+certification of a checked-out commit with one command on a Windows host: it
+imports the configured VBA into a new workbook, compiles it, runs every test
+module's `Run` entry point into its own log through `TestLog`, runs every
+example, and leaves a bundle next to the checkout. `write_excel_evidence.py`
+then writes `host.json` from the logs, validates it with
+`check_excel_evidence.py`, checks each suite's counts against the constants its
+source declares and writes `certification.md`; its fixtures are
+`test_write_excel_evidence.py`. `-RepoRoot` points the same tools at a
+generated project. See the
+[one-command certification](../docs/EXCEL_EVIDENCE.md#one-command-certification).
 
 Appropriate contents include:
 
@@ -388,7 +401,8 @@ report, or artifact fails the terminal verdict.
 accepts the tracked workflows and a valid local composite action, and requires
 rejection of malformed YAML, duplicate job IDs, an invalid job key, missing
 local-action metadata, and a missing local Node entry point. It also enforces
-the Scorecard publication contract, reported as its own row. Run it locally with
+the Scorecard publication contract and runs live label reconciliation only on
+the default branch, each reported as its own row. Run it locally with
 an independently verified binary:
 
 ```bash

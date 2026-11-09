@@ -102,6 +102,38 @@ Use only the categories needed by a release.
 
 ### Added
 
+- One-command Excel certification. `tools/Certify-Excel.ps1` (or the
+  double-click `Certify-Excel.cmd`) imports the configured VBA of a clean
+  checkout into a new workbook, compiles it, runs every test module's entry
+  point and every example, and leaves an evidence bundle next to the checkout;
+  `tools/write_excel_evidence.py` writes and validates `host.json` from the
+  logs, checks each suite's counts against the constants its source declares,
+  fails the run when a configured suite or example was not run (#175), and
+  writes `certification.md`. The new `TestLog` module is the print routine
+  of every test module: `TestLog.Say` writes to the Immediate window and, while
+  a certification log is open, to that suite's log, so a complete report is
+  kept without reading the Immediate window; examples keep `Debug.Print`.
+  `-RepoRoot` certifies a generated project with the template's tools
+  (#86, #87, #88, #90).
+- Live settings check and security provisioning.
+  `tools/check_repository_settings.py` re-reads a repository at any time and
+  compares it with the committed provisioning policy: features, description,
+  topics, the selected labels, both baseline rulesets, the security features
+  and the GitHub Actions settings. It sends GET requests only, reports each
+  setting as `PASS`, `DRIFT`, `UNVERIFIED` or `NOT_APPLICABLE`, never passes a
+  setting it cannot read, and exits 1 on drift or on an unverified setting. Its
+  JSON record carries the observation time and the SHA-256 of the policy. It
+  ships with full-tier generated projects. The provisioning policy gains a
+  `security` section (private vulnerability reporting, Dependabot alerts and
+  security updates, secret scanning, push protection) and an `actions` section
+  (SHA pinning required, read-only default workflow permissions, no pull-request
+  approval by Actions, fork approval for all external contributors, 90-day
+  retention). The provisioner enables each required security feature, alerts
+  before security updates, and never disables one; paused updates or an
+  unreadable feature block the plan, and public-only features are kept as not
+  offered on a private repository. Actions settings are checked, not written.
+  The design follows `danielep71/MyTemplate`, recorded in
+  `docs/DESIGN_PROVENANCE.md` (#161).
 - Governance tiers. `initialize_repository.py --governance-tier minimal`
   generates a lighter project that keeps the four standard-library gates
   (`check_repo`, `check_vba_public_api`, `check_vba_jumps`,
@@ -202,6 +234,13 @@ Use only the categories needed by a release.
 
 ### Changed
 
+- The `help wanted`, `question` and `wontfix` label descriptions no longer name
+  a maintainer in the third person; the catalogue ships to team and
+  organization repositories too. They now read "External investigation,
+  implementation, validation, or review is welcome", "Needs further information
+  or a decision before work can continue" and "Will not be implemented or
+  continued"; colours are unchanged. Existing repositories take the new
+  descriptions at their next trusted label synchronization (#162).
 - The guarded provisioner names its baseline rulesets **Default branch
   protection** and **Version tag protection** instead of "Template default
   branch" / "Template version tags", which read wrongly inside generated
@@ -256,14 +295,50 @@ Use only the categories needed by a release.
   `run_gate` runner; its console, JSON, summary and exit codes are unchanged
   (#91).
 - Refreshed the pinned GitHub Actions to the commits reviewed on `main`:
-  `github/codeql-action` v4.39.1 (all of `init`, `analyze` and `upload-sarif`
-  together), `ossf/scorecard-action` v2.5.0, `actions/setup-python` v7.1.0
-  and `actions/upload-artifact` v7.0.2. The minimal-tier
-  `static-checks.yml` variant carries the same pins, so generated minimal
-  projects start current (#147, #148, #149, #150, #151, #152).
+  `github/codeql-action` v4.39.1 and then v4.39.3 (all of `init`, `analyze`
+  and `upload-sarif` together), `ossf/scorecard-action` v2.5.0,
+  `actions/setup-python` v7.1.0 and `actions/upload-artifact` v7.0.2. The
+  minimal-tier `static-checks.yml` variant carries the same pins, so
+  generated minimal projects start current (#147, #148, #149, #150, #151,
+  #152, #156).
 
 ### Fixed
 
+- Label pruning no longer deletes labels in use. With `"prune": true`, the
+  label synchronization deleted every live label outside the resolved selection,
+  removing it from every issue and pull request, closed ones included, with no
+  undo. Before applying any change, reconciliation now checks each label it would
+  delete against all issues and pull requests, open and closed, and stops with
+  nothing applied if one is in use, naming it and saying to remove it, add it to
+  an overlay or set `"prune": false`. A name with a comma, which the labels filter
+  cannot take, is found by reading every item page by page (at most 100 pages of
+  100); a malformed page or the page limit fails. Plans and dry runs make no such
+  query. The reconcile job gains `pull-requests: read`, without which the issues
+  API omits pull requests. The design follows `danielep71/MyTemplate`, recorded in
+  `docs/DESIGN_PROVENANCE.md` (#157).
+- Live label reconciliation runs only on the default branch. The reconcile job
+  of *Sync issue labels* ran for any non-pull-request event, so a manual
+  dispatch on a feature or release branch rewrote the live labels from that
+  branch's manifest and profile. It now also requires the default branch; a
+  dispatch elsewhere runs the read-only validation job instead, which now
+  covers every run that does not reconcile. `test_workflow_validation.py`
+  holds both job conditions as a contract. The design follows `danielep71/MyTemplate`,
+  recorded in `docs/DESIGN_PROVENANCE.md` (#158).
+- The label synchronization and drift summaries no longer break on backticks
+  or carriage returns. Values were wrapped in single backticks with only `\n`
+  and `|` handled, so a backtick in a label name closed the code span and a
+  `\r` in a colour, description or API error, which the API can return, split
+  a table row. Every name, colour, path, mode and error now goes through one
+  helper whose delimiter is one backtick longer than the longest backtick run,
+  padded at an edge backtick or space, with all line breaks turned into spaces
+  and, in a table cell, pipes escaped. The design follows
+  `danielep71/MyTemplate`, recorded in `docs/DESIGN_PROVENANCE.md` (#159).
+- The label synchronization and drift scripts honour `GITHUB_API_URL`. They
+  built every request on the fixed `https://api.github.com`, so on GitHub
+  Enterprise Server or a data-residency host both workflows called the wrong
+  API. An empty or unset value still means github.com, and a trailing slash
+  is dropped. The design follows `danielep71/MyTemplate`, recorded in
+  `docs/DESIGN_PROVENANCE.md` (#160).
 - The local-link rule of `check_repo.py` missed broken badge targets. It read
   only the image of a badge, an image wrapped in a link, and it trimmed
   the leading hyphen GitHub gives a heading that starts with an emoji. It now
@@ -365,6 +440,13 @@ Use only the categories needed by a release.
   the first *Static repository checks* run of a new repository fails at
   *Release semantics* on the uninitialized template copy, and that the
   initialized setup branch is the first meaningful result (#141).
+- The Code of Conduct states that Contributor Covenant 2.1 is kept
+  deliberately. The canonical-template release certification gains a step:
+  when the called *Static repository checks* workflow changed since the last
+  published interface pin, the next interface revision is published before the
+  final candidate is frozen, pinned to an earlier provider commit whose called
+  workflow the candidate keeps unchanged. For this release that is `1.0.1`,
+  which carries the job-level concurrency fix.
 
 ## [1.2.1] - 2026-09-28
 

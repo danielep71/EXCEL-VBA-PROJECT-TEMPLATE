@@ -75,6 +75,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "check_policy_coverage.py": ("run-gate", "entry-point alias of policy_coverage_runner.main"),
     "check_portfolio_drift.py": ("run-gate", _FOCUSED_GATE),
     "check_release_semantics.py": ("run-gate", _FOCUSED_GATE),
+    "check_repository_settings.py": ("run-gate", "GET-only live settings comparison with dated evidence"),
     "check_template_contract.py": ("run-gate", _FOCUSED_GATE),
     "check_vba_conditionals.py": ("run-gate", _FOCUSED_GATE),
     "check_vba_jumps.py": ("run-gate", _FOCUSED_GATE),
@@ -98,16 +99,19 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "collect_portfolio_snapshot.py": ("utility", "GET-only evidence capture, not a report gate"),
     "create_reusable_workflow_fixture.py": ("utility", "disposable consumer provisioning, not a report gate"),
     "initialize_repository.py": ("utility", "repository provisioning CLI, not a report gate"),
+    "write_excel_evidence.py": ("utility", "evidence-bundle record writer, not a report gate"),
     "test_documentation.py": ("test-runner", _UNITTEST),
     "test_excel_evidence.py": ("test-runner", _UNITTEST),
     "test_portfolio_drift.py": ("test-runner", _UNITTEST),
     "test_portfolio_quality.py": ("test-runner", _UNITTEST),
     "test_provision_repository.py": ("test-runner", _UNITTEST),
     "test_release_provenance.py": ("test-runner", _UNITTEST),
+    "test_repository_settings.py": ("test-runner", _UNITTEST),
     "test_template_verification_depth.py": ("test-runner", _UNITTEST),
     "test_template_workflow_validation.py": ("test-runner", _UNITTEST),
     "test_verification_depth.py": ("test-runner", _UNITTEST),
     "test_wiki.py": ("test-runner", _UNITTEST),
+    "test_write_excel_evidence.py": ("test-runner", _UNITTEST),
     "check_repo.py": (
         "canonical", "self-contained distributable; must not import _gatelib or any sibling",
     ),
@@ -136,6 +140,7 @@ SELF_TEST_EXCLUSIONS = {
     "test_portfolio_quality.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_provision_repository.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_release_provenance.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_repository_settings.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_verification_depth.py": "Unittest CLI; focused release-critical failure-path coverage",
     "test_template_verification_depth.py": (
         "Template-only unittest CLI; maintainer-tool failure-path coverage"
@@ -144,6 +149,8 @@ SELF_TEST_EXCLUSIONS = {
         "Template-only unittest CLI; consumer-fixture, CodeQL and Scorecard contract tests"
     ),
     "test_wiki.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_write_excel_evidence.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "write_excel_evidence.py": "Bundle fixtures: python tools/test_write_excel_evidence.py -v; no Office execution",
     "check_documentation.py": "Offline fixtures: python tools/test_documentation.py -v",
     "check_wiki.py": "Offline fixtures: python tools/test_wiki.py -v",
     "check_external_links.py": "Simulated HTTP fixtures: python tools/test_documentation.py -v",
@@ -152,6 +159,7 @@ SELF_TEST_EXCLUSIONS = {
     "report_portfolio_quality.py": "Offline fixtures: python tools/test_portfolio_quality.py -v",
     "collect_portfolio_snapshot.py": "Simulated capture fixtures: python tools/test_portfolio_quality.py -v",
     "provision_repository.py": "Simulated provisioning: python tools/test_provision_repository.py -v",
+    "check_repository_settings.py": "Simulated GitHub API: python tools/test_repository_settings.py -v; no live request",
     "test_workflow_validation.py": "Normal invocation runs authoritative actionlint fixtures",
     "create_reusable_workflow_fixture.py": (
         "Offline cases: python tools/test_template_workflow_validation.py -v; live consumer pilot evidence is separate"

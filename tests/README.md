@@ -17,11 +17,19 @@ exception to `.gitignore`, in the same reviewed change.
 
 ## Neutral regression harness
 
-Import `modules/ProjectTests.bas` after `ProjectCore` and `ProjectFacade`, compile
-the VBA project, and run `ProjectTests.RunProjectTests`. The baseline executes
-four deterministic cases and six assertions covering exact equality, tolerance,
-the public expected-error contract, and repeatability. It reports environment,
-case/assertion/failure counts, completeness, and cleanup to the Immediate window.
+Import `modules/TestLog.bas`, then `modules/ProjectTests.bas`, after
+`ProjectCore` and `ProjectFacade`; compile the VBA project and run
+`ProjectTests.RunProjectTests`. `TestLog.Say` is the print routine of every
+test module: it writes to the Immediate window and, while a certification log
+is open, to that suite's log file as well. Examples keep `Debug.Print`, so they
+need no test module. The baseline executes four deterministic cases and six
+assertions covering exact equality, tolerance, the public expected-error
+contract, and repeatability. It reports environment, case/assertion/failure
+counts, completeness, and cleanup to the Immediate window.
+<!-- template:tier:full:start -->
+The one-command certification in
+[`docs/EXCEL_EVIDENCE.md`](../docs/EXCEL_EVIDENCE.md) opens those logs.
+<!-- template:tier:full:end -->
 
 Success ends with:
 

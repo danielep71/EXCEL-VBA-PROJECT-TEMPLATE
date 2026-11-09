@@ -45,7 +45,7 @@
     {
       "name": "help wanted",
       "color": "008672",
-      "description": "Maintainer welcomes external investigation, implementation, validation, or review"
+      "description": "External investigation, implementation, validation, or review is welcome"
     },
     {
       "name": "invalid",
@@ -70,7 +70,7 @@
     {
       "name": "question",
       "color": "D876E3",
-      "description": "Further information or a maintainer decision is required"
+      "description": "Needs further information or a decision before work can continue"
     },
     {
       "name": "refactor",
@@ -100,7 +100,7 @@
     {
       "name": "wontfix",
       "color": "6E7781",
-      "description": "Maintainers have decided not to implement or continue this work"
+      "description": "Will not be implemented or continued"
     }
   ],
   "overlays": {

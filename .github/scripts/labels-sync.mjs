@@ -11,6 +11,8 @@ const API_VERSION = "2022-11-28";
 const PROFILE_NAMES = ["application", "library", "ui-component"];
 const LABELS_PER_PAGE = 100;
 const MAX_LABEL_PAGES = 100;
+const ISSUES_PER_PAGE = 100;
+const MAX_ISSUE_PAGES = 100;
 const MAX_RATE_LIMIT_RETRIES = 2;
 const MAX_RETRY_DELAY_MS = 5000;
 
@@ -280,9 +282,26 @@ function splitRepository(repository) {
   return parts.map(encodeURIComponent);
 }
 
-function apiUrl(repository, suffix) {
+// The runner sets GITHUB_API_URL, which differs from api.github.com on GitHub
+// Enterprise Server and data-residency hosts; an empty or unset value means
+// github.com.
+export function apiUrl(repository, suffix, environment = process.env) {
   const [owner, repo] = splitRepository(repository);
-  return `https://api.github.com/repos/${owner}/${repo}${suffix}`;
+  const base = (environment.GITHUB_API_URL || "https://api.github.com").replace(/\/+$/, "");
+  return `${base}/repos/${owner}/${repo}${suffix}`;
+}
+
+function assertApiBase() {
+  const path = "/labels?per_page=100&page=1";
+  for (const [environment, expected] of [
+    [{}, "https://api.github.com/repos/octo/repo"],
+    [{ GITHUB_API_URL: "" }, "https://api.github.com/repos/octo/repo"],
+    [{ GITHUB_API_URL: "https://ghe.example.com/api/v3" }, "https://ghe.example.com/api/v3/repos/octo/repo"],
+    [{ GITHUB_API_URL: "https://ghe.example.com/api/v3//" }, "https://ghe.example.com/api/v3/repos/octo/repo"],
+    [{ GITHUB_API_URL: "https://api.octo.ghe.com" }, "https://api.octo.ghe.com/repos/octo/repo"]
+  ]) {
+    assert.equal(apiUrl("octo/repo", path, environment), `${expected}${path}`, JSON.stringify(environment));
+  }
 }
 
 function sleep(milliseconds) {
@@ -351,29 +370,112 @@ async function listLiveLabels(repository, token) {
   throw new Error(`GitHub label pagination exceeded ${MAX_LABEL_PAGES} pages`);
 }
 
-async function applyChanges(repository, token, changes) {
+async function applyChanges(request, changes) {
   for (const change of changes) {
     if (change.action === "update") {
-      await githubRequest(repository, token, "PATCH", `/labels/${encodeURIComponent(change.currentName)}`, {
+      await request("PATCH", `/labels/${encodeURIComponent(change.currentName)}`, {
         new_name: change.target.name,
         color: change.target.color,
         description: change.target.description
       });
     } else if (change.action === "create") {
-      await githubRequest(repository, token, "POST", "/labels", change.target);
+      await request("POST", "/labels", change.target);
     } else if (change.action === "delete") {
-      await githubRequest(repository, token, "DELETE", `/labels/${encodeURIComponent(change.currentName)}`);
+      await request("DELETE", `/labels/${encodeURIComponent(change.currentName)}`);
     }
   }
 }
 
-function markdownEscape(value) {
-  return String(value).replaceAll("|", "\\|").replaceAll("\n", " ");
+function issueLabelNames(item, page) {
+  if (!item || typeof item !== "object" || !Array.isArray(item.labels)) {
+    throw new Error(`Malformed issue page ${page}: an item has no labels array`);
+  }
+  return item.labels.map(label => {
+    const name = typeof label === "string" ? label : label?.name;
+    if (typeof name !== "string") throw new Error(`Malformed issue page ${page}: a label has no name`);
+    return name.toLowerCase();
+  });
+}
+
+// Deleting a label removes it from every issue and pull request, closed ones
+// included, and cannot be undone. The issues endpoint lists pull requests too
+// when the token can read them; state=all adds closed items. The labels filter
+// splits on commas, so a name with a comma is found by reading every item.
+export async function labelsInUse(names, request) {
+  const inUse = [];
+  const scanned = new Map();
+  for (const name of names) {
+    if (name.includes(",")) {
+      scanned.set(name.toLowerCase(), name);
+      continue;
+    }
+    const items = await request("GET", `/issues?state=all&per_page=1&labels=${encodeURIComponent(name)}`);
+    if (!Array.isArray(items)) throw new Error(`Malformed issue search for label ${JSON.stringify(name)}`);
+    if (items.length > 0) inUse.push(name);
+  }
+  if (scanned.size > 0) {
+    const found = new Set();
+    for (let page = 1; ; page += 1) {
+      if (page > MAX_ISSUE_PAGES) {
+        throw new Error(`Issue scan exceeded ${MAX_ISSUE_PAGES} pages; cannot prove that a label with a comma is unused`);
+      }
+      const items = await request("GET", `/issues?state=all&per_page=${ISSUES_PER_PAGE}&page=${page}`);
+      if (!Array.isArray(items)) throw new Error(`Malformed issue page ${page}: the response is not an array`);
+      for (const item of items) {
+        for (const name of issueLabelNames(item, page)) if (scanned.has(name)) found.add(name);
+      }
+      if (items.length < ISSUES_PER_PAGE) break;
+    }
+    for (const [key, name] of scanned) if (found.has(key)) inUse.push(name);
+  }
+  return inUse;
+}
+
+export async function guardPrune(changes, request) {
+  const deletions = changes.filter(change => change.action === "delete").map(change => change.currentName);
+  if (deletions.length === 0) return;
+  const inUse = await labelsInUse(deletions, request);
+  if (inUse.length > 0) {
+    throw new Error(
+      `Refusing to prune labels still used by an issue or pull request: ${inUse.map(name => JSON.stringify(name)).join(", ")}. `
+      + "No change was applied. Remove them from their issues and pull requests, add them to a selected overlay, "
+      + "or set \"prune\": false in .github/labels.json."
+    );
+  }
+}
+
+// Apply a reconciliation plan. A plan or dry run changes nothing and makes no
+// usage query; otherwise every pruned label is proven unused before any write.
+export async function executePlan({ mode, dryRun, changes, request }) {
+  if (mode === "plan" || dryRun) return false;
+  await guardPrune(changes, request);
+  await applyChanges(request, changes);
+  return true;
+}
+
+// Render a value as one inline code span that stays intact in a Markdown line
+// or table cell: the delimiter is one backtick longer than the longest run of
+// backticks in the value, a space pads a value that starts or ends with a
+// backtick or space (or is empty), line breaks become spaces, and in a table
+// cell pipes are escaped.
+export function inlineCode(value, { table = false } = {}) {
+  let text = String(value).replace(/\r\n|\r|\n/g, " ");
+  if (table) text = text.replaceAll("|", "\\|");
+  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map(run => run.length));
+  const fence = "`".repeat(longest + 1);
+  if (text === "") return "` `";
+  const pad = /^[` ]|[` ]$/.test(text) ? " " : "";
+  return `${fence}${pad}${text}${pad}${fence}`;
+}
+
+// Plain text in a table cell: line breaks become spaces and pipes are escaped.
+function cellText(value) {
+  return String(value).replace(/\r\n|\r|\n/g, " ").replaceAll("|", "\\|");
 }
 
 function renderLabelNames(labels) {
   if (labels.length === 0) return "none";
-  return labels.map(label => markdownEscape(JSON.stringify(label.name))).join(", ");
+  return labels.map(label => inlineCode(label.name)).join(", ");
 }
 
 function renderSummary({
@@ -400,9 +502,9 @@ function renderSummary({
   const lines = [
     "# Repository label synchronization",
     "",
-    `- Mode: \`${mode}\`${dryRun ? " (dry run)" : ""}`,
-    `- Policy source: \`${policyPath ?? "unavailable"}\``,
-    `- Label manifest: \`${manifestPath ?? "unavailable"}\``,
+    `- Mode: ${inlineCode(mode)}${dryRun ? " (dry run)" : ""}`,
+    `- Policy source: ${inlineCode(policyPath ?? "unavailable")}`,
+    `- Label manifest: ${inlineCode(manifestPath ?? "unavailable")}`,
     `- Schema: **${manifest?.schema_version ?? "unavailable"}**`,
     `- Core / selected labels: **${coreLabels.length} / ${resolvedLabels.length}**`,
     `- Profile overlay: **${profile ?? "none"}**`,
@@ -422,14 +524,14 @@ function renderSummary({
     `- Complete resolved set (${resolvedLabels.length}): ${renderLabelNames(resolvedLabels)}`
   );
   if (error) {
-    lines.push("", "## Failure", "", `\`${markdownEscape(error)}\``);
+    lines.push("", "## Failure", "", inlineCode(error));
   } else if (changes.length === 0) {
     lines.push("", "No label changes are required.");
   } else {
     lines.push("", "| Action | Label | Detail |", "|---|---|---|");
     for (const change of changes) {
       const detail = change.action === "update" ? change.fields.join(", ") : change.action === "delete" ? "outside selected manifest" : "missing live label";
-      lines.push(`| ${change.action} | \`${markdownEscape(change.name)}\` | ${markdownEscape(detail)} |`);
+      lines.push(`| ${change.action} | ${inlineCode(change.name, { table: true })} | ${cellText(detail)} |`);
     }
   }
   return `${lines.join("\n")}\n`;
@@ -444,7 +546,126 @@ function expectFailure(operation, pattern) {
   assert.throws(operation, pattern);
 }
 
+// A simulated GitHub API: GET /issues answers from the given issues; any other
+// GET answers []; writes are recorded so a test can prove none happened.
+function simulatedApi(issues, { pages = null } = {}) {
+  const calls = [];
+  const request = async (method, suffix) => {
+    calls.push(`${method} ${suffix}`);
+    if (method !== "GET") return null;
+    const url = new URL(`https://api.invalid${suffix}`);
+    if (url.pathname !== "/issues") return [];
+    const filter = url.searchParams.get("labels");
+    if (filter !== null) {
+      const wanted = filter.toLowerCase();
+      return issues.filter(issue => issue.labels.some(label => label.name.toLowerCase() === wanted)).slice(0, 1);
+    }
+    const page = Number(url.searchParams.get("page"));
+    if (pages !== null) return pages(page);
+    return issues.slice((page - 1) * 100, page * 100);
+  };
+  return { calls, request, writes: () => calls.filter(call => !call.startsWith("GET ")) };
+}
+
+async function assertPruneGuard(desired) {
+  const plus = names => [...structuredClone(desired), ...names.map(name => ({ name, color: "ABCDEF", description: "live only" }))];
+  const pruneOf = names => planChanges(desired, plus(names), { prune: true });
+  const issue = (...names) => ({ labels: names.map(name => ({ name })) });
+
+  // An in-use label stops the run before any change, and names the label.
+  let api = simulatedApi([issue("legacy")]);
+  await assert.rejects(
+    executePlan({ mode: "reconcile", dryRun: false, changes: pruneOf(["legacy"]), request: api.request }),
+    /Refusing to prune labels still used by an issue or pull request: "legacy"\. No change was applied/
+  );
+  assert.deepEqual(api.writes(), [], "an in-use label must stop the run before any write");
+  assert.deepEqual(api.calls, ["GET /issues?state=all&per_page=1&labels=legacy"]);
+
+  // A label carried only by a closed pull request is in use too.
+  api = simulatedApi([{ pull_request: {}, state: "closed", labels: [{ name: "Legacy" }] }]);
+  await assert.rejects(executePlan({ mode: "reconcile", dryRun: false, changes: pruneOf(["legacy"]), request: api.request }), /"legacy"/);
+
+  // A name with a comma cannot use the labels filter: every item is read.
+  api = simulatedApi([...Array.from({ length: 100 }, () => issue("other")), issue("Area: a, b")]);
+  await assert.rejects(
+    executePlan({ mode: "reconcile", dryRun: false, changes: pruneOf(["area: a, b"]), request: api.request }),
+    /"area: a, b"/
+  );
+  assert.deepEqual(api.calls, ["GET /issues?state=all&per_page=100&page=1", "GET /issues?state=all&per_page=100&page=2"]);
+  assert.deepEqual(api.writes(), []);
+
+  // An unused comma name may be pruned, after the scan.
+  api = simulatedApi([issue("other")]);
+  assert.equal(await executePlan({ mode: "reconcile", dryRun: false, changes: pruneOf(["a, b"]), request: api.request }), true);
+  assert.deepEqual(api.writes(), ["DELETE /labels/a%2C%20b"]);
+
+  // An unused plain label is deleted after one query.
+  api = simulatedApi([issue("other")]);
+  assert.equal(await executePlan({ mode: "reconcile", dryRun: false, changes: pruneOf(["unused"]), request: api.request }), true);
+  assert.deepEqual(api.calls, ["GET /issues?state=all&per_page=1&labels=unused", "DELETE /labels/unused"]);
+
+  // A plan without deletions makes no usage query.
+  api = simulatedApi([issue("legacy")]);
+  const createOnly = planChanges(desired, desired.slice(1), { prune: true });
+  assert.equal(await executePlan({ mode: "reconcile", dryRun: false, changes: createOnly, request: api.request }), true);
+  assert.equal(api.calls.filter(call => call.startsWith("GET /issues")).length, 0);
+
+  // A dry run and plan mode change nothing and make no usage query.
+  for (const options of [{ mode: "reconcile", dryRun: true }, { mode: "plan", dryRun: false }]) {
+    api = simulatedApi([issue("legacy")]);
+    assert.equal(await executePlan({ ...options, changes: pruneOf(["legacy"]), request: api.request }), false);
+    assert.deepEqual(api.calls, [], `${options.mode}${options.dryRun ? " dry run" : ""} must make no request`);
+  }
+
+  // Malformed pages and the page limit fail before any change.
+  for (const [pages, pattern] of [
+    [() => ({ items: [] }), /Malformed issue page 1: the response is not an array/],
+    [() => [{ title: "no labels" }], /Malformed issue page 1: an item has no labels array/],
+    [() => [{ labels: [{ color: "ABCDEF" }] }], /Malformed issue page 1: a label has no name/],
+    [() => Array.from({ length: 100 }, () => issue("other")), /Issue scan exceeded 100 pages/]
+  ]) {
+    api = simulatedApi([], { pages });
+    await assert.rejects(executePlan({ mode: "reconcile", dryRun: false, changes: pruneOf(["x, y"]), request: api.request }), pattern);
+    assert.deepEqual(api.writes(), []);
+  }
+  api = simulatedApi([]);
+  api.request = async () => ({ message: "not a list" });
+  await assert.rejects(labelsInUse(["plain"], api.request), /Malformed issue search for label "plain"/);
+}
+
+// Unescaped pipes delimit table cells: a row of n cells has n + 1 of them.
+function cellDelimiters(row) {
+  return row.match(/(?<!\\)\|/g)?.length ?? 0;
+}
+
+function assertHostileSummary(baseline) {
+  assert.equal(inlineCode("plain"), "`plain`");
+  assert.equal(inlineCode("a`b"), "``a`b``");
+  assert.equal(inlineCode("`edge`"), "`` `edge` ``");
+  assert.equal(inlineCode("x|y"), "`x|y`");
+  assert.equal(inlineCode("x|y", { table: true }), "`x\\|y`");
+  assert.equal(inlineCode("a\r\nb\rc\nd"), "`a b c d`");
+  assert.equal(inlineCode(""), "` `");
+  const changes = ["a`b", "x|y", "c\r\nd ` |"].map(name => ({ action: "delete", name, currentName: name }));
+  const summary = renderSummary({
+    mode: "reconcile", manifest: baseline, manifestPath: "labels`|.json", policyPath: "policy\r\n.json",
+    desiredLabels: [], profile: null, domains: [], changes
+  });
+  const rows = summary.split("\n").filter(line => line.startsWith("| delete |"));
+  assert.equal(rows.length, 3, "every hostile name must stay on one table row");
+  for (const row of rows) assert.equal(cellDelimiters(row), 4, `three intact cells: ${row}`);
+  assert.ok(summary.includes("| ``a`b`` |") && summary.includes("| `x\\|y` |"), summary);
+  assert.ok(summary.includes("- Label manifest: ``labels`|.json``"), summary);
+  assert.ok(summary.includes("- Policy source: `policy .json`"), summary);
+  const failed = renderSummary({
+    mode: "failed", manifest: null, manifestPath: null, policyPath: null, desiredLabels: [],
+    profile: null, domains: [], error: "GET /labels failed\r\nwith `HTTP` | 502"
+  });
+  assert.ok(failed.includes("\n``GET /labels failed with `HTTP` | 502``\n"), failed);
+}
+
 async function runSelfTest(manifestPath, policyPath) {
+  assertApiBase();
   for (const [header, attempt, expected] of [
     [null, 0, 1000], [null, 2, 4000], ["", 1, 2000],
     ["invalid", 1, 2000], ["-1", 1, 2000], ["0", 2, 0],
@@ -547,6 +768,8 @@ async function runSelfTest(manifestPath, policyPath) {
   assert.deepEqual(planChanges(desired, extra, { prune: true }).map(change => change.action), ["delete"]);
   assert.equal(planChanges(desired, extra, { prune: false }).length, 0);
 
+  await assertPruneGuard(desired);
+
   const caseDrift = structuredClone(desired);
   caseDrift[0].name = desired[0].name.toUpperCase();
   assert.deepEqual(planChanges(desired, caseDrift)[0].fields, ["name"]);
@@ -587,12 +810,13 @@ async function runSelfTest(manifestPath, policyPath) {
   });
   assert.match(summary, /Policy source: `fixture-policy\.json`/);
   assert.match(summary, /Label manifest: `fixture-labels\.json`/);
-  assert.match(summary, /Profile labels \(library; 1\): "library"/);
-  assert.match(summary, /Domain labels \(example; 1\): "example"/);
+  assert.match(summary, /Profile labels \(library; 1\): `library`/);
+  assert.match(summary, /Domain labels \(example; 1\): `example`/);
   assert.match(summary, new RegExp(`Complete resolved set \\(${selectedLabels.length}\\):`));
-  for (const label of selectedLabels) assert.match(summary, new RegExp(`"${label.name}"`));
+  for (const label of selectedLabels) assert.ok(summary.includes(inlineCode(label.name)), label.name);
+  assertHostileSummary(baseline);
 
-  process.stdout.write("SELF-TEST PASS: retry delays, validation, policy, overlay, and reconciliation fixtures\n");
+  process.stdout.write("SELF-TEST PASS: retry delays, validation, policy, overlay, reconciliation and prune-guard fixtures\n");
 }
 
 async function main() {
@@ -634,12 +858,13 @@ async function main() {
   }
 
   const changes = planChanges(desired, live, { prune: manifest.prune });
-  if (options.mode === "plan" || options.dryRun) {
+  const request = (method, suffix, body) => githubRequest(options.repository, process.env.GITHUB_TOKEN, method, suffix, body);
+  const applied = await executePlan({ mode: options.mode, dryRun: options.dryRun, changes, request });
+  if (!applied) {
     await publishSummary(renderSummary({ mode: options.mode, ...summaryBase, changes, dryRun: options.dryRun }));
     return;
   }
 
-  await applyChanges(options.repository, process.env.GITHUB_TOKEN, changes);
   const after = await listLiveLabels(options.repository, process.env.GITHUB_TOKEN);
   const remaining = planChanges(desired, after, { prune: manifest.prune });
   const verified = remaining.length === 0;

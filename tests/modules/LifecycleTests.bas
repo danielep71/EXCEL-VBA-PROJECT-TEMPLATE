@@ -13,9 +13,9 @@ Attribute VB_Name = "LifecycleTests"
 '   external workbook automation API.
 '
 ' DEPENDENCIES
-'   LifecycleFacade, LifecycleCore's fault-injection seam, and the built-in
-'   VBA/Excel object models only. No external references, workbook fixture,
-'   donor project, or test framework.
+'   LifecycleFacade, LifecycleCore's fault-injection seam, TestLog for every
+'   printed line, and the built-in VBA/Excel object models only. No external
+'   references, workbook fixture, donor project, or test framework.
 '
 ' STATE OWNERSHIP
 '   Owns private counters, failure text, suite-completeness state, a re-entry
@@ -54,7 +54,7 @@ Attribute VB_Name = "LifecycleTests"
 '   covering the shared starter.
 '
 ' UPDATED
-'   2026-11-04
+'   2026-11-07
 '
 ' AUTHOR
 '   Daniele Penza
@@ -147,7 +147,7 @@ Public Sub RunLifecycleTests()
 '   does not run cleanup.
 '
 ' UPDATED
-'   2026-11-04
+'   2026-11-07
 '==============================================================================
 '
 
@@ -173,7 +173,7 @@ Public Sub RunLifecycleTests()
     'Refuse an active run before clearing its counters or failure details.
     'An interrupted execution must be reset explicitly by the caller.
         If mRunActive Then
-            Debug.Print "RESULT=FAIL_DIRTY_START; cleanup=NOT_RUN"
+            TestLog.Say "RESULT=FAIL_DIRTY_START; cleanup=NOT_RUN"
             Err.Raise _
                 TEST_ERROR_DIRTY_START, _
                 "LifecycleTests.RunLifecycleTests", _
@@ -183,7 +183,7 @@ Public Sub RunLifecycleTests()
     'The cases need the single session slot. Refuse rather than stop a
     'session that belongs to another workbook, such as ThisWorkbook.
         If LifecycleFacade.LifecycleIsRunning() Then
-            Debug.Print "RESULT=FAIL_SESSION_RUNNING; cleanup=NOT_RUN"
+            TestLog.Say "RESULT=FAIL_SESSION_RUNNING; cleanup=NOT_RUN"
             Err.Raise _
                 TEST_ERROR_SESSION_RUNNING, _
                 "LifecycleTests.RunLifecycleTests", _
@@ -321,7 +321,7 @@ Public Sub ResetLifecycleTests()
 '   active-run flag. Print confirmation.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-07
 '==============================================================================
 '
 
@@ -332,7 +332,7 @@ Public Sub ResetLifecycleTests()
     'harness state; the confirmation distinguishes an explicit reset.
         ReleaseCaseState
         ResetRun
-        Debug.Print "LIFECYCLE TESTS RESET; run_active=no; counters=0"
+        TestLog.Say "LIFECYCLE TESTS RESET; run_active=no; counters=0"
 
 End Sub
 
@@ -1253,7 +1253,7 @@ Private Sub BeginCase( _
 '   caseName: stable identifier used by the evidence contract.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-07
 '==============================================================================
 '
 
@@ -1263,7 +1263,7 @@ Private Sub BeginCase( _
     'Count a case when it starts, even if its first assertion later fails;
     'the matching log record identifies which case was reached.
         mCaseCount = mCaseCount + 1
-        Debug.Print "CASE=" & caseName
+        TestLog.Say "CASE=" & caseName
 
 End Sub
 
@@ -2269,7 +2269,7 @@ Private Sub PrintEnvironment()
 '   Host-property read failures propagate to the runner error path.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-07
 '==============================================================================
 '
 
@@ -2278,8 +2278,8 @@ Private Sub PrintEnvironment()
 '------------------------------------------------------------------------------
     'Write the preamble before the host fields so retained output can be
     'recognized and attributed to the environment that produced it.
-        Debug.Print "LIFECYCLE TESTS"
-        Debug.Print "ENVIRONMENT=" & EnvironmentSummary()
+        TestLog.Say "LIFECYCLE TESTS"
+        TestLog.Say "ENVIRONMENT=" & EnvironmentSummary()
 
 End Sub
 
@@ -2363,7 +2363,7 @@ Private Sub PrintSummary( _
 '   PASS requires zero failures, successful cleanup, and a complete suite.
 '
 ' UPDATED
-'   2026-11-03
+'   2026-11-07
 '==============================================================================
 '
 
@@ -2389,18 +2389,18 @@ Private Sub PrintSummary( _
 '------------------------------------------------------------------------------
     'Write the retained counts and cleanup first, then any diagnostics and
     'the final result record consumed by the evidence validator.
-        Debug.Print "CASES=" & CStr(mCaseCount)
-        Debug.Print "ASSERTIONS=" & CStr(mAssertionCount)
-        Debug.Print "FAILURES=" & CStr(mFailureCount)
-        Debug.Print "CLEANUP=" & IIf(cleanupPassed, "PASS", "FAIL") & _
+        TestLog.Say "CASES=" & CStr(mCaseCount)
+        TestLog.Say "ASSERTIONS=" & CStr(mAssertionCount)
+        TestLog.Say "FAILURES=" & CStr(mFailureCount)
+        TestLog.Say "CLEANUP=" & IIf(cleanupPassed, "PASS", "FAIL") & _
             "; detail=" & cleanupDetail
 
     'Omit the diagnostic record on a clean run; retain all details on failure.
         If Len(mFailureDetails) > 0 Then
-            Debug.Print "FAILURE_DETAILS=" & mFailureDetails
+            TestLog.Say "FAILURE_DETAILS=" & mFailureDetails
         End If
 
-        Debug.Print _
+        TestLog.Say _
             "RESULT=" & verdict & _
             "; completeness=" & IIf(mSuiteCompleted, "COMPLETE", "INCOMPLETE") & _
             "; cases=" & CStr(mCaseCount) & _

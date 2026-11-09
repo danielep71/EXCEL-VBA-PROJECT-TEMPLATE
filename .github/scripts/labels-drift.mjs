@@ -85,9 +85,26 @@ function splitRepository(repository) {
   return parts.map(encodeURIComponent);
 }
 
-function apiUrl(repository, suffix) {
+// The runner sets GITHUB_API_URL, which differs from api.github.com on GitHub
+// Enterprise Server and data-residency hosts; an empty or unset value means
+// github.com.
+export function apiUrl(repository, suffix, environment = process.env) {
   const [owner, repo] = splitRepository(repository);
-  return `https://api.github.com/repos/${owner}/${repo}${suffix}`;
+  const base = (environment.GITHUB_API_URL || "https://api.github.com").replace(/\/+$/, "");
+  return `${base}/repos/${owner}/${repo}${suffix}`;
+}
+
+function assertApiBase() {
+  const path = "/labels?per_page=100&page=1";
+  for (const [environment, expected] of [
+    [{}, "https://api.github.com/repos/octo/repo"],
+    [{ GITHUB_API_URL: "" }, "https://api.github.com/repos/octo/repo"],
+    [{ GITHUB_API_URL: "https://ghe.example.com/api/v3" }, "https://ghe.example.com/api/v3/repos/octo/repo"],
+    [{ GITHUB_API_URL: "https://ghe.example.com/api/v3//" }, "https://ghe.example.com/api/v3/repos/octo/repo"],
+    [{ GITHUB_API_URL: "https://api.octo.ghe.com" }, "https://api.octo.ghe.com/repos/octo/repo"]
+  ]) {
+    assert.equal(apiUrl("octo/repo", path, environment), `${expected}${path}`, JSON.stringify(environment));
+  }
 }
 
 function sleep(milliseconds) {
@@ -316,13 +333,29 @@ function buildReport({ repository, manifestPath, policyPath, manifest, selection
   };
 }
 
-function markdownEscape(value) {
-  return String(value).replaceAll("|", "\\|").replaceAll("\n", " ");
+// Render a value as one inline code span that stays intact in a Markdown line
+// or table cell: the delimiter is one backtick longer than the longest run of
+// backticks in the value, a space pads a value that starts or ends with a
+// backtick or space (or is empty), line breaks become spaces, and in a table
+// cell pipes are escaped.
+export function inlineCode(value, { table = false } = {}) {
+  let text = String(value).replace(/\r\n|\r|\n/g, " ");
+  if (table) text = text.replaceAll("|", "\\|");
+  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map(run => run.length));
+  const fence = "`".repeat(longest + 1);
+  if (text === "") return "` `";
+  const pad = /^[` ]|[` ]$/.test(text) ? " " : "";
+  return `${fence}${pad}${text}${pad}${fence}`;
+}
+
+// Plain text in a table cell: line breaks become spaces and pipes are escaped.
+function cellText(value) {
+  return String(value).replace(/\r\n|\r|\n/g, " ").replaceAll("|", "\\|");
 }
 
 function compactLabel(label) {
   if (label === null) return "—";
-  return `\`${markdownEscape(label.name)}\` / \`${label.color}\` / ${markdownEscape(label.description)}`;
+  return `${inlineCode(label.name, { table: true })} / ${inlineCode(label.color, { table: true })} / ${cellText(label.description)}`;
 }
 
 function markdownReport(report) {
@@ -330,9 +363,9 @@ function markdownReport(report) {
     "# Repository label drift",
     "",
     `- Status: **${String(report.status).toUpperCase()}**`,
-    `- Repository: \`${report.repository ?? "fixture"}\``,
-    `- Manifest: \`${report.manifest}\``,
-    `- Policy: \`${report.policy}\``,
+    `- Repository: ${inlineCode(report.repository ?? "fixture")}`,
+    `- Manifest: ${inlineCode(report.manifest)}`,
+    `- Policy: ${inlineCode(report.policy)}`,
     `- Profile overlay: **${report.selection.profile ?? "none"}**`,
     `- Domain overlays: **${report.selection.domains.length > 0 ? report.selection.domains.join(", ") : "none"}**`,
     `- Desired / observed: **${report.counts.desired} / ${report.counts.observed}**`,
@@ -350,7 +383,7 @@ function markdownReport(report) {
     );
     for (const difference of report.differences) {
       lines.push(
-        `| ${difference.action} | \`${markdownEscape(difference.name)}\` | `
+        `| ${difference.action} | ${inlineCode(difference.name, { table: true })} | `
         + `${difference.fields.length > 0 ? difference.fields.join(", ") : "—"} | `
         + `${compactLabel(difference.observed)} | ${compactLabel(difference.desired)} |`
       );
@@ -390,6 +423,7 @@ async function checkedReport(parameters) {
 }
 
 async function runSelfTest(manifestPath, policyPath) {
+  assertApiBase();
   for (const [header, attempt, expected] of [
     [null, 0, 1000], [null, 2, 4000], ["", 1, 2000],
     ["invalid", 1, 2000], ["-1", 1, 2000], ["0", 2, 0],
@@ -461,8 +495,30 @@ async function runSelfTest(manifestPath, policyPath) {
   assert.match(markdownReport(driftFirst), /simulated out-of-band change/);
   assert.match(markdownReport(driftFirst), new RegExp(missing.name));
 
+  // A hostile live label must stay one intact table row: a backtick name, a
+  // pipe name, and a colour and description carrying a backtick, a pipe and CRLF.
+  const hostile = markdownReport({
+    status: "drift", repository: "fixture/`hostile`", manifest: "labels.json", policy: "policy|x.json",
+    selection: { profile: null, domains: [] },
+    counts: { desired: 0, observed: 3, differences: 3, create: 0, update: 0, delete: 3 },
+    differences: [
+      { action: "delete", name: "a`b", fields: [], observed: { name: "a`b", color: "AB`CDE", description: "x" }, desired: null },
+      { action: "delete", name: "x|y", fields: [], observed: { name: "x|y", color: "ABCDEF", description: "p|q" }, desired: null },
+      { action: "delete", name: "evil", fields: [],
+        observed: { name: "evil", color: "A`|\r\nB", description: "line\r\nbreak | `tick`" }, desired: null }
+    ]
+  });
+  const rows = hostile.split("\n").filter(line => line.startsWith("| delete |"));
+  assert.equal(rows.length, 3, "every hostile label must stay on one table row");
+  for (const row of rows) {
+    assert.equal(row.match(/(?<!\\)\|/g)?.length ?? 0, 6, `five intact cells: ${row}`);
+  }
+  assert.ok(hostile.includes("| ``a`b`` |") && hostile.includes("| `x\\|y` |"), hostile);
+  assert.ok(hostile.includes("``A`\\| B``"), hostile);
+  assert.ok(hostile.includes("- Repository: `` fixture/`hostile` ``") && hostile.includes("- Policy: `policy|x.json`"), hostile);
+
   process.stdout.write(
-    "SELF-TEST PASS: retry delays and deterministic no-drift and create/update/delete drift fixtures are read-only and match the canonical reconciler.\n"
+    "SELF-TEST PASS: retry delays, deterministic no-drift and create/update/delete drift fixtures (read-only, matching the canonical reconciler) and hostile-label rendering.\n"
   );
 }
 

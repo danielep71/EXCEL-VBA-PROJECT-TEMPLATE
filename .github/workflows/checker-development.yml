@@ -170,10 +170,12 @@ jobs:
 
           run tools/test_documentation.py -v
           run tools/test_excel_evidence.py -v
+          run tools/test_write_excel_evidence.py -v
           run tools/test_portfolio_drift.py -v
           run tools/test_portfolio_quality.py -v
           run tools/test_provision_repository.py -v
           run tools/test_release_provenance.py -v
+          run tools/test_repository_settings.py -v
           run tools/test_template_workflow_validation.py -v
           run tools/test_verification_depth.py -v
           run tools/test_template_verification_depth.py -v
