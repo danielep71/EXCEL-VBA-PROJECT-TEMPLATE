@@ -214,6 +214,7 @@ jobs:
           python3 tools/test_release_provenance.py -v
           python3 tools/test_excel_evidence.py -v
           python3 tools/test_write_excel_evidence.py -v
+          python3 tools/test_repository_settings.py -v
           python3 tools/test_verification_depth.py -v
 
       - name: Check maintained documentation contracts

@@ -75,6 +75,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "check_policy_coverage.py": ("run-gate", "entry-point alias of policy_coverage_runner.main"),
     "check_portfolio_drift.py": ("run-gate", _FOCUSED_GATE),
     "check_release_semantics.py": ("run-gate", _FOCUSED_GATE),
+    "check_repository_settings.py": ("run-gate", "GET-only live settings comparison with dated evidence"),
     "check_template_contract.py": ("run-gate", _FOCUSED_GATE),
     "check_vba_conditionals.py": ("run-gate", _FOCUSED_GATE),
     "check_vba_jumps.py": ("run-gate", _FOCUSED_GATE),
@@ -105,6 +106,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "test_portfolio_quality.py": ("test-runner", _UNITTEST),
     "test_provision_repository.py": ("test-runner", _UNITTEST),
     "test_release_provenance.py": ("test-runner", _UNITTEST),
+    "test_repository_settings.py": ("test-runner", _UNITTEST),
     "test_template_verification_depth.py": ("test-runner", _UNITTEST),
     "test_template_workflow_validation.py": ("test-runner", _UNITTEST),
     "test_verification_depth.py": ("test-runner", _UNITTEST),
@@ -138,6 +140,7 @@ SELF_TEST_EXCLUSIONS = {
     "test_portfolio_quality.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_provision_repository.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_release_provenance.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_repository_settings.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_verification_depth.py": "Unittest CLI; focused release-critical failure-path coverage",
     "test_template_verification_depth.py": (
         "Template-only unittest CLI; maintainer-tool failure-path coverage"
@@ -156,6 +159,7 @@ SELF_TEST_EXCLUSIONS = {
     "report_portfolio_quality.py": "Offline fixtures: python tools/test_portfolio_quality.py -v",
     "collect_portfolio_snapshot.py": "Simulated capture fixtures: python tools/test_portfolio_quality.py -v",
     "provision_repository.py": "Simulated provisioning: python tools/test_provision_repository.py -v",
+    "check_repository_settings.py": "Simulated GitHub API: python tools/test_repository_settings.py -v; no live request",
     "test_workflow_validation.py": "Normal invocation runs authoritative actionlint fixtures",
     "create_reusable_workflow_fixture.py": (
         "Offline cases: python tools/test_template_workflow_validation.py -v; live consumer pilot evidence is separate"

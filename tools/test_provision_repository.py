@@ -38,10 +38,28 @@ class FakeGitHub:
         self.files = dict(zip(provision.FILES, [config, record, policy,
                           json.loads((ROOT / ".github/labels.json").read_text())]))
         self.metadata = {**policy["features"], "id": 1, "full_name": self.repository,
-                         "default_branch": "main", "description": None}
+                         "default_branch": "main", "description": None, "visibility": "public",
+                         "security_and_analysis": {"secret_scanning": {"status": "enabled"},
+                                                   "secret_scanning_push_protection": {"status": "enabled"}}}
+        # Security features as GitHub reports them; None makes the endpoint unreadable.
+        self.security: dict[str, Any] = {"private_vulnerability_reporting": True, "vulnerability_alerts": True,
+                                         "automated_security_fixes": True, "paused": False}
         self.topics: list[str] = []
         self.labels: list[dict[str, Any]] = []
         self.rulesets: list[dict[str, Any]] = []
+
+    def get_status(self, path: str) -> tuple[int, Any]:
+        self.calls.append(("GET", path))
+        if path == "/private-vulnerability-reporting":
+            value = self.security["private_vulnerability_reporting"]
+            return (403, None) if value is None else (200, {"enabled": value})
+        if path == "/vulnerability-alerts":
+            value = self.security["vulnerability_alerts"]
+            return (403, None) if value is None else (204 if value else 404, None)
+        if path == "/automated-security-fixes":
+            value = self.security["automated_security_fixes"]
+            return (403, None) if value is None else (200, {"enabled": value, "paused": self.security["paused"]})
+        return 200, copy.deepcopy(self.read(path))
 
     def request(self, method: str, path: str = "", body: dict[str, Any] | None = None) -> object:
         self.calls.append((method, path))
@@ -53,8 +71,14 @@ class FakeGitHub:
             raise OSError("Simulated connection loss; result uncertain")
         if self.ignore:
             return {}
-        if path == "" and method == "PATCH":
+        if path == "" and method == "PATCH" and "security_and_analysis" in body:
+            for key, value in body["security_and_analysis"].items():
+                self.metadata["security_and_analysis"][key] = value
+        elif path == "" and method == "PATCH":
             self.metadata.update(body)
+        elif method == "PUT" and path in provision.SECURITY_WRITES.values():
+            feature = next(key for key, value in provision.SECURITY_WRITES.items() if value == path)
+            self.security[feature] = True
         elif path == "/topics" and method == "PUT":
             self.topics = body["names"]
         elif path == "/labels" and method == "POST":
@@ -333,9 +357,82 @@ class ProvisionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             api.request("PATCH", "", {})
         api.apply = True
-        for method, path in (("DELETE", "/rulesets/1"), ("POST", "/issues"), ("PATCH", "//other/repo")):
+        for method, path in (("DELETE", "/rulesets/1"), ("POST", "/issues"), ("PATCH", "//other/repo"),
+                             ("DELETE", "/vulnerability-alerts"), ("DELETE", "/private-vulnerability-reporting"),
+                             ("PUT", "/actions/permissions/workflow")):
             with self.assertRaises(ValueError):
                 api.request(method, path, {})
+
+    def set_security(self, **live: Any) -> None:
+        self.api.security.update(live)
+
+    def provisioned(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertEqual(self.apply(Path(directory) / "journal.json")["status"], "pass")
+        self.api.writes.clear()
+
+    def test_security_features_enabled_in_write_order_and_verified(self) -> None:
+        self.set_security(private_vulnerability_reporting=False, vulnerability_alerts=False,
+                          automated_security_fixes=False)
+        self.api.metadata["security_and_analysis"] = {"secret_scanning": {"status": "disabled"},
+                                                      "secret_scanning_push_protection": {"status": "disabled"}}
+        plan = self.plan()
+        self.assertEqual(plan["blocked"], [])
+        security = [(row["method"], row["path"]) for row in plan["actions"]
+                    if row["path"] in provision.SECURITY_WRITES.values() or "security_and_analysis" in (row["body"] or {})]
+        self.assertEqual(security, [("PUT", "/private-vulnerability-reporting"), ("PUT", "/vulnerability-alerts"),
+                                    ("PUT", "/automated-security-fixes"), ("PATCH", "")])
+        with tempfile.TemporaryDirectory() as directory:
+            report = self.apply(Path(directory) / "journal.json", plan)
+        self.assertEqual(report["status"], "pass", report.get("error"))
+        self.assertEqual(self.plan()["actions"], [])
+        self.assertTrue(all(self.api.security[key] for key in provision.SECURITY_WRITES))
+
+    def test_private_repository_skips_public_only_security(self) -> None:
+        self.provisioned()
+        self.api.metadata["visibility"] = "private"
+        self.api.metadata["private"] = True
+        self.api.metadata.pop("security_and_analysis")
+        self.set_security(private_vulnerability_reporting=None)
+        plan = self.plan()
+        self.assertEqual((plan["actions"], plan["blocked"]), ([], []))
+        notes = [item for item in plan["keep"] if item.startswith("Security feature not offered")]
+        self.assertEqual(len(notes), 3)
+
+    def test_paused_or_unreadable_security_blocks(self) -> None:
+        self.set_security(paused=True)
+        self.assertIn("Dependabot security updates are paused; resume them in Settings > Code security",
+                      self.plan()["blocked"])
+        self.set_security(paused=False, vulnerability_alerts=None)
+        self.assertTrue(any(item.startswith("Security feature unreadable: vulnerability_alerts")
+                            for item in self.plan()["blocked"]))
+
+    def test_enabled_security_feature_is_never_disabled(self) -> None:
+        self.provisioned()
+        self.api.files[provision.POLICY]["security"]["private_vulnerability_reporting"] = False
+        plan = self.plan()
+        self.assertEqual((plan["actions"], plan["blocked"]), ([], []))
+
+    def test_security_and_actions_policy_shapes(self) -> None:
+        cases: tuple[tuple[str, dict[str, Any]], ...] = (
+            ("security", {"secret_scanning": True}),
+            ("security", {**self.api.files[provision.POLICY]["security"], "secret_scanning": False}),
+            ("security", {**self.api.files[provision.POLICY]["security"], "vulnerability_alerts": False}),
+            ("security", {**self.api.files[provision.POLICY]["security"], "secret_scanning": "yes"}),
+            ("actions", {**self.api.files[provision.POLICY]["actions"], "default_workflow_permissions": "admin"}),
+            ("actions", {**self.api.files[provision.POLICY]["actions"], "retention_days": 0}),
+            ("actions", {**self.api.files[provision.POLICY]["actions"], "fork_pr_approval_policy": "never"}),
+            ("unknown", {}),
+        )
+        original = copy.deepcopy(self.api.files[provision.POLICY])
+        for key, value in cases:
+            with self.subTest(key=key, value=value):
+                self.api.files[provision.POLICY] = {**copy.deepcopy(original), key: value}
+                with self.assertRaises(ValueError):
+                    self.plan()
+        self.api.files[provision.POLICY] = {key: value for key, value in original.items()
+                                            if key not in ("security", "actions")}
+        self.assertEqual(self.plan()["blocked"], [])
 
     def test_apply_requires_credentials_digest_and_journal(self) -> None:
         with patch.dict("os.environ", {}, clear=True), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
