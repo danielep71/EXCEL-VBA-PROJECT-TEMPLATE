@@ -1779,6 +1779,8 @@ class ProvisioningPrimitiveDepthTests(unittest.TestCase):
             api.request("POST", "/labels", {})
 
         class Response:
+            status = 200
+
             def __init__(self, data: bytes):
                 self.data = data
 

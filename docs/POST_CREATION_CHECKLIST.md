@@ -109,7 +109,6 @@ Set and then read back:
 | Topics | `excel`, `vba`, the selected profile, and only maintained project-domain topics |
 | Template repository | Enabled only for a repository intentionally distributed as a template |
 | Issues | Enabled |
-| Private vulnerability reporting | Enabled |
 | Discussions | Disabled unless a maintained support/community process is documented |
 | Wiki | Disabled unless it has an owner and version-drift control |
 | Projects | Disabled unless a maintained board is part of project governance |
@@ -118,6 +117,33 @@ Set and then read back:
 Never publish a private reporting address as an issue-form assignee or public
 issue body. The issue chooser points to `SECURITY.md`, which owns the reporting
 channels and disclosure process.
+
+### Security features
+
+The `security` section of `.github/provisioning-policy.json` records which of
+these must be on. GitHub offers private vulnerability reporting, and secret
+scanning without a paid licence, on public repositories only; on a private
+repository those rows do not apply.
+
+| Setting (Settings > Code security) | Canonical expectation |
+| --- | --- |
+| Private vulnerability reporting | Enabled (public repositories) |
+| Dependabot alerts | Enabled |
+| Dependabot security updates | Enabled and not paused |
+| Secret scanning | Enabled (public repositories) |
+| Push protection | Enabled (public repositories) |
+
+### GitHub Actions
+
+The `actions` section of the policy records the expected values:
+
+| Setting (Settings > Actions > General) | Canonical expectation |
+| --- | --- |
+| Require actions to be pinned to a full-length commit SHA | Enabled |
+| Workflow permissions | Read repository contents and packages permissions |
+| Allow GitHub Actions to create and approve pull requests | Disabled |
+| Approval for workflows from fork pull requests | Require approval for all external contributors (public repositories) |
+| Artifact and log retention | 90 days |
 
 ## 4. 🔀 Merge Policy
 
@@ -212,7 +238,7 @@ Preserve links or JSON responses for:
 <!-- template:tier:minimal:end -->
 - default-branch ruleset and exact required status context;
 - protected-tag ruleset;
-- private vulnerability-reporting state;
+- security-feature and GitHub Actions settings;
 - issue chooser rendering and security routing; and
 - the exact initialized commit and repository-quality run.
 
@@ -221,6 +247,34 @@ profile, selected domains, and the account or automation that performed the
 verification. Redact credentials and private contact details. Re-read the live
 settings after any correction and retain the final state only as certification
 evidence.
+<!-- template:tier:full:start -->
+
+### Check the live settings
+
+`tools/check_repository_settings.py` re-reads the live repository at any time
+and compares it with the committed policy: features, description, topics, the
+selected labels, both baseline rulesets, the security features and the GitHub
+Actions settings. It sends GET requests only and changes nothing. Run it with a
+token that can read the repository's administration settings, in `GH_TOKEN` or
+`GITHUB_TOKEN`:
+
+```bash
+python3 tools/check_repository_settings.py --root . --output settings-check.json --summary settings-check.md
+```
+
+Each setting is `PASS`, `DRIFT`, `UNVERIFIED` or `NOT_APPLICABLE`. A setting
+the token cannot read is `UNVERIFIED`, never `PASS`. A stronger live value, such
+as a narrower merge method or an extra security feature, passes. The command
+exits 1 on any drift or unverified setting. The JSON record carries the
+observation time and the SHA-256 of the policy it compared against; retain it
+with the evidence above. Its fixtures run offline:
+
+```bash
+python3 tools/test_repository_settings.py -v
+```
+
+- [ ] The settings check reports no `DRIFT` and no `UNVERIFIED` row.
+<!-- template:tier:full:end -->
 
 ---
 
