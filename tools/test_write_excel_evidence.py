@@ -175,6 +175,24 @@ class WriteEvidenceTests(unittest.TestCase):
         self.assertEqual(self.summary()["examples"][0]["status"], "FAIL")
         self.assertEqual(host.evaluate(self.root, self.sha, self.bundle / "host.json")["outcomes"], ["PASS"])
 
+    def test_configured_suite_or_example_missing_from_the_run_fails(self) -> None:
+        self.session["suites"] = self.session["suites"][:1]
+        self.save_session()
+        code, out, _ = self.run_writer()
+        self.assertEqual(code, 1, out)
+        suite = self.summary()["suites"][1]
+        self.assertEqual((suite["module"], suite["status"]), ("TextTests", "FAIL"))
+        self.assertIn("not run", suite["detail"])
+        self.assertIn("| `TextTests.RunTextTests` | FAIL |", (self.bundle / "certification.md").read_text())
+        (self.bundle / "host.json").unlink()
+        self.write_bundle()
+        self.session["examples"] = []
+        self.save_session()
+        self.assertEqual(self.run_writer()[0], 1)
+        example = self.summary()["examples"][0]
+        self.assertEqual((example["module"], example["status"]), ("ProjectExample", "FAIL"))
+        self.assertIn("RESULT=FAIL", (self.bundle / "certification.md").read_text())
+
     def test_record_is_never_replaced_and_candidate_must_match(self) -> None:
         (self.bundle / "host.json").write_text("{}")
         code, _, err = self.run_writer()

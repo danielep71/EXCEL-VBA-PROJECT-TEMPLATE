@@ -9,8 +9,10 @@ describes the record; it validates the bundle with check_excel_evidence.py, chec
 every other suite's RESULT line against the counts its own source declares, and
 writes certification.md and suites.json. It never runs Excel and records only what
 the logs and session.json show: a suite without a RESULT line is TIMEOUT, and the
-counts are the ones the RESULT lines print. The exit code is 0 only when host.json
-validates as PASS, every suite passed with its expected counts and every example ran.
+counts are the ones the RESULT lines print. A suite or example the committed profile
+configures but session.json does not record is a failing "not run" row. The exit code
+is 0 only when host.json validates as PASS, every configured suite passed with its
+expected counts and every configured example ran.
 """
 
 from __future__ import annotations
@@ -177,6 +179,13 @@ def suite_summary(root: Path, sha: str, bundle: Path, item: dict[str, Any], harn
     return summary
 
 
+def configured_modules(config: dict[str, Any], role: str, exclude: frozenset[str] | set[str] = frozenset()) -> list[str]:
+    """The modules of one role in the committed profile, named as Certify-Excel.ps1 names them."""
+    components = (config.get("vba") or {}).get("components") or {}
+    return [Path(path).stem for path, value in sorted(components.items())
+            if value == role and Path(path).stem not in exclude]
+
+
 def build_record(root: Path, sha: str, bundle: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     """The evidence record the bundle supports, and the summary of every suite and example."""
     config = decode(committed(root, sha, ".github/repository-profile.json"))
@@ -235,6 +244,14 @@ def build_record(root: Path, sha: str, bundle: Path) -> tuple[dict[str, Any], di
                          "status": "PASS" if entry["status"] == "RAN" else "FAIL",
                          "detail": "ran without error" if entry["status"] == "RAN"
                          else f"{entry['status']}: {entry['error']}"})
+    suites += [{"module": module, "entry_point": f"{module}.Run{module}", "log": None,
+                "harness": module == harness_module, "status": "FAIL", "detail": "not run: missing from session.json"}
+               for module in configured_modules(config, "test", exclude={"TestLog"})
+               if module not in {suite["module"] for suite in suites}]
+    examples += [{"module": module, "entry_point": f"{module}.Run{module}", "status": "FAIL",
+                  "detail": "not run: missing from session.json"}
+                 for module in configured_modules(config, "example")
+                 if module not in {example["module"] for example in examples}]
     summary = {"candidate_sha": sha, "harness_module": harness_module, "suites": suites, "examples": examples}
     return record, summary
 

@@ -205,7 +205,9 @@ every other suite by its single `RESULT=` line against the `EXPECTED_CASES` and
 `EXPECTED_ASSERTIONS` its source declares (the non-`Mac` branch). It writes
 `suites.json` and `certification.md`, and exits `0` only when `host.json`
 validates as `PASS`, every suite passed with its expected counts and every
-example ran without error. A bundle is never overwritten and a record never
+example ran without error. The required suites and examples come from
+`vba.components` in the committed profile, not from `session.json`: one the
+profile configures but the run did not record is a failing "not run" row. A bundle is never overwritten and a record never
 replaced: a failed run stays as it is.
 
 ```bash

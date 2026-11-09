@@ -107,8 +107,9 @@ Use only the categories needed by a release.
   checkout into a new workbook, compiles it, runs every test module's entry
   point and every example, and leaves an evidence bundle next to the checkout;
   `tools/write_excel_evidence.py` writes and validates `host.json` from the
-  logs, checks each suite's counts against the constants its source declares
-  and writes `certification.md`. The new `TestLog` module is the print routine
+  logs, checks each suite's counts against the constants its source declares,
+  fails the run when a configured suite or example was not run (#175), and
+  writes `certification.md`. The new `TestLog` module is the print routine
   of every test module: `TestLog.Say` writes to the Immediate window and, while
   a certification log is open, to that suite's log, so a complete report is
   kept without reading the Immediate window; examples keep `Debug.Print`.
