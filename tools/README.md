@@ -400,7 +400,8 @@ report, or artifact fails the terminal verdict.
 accepts the tracked workflows and a valid local composite action, and requires
 rejection of malformed YAML, duplicate job IDs, an invalid job key, missing
 local-action metadata, and a missing local Node entry point. It also enforces
-the Scorecard publication contract, reported as its own row. Run it locally with
+the Scorecard publication contract and runs live label reconciliation only on
+the default branch, each reported as its own row. Run it locally with
 an independently verified binary:
 
 ```bash
