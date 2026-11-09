@@ -214,6 +214,13 @@ Use only the categories needed by a release.
 
 ### Changed
 
+- The `help wanted`, `question` and `wontfix` label descriptions no longer name
+  a maintainer in the third person; the catalogue ships to team and
+  organization repositories too. They now read "External investigation,
+  implementation, validation, or review is welcome", "Needs further information
+  or a decision before work can continue" and "Will not be implemented or
+  continued"; colours are unchanged. Existing repositories take the new
+  descriptions at their next trusted label synchronization (#162).
 - The guarded provisioner names its baseline rulesets **Default branch
   protection** and **Version tag protection** instead of "Template default
   branch" / "Template version tags", which read wrongly inside generated
