@@ -340,8 +340,8 @@ class LabelReconcileBranchTests(unittest.TestCase):
                 retained_workflow.write_fixture_text(root, retained_workflow.LABEL_SYNC_WORKFLOW, workflow)
             return retained_workflow.label_reconcile_contract(root)
 
-    def with_condition(self, condition: str) -> str:
-        changed, count = re.subn(r"(?m)^(  reconcile:\n(?:    .*\n)*?)    if: .*$", rf"\g<1>    if: {condition}",
+    def with_condition(self, condition: str, job: str = "reconcile") -> str:
+        changed, count = re.subn(rf"(?m)^(  {job}:\n(?:    .*\n)*?)    if: .*$", rf"\g<1>    if: {condition}",
                                  self.workflow, count=1)
         self.assertEqual(count, 1)
         return changed
@@ -364,6 +364,19 @@ class LabelReconcileBranchTests(unittest.TestCase):
         ):
             with self.subTest(condition=condition):
                 self.assertEqual(self.check_contract(self.with_condition(condition))[0], "FAIL")
+
+    def test_validation_covers_every_run_that_does_not_reconcile(self) -> None:
+        default = "github.ref != format('refs/heads/{0}', github.event.repository.default_branch)"
+        for condition in (
+            "github.event_name == 'pull_request'",
+            default,
+            f"github.event_name == 'pull_request' && {default}",
+            "github.event_name == 'pull_request' || github.ref != 'refs/heads/main'",
+        ):
+            with self.subTest(condition=condition):
+                status, failures = self.check_contract(self.with_condition(condition, job="validate"))
+                self.assertEqual(status, "FAIL")
+                self.assertIn("validate", failures[0])
 
     def test_equivalent_forms_are_accepted(self) -> None:
         default = "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)"
