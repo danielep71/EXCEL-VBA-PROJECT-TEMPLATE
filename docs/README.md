@@ -42,6 +42,7 @@ may summarize it, but must link here rather than restating a competing rule.
 <!-- template:remove:start -->
 | Guided creation journey, full file inventory and wiki publication | [`wiki/Home.md`](wiki/Home.md) and [`WIKI_PUBLICATION.md`](WIKI_PUBLICATION.md) | Summaries linked to the existing policy authorities |
 | Portable checker development boundaries and independent tests | [`CHECKER_DEVELOPMENT.md`](CHECKER_DEVELOPMENT.md) | Link from tooling/contribution guidance |
+| Design origin of solutions reimplemented from the maintainer's other repositories | [`DESIGN_PROVENANCE.md`](DESIGN_PROVENANCE.md) | Link from the change that reimplements a design |
 | Read-only portfolio snapshots, drift semantics and decision boundaries | [`PORTFOLIO_DRIFT.md`](PORTFOLIO_DRIFT.md) | Links to exact-snapshot reports |
 | Portfolio evidence dimensions, freshness and reporting | [`PORTFOLIO_QUALITY.md`](PORTFOLIO_QUALITY.md) | Timestamped status reports, not rankings |
 | Guarded repository provisioning plans and apply receipts | [`PROVISIONING.md`](PROVISIONING.md) | Trusted setup tooling and simulated API evidence |

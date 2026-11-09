@@ -3,7 +3,9 @@ name: Sync issue labels
 # Pull requests validate without write permission. Only a trusted push to main
 # or an explicit manual dispatch can reconcile the live repository taxonomy.
 # The script validates and self-tests before the first API mutation, then
-# verifies an exact post-run match.
+# verifies an exact post-run match. Pruning deletes only labels that no issue
+# or pull request carries, open or closed; pull-requests: read lets the issues
+# API list pull requests for that check.
 
 on:
   pull_request:
@@ -65,6 +67,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      pull-requests: read
 
     steps:
       - name: Check out the exact SHA to apply
