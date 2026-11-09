@@ -378,6 +378,12 @@ Use only the categories needed by a release.
   the first *Static repository checks* run of a new repository fails at
   *Release semantics* on the uninitialized template copy, and that the
   initialized setup branch is the first meaningful result (#141).
+- The Code of Conduct states that Contributor Covenant 2.1 is kept
+  deliberately. The canonical-template release certification gains a step:
+  when the called *Static repository checks* workflow changed since the last
+  published interface pin, the hosted consumer fixtures run against the
+  candidate and the next interface revision is published. For this release that
+  is `1.0.1`, which carries the job-level concurrency fix.
 
 ## [1.2.1] - 2026-09-28
 

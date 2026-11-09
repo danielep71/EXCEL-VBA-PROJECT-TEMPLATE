@@ -278,9 +278,16 @@ all of these additional checks against the same exact candidate SHA:
   evidence;
 - export the complete Wiki from the exact candidate SHA, publish it, freshly
   clone/read back the publication, byte-compare it with zero drift, and record
-  both the source SHA and resulting Wiki commit; and
+  both the source SHA and resulting Wiki commit;
 - review the published Wiki in a browser, confirming Home, the sidebar and the
-  complete page-navigation set render and navigate as intended.
+  complete page-navigation set render and navigate as intended; and
+- when the called *Static repository checks* workflow changed since the last
+  published interface pin, run the three hosted consumer fixtures of
+  [`docs/REUSABLE_WORKFLOWS.md`](docs/REUSABLE_WORKFLOWS.md#-consumer-acceptance-fixtures)
+  against the candidate SHA and publish the next interface revision there, with
+  its provider commit, publication date and fixture evidence. A compatible fix
+  is a patch revision (`1.0.0` to `1.0.1`); keep every earlier row and its known
+  limitations.
 
 These are tag blockers, not optional observations. A missing execution, an
 unresolved deterministic defect, publication drift or an incomplete browser
