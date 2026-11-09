@@ -313,6 +313,12 @@ Use only the categories needed by a release.
   padded at an edge backtick or space, with all line breaks turned into spaces
   and, in a table cell, pipes escaped. The design follows
   `danielep71/MyTemplate`, recorded in `docs/DESIGN_PROVENANCE.md` (#159).
+- The label synchronization and drift scripts honour `GITHUB_API_URL`. They
+  built every request on the fixed `https://api.github.com`, so on GitHub
+  Enterprise Server or a data-residency host both workflows called the wrong
+  API. An empty or unset value still means github.com, and a trailing slash
+  is dropped. The design follows `danielep71/MyTemplate`, recorded in
+  `docs/DESIGN_PROVENANCE.md` (#160).
 - The local-link rule of `check_repo.py` missed broken badge targets. It read
   only the image of a badge, an image wrapped in a link, and it trimmed
   the leading hyphen GitHub gives a heading that starts with an emoji. It now
