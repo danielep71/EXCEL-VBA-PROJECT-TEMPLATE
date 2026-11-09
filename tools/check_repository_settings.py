@@ -33,7 +33,6 @@ FEATURES = ("has_issues", "has_wiki", "has_projects", "has_discussions", "is_tem
             "allow_merge_commit", "allow_squash_merge", "allow_rebase_merge", "allow_auto_merge",
             "delete_branch_on_merge", "allow_update_branch")
 METHODS = {"allow_merge_commit", "allow_squash_merge", "allow_rebase_merge"}
-OPTIONAL_FEATURES = {"has_wiki", "has_projects", "has_discussions", "is_template"}
 POLICY_KEYS = {"schema_version", "contract_version", "description", "topics", "features",
                "required_checks", "exceptions"}
 OPTIONAL_POLICY_KEYS = {"security", "actions"}
@@ -245,7 +244,6 @@ def row(area: str, item: str, expected: Any, observed: Any, status: str, source:
 
 def compare_features(policy: dict[str, Any], metadata: dict[str, Any], description: str | None) -> list[dict[str, Any]]:
     rows = []
-    exceptions = policy.get("exceptions", {})
     if description is None:
         rows.append(row("repository", "description", "resolved project description", metadata.get("description"),
                         "UNVERIFIED", "policy description placeholder could not be resolved"))
@@ -260,8 +258,6 @@ def compare_features(policy: dict[str, Any], metadata: dict[str, Any], descripti
             status, note = "PASS", "GET repository"
         elif key in METHODS and want is True and have is False:
             status, note = "PASS", "GET repository (narrower merge method retained)"
-        elif key in OPTIONAL_FEATURES and want is False and have is True and "feature:" + key in exceptions:
-            status, note = "PASS", f"GET repository (recorded feature:{key} exception)"
         else:
             status, note = "DRIFT", "GET repository"
         rows.append(row("repository", key, want, have, status, note))

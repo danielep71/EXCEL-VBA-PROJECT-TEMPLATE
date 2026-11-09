@@ -136,6 +136,13 @@ class RepositorySettingsTests(unittest.TestCase):
                 self.assertEqual(self.status_of(report, area, item), "DRIFT")
                 self.assertEqual(report["counts"]["DRIFT"], 1, settings.markdown(report))
 
+    def test_disabling_exception_does_not_waive_the_expected_value(self) -> None:
+        self.policy["exceptions"]["feature:has_wiki"] = "Reviewed unused generated wiki"
+        self.write(settings.POLICY, self.policy)
+        self.api.metadata["has_wiki"] = True
+        report = self.check()
+        self.assertEqual((report["status"], self.status_of(report, "repository", "has_wiki")), ("fail", "DRIFT"))
+
     def test_narrower_or_stronger_settings_pass(self) -> None:
         self.api.metadata["allow_rebase_merge"] = False
         self.policy["security"]["private_vulnerability_reporting"] = False
