@@ -52,6 +52,13 @@ unrecorded profile or domain at dispatch time.
 - [ ] API read-back contains every resolved label with the expected name,
   uppercase color, and description, and contains no label pruned by policy.
 
+With `"prune": true`, synchronization deletes only labels outside the resolved
+selection that no issue or pull request carries, open or closed. Before any
+change it checks each label it would delete; if one is in use the run stops,
+names the labels and applies nothing. Then remove those labels from their issues
+and pull requests, add them to a selected overlay, or set `"prune": false` in
+`.github/labels.json`, and run it again. A plan or dry run makes no such check.
+
 ### Read-only drift detection
 
 `Detect issue-label drift` is separate from reconciliation. Pull requests run

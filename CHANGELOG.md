@@ -277,6 +277,18 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- Label pruning no longer deletes labels in use. With `"prune": true`, the
+  label synchronization deleted every live label outside the resolved selection,
+  removing it from every issue and pull request, closed ones included, with no
+  undo. Before applying any change, reconciliation now checks each label it would
+  delete against all issues and pull requests, open and closed, and stops with
+  nothing applied if one is in use, naming it and saying to remove it, add it to
+  an overlay or set `"prune": false`. A name with a comma, which the labels filter
+  cannot take, is found by reading every item page by page (at most 100 pages of
+  100); a malformed page or the page limit fails. Plans and dry runs make no such
+  query. The reconcile job gains `pull-requests: read`, without which the issues
+  API omits pull requests. The design follows `danielep71/MyTemplate`, recorded in
+  `docs/DESIGN_PROVENANCE.md` (#157).
 - The local-link rule of `check_repo.py` missed broken badge targets. It read
   only the image of a badge, an image wrapped in a link, and it trimmed
   the leading hyphen GitHub gives a heading that starts with an emoji. It now

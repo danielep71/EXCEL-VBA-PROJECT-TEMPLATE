@@ -11,7 +11,8 @@ that GitHub settings are correct.
 In the new repository, review `.github/provisioning-policy.json`,
 `.github/repository-profile.json` and `.github/labels.json`. Commit any intended
 policy change before planning. Keep selected domain overlays and local labels
-explicit. Routine label synchronization may prune unlisted labels; reconcile
+explicit. Routine label synchronization may prune unlisted labels that no issue
+or pull request carries, and stops without changes if one still does; reconcile
 the overlay or reviewed pruning policy before running it.
 
 ## 2. Choose the setup path
