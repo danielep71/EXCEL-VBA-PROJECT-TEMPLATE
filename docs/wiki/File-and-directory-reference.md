@@ -82,6 +82,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `assets/social-preview.svg` / asset | Editable template preview source; removed during generation. | X / X / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `docs/CHECKER_DEVELOPMENT.md` / document | Independent checker-development and policy-coverage requirements. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `docs/DEPENDENCY_UPDATES.md` / document | Manual dependency monitoring, provenance review and rollback. | T / T / T | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
+| `docs/DESIGN_PROVENANCE.md` / document | Design origin and revision of solutions reimplemented from the maintainer's other repositories; template only. | X / X / X | [docs/DESIGN_PROVENANCE.md](../../docs/DESIGN_PROVENANCE.md) |
 | `docs/DOCUMENTATION_CHECKS.md` / document | Offline command/reference validation and separate external-link policy. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `docs/EXCEL_EVIDENCE.md` / document | Optional Windows/Excel runner interface and manual retained-log schema. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `docs/INITIALIZATION.md` / document | Authoritative initialization inputs, profile rendering, governance tiers, minimal-to-full upgrade and no-op contract. | T / T / T | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |

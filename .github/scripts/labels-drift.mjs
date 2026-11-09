@@ -85,9 +85,26 @@ function splitRepository(repository) {
   return parts.map(encodeURIComponent);
 }
 
-function apiUrl(repository, suffix) {
+// The runner sets GITHUB_API_URL, which differs from api.github.com on GitHub
+// Enterprise Server and data-residency hosts; an empty or unset value means
+// github.com.
+export function apiUrl(repository, suffix, environment = process.env) {
   const [owner, repo] = splitRepository(repository);
-  return `https://api.github.com/repos/${owner}/${repo}${suffix}`;
+  const base = (environment.GITHUB_API_URL || "https://api.github.com").replace(/\/+$/, "");
+  return `${base}/repos/${owner}/${repo}${suffix}`;
+}
+
+function assertApiBase() {
+  const path = "/labels?per_page=100&page=1";
+  for (const [environment, expected] of [
+    [{}, "https://api.github.com/repos/octo/repo"],
+    [{ GITHUB_API_URL: "" }, "https://api.github.com/repos/octo/repo"],
+    [{ GITHUB_API_URL: "https://ghe.example.com/api/v3" }, "https://ghe.example.com/api/v3/repos/octo/repo"],
+    [{ GITHUB_API_URL: "https://ghe.example.com/api/v3//" }, "https://ghe.example.com/api/v3/repos/octo/repo"],
+    [{ GITHUB_API_URL: "https://api.octo.ghe.com" }, "https://api.octo.ghe.com/repos/octo/repo"]
+  ]) {
+    assert.equal(apiUrl("octo/repo", path, environment), `${expected}${path}`, JSON.stringify(environment));
+  }
 }
 
 function sleep(milliseconds) {
@@ -390,6 +407,7 @@ async function checkedReport(parameters) {
 }
 
 async function runSelfTest(manifestPath, policyPath) {
+  assertApiBase();
   for (const [header, attempt, expected] of [
     [null, 0, 1000], [null, 2, 4000], ["", 1, 2000],
     ["invalid", 1, 2000], ["-1", 1, 2000], ["0", 2, 0],
