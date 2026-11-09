@@ -20,6 +20,11 @@ from pathlib import Path
 
 EXPECTED_ACTIONLINT_VERSION = "1.7.12"
 SCORECARD_WORKFLOW = ".github/workflows/scorecard.yml"
+LABEL_SYNC_WORKFLOW = ".github/workflows/labels-sync.yml"
+RECONCILE_CONDITIONS = (
+    "github.event_name != 'pull_request'",
+    "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)",
+)
 SCORECARD_APPROVED_ACTIONS = {
     "actions/checkout",
     "actions/upload-artifact",
@@ -286,6 +291,36 @@ def scorecard_publication_contract(root: Path) -> tuple[str, list[str]]:
     return ("PASS" if not failures else "FAIL"), failures
 
 
+def label_reconcile_contract(root: Path) -> tuple[str, list[str]]:
+    """Live label reconciliation runs only outside pull requests, on the default branch.
+
+    A dispatch on any other branch would rewrite the live labels from that
+    branch's manifest and profile, so an unmerged catalogue change would apply.
+    """
+    path = root / LABEL_SYNC_WORKFLOW
+    if not path.is_file():
+        return "N/A", []
+    text = path.read_text(encoding="utf-8")
+    match = re.search(r"(?ms)^  reconcile:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)", text)
+    if match is None:
+        return "FAIL", ["label synchronization workflow has no reconcile job"]
+    conditions = re.findall(r"(?m)^    if:[ \t]*(.+?)[ \t]*$", match.group("body"))
+    if len(conditions) != 1:
+        return "FAIL", ["label reconcile job must have exactly one job-level if condition"]
+    condition = conditions[0].strip()
+    if condition.startswith("${{") and condition.endswith("}}"):
+        condition = condition[3:-2].strip()
+    terms = [term.strip() for term in condition.split("&&")]
+    failures = []
+    if "||" in condition or sorted(terms) != sorted(RECONCILE_CONDITIONS):
+        failures.append(
+            "label reconcile job must run only when "
+            + " && ".join(RECONCILE_CONDITIONS)
+            + f"; observed {conditions[0].strip()!r}"
+        )
+    return ("PASS" if not failures else "FAIL"), failures
+
+
 def build_report(root: Path, executable: Path) -> tuple[str, list[str]]:
     failures: list[str] = []
     version = subprocess.run(
@@ -314,6 +349,8 @@ def build_report(root: Path, executable: Path) -> tuple[str, list[str]]:
 
     scorecard_status, scorecard_failures = scorecard_publication_contract(root)
     failures.extend(scorecard_failures)
+    reconcile_status, reconcile_failures = label_reconcile_contract(root)
+    failures.extend(reconcile_failures)
 
     fixture_rows: list[tuple[str, str, str]] = []
     with tempfile.TemporaryDirectory(prefix="workflow-validation-") as temporary:
@@ -373,6 +410,7 @@ def build_report(root: Path, executable: Path) -> tuple[str, list[str]]:
             f"{'PASS' if current.returncode == 0 else 'FAIL'} |"
         ),
         f"| Scorecard publication contract | accepted | {scorecard_status} |",
+        f"| Label reconciliation on the default branch only | accepted | {reconcile_status} |",
     ]
     lines.extend(
         f"| {name} | {expectation} | {result} |" for name, expectation, result in fixture_rows

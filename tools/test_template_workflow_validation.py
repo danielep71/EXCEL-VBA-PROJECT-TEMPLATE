@@ -324,5 +324,61 @@ class ScorecardReviewRegressionTests(unittest.TestCase):
                 self.assertEqual(result.returncode == 0, expected, result.stderr)
 
 
+class LabelReconcileBranchTests(unittest.TestCase):
+    """Live label reconciliation runs only outside pull requests and only on the
+    default branch, so a dispatch on another branch cannot apply its catalogue."""
+
+    def setUp(self) -> None:
+        self.workflow = (Path(__file__).resolve().parents[1] / retained_workflow.LABEL_SYNC_WORKFLOW).read_text(
+            encoding="utf-8"
+        )
+
+    def check_contract(self, workflow: str | None) -> tuple[str, list[str]]:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            if workflow is not None:
+                retained_workflow.write_fixture_text(root, retained_workflow.LABEL_SYNC_WORKFLOW, workflow)
+            return retained_workflow.label_reconcile_contract(root)
+
+    def with_condition(self, condition: str) -> str:
+        changed, count = re.subn(r"(?m)^(  reconcile:\n(?:    .*\n)*?)    if: .*$", rf"\g<1>    if: {condition}",
+                                 self.workflow, count=1)
+        self.assertEqual(count, 1)
+        return changed
+
+    def test_current_workflow(self) -> None:
+        self.assertEqual(self.check_contract(self.workflow), ("PASS", []))
+
+    def test_any_branch_is_rejected(self) -> None:
+        status, failures = self.check_contract(self.with_condition("github.event_name != 'pull_request'"))
+        self.assertEqual(status, "FAIL")
+        self.assertIn("default_branch", failures[0])
+
+    def test_weakened_conditions_are_rejected(self) -> None:
+        default = "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)"
+        for condition in (
+            default,
+            f"github.event_name != 'pull_request' || {default}",
+            "github.event_name != 'pull_request' && github.ref == 'refs/heads/main'",
+            "github.event_name != 'pull_request' && always()",
+        ):
+            with self.subTest(condition=condition):
+                self.assertEqual(self.check_contract(self.with_condition(condition))[0], "FAIL")
+
+    def test_equivalent_forms_are_accepted(self) -> None:
+        default = "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)"
+        for condition in (
+            f"${{{{ github.event_name != 'pull_request' && {default} }}}}",
+            f"{default} && github.event_name != 'pull_request'",
+        ):
+            with self.subTest(condition=condition):
+                self.assertEqual(self.check_contract(self.with_condition(condition)), ("PASS", []))
+
+    def test_missing_job_or_workflow(self) -> None:
+        self.assertEqual(self.check_contract(None), ("N/A", []))
+        renamed = self.workflow.replace("  reconcile:\n", "  apply:\n")
+        self.assertEqual(self.check_contract(renamed)[0], "FAIL")
+
+
 if __name__ == "__main__":
     unittest.main()

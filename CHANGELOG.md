@@ -296,6 +296,13 @@ Use only the categories needed by a release.
   query. The reconcile job gains `pull-requests: read`, without which the issues
   API omits pull requests. The design follows `danielep71/MyTemplate`, recorded in
   `docs/DESIGN_PROVENANCE.md` (#157).
+- Live label reconciliation runs only on the default branch. The reconcile job
+  of *Sync issue labels* ran for any non-pull-request event, so a manual
+  dispatch on a feature or release branch rewrote the live labels from that
+  branch's manifest and profile. It now also requires the default branch; a
+  dispatch elsewhere validates and skips. `test_workflow_validation.py` holds
+  the condition as a contract. The design follows `danielep71/MyTemplate`,
+  recorded in `docs/DESIGN_PROVENANCE.md` (#158).
 - The local-link rule of `check_repo.py` missed broken badge targets. It read
   only the image of a badge, an image wrapped in a link, and it trimmed
   the leading hyphen GitHub gives a heading that starts with an emoji. It now

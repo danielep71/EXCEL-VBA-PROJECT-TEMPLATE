@@ -14,7 +14,7 @@ authority; the documents own the user-facing contracts.
 | `static-checks.yml` | Push main/release branches/version tags; PR to main/release; manual; reusable call | Contents read; optional `expected-profile` for reusable calls | `Repository integrity`, candidate SHA output, JSON/Markdown and 30-day artifacts |
 | `checker-development.yml` | Release push; main/release PR; manual | Contents read; exact PR head/source | Checker contract, independent self-tests and policy coverage; template only |
 | `portfolio-drift.yml` | Release push; main/release PR; manual | Contents read; synthetic API fixtures | Structural drift, quality and provisioning fixture logs; template only |
-| `labels-sync.yml` | Path-filtered PR; trusted path-filtered main push; manual | PR read-only; trusted reconciliation adds issues write; policy resolves profile/domains | Validate or reconcile labels; post-write verification |
+| `labels-sync.yml` | Path-filtered PR; trusted path-filtered main push; manual | PR read-only; reconciliation, on the default branch only, adds issues write; policy resolves profile/domains | Validate or reconcile labels; post-write verification |
 | `labels-drift.yml` | Path-filtered PR; daily 05:17 UTC; manual | PR fixtures; live contents/issues read | Label differences and 30-day evidence; no writes |
 | `external-links.yml` | Monday 06:17 UTC; manual | Contents read; anonymous bounded HTTP | Categorized observations and 14-day artifacts; separate from PR source checks |
 | `wiki-checks.yml` | Main/release PR and push; manual | Contents read; no network comparison | Wiki source, inventory, navigation, publication fixtures; template only |

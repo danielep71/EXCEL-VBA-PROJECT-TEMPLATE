@@ -1,7 +1,9 @@
 name: Sync issue labels
 
-# Pull requests validate without write permission. Only a trusted push to main
-# or an explicit manual dispatch can reconcile the live repository taxonomy.
+# Pull requests validate without write permission. Only a trusted push to the
+# default branch, or a manual dispatch from it, can reconcile the live
+# repository taxonomy; a dispatch on any other branch validates and skips
+# reconciliation, so an unmerged catalogue change never reaches live labels.
 # The script validates and self-tests before the first API mutation, then
 # verifies an exact post-run match. Pruning deletes only labels that no issue
 # or pull request carries, open or closed; pull-requests: read lets the issues
@@ -61,7 +63,7 @@ jobs:
 
   reconcile:
     name: Reconcile live labels
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
