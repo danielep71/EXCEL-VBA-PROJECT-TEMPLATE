@@ -22,7 +22,7 @@ default-branch SHA. The tool reads four JSON files at that SHA:
 | --- | --- |
 | `.github/repository-profile.json` | Generated mode, repository identity, adopted contract and label selection |
 | `.github/initialization.json` | Initializer's matching profile, contract and recorded repository value |
-| `.github/provisioning-policy.json` | Description, topics, feature/merge settings, required checks and exception rationale |
+| `.github/provisioning-policy.json` | Description, topics, feature/merge settings, required checks, exception rationale, security features and expected GitHub Actions settings |
 | `.github/labels.json` | Core plus selected profile/domain labels |
 
 The schema-1 provisioning adapter supports contract **1.2.0**. Older or unknown
@@ -43,6 +43,8 @@ either as `Repository integrity` or, for a caller of the reusable workflow, as
 | Merge methods | Preserve an already narrower method instead of enabling it; at least one desired method must remain enabled |
 | Labels | Add missing resolved labels; replacement needs a recorded exception; retain extra labels |
 | Rulesets | Preserve equal/stronger applicable rules; add missing baseline rulesets; never edit or delete existing rulesets |
+| Security features | Enable each feature the `security` section requires, Dependabot alerts before security updates; never disable one. Private vulnerability reporting, secret scanning and push protection are kept as not offered on a private repository. A feature the token cannot read, or paused security updates, blocks the plan |
+| GitHub Actions settings | Not written: the `actions` section records the expected values, which the settings check compares with the live repository |
 
 New baseline rulesets are named **Default branch protection** and **Version tag
 protection**. Coverage is judged by content, not name, so repositories
@@ -138,7 +140,7 @@ Keep the before/plan, apply journal and independent final verification together.
 Redact private data before sharing. API responses and source inputs never
 include the token. Redirects are refused and the transport targets only the
 explicit repository on `api.github.com`. Apply permits only supported metadata,
-topic, label and ruleset-create requests; plan mode has no write permission in
+topic, label, ruleset-create and security-feature enable requests; plan mode has no write permission in
 the transport.
 
 [GitHub repository settings](https://docs.github.com/en/rest/repos/repos#update-a-repository)
@@ -149,22 +151,35 @@ Unavailable ruleset bypass data is not treated as an empty bypass list. Plan
 limitations and missing access must be resolved by the maintainer outside this
 tool; it never escalates credentials, changes visibility or requests an upgrade.
 
-Private vulnerability reporting, issue chooser rendering, sponsorships,
+GitHub Actions settings, issue chooser rendering, sponsorships,
 commit-message defaults, ownership of enabled features, source quality and
 runtime/release certification remain manual or separate checks under the
 [post-creation checklist](POST_CREATION_CHECKLIST.md). Provisioning success is
 limited to supported settings and never certifies that entire checklist.
 
+## 4. 🔁 Check the settings later
+
+Provisioning runs once. `tools/check_repository_settings.py` compares the live
+repository with the same committed policy at any later time, GET-only, and
+exits 1 on drift or on a setting it cannot read. It ships with full-tier
+generated projects; the
+[post-creation checklist](POST_CREATION_CHECKLIST.md#capture-read-back-evidence)
+describes it and its dated evidence record.
+
 ## 🧪 Validation
 
 ```bash
 python3 tools/test_provision_repository.py -v
+python3 tools/test_repository_settings.py -v
 ```
 
 Hosted tests use a stateful simulated API and temporary journals. They cover
 all profiles, exact request scope, plan repeatability, idempotence, stale
 approval, mismatched target/version/SHA, preserved stronger controls, reviewed
-exceptions, missing bypass evidence, ignored/partial writes and journal failure.
+exceptions, missing bypass evidence, ignored/partial writes, journal failure and
+security features (write order, private repositories, paused or unreadable
+state, never disabling). The settings-check fixtures cover each drift kind,
+unreadable settings reported as unverified and GET-only requests.
 They do not demonstrate a live administrative deployment or Excel execution.
 No production credentials are used by the *Portfolio drift fixtures* workflow
 (`portfolio-drift.yml`).

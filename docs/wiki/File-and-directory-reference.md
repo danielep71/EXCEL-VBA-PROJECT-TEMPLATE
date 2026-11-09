@@ -82,6 +82,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `assets/social-preview.svg` / asset | Editable template preview source; removed during generation. | X / X / X | [docs/REPOSITORY_STRUCTURE.md](../../docs/REPOSITORY_STRUCTURE.md) |
 | `docs/CHECKER_DEVELOPMENT.md` / document | Independent checker-development and policy-coverage requirements. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `docs/DEPENDENCY_UPDATES.md` / document | Manual dependency monitoring, provenance review and rollback. | T / T / T | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
+| `docs/DESIGN_PROVENANCE.md` / document | Design origin and revision of solutions reimplemented from the maintainer's other repositories; template only. | X / X / X | [docs/DESIGN_PROVENANCE.md](../../docs/DESIGN_PROVENANCE.md) |
 | `docs/DOCUMENTATION_CHECKS.md` / document | Offline command/reference validation and separate external-link policy. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `docs/EXCEL_EVIDENCE.md` / document | Optional Windows/Excel runner interface and manual retained-log schema. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `docs/INITIALIZATION.md` / document | Authoritative initialization inputs, profile rendering, governance tiers, minimal-to-full upgrade and no-op contract. | T / T / T | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
@@ -155,6 +156,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/check_release.py` / script | Validate an actual release candidate/evidence/assets/tag or synthetic self-tests. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/check_release_semantics.py` / script | Enforce strict version, dated changelog, comparison and canonical-template history semantics. | R / R / R | [docs/RELEASE_SEMANTICS.md](../../docs/RELEASE_SEMANTICS.md) |
 | `tools/check_repo.py` / script | Self-contained dependency-free canonical 21-rule repository-quality gate. | R / R / R | [tools/README.md](../../tools/README.md) |
+| `tools/check_repository_settings.py` / script | GET-only comparison of live repository settings, labels, rulesets, security features and Actions settings with the committed policy; dated evidence. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `tools/check_template_contract.py` / script | Resolve adopted contract versions and reject invalid or unsupported identities. | R / R / R | [docs/TEMPLATE_CONTRACT.md](../../docs/TEMPLATE_CONTRACT.md) |
 | `tools/check_vba_conditionals.py` / script | Validate conditional compilation and reachable PtrSafe declarations in four host models. | R / R / R | [tools/README.md](../../tools/README.md) |
 | `tools/check_vba_jumps.py` / script | Resolve jumps and labels within their owning VBA procedures. | R / R / R | [tools/README.md](../../tools/README.md) |
@@ -184,6 +186,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/test_portfolio_quality.py` / script | Synthetic quality, missing-evidence and freshness-boundary fixtures. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
 | `tools/test_provision_repository.py` / script | Stateful simulated API fixtures for planning, guarded writes and partial failure. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `tools/test_release_provenance.py` / script | Release-payload fixtures and ephemeral SSH signing/verification controls. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
+| `tools/test_repository_settings.py` / script | Simulated API fixtures for the settings check: drift, unverified, not applicable and GET-only. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `tools/test_template_verification_depth.py` / script | Template-only verification-depth fixtures for maintainer tools removed during project generation. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/test_template_workflow_validation.py` / script | Template-only unit tests: reusable-workflow consumer fixtures, CodeQL and Scorecard contracts of the retained validator. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/test_verification_depth.py` / script | Focused behavioral failure-path coverage for release, release-semantics, template-contract, whitespace, external-link, local-action, initializer and closeout tooling. | R / R / R | [.github/workflows/static-checks.yml](../../.github/workflows/static-checks.yml) |

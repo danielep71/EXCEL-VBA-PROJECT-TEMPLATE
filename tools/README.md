@@ -18,6 +18,7 @@ gates below, a project keeps these tools, each documented by its authority:
 | `check_excel_evidence.py`, `test_excel_evidence.py`, `Certify-Excel.ps1`, `Certify-Excel.cmd`, `write_excel_evidence.py`, `test_write_excel_evidence.py` | [Excel evidence](../docs/EXCEL_EVIDENCE.md) |
 | `check_documentation.py`, `check_external_links.py`, `test_documentation.py` | [Documentation checks](../docs/DOCUMENTATION_CHECKS.md) |
 | `check_local_actions.py` | [Local actions](LOCAL_ACTIONS.md) |
+| `check_repository_settings.py`, `test_repository_settings.py` | [Post-creation checklist](../docs/POST_CREATION_CHECKLIST.md#capture-read-back-evidence): GET-only comparison of the live settings with the committed policy |
 | `release_certification.py` | [Release evidence](../docs/RELEASE_EVIDENCE.md) |
 | `_release_closeout.py` | [Release closeout](../docs/RELEASE_CLOSEOUT.md) |
 | `test_verification_depth.py` | Depth tests for the release, contract, whitespace, link, local-action, initializer and closeout tooling; run by *Static repository checks* |

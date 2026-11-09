@@ -12,11 +12,24 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, build_opener
 
 from _gatelib import run_gate
 from check_portfolio_drift import CONFIG, CORE_LABEL_NAMES, PROFILES, require
+from check_repository_settings import (
+    ANALYSIS_FEATURES,
+    BASELINE_RULESET_NAMES,
+    SECURITY_FEATURES,
+    UNIVERSAL_CHECK,
+    baseline_rules,
+    covered,
+    is_universal_check,
+    rule_covers,
+    security_states,
+    validate_extensions,
+)
 from check_template_contract import CONTRACT_RULE_SETS
 from collect_portfolio_snapshot import NoRedirect
 
@@ -26,6 +39,12 @@ FEATURES = {"has_issues", "has_wiki", "has_projects", "has_discussions", "is_tem
             "delete_branch_on_merge", "allow_update_branch"}
 METHODS = {"allow_merge_commit", "allow_squash_merge", "allow_rebase_merge"}
 FILES = (CONFIG, ".github/initialization.json", POLICY, ".github/labels.json")
+# Enabling writes for each security feature; secret scanning and push protection
+# are fields of one repository PATCH.
+SECURITY_WRITES = {"private_vulnerability_reporting": "/private-vulnerability-reporting",
+                   "vulnerability_alerts": "/vulnerability-alerts",
+                   "automated_security_fixes": "/automated-security-fixes"}
+__all__ = ["BASELINE_RULESET_NAMES", "UNIVERSAL_CHECK", "baseline_rules", "covered", "is_universal_check", "rule_covers"]
 
 
 def digest(value: Any) -> str:
@@ -36,12 +55,14 @@ class GitHub:
     def __init__(self, repository: str, token: str | None, apply: bool = False):
         require(bool(re.fullmatch(r"[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_-][A-Za-z0-9_.-]*", repository)), "Invalid repository")
         self.repository, self.token, self.apply = repository, token, apply
+        self.last_status = 0
 
     def request(self, method: str, path: str = "", body: Any = None) -> Any:
         require(path == "" or path.startswith("/") and not path.startswith("//") and ".." not in path,
                 "Invalid repository-relative API path")
         allowed_write = method == "PATCH" and (path == "" or path.startswith("/labels/")) or \
-            method == "PUT" and path == "/topics" or method == "POST" and path in {"/labels", "/rulesets"}
+            method == "PUT" and path in {"/topics", *SECURITY_WRITES.values()} or \
+            method == "POST" and path in {"/labels", "/rulesets"}
         require(method == "GET" or self.apply and bool(self.token) and allowed_write, "Write outside approved API surface")
         headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
         if self.token:
@@ -49,9 +70,18 @@ class GitHub:
         request = Request(f"https://api.github.com/repos/{self.repository}{path}",
                           data=None if body is None else json.dumps(body).encode(), headers=headers, method=method)
         with build_opener(NoRedirect).open(request, timeout=30) as response:
+            self.last_status = int(response.status)
             data = response.read(10_000_001)
         require(len(data) <= 10_000_000, "Response size limit")
         return json.loads(data) if data else None
+
+    def get_status(self, path: str) -> tuple[int, Any]:
+        """A GET whose HTTP status is part of the answer, as for the security endpoints."""
+        try:
+            body = self.request("GET", path)
+        except HTTPError as error:
+            return int(error.code), None
+        return self.last_status, body
 
 
 def collection(api: Any, path: str) -> list[Any]:
@@ -86,8 +116,10 @@ def capture(api: Any, sha: str) -> dict[str, Any]:
     require(all(isinstance(row.get("bypass_actors"), list) for row in rulesets), "Ruleset bypass evidence unavailable")
     rulesets = [{key: row.get(key) for key in ("id", "name", "target", "enforcement", "bypass_actors", "conditions", "rules")}
                 for row in rulesets]
+    security = security_states(api.get_status, meta)
     return {"repository": api.repository, "repository_id": meta["id"], "source_sha": sha,
             "default_branch": branch, "metadata": {key: meta.get(key) for key in sorted(FEATURES | {"description"})},
+            "security": security,
             "topics": sorted(topics), "labels": sorted(labels, key=lambda row: row["name"].lower()),
             "rulesets": sorted(rulesets, key=lambda row: row["id"]), "source": documents}
 
@@ -113,14 +145,6 @@ def desired_labels(manifest: dict[str, Any], config: dict[str, Any]) -> list[dic
     return sorted(labels, key=lambda row: row["name"].lower())
 
 
-UNIVERSAL_CHECK = "Repository integrity"
-
-
-def is_universal_check(name: str) -> bool:
-    """The universal job, run directly or as the job a reusable-workflow caller names."""
-    return name == UNIVERSAL_CHECK or name.endswith(" / " + UNIVERSAL_CHECK)
-
-
 def validate(before: dict[str, Any], profile: str, version: str) -> dict[str, Any]:
     require(profile in PROFILES and version in CONTRACT_RULE_SETS, "Unsupported contract/profile")
     config, record, policy = (before["source"][path] for path in FILES[:3])
@@ -134,8 +158,7 @@ def validate(before: dict[str, Any], profile: str, version: str) -> dict[str, An
     require(config["template_contract"] == record["template_contract"], "Initialization contract mismatch")
     require(policy.get("schema_version") == 1 and policy.get("contract_version") == version == "1.2.0",
             "No provisioning policy adapter for this contract version")
-    require(set(policy) == {"schema_version", "contract_version", "description", "topics", "features", "required_checks", "exceptions"},
-            "Unsupported provisioning policy fields")
+    validate_extensions(policy)
     policy = dict(policy)
     if policy["description"] == "@initialization:PROJECT_DESCRIPTION":
         policy["description"] = record["values"].get("PROJECT_DESCRIPTION")
@@ -153,58 +176,6 @@ def validate(before: dict[str, Any], profile: str, version: str) -> dict[str, An
     require(isinstance(policy["exceptions"], dict) and all(isinstance(reason, str) and bool(reason.strip())
             for reason in policy["exceptions"].values()), "Exceptions need reviewed rationale in source policy")
     return policy
-
-
-# Baseline ruleset names by target: the name created now, then legacy names from
-# earlier contract adapters. Coverage is judged by content, so a legacy-named
-# ruleset that still covers the baseline is simply kept; a baseline-named ruleset
-# with insufficient controls, under any of these names, blocks for review.
-BASELINE_RULESET_NAMES = {
-    "branch": ("Default branch protection", "Template default branch"),
-    "tag": ("Version tag protection", "Template version tags"),
-}
-
-
-def baseline_rules(policy: dict[str, Any]) -> list[dict[str, Any]]:
-    common = [{"type": "deletion"}, {"type": "non_fast_forward"}]
-    branch = {"name": BASELINE_RULESET_NAMES["branch"][0], "target": "branch", "enforcement": "active", "bypass_actors": [],
-              "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
-              "rules": common + [{"type": "pull_request", "parameters": {"required_approving_review_count": 0,
-                  "dismiss_stale_reviews_on_push": False, "require_code_owner_review": False,
-                  "require_last_push_approval": False, "required_review_thread_resolution": False}},
-                  {"type": "required_status_checks", "parameters": {"strict_required_status_checks_policy": True,
-                      "required_status_checks": [{"context": name} for name in sorted(set(policy["required_checks"]))]}}]}
-    tag = {"name": BASELINE_RULESET_NAMES["tag"][0], "target": "tag", "enforcement": "active", "bypass_actors": [],
-           "conditions": {"ref_name": {"include": ["refs/tags/v*"], "exclude": []}},
-           "rules": common + [{"type": "update", "parameters": {"update_allows_fetch_and_merge": False}}]}
-    return [branch, tag]
-
-
-def rule_covers(actual: dict[str, Any], desired: dict[str, Any]) -> bool:
-    if actual.get("type") != desired["type"]:
-        return False
-    expected, params = desired.get("parameters", {}), actual.get("parameters", {})
-    if desired["type"] == "required_status_checks":
-        names = {row["context"] for row in params.get("required_status_checks", [])}
-        return params.get("strict_required_status_checks_policy") is True and \
-            {row["context"] for row in expected["required_status_checks"]} <= names
-    if desired["type"] == "pull_request":
-        return bool(params.get("required_approving_review_count", -1) >= expected["required_approving_review_count"])
-    if desired["type"] == "update" and expected == {"update_allows_fetch_and_merge": False}:
-        # GitHub can omit the false update parameter when reading a ruleset back.
-        return params.get("update_allows_fetch_and_merge", False) is False
-    return all(params.get(key) == value for key, value in expected.items())
-
-
-def covered(existing: list[dict[str, Any]], desired: dict[str, Any], branch: str) -> bool:
-    accepted = {"~ALL", "~DEFAULT_BRANCH", f"refs/heads/{branch}"} if desired["target"] == "branch" else {"~ALL", "refs/tags/v*"}
-    rules = []
-    for item in existing:
-        scope = (item.get("conditions") or {}).get("ref_name", {})
-        if item.get("target") == desired["target"] and item.get("enforcement") == "active" and \
-                not item.get("bypass_actors") and not scope.get("exclude") and accepted.intersection(scope.get("include", [])):
-            rules += item.get("rules", [])
-    return all(any(rule_covers(actual, rule) for actual in rules) for rule in desired["rules"])
 
 
 def make_plan(before: dict[str, Any], profile: str, version: str) -> dict[str, Any]:
@@ -251,10 +222,47 @@ def make_plan(before: dict[str, Any], profile: str, version: str) -> dict[str, A
             blocked.append("Existing named ruleset differs; manual reviewed migration required: " + named[0])
         else:
             actions.append({"method": "POST", "path": "/rulesets", "body": desired})
+    if "security" in policy:
+        security_actions(policy["security"], before["security"], actions, kept, blocked)
     result = {"repository": before["repository"], "profile": profile, "contract_version": version,
               "source_sha": before["source_sha"], "before": before, "actions": actions,
               "keep": sorted(kept), "blocked": sorted(blocked), "exceptions": exceptions}
     return {**result, "plan_sha256": digest(result)}
+
+
+def security_actions(wanted: dict[str, bool], states: dict[str, dict[str, Any]], actions: list[dict[str, Any]],
+                     kept: list[str], blocked: list[str]) -> None:
+    """Enable each security feature the policy wants and the repository lacks.
+
+    A feature already on is never turned off; one GitHub does not offer here is
+    noted; one that cannot be read, or Dependabot security updates paused by
+    GitHub, blocks the plan for review instead of guessing.
+    """
+    analysis = {}
+    for key in SECURITY_FEATURES:
+        state = state_of(states, key)
+        if not wanted[key]:
+            continue
+        if not state["applies"]:
+            kept.append(f"Security feature not offered on this repository: {key} (public repositories only)")
+        elif state["observed"] is None:
+            blocked.append(f"Security feature unreadable: {key}; read it with an administrator token or in Settings")
+        elif state.get("paused"):
+            blocked.append("Dependabot security updates are paused; resume them in Settings > Code security")
+        elif state["observed"] is False:
+            if key in ANALYSIS_FEATURES:
+                analysis[key] = {"status": "enabled"}
+            else:
+                actions.append({"method": "PUT", "path": SECURITY_WRITES[key], "body": None})
+    if analysis:
+        actions.append({"method": "PATCH", "path": "", "body": {"security_and_analysis": analysis}})
+
+
+def state_of(states: dict[str, dict[str, Any]], key: str) -> dict[str, Any]:
+    state = states.get(key)
+    if not isinstance(state, dict):
+        raise ValueError("Security state missing: " + key)
+    return state
 
 
 def journal(path: Path, report: dict[str, Any]) -> None:

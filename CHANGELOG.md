@@ -114,6 +114,25 @@ Use only the categories needed by a release.
   kept without reading the Immediate window; examples keep `Debug.Print`.
   `-RepoRoot` certifies a generated project with the template's tools
   (#86, #87, #88, #90).
+- Live settings check and security provisioning.
+  `tools/check_repository_settings.py` re-reads a repository at any time and
+  compares it with the committed provisioning policy: features, description,
+  topics, the selected labels, both baseline rulesets, the security features
+  and the GitHub Actions settings. It sends GET requests only, reports each
+  setting as `PASS`, `DRIFT`, `UNVERIFIED` or `NOT_APPLICABLE`, never passes a
+  setting it cannot read, and exits 1 on drift or on an unverified setting. Its
+  JSON record carries the observation time and the SHA-256 of the policy. It
+  ships with full-tier generated projects. The provisioning policy gains a
+  `security` section (private vulnerability reporting, Dependabot alerts and
+  security updates, secret scanning, push protection) and an `actions` section
+  (SHA pinning required, read-only default workflow permissions, no pull-request
+  approval by Actions, fork approval for all external contributors, 90-day
+  retention). The provisioner enables each required security feature, alerts
+  before security updates, and never disables one; paused updates or an
+  unreadable feature block the plan, and public-only features are kept as not
+  offered on a private repository. Actions settings are checked, not written.
+  The design follows `danielep71/MyTemplate`, recorded in
+  `docs/DESIGN_PROVENANCE.md` (#161).
 - Governance tiers. `initialize_repository.py --governance-tier minimal`
   generates a lighter project that keeps the four standard-library gates
   (`check_repo`, `check_vba_public_api`, `check_vba_jumps`,

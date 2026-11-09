@@ -374,6 +374,11 @@
       "kind": "document",
       "authority": "docs/DEPENDENCY_UPDATES.md"
     },
+    "docs/DESIGN_PROVENANCE.md": {
+      "purpose": "Design origin and revision of solutions reimplemented from the maintainer's other repositories; template only.",
+      "kind": "document",
+      "authority": "docs/DESIGN_PROVENANCE.md"
+    },
     "docs/DOCUMENTATION_CHECKS.md": {
       "purpose": "Offline command/reference validation and separate external-link policy.",
       "kind": "document",
@@ -739,6 +744,11 @@
       "kind": "script",
       "authority": "tools/README.md"
     },
+    "tools/check_repository_settings.py": {
+      "purpose": "GET-only comparison of live repository settings, labels, rulesets, security features and Actions settings with the committed policy; dated evidence.",
+      "kind": "script",
+      "authority": "docs/POST_CREATION_CHECKLIST.md"
+    },
     "tools/check_template_contract.py": {
       "purpose": "Resolve adopted contract versions and reject invalid or unsupported identities.",
       "kind": "script",
@@ -883,6 +893,11 @@
       "purpose": "Release-payload fixtures and ephemeral SSH signing/verification controls.",
       "kind": "script",
       "authority": "docs/RELEASE_PROVENANCE.md"
+    },
+    "tools/test_repository_settings.py": {
+      "purpose": "Simulated API fixtures for the settings check: drift, unverified, not applicable and GET-only.",
+      "kind": "script",
+      "authority": "docs/POST_CREATION_CHECKLIST.md"
     },
     "tools/test_template_verification_depth.py": {
       "purpose": "Template-only verification-depth fixtures for maintainer tools removed during project generation.",
