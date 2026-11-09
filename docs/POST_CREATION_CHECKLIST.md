@@ -41,8 +41,10 @@ The versioned selection authority is `.github/repository-profile.json`:
 <!-- template:tier:full:start -->
 ### Trusted reconciliation
 
-On the first trusted push to `main`, or by a deliberate manual dispatch, run
-`Sync issue labels`. The workflow must resolve policy itself; do not supply an
+On the first trusted push to `main`, or by a deliberate manual dispatch from the
+default branch, run `Sync issue labels`. A dispatch on any other branch validates
+the manifest and skips reconciliation, so an unmerged catalogue change never
+reaches the live labels. The workflow must resolve policy itself; do not supply an
 unrecorded profile or domain at dispatch time.
 
 - [ ] The synchronization summary names `.github/repository-profile.json` as the

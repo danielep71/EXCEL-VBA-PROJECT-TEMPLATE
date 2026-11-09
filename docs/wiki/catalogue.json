@@ -374,6 +374,11 @@
       "kind": "document",
       "authority": "docs/DEPENDENCY_UPDATES.md"
     },
+    "docs/DESIGN_PROVENANCE.md": {
+      "purpose": "Design origin and revision of solutions reimplemented from the maintainer's other repositories; template only.",
+      "kind": "document",
+      "authority": "docs/DESIGN_PROVENANCE.md"
+    },
     "docs/DOCUMENTATION_CHECKS.md": {
       "purpose": "Offline command/reference validation and separate external-link policy.",
       "kind": "document",
