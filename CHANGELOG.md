@@ -381,9 +381,10 @@ Use only the categories needed by a release.
 - The Code of Conduct states that Contributor Covenant 2.1 is kept
   deliberately. The canonical-template release certification gains a step:
   when the called *Static repository checks* workflow changed since the last
-  published interface pin, the hosted consumer fixtures run against the
-  candidate and the next interface revision is published. For this release that
-  is `1.0.1`, which carries the job-level concurrency fix.
+  published interface pin, the next interface revision is published before the
+  final candidate is frozen, pinned to an earlier provider commit whose called
+  workflow the candidate keeps unchanged. For this release that is `1.0.1`,
+  which carries the job-level concurrency fix.
 
 ## [1.2.1] - 2026-09-28
 
