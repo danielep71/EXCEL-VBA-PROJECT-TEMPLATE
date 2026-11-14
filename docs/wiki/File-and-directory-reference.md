@@ -172,6 +172,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/policy_coverage_cases_repo.py` / script | Synthetic repository/Git branch cases; imported helper. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/policy_coverage_core.py` / script | Coverage fixture data model and shared branch-observation primitives; imported helper. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/policy_coverage_runner.py` / script | Aggregate semantic branch observations into reproducible policy-coverage reports. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
+| `tools/prepare_release_evidence.py` / script | Assemble release evidence before the tag and build the certification bundle after it. | X / X / X | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/provision_repository.py` / script | Plan live new-repository settings or apply a reviewed digest with a durable journal. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `tools/release_certification.py` / script | Build or verify deterministic, candidate-bound release certification bundles. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/release_provenance.py` / script | Release helper for complete payloads, build identity and optional SSH verification. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
@@ -184,6 +185,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/test_excel_evidence.py` / script | Synthetic host-record and stage-failure fixtures; does not execute Excel. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `tools/test_portfolio_drift.py` / script | Synthetic structural/adoption drift fixtures for all supported profiles. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |
 | `tools/test_portfolio_quality.py` / script | Synthetic quality, missing-evidence and freshness-boundary fixtures. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
+| `tools/test_prepare_release_evidence.py` / script | Simulated git, gh and sibling-tool fixtures for release-evidence assembly. | X / X / X | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/test_provision_repository.py` / script | Stateful simulated API fixtures for planning, guarded writes and partial failure. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `tools/test_release_provenance.py` / script | Release-payload fixtures and ephemeral SSH signing/verification controls. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `tools/test_repository_settings.py` / script | Simulated API fixtures for the settings check: drift, unverified, not applicable and GET-only. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
