@@ -24,8 +24,9 @@ generic result never claims to certify any of those activities.
 
 ## 📋 Interface v1
 
-The initial interface revision is `1.0.0`, independent of the product release
-and template contract. Annotate its immutable caller pin with `# v1.0.0`.
+The initial interface revision is `1.0.0` and the current one is `1.0.1`, both
+independent of the product release and template contract. Annotate the immutable
+caller pin with its revision, such as `# v1.0.1`.
 A version comment describes the pin; it never substitutes for the full SHA.
 
 ### Published immutable pin
@@ -33,6 +34,7 @@ A version comment describes the pin; it never substitutes for the full SHA.
 | Interface | Provider commit | Publication |
 | --- | --- | --- |
 | `1.0.0` | `466c48d9f4a5f984ae58561d1441089ef09975d1` | Published by commit SHA on 2026-09-08 after all three hosted consumer fixtures passed |
+| `1.0.1` | `a3facfd44ecfc896ca173266c48ba90049d889d4` | Published by commit SHA on 2026-11-14 after all three hosted consumer fixtures and the negative controls passed; released with v1.3.0. The ref `interface/reusable-workflow-1.0.1` keeps it reachable |
 
 This is commit-based publication of the workflow interface, **not** publication
 of the v1.2.0 product release, and no product tag was created or moved. The
@@ -47,9 +49,15 @@ disposable and are never consumer pins or merge candidates.
 > kept the same group in its own workflow-level `concurrency` waits on itself
 > and GitHub cancels the run as a deadlock. With this pin, give the caller's
 > group a different name (for example `static-checks-caller-…`) or drop it.
-> The next interface revision, `1.0.1`, moves the called concurrency to job
-> level. It is published with the next template release and listed here only
-> once its hosted consumer fixtures pass.
+> Interface `1.0.1` removes this limitation: its called concurrency is job
+> level, so the caller may keep any workflow-level group.
+
+**Moving a pin from `1.0.0` to `1.0.1`** is a coupled caller-tool migration.
+The `1.0.1` workflow also runs `tools/test_repository_settings.py` and
+`tools/test_write_excel_evidence.py` and installs the quality tools from
+`tools/requirements-quality-ci.txt`. A repository generated before v1.3.0
+takes those files, and the scripts they test, from the v1.3.0 template in
+the same reviewed pull request as the new pin.
 
 | Surface | Contract |
 | --- | --- |
@@ -94,8 +102,8 @@ restrictions in [Reuse workflows](https://docs.github.com/en/actions/how-tos/reu
    call to `SOURCE/.github/workflows/static-checks.yml@SHA`, where `SOURCE` is
    `template_contract.source`,
    substituting that exact 40-character SHA. Preserve caller triggers and branch
-   filters. Keep caller concurrency only under a group name the called workflow
-   does not use (see the `1.0.0` limitation above). Set workflow permissions to
+   filters. With a `1.0.0` pin, keep caller concurrency only under a group name
+   the called workflow does not use (see its limitation above). Set workflow permissions to
    `contents: read`.
    The identity gate permits this exact upstream reference in workflow files;
    floating refs, other sources and leftover template branding remain rejected.
