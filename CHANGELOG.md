@@ -123,9 +123,19 @@ Use only the categories needed by a release.
   The release tools refuse a scratch directory that is, contains or lies
   inside the candidate checkout, and clone the Wiki with LF line endings so
   `core.autocrlf=true` cannot break the byte comparison.
+- `tools/cut_release.py --version X.Y.Z` cuts a release candidate on
+  `chore/cut-vX.Y.Z`. It moves the Unreleased entries into the dated section
+  and updates the comparison links and VERSION. It then commits and runs
+  release semantics on that commit; `--push` also opens the pull request
+  (#198).
 
 ### Changed
 
+- The external-link check reports the release links of the version in
+  `VERSION` as pending publication while they return 404. These are
+  `compare/vX.Y.Z...HEAD`, `compare/<previous>...vX.Y.Z` and
+  `releases/tag/vX.Y.Z`. No `pending-publication` classification needs adding
+  at the cut or removing after publication (#198).
 - Removed the two temporary `pending-publication` classifications for the
   v1.3.0 comparison links now that the tag is published; both links again
   receive the normal anonymous external-link check.

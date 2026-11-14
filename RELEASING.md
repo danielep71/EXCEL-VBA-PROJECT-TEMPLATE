@@ -88,6 +88,19 @@ published section merely because tagging or publication occurs on a later day.
 If a candidate is abandoned and the release section is materially reopened, a
 later reviewed cut/freeze may deliberately use a new date.
 
+<!-- template:remove:start -->
+For the canonical template, `python3 tools/cut_release.py --version X.Y.Z`
+does this on a branch `chore/cut-vX.Y.Z`:
+
+- moves the Unreleased entries into the section dated today, or `--date`;
+- updates the comparison links and VERSION;
+- commits the change and runs release semantics on that commit.
+
+`--push` also opens the pull request. The new comparison links need no
+`pending-publication` classification: the external-link check reports them as
+pending until the tag exists.
+<!-- template:remove:end -->
+
 Do not duplicate the remaining SemVer/order/link rules here. Run the authoritative
 semantic contract:
 

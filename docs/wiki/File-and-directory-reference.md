@@ -165,6 +165,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/checker_development.py` / script | Independent canonical-checker architecture, self-test and shared-runner contract. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/collect_portfolio_snapshot.py` / script | GET-only capture of explicit repositories and source/live observations. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |
 | `tools/create_reusable_workflow_fixture.py` / script | Create a disposable initialized caller pinned to an explicit provider commit. | X / X / X | [docs/REUSABLE_WORKFLOWS.md](../../docs/REUSABLE_WORKFLOWS.md) |
+| `tools/cut_release.py` / script | Cut a release candidate on a branch: dated CHANGELOG section, links and VERSION, checked by release semantics. | X / X / X | [RELEASING.md](../../RELEASING.md) |
 | `tools/dev_check.sh` / script | Run the locally reproducible part of hosted CI with the pinned tool versions. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/initialize_repository.py` / script | Validate values, preview transformations, apply once, verify identical-input no-op, select the governance tier and upgrade a minimal project to full in place. | R / R / R | [docs/INITIALIZATION.md](../../docs/INITIALIZATION.md) |
 | `tools/policy_coverage_cases_config.py` / script | Synthetic configuration and policy-validation branch cases; imported helper. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
@@ -183,6 +184,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/requirements-dev.txt` / policy | Local development pins mirroring the versions hosted CI installs. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
 | `tools/requirements-portfolio-ci.txt` / policy | Hash-locked CPython 3.10/Linux x64 PyYAML wheel for portfolio fixtures. | X / X / X | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `tools/requirements-quality-ci.txt` / policy | Hash-locked CPython 3.10/Linux x64 wheels for hosted Ruff and mypy quality checks. | R / R / R | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
+| `tools/test_cut_release.py` / script | Offline CHANGELOG cut cases and a temporary-repository branch flow for cut_release.py. | X / X / X | [RELEASING.md](../../RELEASING.md) |
 | `tools/test_documentation.py` / script | Offline command/reference and HTTP failure fixtures; no live website certification. | R / R / R | [docs/DOCUMENTATION_CHECKS.md](../../docs/DOCUMENTATION_CHECKS.md) |
 | `tools/test_excel_evidence.py` / script | Synthetic host-record and stage-failure fixtures; does not execute Excel. | R / R / R | [docs/EXCEL_EVIDENCE.md](../../docs/EXCEL_EVIDENCE.md) |
 | `tools/test_portfolio_drift.py` / script | Synthetic structural/adoption drift fixtures for all supported profiles. | X / X / X | [docs/PORTFOLIO_DRIFT.md](../../docs/PORTFOLIO_DRIFT.md) |

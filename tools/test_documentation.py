@@ -510,6 +510,27 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(report["counts"]["pending_publication"], 1)
         self.assertEqual(report["counts"]["deterministic_public_defects"], 0)
 
+    def test_release_links_of_the_current_version_await_their_tag(self) -> None:
+        repo = "https://github.com/owner/repo"
+        (self.root / "VERSION").write_text("1.4.0\n")
+        (self.root / ".github/repository-profile.json").write_text(json.dumps({"repository": "owner/repo"}))
+        pending = [f"{repo}/compare/v1.4.0...HEAD", f"{repo}/compare/v1.3.0...v1.4.0", f"{repo}/releases/tag/v1.4.0"]
+        defects = [f"{repo}/compare/v1.3.0...v1.3.1", f"{repo}/releases/tag/v1.4.0-extra",
+                   "https://github.com/other/repo/releases/tag/v1.4.0", f"{repo}/blob/v1.4.0/README.md"]
+        (self.root / "README.md").write_text("".join(f"[link]({url})\n" for url in pending + defects))
+        self.policy["network"]["domains"] = {"github.com": "Synthetic forge"}
+        self.save()
+        report = links.build_report(self.root, TODAY, lambda url, timeout: (404, None), lambda seconds: None)
+        statuses = {row["locations"][0]: row["status"] for row in report["links"]}
+        self.assertEqual([statuses[f"README.md:{line}"] for line in range(1, 8)],
+                         ["PENDING_PUBLICATION"] * 3 + ["PERMANENT_FAILURE"] * 4)
+        self.assertEqual(report["counts"]["pending_publication"], 3)
+        self.assertEqual(report["status"], "fail")
+        published = links.build_report(self.root, TODAY, lambda url, timeout: (200, None), lambda seconds: None)
+        self.assertEqual({row["status"] for row in published["links"]}, {"OK"})
+        (self.root / "VERSION").unlink()
+        self.assertFalse(links.awaiting_tag(self.root)(pending[0]))
+
     def test_classification_cannot_override_local_url_policy(self) -> None:
         cases = (
             ("http://example.org/private-history", "POLICY_BLOCKED", "fail"),

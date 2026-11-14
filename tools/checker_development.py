@@ -98,11 +98,13 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     ),
     "collect_portfolio_snapshot.py": ("utility", "GET-only evidence capture, not a report gate"),
     "create_reusable_workflow_fixture.py": ("utility", "disposable consumer provisioning, not a report gate"),
+    "cut_release.py": ("utility", "release-cut branch preparation, not a report gate"),
     "initialize_repository.py": ("utility", "repository provisioning CLI, not a report gate"),
     "prepare_release_evidence.py": ("utility", "release-evidence and certification-bundle assembly, not a report gate"),
     "publish_release.py": ("utility", "maintainer-confirmed tag, bundle and GitHub Release publication, not a report gate"),
     "publish_wiki.py": ("utility", "maintainer-confirmed Wiki publication with byte read-back, not a report gate"),
     "write_excel_evidence.py": ("utility", "evidence-bundle record writer, not a report gate"),
+    "test_cut_release.py": ("test-runner", _UNITTEST),
     "test_documentation.py": ("test-runner", _UNITTEST),
     "test_excel_evidence.py": ("test-runner", _UNITTEST),
     "test_portfolio_drift.py": ("test-runner", _UNITTEST),
@@ -140,6 +142,7 @@ PRIVATE_ACCESS_ALLOWLIST: dict[tuple[str, str, str], str] = {
 # These CLIs deliberately keep their fixtures separate from operational arguments.
 # Reasons identify the alternate test command, or explicitly disclose no offline suite.
 SELF_TEST_EXCLUSIONS = {
+    "test_cut_release.py": "Template-only unittest CLI; offline CHANGELOG cases and a temporary repository",
     "test_documentation.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_excel_evidence.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_portfolio_drift.py": "Unittest CLI; normal invocation runs its fixture suite",
@@ -175,6 +178,7 @@ SELF_TEST_EXCLUSIONS = {
         "Simulated publication fixtures: python tools/test_publish_release.py -v; no live GitHub call"
     ),
     "publish_wiki.py": "Simulated Wiki fixtures: python tools/test_publish_wiki.py -v; no live push",
+    "cut_release.py": "Temporary-repository fixtures: python tools/test_cut_release.py -v; no live push",
     "check_repository_settings.py": "Simulated GitHub API: python tools/test_repository_settings.py -v; no live request",
     "test_workflow_validation.py": "Normal invocation runs authoritative actionlint fixtures",
     "create_reusable_workflow_fixture.py": (

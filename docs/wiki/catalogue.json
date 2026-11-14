@@ -789,6 +789,11 @@
       "kind": "script",
       "authority": "docs/REUSABLE_WORKFLOWS.md"
     },
+    "tools/cut_release.py": {
+      "purpose": "Cut a release candidate on a branch: dated CHANGELOG section, links and VERSION, checked by release semantics.",
+      "kind": "script",
+      "authority": "RELEASING.md"
+    },
     "tools/dev_check.sh": {
       "purpose": "Run the locally reproducible part of hosted CI with the pinned tool versions.",
       "kind": "script",
@@ -878,6 +883,11 @@
       "purpose": "Hash-locked CPython 3.10/Linux x64 wheels for hosted Ruff and mypy quality checks.",
       "kind": "policy",
       "authority": "docs/DEPENDENCY_UPDATES.md"
+    },
+    "tools/test_cut_release.py": {
+      "purpose": "Offline CHANGELOG cut cases and a temporary-repository branch flow for cut_release.py.",
+      "kind": "script",
+      "authority": "RELEASING.md"
     },
     "tools/test_documentation.py": {
       "purpose": "Offline command/reference and HTTP failure fixtures; no live website certification.",
