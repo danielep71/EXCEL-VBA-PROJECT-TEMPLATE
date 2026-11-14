@@ -160,8 +160,8 @@ zero failures, complete execution and passing cleanup.
 The library reference adds `TextTests.RunTextTests` (29 cases, 135 assertions).
 <!-- template:profile:library:end -->
 <!-- template:profile:ui-component:start -->
-The ui-component reference adds `ProgressTests.RunProgressTests` (12 cases; 79
-assertions on Windows, 75 on macOS).
+The ui-component reference adds `ProgressTests.RunProgressTests` (12 cases; 83
+assertions on Windows, 79 on macOS).
 <!-- template:profile:ui-component:end -->
 <!-- template:profile:application:start -->
 The application reference adds `LifecycleTests.RunLifecycleTests` (16 cases, 106

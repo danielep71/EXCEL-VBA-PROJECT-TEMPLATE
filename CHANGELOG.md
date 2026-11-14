@@ -100,6 +100,8 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-14
+
 ### Added
 
 - One-command Excel certification. `tools/Certify-Excel.ps1` (or the
@@ -469,6 +471,11 @@ Use only the categories needed by a release.
   final candidate is frozen, pinned to an earlier provider commit whose called
   workflow the candidate keeps unchanged. For this release that is `1.0.1`,
   which carries the job-level concurrency fix.
+- Reusable-workflow interface `1.0.1` is published by commit SHA
+  `a3facfd44ecfc896ca173266c48ba90049d889d4` after all three hosted consumer
+  fixtures and the negative controls passed (#23). The adoption guide lists
+  it next to `1.0.0` and says that moving a pin to it also brings the caller
+  the local scripts its workflow runs.
 
 ## [1.2.1] - 2026-09-28
 
@@ -668,7 +675,8 @@ Use only the categories needed by a release.
 - Made profile and domain label selection a versioned repository policy that
   both the checker and trusted reconciliation workflow validate and consume.
 
-[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.0.0...v1.1.0
