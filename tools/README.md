@@ -115,7 +115,8 @@ then writes `host.json` from the logs, validates it with
 `check_excel_evidence.py`, checks each suite's counts against the constants its
 source declares and writes `certification.md`; its fixtures are
 `test_write_excel_evidence.py`. `-RepoRoot` points the same tools at a
-generated project. See the
+generated project; a minimal-tier one, which keeps no host-evidence policy, gets
+a run-only result without `host.json`. See the
 [one-command certification](../docs/EXCEL_EVIDENCE.md#one-command-certification).
 
 Appropriate contents include:

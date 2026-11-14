@@ -405,6 +405,31 @@ class DocumentationTests(unittest.TestCase):
         workflow.write_text(workflow.read_text().replace("Example workflow", "Changed workflow"))
         self.assertEqual(len(docs.build_report(self.root)["findings"]), 2)
 
+    def test_job_context_satisfied_by_sha_pinned_reusable_caller(self) -> None:
+        workflow = self.root / ".github/workflows/fixture.yml"
+        caller = "name: Caller\njobs:\n  generic:\n    uses: owner/repo/.github/workflows/fixture.yml@{ref}\n    with:\n      x: y\n"
+        workflow.write_text(caller.format(ref="a" * 40))
+        (self.root / ".github/repository-profile.json").write_text(
+            json.dumps({"template_contract": {"source": "owner/repo"}}))
+        (self.root / "README.md").write_text("Example context\n")
+        self.policy["references"] = [
+            {"document": "README.md", "target": ".github/workflows/fixture.yml", "token": "Example context", "kind": "job-name", "job": "check"}]
+        self.save()
+        self.assertEqual(docs.build_report(self.root)["status"], "pass")
+        for ref in ("main", "a" * 39, "A" * 40):
+            with self.subTest(ref=ref):
+                workflow.write_text(caller.format(ref=ref))
+                self.assertEqual(docs.build_report(self.root)["status"], "fail")
+        workflow.write_text(caller.replace("fixture.yml", "other.yml").format(ref="a" * 40))
+        self.assertEqual(docs.build_report(self.root)["status"], "fail")
+        for provider in ("unrelated/project", "owner/repo-fork", "xowner/repo"):
+            with self.subTest(provider=provider):
+                workflow.write_text(caller.replace("owner/repo", provider).format(ref="a" * 40))
+                self.assertEqual(docs.build_report(self.root)["status"], "fail")
+        workflow.write_text(caller.format(ref="a" * 40))
+        (self.root / ".github/repository-profile.json").unlink()
+        self.assertEqual(docs.build_report(self.root)["status"], "fail")
+
     def test_filename_and_policy_value_drift(self) -> None:
         (self.root / "value.json").write_text('{"required": true}')
         (self.root / "README.md").write_text("Required value.json\n")

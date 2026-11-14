@@ -100,6 +100,8 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-14
+
 ### Added
 
 - One-command Excel certification. `tools/Certify-Excel.ps1` (or the
@@ -112,7 +114,10 @@ Use only the categories needed by a release.
   writes `certification.md`. Each suite and example runs through a generated
   `CertificationRunner` wrapper with an error handler, so a failing suite is
   recorded and its log closed instead of stopping the run on Visual Basic's
-  modal error window, and the summary names the raised error first (#178). The new `TestLog` module is the print routine
+  modal error window, and the summary names the raised error first (#178). A
+  minimal-tier project, which keeps no host-evidence policy, runs in run-only
+  mode: every suite and example is judged against its source, a workbook left
+  open fails the run, and no `host.json` is written (#184). The new `TestLog` module is the print routine
   of every test module: `TestLog.Say` writes to the Immediate window and, while
   a certification log is open, to that suite's log, so a complete report is
   kept without reading the Immediate window; examples keep `Debug.Print`.
@@ -307,6 +312,15 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- A repository that adopts the reusable workflow no longer fails its
+  documentation contracts. Replacing the `repository-integrity` job with a
+  job-level call removed the job that the registered `Repository integrity`
+  reference names. `check_documentation.py` now accepts, in its place, a call
+  pinned to a full commit SHA to the same workflow in the upstream template
+  recorded as `template_contract.source`, which defines that job; other
+  providers, floating refs and other workflow paths still fail. The
+  consumer fixture generator annotates interface `1.0.1` and keeps the caller
+  concurrency group that deadlocked under `1.0.0` (#186).
 - A progress session could leave the text `FALSE` in the status bar. Some
   Excel builds, among them 16.0.20430 on Windows, read a status bar Excel owns
   back as the String `"FALSE"` instead of the Boolean `False`;
@@ -458,6 +472,12 @@ Use only the categories needed by a release.
   final candidate is frozen, pinned to an earlier provider commit whose called
   workflow the candidate keeps unchanged. For this release that is `1.0.1`,
   which carries the job-level concurrency fix.
+- Reusable-workflow interface `1.0.1` is published by commit SHA
+  `a3facfd44ecfc896ca173266c48ba90049d889d4` after all three hosted consumer
+  fixtures and the negative controls passed (#23). The adoption guide lists
+  it next to `1.0.0` and says that moving a pin to it also brings the
+  caller's gate scripts, tests, policy files and quality configuration to the
+  v1.3.0 template in the same pull request.
 
 ## [1.2.1] - 2026-09-28
 
@@ -657,7 +677,8 @@ Use only the categories needed by a release.
 - Made profile and domain label selection a versioned repository policy that
   both the checker and trusted reconciliation workflow validate and consume.
 
-[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/compare/v1.0.0...v1.1.0

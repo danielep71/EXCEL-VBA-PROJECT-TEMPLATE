@@ -186,6 +186,18 @@
         "kind": "restricted-historical",
         "reason": "Authenticated v1.0.0 pilot evidence retained for historical audit; anonymous GitHub access is not expected.",
         "expires": "2027-09-12"
+      },
+      {
+        "id": "7ff9fc3e35ce42dcc6dacce0c07153e86cecda4fdc3816003bd079874a24aa28",
+        "kind": "pending-publication",
+        "reason": "v1.3.0 CHANGELOG comparison link; resolves only after the v1.3.0 tag is pushed. Remove after publication and require the normal anonymous check.",
+        "expires": "2026-12-31"
+      },
+      {
+        "id": "15d61a223a2c491da1b8c3815aec1c08538bf62be77b0ae46eb6ec987453a68d",
+        "kind": "pending-publication",
+        "reason": "v1.3.0 CHANGELOG comparison link; resolves only after the v1.3.0 tag is pushed. Remove after publication and require the normal anonymous check.",
+        "expires": "2026-12-31"
       }
     ]
   }

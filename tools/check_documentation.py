@@ -54,6 +54,27 @@ def commands(text: str) -> list[tuple[str, set[str]]]:
     return result
 
 
+def template_source(root: Path) -> str | None:
+    # The upstream template recorded by the repository profile, if any.
+    try:
+        profile = json.loads((root / ".github/repository-profile.json").read_text(encoding="utf-8"))
+        source = profile["template_contract"]["source"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return source if isinstance(source, str) and re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", source) else None
+
+
+def reusable_caller(text: str, target: str, source: str | None) -> bool:
+    # A job-level call to <template_contract.source>/<target>@<full SHA>: the
+    # reusable-workflow adoption path. Other providers, floating refs and other
+    # workflow paths never qualify.
+    if source is None:
+        return False
+    pattern = (rf"^  [A-Za-z0-9_-]+:\s*\n(?:^    .*\n|^\s*\n)*?"
+               rf"^    uses:\s*{re.escape(source)}/{re.escape(target)}@[0-9a-f]{{40}}(?:\s|$)")
+    return re.search(pattern, text, re.MULTILINE) is not None
+
+
 def reference_check(root: Path, files: set[str], record: Any) -> None:
     require(isinstance(record, dict), "reference must be an object")
     document, target, token = record.get("document"), record.get("target"), record.get("token")
@@ -70,6 +91,10 @@ def reference_check(root: Path, files: set[str], record: Any) -> None:
             job = record.get("job")
             require(nonempty(job), "job-name reference requires job ID")
             match = re.search(rf"^  {re.escape(job)}:\s*\n((?:^    .*\n|^\s*\n)*)", text, re.MULTILINE)
+            if match is None and reusable_caller(text, target, template_source(root)):
+                # An adopter replaced the job with a SHA-pinned call to the
+                # upstream template's copy of this workflow, which defines the job.
+                return
             require(match is not None, f"workflow job ID changed: {target}")
             assert match is not None
             text = match[1]
