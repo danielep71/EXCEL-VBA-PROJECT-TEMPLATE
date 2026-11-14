@@ -27,6 +27,8 @@ gates below, a project keeps these tools, each documented by its authority:
 The complete, gate-checked inventory of `tools/`, with each file's purpose and
 whether each profile keeps it, is the
 [file and directory reference](../docs/wiki/File-and-directory-reference.md).
+The template-only `prepare_release_evidence.py` assembles the release evidence and
+the certification bundle; see [Release evidence](../docs/RELEASE_EVIDENCE.md#-assemble-the-evidence-with-one-command).
 The template-only `dev_check.sh` runs the local pre-push suite; see
 [checker development](../docs/CHECKER_DEVELOPMENT.md#-local-pre-push-validation).
 <!-- template:remove:end -->

@@ -254,7 +254,54 @@ certification-v1.2.1.manifest.json
 certification-v1.2.1.sha256
 ```
 
-Build and locally verify them after the candidate is frozen and the final
+<!-- template:remove:start -->
+<a id="-assemble-the-evidence-with-one-command"></a>
+
+### Assemble the evidence with one command
+
+`tools/prepare_release_evidence.py` does the assembly that the manual commands
+below describe. Run it on the maintainer's machine, from a clean checkout of
+the frozen candidate, with `gh` signed in. It reads GitHub through `gh api`
+only. It never signs, pushes or publishes.
+
+```bash
+python3 tools/prepare_release_evidence.py prepare --root . --tag vX.Y.Z \
+  --candidate-sha FULL_CANDIDATE_SHA --work-dir ../release-work \
+  --excel-bundle ../excel-evidence-SHORTSHA --wiki-browser-reviewed \
+  --pilot-record ../clean-room-journey.md --pilot-summary "One-sentence pilot outcome."
+```
+
+`prepare` refuses a dirty tree or a checkout at another commit. It then:
+
+1. validates the Certify-Excel host record and copies the bundle, without the workbook, into `release-work/evidence/`;
+2. requires successful push runs of *Static repository checks* and, for the template, of the generated-profile matrix at the candidate;
+3. reads back the live rulesets and requires the baseline with no bypass actors;
+4. downloads the external-link report of a successful run at the candidate, which must report zero deterministic defects;
+5. clones the published Wiki and compares it byte for byte with the candidate;
+6. runs the local release gates and writes `gate-evidence.md`;
+7. writes `release-evidence.json`, computing the `excel-host-evidence` binding;
+8. runs the pre-tag `check_release.py`.
+
+A generated project gets the core and host-evidence checks. Its profile checks
+are supplied as `--check NAME=DETAIL`.
+
+Review every file under `release-work/evidence/` for private data, sign and
+push the tag, then run:
+
+```bash
+python3 tools/prepare_release_evidence.py bundle --root . --tag vX.Y.Z \
+  --candidate-sha FULL_CANDIDATE_SHA --work-dir ../release-work --redaction-reviewed
+```
+
+`bundle` runs the post-tag `check_release.py`, which includes the signature
+check. It writes the certification specification with one unique role per
+record and builds the bundle into `release-work/out/`. It then verifies the
+bundle and rebuilds it, failing unless both builds are identical. Sign the ZIP
+as shown below. The fixtures run offline with
+`python3 tools/test_prepare_release_evidence.py -v`.
+<!-- template:remove:end -->
+
+Build and locally verify the files after the candidate is frozen and the final
 release evidence is available:
 
 ```bash

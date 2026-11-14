@@ -100,6 +100,16 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+### Added
+
+- `tools/prepare_release_evidence.py` assembles a canonical release's evidence
+  with one command per side of the tag. `prepare` validates the Certify-Excel
+  record, reads the hosted runs, live rulesets, external-link report and
+  published Wiki through `gh api`, runs the local gates and writes
+  `release-evidence.json` with the host-evidence binding computed. `bundle`
+  runs the post-tag check and builds, verifies and rebuilds the certification
+  bundle. It never signs, pushes or publishes (#195).
+
 ### Changed
 
 - Removed the two temporary `pending-publication` classifications for the

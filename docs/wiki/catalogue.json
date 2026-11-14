@@ -824,6 +824,11 @@
       "kind": "script",
       "authority": "docs/CHECKER_DEVELOPMENT.md"
     },
+    "tools/prepare_release_evidence.py": {
+      "purpose": "Assemble release evidence before the tag and build the certification bundle after it.",
+      "kind": "script",
+      "authority": "docs/RELEASE_EVIDENCE.md"
+    },
     "tools/provision_repository.py": {
       "purpose": "Plan live new-repository settings or apply a reviewed digest with a durable journal.",
       "kind": "script",
@@ -883,6 +888,11 @@
       "purpose": "Synthetic quality, missing-evidence and freshness-boundary fixtures.",
       "kind": "script",
       "authority": "docs/PORTFOLIO_QUALITY.md"
+    },
+    "tools/test_prepare_release_evidence.py": {
+      "purpose": "Simulated git, gh and sibling-tool fixtures for release-evidence assembly.",
+      "kind": "script",
+      "authority": "docs/RELEASE_EVIDENCE.md"
     },
     "tools/test_provision_repository.py": {
       "purpose": "Stateful simulated API fixtures for planning, guarded writes and partial failure.",
