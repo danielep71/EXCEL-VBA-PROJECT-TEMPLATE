@@ -179,6 +179,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/publish_wiki.py` / script | Export the Wiki from the candidate, publish it after confirmation and verify a fresh clone byte for byte. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `tools/release_certification.py` / script | Build or verify deterministic, candidate-bound release certification bundles. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/release_provenance.py` / script | Release helper for complete payloads, build identity and optional SSH verification. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
+| `tools/release_template.py` / script | Release the canonical template with one resumable command that chains every release tool. | X / X / X | [RELEASING.md](../../RELEASING.md) |
 | `tools/report_portfolio_quality.py` / script | Produce freshness-aware quality/conformance reports from captured observations. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
 | `tools/requirements-coverage-ci.txt` / policy | Hash-locked CPython 3.10/Linux x64 wheels for hosted coverage and PyYAML checks. | X / X / X | [docs/DEPENDENCY_UPDATES.md](../../docs/DEPENDENCY_UPDATES.md) |
 | `tools/requirements-dev.txt` / policy | Local development pins mirroring the versions hosted CI installs. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |
@@ -195,6 +196,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/test_publish_release.py` / script | Simulated git, gh, ssh-keygen and sibling-tool fixtures for release publication. | X / X / X | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/test_publish_wiki.py` / script | Simulated Wiki remote fixtures for publication, removed-page review and read-back. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `tools/test_release_provenance.py` / script | Release-payload fixtures and ephemeral SSH signing/verification controls. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
+| `tools/test_release_template.py` / script | Simulated fixtures for every phase, resume and stop of the one-command release. | X / X / X | [RELEASING.md](../../RELEASING.md) |
 | `tools/test_repository_settings.py` / script | Simulated API fixtures for the settings check: drift, unverified, not applicable and GET-only. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `tools/test_run_clean_room_pilot.py` / script | Simulated GitHub, git, Excel and sibling-tool fixtures for the clean-room journey. | X / X / X | [RELEASING.md](../../RELEASING.md) |
 | `tools/test_template_verification_depth.py` / script | Template-only verification-depth fixtures for maintainer tools removed during project generation. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |

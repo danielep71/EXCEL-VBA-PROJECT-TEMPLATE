@@ -139,6 +139,12 @@ Use only the categories needed by a release.
   It writes `clean-room-journey.md` and `.json`, records a failed step
   before stopping, then deletes, archives or keeps the pilot. A failed pilot
   is kept unless the maintainer confirms (#199).
+- `tools/release_template.py --version X.Y.Z` releases the canonical template
+  with one resumable command. It chains the cut, the reusable-workflow
+  interface check, Excel certification, Wiki publication, the clean-room
+  pilot, the external-link observation, the release evidence and the signed
+  publication. A finished phase is skipped on the next run, and the maintainer
+  confirms every push and publication (#201).
 
 ### Changed
 

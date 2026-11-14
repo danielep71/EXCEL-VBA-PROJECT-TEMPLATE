@@ -103,6 +103,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "prepare_release_evidence.py": ("utility", "release-evidence and certification-bundle assembly, not a report gate"),
     "publish_release.py": ("utility", "maintainer-confirmed tag, bundle and GitHub Release publication, not a report gate"),
     "publish_wiki.py": ("utility", "maintainer-confirmed Wiki publication with byte read-back, not a report gate"),
+    "release_template.py": ("utility", "resumable one-command release orchestration, not a report gate"),
     "run_clean_room_pilot.py": ("utility", "live clean-room journey orchestration with a timed record, not a report gate"),
     "write_excel_evidence.py": ("utility", "evidence-bundle record writer, not a report gate"),
     "test_cut_release.py": ("test-runner", _UNITTEST),
@@ -115,6 +116,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "test_publish_release.py": ("test-runner", _UNITTEST),
     "test_publish_wiki.py": ("test-runner", _UNITTEST),
     "test_release_provenance.py": ("test-runner", _UNITTEST),
+    "test_release_template.py": ("test-runner", _UNITTEST),
     "test_repository_settings.py": ("test-runner", _UNITTEST),
     "test_run_clean_room_pilot.py": ("test-runner", _UNITTEST),
     "test_template_verification_depth.py": ("test-runner", _UNITTEST),
@@ -154,6 +156,7 @@ SELF_TEST_EXCLUSIONS = {
     "test_publish_release.py": "Template-only unittest CLI; simulated git, gh, ssh-keygen and sibling tools",
     "test_publish_wiki.py": "Template-only unittest CLI; simulated Wiki remote and check_wiki.py",
     "test_release_provenance.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_release_template.py": "Template-only unittest CLI; every tool, git, gh and Excel call simulated",
     "test_repository_settings.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_run_clean_room_pilot.py": "Template-only unittest CLI; simulated GitHub, git, Excel and sibling tools",
     "test_verification_depth.py": "Unittest CLI; focused release-critical failure-path coverage",
@@ -182,6 +185,7 @@ SELF_TEST_EXCLUSIONS = {
     ),
     "publish_wiki.py": "Simulated Wiki fixtures: python tools/test_publish_wiki.py -v; no live push",
     "cut_release.py": "Temporary-repository fixtures: python tools/test_cut_release.py -v; no live push",
+    "release_template.py": "Simulated release fixtures: python tools/test_release_template.py -v; no live release",
     "run_clean_room_pilot.py": (
         "Simulated journey fixtures: python tools/test_run_clean_room_pilot.py -v; no live repository"
     ),
