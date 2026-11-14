@@ -253,6 +253,9 @@ class Pilot:
         text = changelog.read_text(encoding="utf-8")
         entry = (f"### Added\n\n- Initial `{self.options.profile}` release of the clean-room pilot of template "
                  f"`{self.sha[:7]}`.\n")
+        # Detached, so local main stays at origin/main: the cut branch starts here and its squash
+        # merge would otherwise leave main diverged and the later fast-forward pull failing.
+        evidence.checked(["git", "switch", "--detach"], self.pilot, "detach from main")
         changelog.write_text(text.replace("No unreleased changes recorded.\n", entry, 1), encoding="utf-8")
         evidence.checked(["git", "commit", "--quiet", "-am", "Record the initial release entry"], self.pilot,
                          "release entry")
@@ -313,9 +316,10 @@ def run(options: argparse.Namespace) -> int:
     evidence.require(head == pilot.sha, f"the template checkout is at {head}, not {pilot.sha}")
     evidence.require(options.profile == "library" or bool(options.check),
                      "profiles other than library need their release checks as --check NAME=DETAIL")
-    evidence.disposable(pilot.template, pilot.work / "release-work")
+    # Freshness first: nothing under an existing work directory is ever deleted.
     evidence.require(not pilot.work.exists() or not any(pilot.work.iterdir()),
                      f"{pilot.work} is not empty: every journey needs a fresh --work-dir")
+    evidence.disposable(pilot.template, pilot.work / "release-work")
     pilot.work.mkdir(parents=True, exist_ok=True)
     if not os.environ.get("GH_TOKEN"):
         # Provisioning and the settings check read the token from the environment, never from arguments.

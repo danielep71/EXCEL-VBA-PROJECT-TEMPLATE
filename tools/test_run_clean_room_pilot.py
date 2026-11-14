@@ -160,6 +160,11 @@ class CleanRoomPilotTests(unittest.TestCase):
         markdown = (self.work / "clean-room-journey.md").read_text()
         self.assertIn("Verdict: **PASS**; 8 steps", markdown)
         self.assertEqual(os.environ["GH_TOKEN"], "token")
+        detach = texts.index("git switch --detach")
+        entry = next(index for index, text in enumerate(texts) if "Record the initial release entry" in text)
+        cut = next(index for index, text in enumerate(texts) if "cut_release.py" in text)
+        self.assertLess(detach, entry)
+        self.assertLess(entry, cut)
 
     def test_failure_is_recorded_and_the_failed_pilot_is_kept(self) -> None:
         cases = (
@@ -216,8 +221,12 @@ class CleanRoomPilotTests(unittest.TestCase):
 
     def test_reused_work_dir_is_refused(self) -> None:
         self.assertEqual(self.main(Fake(self.work), "--cleanup", "keep")[0], 0)
+        kept = self.work / "release-work" / "evidence" / "keep-me.json"
+        kept.parent.mkdir(parents=True, exist_ok=True)
+        kept.write_text("{}")
         code, _, err = self.main(Fake(self.work), "--cleanup", "keep", fresh=False)
         self.assertEqual((code, "fresh --work-dir" in err), (1, True))
+        self.assertTrue(kept.is_file())
 
     def test_library_checks_need_passing_reference_results(self) -> None:
         bundle = self.work / "bundle"
