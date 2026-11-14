@@ -300,7 +300,18 @@ all of these additional checks against the same exact candidate SHA:
 - complete a clean-room maintainer journey from live GitHub template creation
   through initialization, live repository provisioning, Excel validation and a
   first release; retain numbered steps, any gaps/corrections, and elapsed-step
-  evidence;
+  evidence. `tools/run_clean_room_pilot.py` runs it on the maintainer's
+  Windows machine and writes the timed record:
+
+  ```bash
+  python3 tools/run_clean_room_pilot.py --template-sha FULL_CANDIDATE_SHA \
+    --owner OWNER --name vba-cleanroom-pilot-XYZ --work-dir ../pilot-work \
+    --maintainer "Maintainer Name"
+  ```
+
+  It needs `gh` signed in with `delete_repo` for the default `--cleanup delete`.
+  A failed pilot is kept for inspection. The fixtures run offline with
+  `python3 tools/test_run_clean_room_pilot.py -v`;
 - export the complete Wiki from the exact candidate SHA, publish it, freshly
   clone/read back the publication, byte-compare it with zero drift, and record
   both the source SHA and resulting Wiki commit; and

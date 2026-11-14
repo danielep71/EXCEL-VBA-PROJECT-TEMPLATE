@@ -128,6 +128,17 @@ Use only the categories needed by a release.
   and updates the comparison links and VERSION. It then commits and runs
   release semantics on that commit; `--push` also opens the pull request
   (#198).
+- `tools/run_clean_room_pilot.py` runs the clean-room maintainer journey of a
+  template candidate on a new pilot repository and times every step:
+  - template creation, initialization and the setup pull request;
+  - provisioning by approved plan digest;
+  - the Actions settings and a clean live settings check;
+  - the `v0.1.0` cut, Excel certification, release evidence, tag, GitHub
+    Release and a green closeout.
+
+  It writes `clean-room-journey.md` and `.json`, records a failed step
+  before stopping, then deletes, archives or keeps the pilot. A failed pilot
+  is kept unless the maintainer confirms (#199).
 
 ### Changed
 

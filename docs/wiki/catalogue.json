@@ -884,6 +884,11 @@
       "kind": "policy",
       "authority": "docs/DEPENDENCY_UPDATES.md"
     },
+    "tools/run_clean_room_pilot.py": {
+      "purpose": "Run the clean-room maintainer journey on a new pilot repository and write a timed record.",
+      "kind": "script",
+      "authority": "RELEASING.md"
+    },
     "tools/test_cut_release.py": {
       "purpose": "Offline CHANGELOG cut cases and a temporary-repository branch flow for cut_release.py.",
       "kind": "script",
@@ -938,6 +943,11 @@
       "purpose": "Simulated Wiki remote fixtures for publication, removed-page review and read-back.",
       "kind": "script",
       "authority": "docs/WIKI_PUBLICATION.md"
+    },
+    "tools/test_run_clean_room_pilot.py": {
+      "purpose": "Simulated GitHub, git, Excel and sibling-tool fixtures for the clean-room journey.",
+      "kind": "script",
+      "authority": "RELEASING.md"
     },
     "tools/test_template_verification_depth.py": {
       "purpose": "Template-only verification-depth fixtures for maintainer tools removed during project generation.",

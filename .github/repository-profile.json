@@ -336,6 +336,7 @@
       "tools/requirements-coverage-ci.txt",
       "tools/requirements-dev.txt",
       "tools/requirements-portfolio-ci.txt",
+      "tools/run_clean_room_pilot.py",
       "tools/test_cut_release.py",
       "tools/test_portfolio_drift.py",
       "tools/test_portfolio_quality.py",
@@ -343,6 +344,7 @@
       "tools/test_provision_repository.py",
       "tools/test_publish_release.py",
       "tools/test_publish_wiki.py",
+      "tools/test_run_clean_room_pilot.py",
       "tools/test_template_verification_depth.py",
       "tools/test_template_workflow_validation.py",
       "tools/test_wiki.py"
