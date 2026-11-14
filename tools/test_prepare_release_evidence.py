@@ -45,6 +45,13 @@ def rulesets(bypass: list[Any] | None = None, strict: bool = True) -> list[dict[
     return [branch, tag]
 
 
+def excluded() -> list[dict[str, Any]]:
+    """The tag ruleset includes v* but excludes every release tag again."""
+    value = rulesets()
+    value[1]["conditions"]["ref_name"]["exclude"] = ["refs/tags/v*"]
+    return value
+
+
 def links_zip(defects: int = 0) -> bytes:
     report = {"status": "pass" if defects == 0 else "fail", "counts": {
         "deterministic_public_defects": defects, "restricted_historical": 21, "pending_publication": 2,
@@ -233,6 +240,7 @@ class PrepareReleaseEvidenceTests(unittest.TestCase):
             (Fake(self.runs, governance=rulesets(bypass=[{"actor_id": 5}])), "no bypass actors"),
             (Fake(self.runs, governance=rulesets(strict=False)), "'Repository integrity' required, strict"),
             (Fake(self.runs, governance=rulesets()[:1]), "no active tag ruleset"),
+            (Fake(self.runs, governance=excluded()), "no active tag ruleset covers refs/tags/v* without exclusions"),
             (Fake(self.runs, defects=2), "status is fail"),
             (Fake(self.runs, fail="check_wiki.py"), "Wiki read-back comparison"),
             (Fake(self.runs, fail="check_repo.py --root . --self-test"), "check_repo.py --root . --self-test failed"),

@@ -148,10 +148,12 @@ def governance(rulesets: list[dict[str, Any]]) -> dict[str, Any]:
         return {rule["type"]: rule.get("parameters") or {} for rule in ruleset.get("rules", [])}
 
     def active(target: str, ref: str) -> dict[str, Any]:
-        found = [item for item in rulesets if item.get("target") == target
+        # As in the provisioner, a ruleset with exclusions cannot prove coverage.
+        scope = [(item, item.get("conditions", {}).get("ref_name", {})) for item in rulesets]
+        found = [item for item, names in scope if item.get("target") == target
                  and item.get("enforcement") == "active"
-                 and ref in item.get("conditions", {}).get("ref_name", {}).get("include", [])]
-        require(bool(found), f"no active {target} ruleset includes {ref}")
+                 and ref in names.get("include", []) and not names.get("exclude")]
+        require(bool(found), f"no active {target} ruleset covers {ref} without exclusions")
         return found[0]
 
     branch, tag = active("branch", "~DEFAULT_BRANCH"), active("tag", "refs/tags/v*")
