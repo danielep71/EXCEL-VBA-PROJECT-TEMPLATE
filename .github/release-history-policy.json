@@ -4,17 +4,7 @@
     "merge_commits": "block-unless-excepted",
     "duplicate_subjects": "block-unless-excepted"
   },
-  "exceptions": [
-    {
-      "base_tag": "v1.2.1",
-      "commit": "61c7f4522b7dc8914ae4aada938cba03ead9b8a4",
-      "findings": [
-        "merge-commit"
-      ],
-      "review_ref": "https://github.com/danielep71/EXCEL-VBA-PROJECT-TEMPLATE/pull/174",
-      "reason": "Maintainer decision on #174: main carried #156 (codeql-action v4.39.3) that release/v1.3.0 lacked, and the main ruleset requires the integration pull request to be up to date; force-pushing release/v1.3.0 was not used, so main was merged into it. The integration reaches main as one squash commit."
-    }
-  ],
+  "exceptions": [],
   "historical_records": [
     {
       "release": "v1.2.0",
