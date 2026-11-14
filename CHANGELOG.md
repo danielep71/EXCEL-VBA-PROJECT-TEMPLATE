@@ -100,6 +100,12 @@ Use only the categories needed by a release.
 
 ## [Unreleased]
 
+### Changed
+
+- Removed the two temporary `pending-publication` classifications for the
+  v1.3.0 comparison links now that the tag is published; both links again
+  receive the normal anonymous external-link check.
+
 ## [1.3.0] - 2026-11-14
 
 ### Added
