@@ -51,9 +51,9 @@ def candidate(root: Path, sha: str) -> str:
 
 
 def fresh_clone(root: Path, repository: str, target: Path) -> None:
-    if target.exists():
-        shutil.rmtree(target)
-    evidence.checked(["git", "clone", "--quiet", f"https://github.com/{repository}.wiki.git", str(target)],
+    evidence.disposable(root, target)
+    evidence.checked(["git", "clone", "--quiet", *evidence.CLONE_LF, f"https://github.com/{repository}.wiki.git",
+                      str(target)],
                      root, "Wiki clone")
 
 
@@ -93,8 +93,8 @@ def publish(options: argparse.Namespace) -> int:
     repository = candidate(root, sha)
     work.mkdir(parents=True, exist_ok=True)
     export, checkout, readback = work / "wiki-export", work / "wiki-checkout", work / "wiki-readback"
-    if export.exists():
-        shutil.rmtree(export)
+    for path in (export, checkout, readback):
+        evidence.disposable(root, path)
     evidence.checked(evidence.tool(root, "check_wiki.py", "--root", ".", "--export-dir", str(export)), root,
                      "Wiki export")
     fresh_clone(root, repository, checkout)

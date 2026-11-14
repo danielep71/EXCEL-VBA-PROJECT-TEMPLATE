@@ -104,6 +104,29 @@ class PublishWikiTests(unittest.TestCase):
         self.assertIn("SKIP: the published Wiki already matches", out)
         self.assertFalse(again.pushed or any("commit" in command for command in again.commands))
 
+    def test_work_dir_overlapping_the_checkout_is_refused_before_any_deletion(self) -> None:
+        base = self.root.parent
+        source = base / "wiki-export"
+        self.root.rename(source)
+        self.root = source
+        for work in (base, source, source / "scratch"):
+            with self.subTest(work=work):
+                self.work = work
+                fake = Fake({"Home.md": "old\n"}, self.export)
+                code, _, err = self.main(fake)
+                self.assertEqual(code, 1)
+                self.assertIn("overlaps the candidate checkout", err)
+                self.assertTrue((source / ".github/repository-profile.json").is_file())
+                self.assertFalse(any(command[:2] == ["git", "clone"] for command in fake.commands))
+
+    def test_clones_keep_published_line_endings(self) -> None:
+        fake = Fake({"Home.md": "old\n"}, self.export)
+        self.assertEqual(self.main(fake)[0], 0)
+        clones = [command for command in fake.commands if command[:2] == ["git", "clone"]]
+        self.assertEqual(len(clones), 2)
+        for command in clones:
+            self.assertEqual(command[3:7], ["-c", "core.autocrlf=false", "-c", "core.eol=lf"])
+
     def test_removed_pages_need_review(self) -> None:
         remote = {**self.export, "Old-page.md": "gone\n"}
         code, _, err = self.main(Fake(dict(remote), self.export))

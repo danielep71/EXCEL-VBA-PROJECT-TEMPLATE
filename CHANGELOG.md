@@ -120,6 +120,9 @@ Use only the categories needed by a release.
   confirmation, push without force, then a fresh-clone byte comparison that
   writes `wiki-publication.json`. Published pages the bundle drops are removed
   only when named with `--remove-page` (#197).
+  The release tools refuse a scratch directory that is, contains or lies
+  inside the candidate checkout, and clone the Wiki with LF line endings so
+  `core.autocrlf=true` cannot break the byte comparison.
 
 ### Changed
 
