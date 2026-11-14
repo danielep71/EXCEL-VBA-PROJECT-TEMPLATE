@@ -194,7 +194,20 @@ def source_identity(
         re.MULTILINE,
     )
     previous = release_link.group("base") if release_link else None
-    if release_link is None:
+    # The initial release has no previous tag: its CHANGELOG links straight to
+    # the release tag, which is valid only while no other version is released.
+    initial_link = re.search(
+        rf"^\[{re.escape(version)}\]:\s+https://github\.com/{re.escape(repository)}/releases/tag/"
+        rf"{re.escape(tag)}\s*$",
+        changelog,
+        re.MULTILINE,
+    )
+    other_releases = [
+        item
+        for item in re.findall(r"^## \[(\d+\.\d+\.\d+)\] - ", changelog, re.MULTILINE)
+        if item != version
+    ]
+    if release_link is None and not (initial_link is not None and not other_releases):
         findings.append(
             finding(
                 "deterministic",
@@ -678,8 +691,12 @@ def markdown_report(report: dict[str, Any]) -> str:
         ),
         (
             "Comparison link",
-            report["comparison"]["status"] in {"ahead", "identical"},
-            f"{report['comparison']['previous_tag']} → {report['tag']}",
+            (report["comparison"]["status"] in {"ahead", "identical"})
+            if report["comparison"]["previous_tag"] is not None
+            else not any(row["control"] == "comparison-link" for row in report["findings"]),
+            f"{report['comparison']['previous_tag']} → {report['tag']}"
+            if report["comparison"]["previous_tag"] is not None
+            else f"first release; links to {report['tag']}",
         ),
         (
             "Milestone membership",
@@ -743,7 +760,8 @@ def fixture_git(root: Path, *arguments: str) -> str:
     return completed.stdout.strip()
 
 
-def fixture(base: Path) -> tuple[Path, Path, str]:
+def fixture(base: Path, changelog_links: str | None = None) -> tuple[Path, Path, str]:
+    """Build a candidate repository and snapshot; ``changelog_links`` replaces the link lines."""
     root = base / "repo"
     root.mkdir()
     fixture_git(root, "init", "-b", "main")
@@ -752,12 +770,12 @@ def fixture(base: Path) -> tuple[Path, Path, str]:
     version = "1.2.3"
     tag = f"v{version}"
     (root / VERSION_PATH).write_text(version + "\n", encoding="utf-8")
-    (root / CHANGELOG_PATH).write_text(
-        "# Changelog\n\n"
-        "## [Unreleased]\n\n"
-        f"## [{version}] - 2026-09-12\n\n"
+    links = changelog_links or (
         f"[Unreleased]: https://github.com/{repository}/compare/{tag}...HEAD\n"
-        f"[{version}]: https://github.com/{repository}/compare/v1.2.2...{tag}\n",
+        f"[{version}]: https://github.com/{repository}/compare/v1.2.2...{tag}\n"
+    )
+    (root / CHANGELOG_PATH).write_text(
+        "# Changelog\n\n" "## [Unreleased]\n\n" f"## [{version}] - 2026-09-12\n\n" + links,
         encoding="utf-8",
     )
     write_json(
@@ -888,6 +906,30 @@ def exercise_review_regressions(failures: list[str]) -> None:
         if report["status"] != "pass" or not report["comparison"]["candidate_seen"]:
             failures.append("paginated-compare: candidate on a later page was not accepted")
 
+    initial = (
+        "[Unreleased]: https://github.com/owner/repo/compare/v1.2.3...HEAD\n"
+        "[1.2.3]: https://github.com/owner/repo/releases/tag/v1.2.3\n"
+    )
+    with tempfile.TemporaryDirectory(prefix="release-closeout-initial-") as raw:
+        root, snapshot_path, candidate = fixture(Path(raw), initial)
+        value = as_object(load_json(snapshot_path), "fixture snapshot")
+        value["compare"] = {}
+        write_json(snapshot_path, value)
+        report = build_report(fixture_options(root, snapshot_path, candidate))
+        if report["status"] != "pass" or report["comparison"]["previous_tag"] is not None:
+            failures.append("initial-release: a first release linked to its tag was not accepted")
+        elif "| Comparison link | PASS | first release; links to v1.2.3 |" not in markdown_report(report):
+            failures.append("initial-release: the summary did not render the first release as passing")
+
+    with tempfile.TemporaryDirectory(prefix="release-closeout-initial-later-") as raw:
+        root, snapshot_path, candidate = fixture(Path(raw), "## [1.2.2] - 2026-09-01\n\n" + initial)
+        value = as_object(load_json(snapshot_path), "fixture snapshot")
+        value["compare"] = {}
+        write_json(snapshot_path, value)
+        report = build_report(fixture_options(root, snapshot_path, candidate))
+        if "comparison-link" not in {row["control"] for row in report["findings"]}:
+            failures.append("initial-release: a tag link was accepted although an earlier release exists")
+
 
 Mutation = Callable[[dict[str, Any], str], None]
 
@@ -996,7 +1038,8 @@ def run_self_test() -> int:
         return 1
     print(
         "SELF-TEST PASS: VERSION/tag binding, annotated/lightweight/moved tags, tag CI, "
-        "release state including optional latest, paginated comparison resolution, asset policy, "
+        "release state including optional latest, paginated comparison resolution, an initial "
+        "release linked to its tag, asset policy, "
         "milestone state/membership/counters, Wiki binding and source-archive observations passed."
     )
     return 0

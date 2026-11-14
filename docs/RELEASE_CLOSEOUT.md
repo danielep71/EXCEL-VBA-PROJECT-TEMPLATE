@@ -25,7 +25,7 @@ The closeout validator binds all deterministic checks to the same candidate SHA.
 4. the raw GitHub Release asset list is partitioned before closeout validation into **certification-evidence attachments** and filtered **product/runtime assets**; the latter are compared with the selected candidate profile's `allowed_asset_globs` from `.github/release-policy.json`;
 5. a source-only profile has no product/runtime assets; binary-capable profiles may contain only product names allowed by their candidate-bound patterns. Canonical template releases separately require the durable certification attachments defined by [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md);
 6. `VERSION`, the released CHANGELOG heading, the released comparison link, and the `Unreleased` comparison link remain coherent with the tag;
-7. the provider comparison range resolves to the release range and contains the certified candidate when the range is ahead;
+7. the provider comparison range resolves to the release range and contains the certified candidate when the range is ahead; a project's first release, whose CHANGELOG links straight to its release tag while no earlier version is released, has no comparison range to check;
 8. milestone closure is evaluated from the actual captured milestone membership and item states, with the provider's open/closed counters reconciled to those items rather than trusted as a UI percentage.
 
 An unexpected uploaded asset, lightweight or moved tag, failed/missing tag CI, draft or incorrectly classified Release, wrong VERSION/tag relationship, unresolved comparison, open milestone, or stale milestone counters is non-green.
@@ -81,7 +81,7 @@ The helper has a deterministic self-test:
 python3 tools/_release_closeout.py --self-test
 ```
 
-The fixture matrix covers the valid path plus VERSION/tag mismatch, lightweight and moved tags, failed tag CI, draft/unexpected-prerelease/not-latest Release state, an absent `/releases/latest` accepted when latest status is not expected, a comparison whose candidate appears on a later page, unexpected source-only assets, missing source-archive exposure, unresolved comparison, open milestone membership/state, stale milestone counters, Wiki drift, and source-archive retrieval failure. These fixtures do not call GitHub and do not mutate live provider state.
+The fixture matrix covers the valid path plus VERSION/tag mismatch, lightweight and moved tags, failed tag CI, draft/unexpected-prerelease/not-latest Release state, an absent `/releases/latest` accepted when latest status is not expected, a comparison whose candidate appears on a later page, a first release linked to its tag, a tag link rejected once an earlier release exists, unexpected source-only assets, missing source-archive exposure, unresolved comparison, open milestone membership/state, stale milestone counters, Wiki drift, and source-archive retrieval failure. These fixtures do not call GitHub and do not mutate live provider state.
 
 ## Scope boundary
 

@@ -312,6 +312,13 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- *Release closeout* accepts a generated project's first release. The
+  CHANGELOG procedure links the initial release straight to its tag, but the
+  workflow and `_release_closeout.py` required a `compare/<previous>...<tag>`
+  link, so the closeout of every first release failed. With no earlier
+  version released, the tag link is now accepted and the comparison is
+  skipped; with an earlier release it is still rejected. Found by the v1.3.0
+  clean-room maintainer pilot (#191).
 - A repository that adopts the reusable workflow no longer fails its
   documentation contracts. Replacing the `repository-integrity` job with a
   job-level call removed the job that the registered `Repository integrity`
