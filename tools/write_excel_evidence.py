@@ -13,6 +13,11 @@ counts are the ones the RESULT lines print. A suite or example the committed pro
 configures but session.json does not record is a failing "not run" row. The exit code
 is 0 only when host.json validates as PASS, every configured suite passed with its
 expected counts and every configured example ran.
+
+With --run-only, for a candidate without .github/excel-evidence-policy.json (a
+minimal-tier project), no host record applies: every suite, the harness named by
+--harness-module included, is judged by its RESULT line against its source, and
+only suites.json and certification.md are written.
 """
 
 from __future__ import annotations
@@ -197,10 +202,7 @@ def build_record(root: Path, sha: str, bundle: Path) -> tuple[dict[str, Any], di
     config = decode(committed(root, sha, ".github/repository-profile.json"))
     policy = evidence.load_policy(root, sha)
     harness_module = policy["entry_point"].split(".")[0]
-    session = object_keys(json.loads((bundle / "session.json").read_text(encoding="utf-8-sig")),
-                          SESSION_KEYS, "session.json")
-    if session["candidate_sha"] != sha:
-        raise BundleError(f"session.json names candidate {session['candidate_sha']}, not {sha}")
+    session = load_session(bundle, sha)
     session_log = reference(bundle, "session.log")
     imported = object_keys(session["import"], "status detail components", "session import")
     compiled = object_keys(session["compile"], "status detail", "session compile")
@@ -242,6 +244,12 @@ def build_record(root: Path, sha: str, bundle: Path) -> tuple[dict[str, Any], di
             "cleanup": stage(cleanup_status, cleanup_detail, session_log)},
         "harness": harness if harness_status != "NOT_RUN" else None,
     }
+    return record, run_summary(root, sha, bundle, config, session, harness_module)
+
+
+def run_summary(root: Path, sha: str, bundle: Path, config: dict[str, Any], session: dict[str, Any],
+                harness_module: str) -> dict[str, Any]:
+    """Every suite and example the session recorded, plus each configured one it did not."""
     suites = [suite_summary(root, sha, bundle, item, harness_module) for item in session["suites"]]
     examples = []
     for item in session["examples"]:
@@ -258,8 +266,41 @@ def build_record(root: Path, sha: str, bundle: Path) -> tuple[dict[str, Any], di
                   "detail": "not run: missing from session.json"}
                  for module in configured_modules(config, "example")
                  if module not in {example["module"] for example in examples}]
-    summary = {"candidate_sha": sha, "harness_module": harness_module, "suites": suites, "examples": examples}
-    return record, summary
+    return {"candidate_sha": sha, "harness_module": harness_module, "suites": suites, "examples": examples}
+
+
+def load_session(bundle: Path, sha: str) -> dict[str, Any]:
+    session = object_keys(json.loads((bundle / "session.json").read_text(encoding="utf-8-sig")),
+                          SESSION_KEYS, "session.json")
+    if session["candidate_sha"] != sha:
+        raise BundleError(f"session.json names candidate {session['candidate_sha']}, not {sha}")
+    return session
+
+
+def run_only(root: Path, sha: str, bundle: Path, harness_module: str) -> tuple[dict[str, Any], bool, str]:
+    """Judge a run of a candidate without a host-evidence policy: no host record applies."""
+    config = decode(committed(root, sha, ".github/repository-profile.json"))
+    session = load_session(bundle, sha)
+    imported = object_keys(session["import"], "status detail components", "session import")
+    compiled = object_keys(session["compile"], "status detail", "session compile")
+    summary = run_summary(root, sha, bundle, config, session, harness_module)
+    summary["host_record"] = "NOT_APPLICABLE"
+    passed = (imported["status"] == "PASS" and compiled["status"] == "PASS" and bool(summary["suites"])
+              and all(item["status"] == "PASS" for item in summary["suites"] + summary["examples"]))
+    lines = [f"# Excel run of {sha} (run only)", "",
+             "Host record: NOT APPLICABLE (the candidate has no .github/excel-evidence-policy.json)", "",
+             f"Import: {imported['status']} ({imported['detail']})",
+             f"Compile: {compiled['status']} ({compiled['detail']})", "",
+             f"Environment: Excel {session['excel_version']}, {session['excel_build']}, "
+             f"{session['office_bitness']}; {session['os']}", "",
+             "| Suite | Status | Detail |", "| --- | --- | --- |"]
+    for suite in summary["suites"]:
+        label = suite["entry_point"] + (" (harness)" if suite["harness"] else "")
+        lines.append(f"| `{label}` | {suite['status']} | {suite['detail']} |")
+    for example in summary["examples"]:
+        lines.append(f"| `{example['entry_point']}` (example) | {example['status']} | {example['detail']} |")
+    lines += ["", f"RESULT={'PASS' if passed else 'FAIL'}", ""]
+    return summary, passed, "\n".join(lines)
 
 
 def certification_markdown(report: dict[str, Any], summary: dict[str, Any], record: dict[str, Any]) -> str:
@@ -292,7 +333,24 @@ def main(arguments: list[str] | None = None) -> int:
     parser.add_argument("--candidate-sha", required=True, help="the full SHA of the checked-out commit")
     parser.add_argument("--bundle", type=Path, required=True,
                         help="the bundle folder holding session.json, session.log and the suite logs")
+    parser.add_argument("--run-only", action="store_true",
+                        help="the candidate has no host-evidence policy: judge the run, write no host.json")
+    parser.add_argument("--harness-module", help="with --run-only, the module of the harness suite")
     options = parser.parse_args(arguments)
+    if options.run_only:
+        if not options.harness_module:
+            print("ERROR: --run-only needs --harness-module", file=sys.stderr)
+            return 2
+        try:
+            summary, passed, text = run_only(options.root, options.candidate_sha, options.bundle,
+                                             options.harness_module)
+        except (ValueError, KeyError, TypeError, OSError, json.JSONDecodeError) as error:
+            print(f"ERROR: {error}", file=sys.stderr)
+            return 2
+        (options.bundle / "suites.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        (options.bundle / "certification.md").write_text(text, encoding="utf-8")
+        print(text)
+        return 0 if passed else 1
     target = options.bundle / "host.json"
     if target.exists():
         print(f"ERROR: {target} exists already; a record is never replaced", file=sys.stderr)

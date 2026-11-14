@@ -112,7 +112,10 @@ Use only the categories needed by a release.
   writes `certification.md`. Each suite and example runs through a generated
   `CertificationRunner` wrapper with an error handler, so a failing suite is
   recorded and its log closed instead of stopping the run on Visual Basic's
-  modal error window, and the summary names the raised error first (#178). The new `TestLog` module is the print routine
+  modal error window, and the summary names the raised error first (#178). A
+  minimal-tier project, which keeps no host-evidence policy, runs in run-only
+  mode: every suite and example is judged against its source and no
+  `host.json` is written (#184). The new `TestLog` module is the print routine
   of every test module: `TestLog.Say` writes to the Immediate window and, while
   a certification log is open, to that suite's log, so a complete report is
   kept without reading the Immediate window; examples keep `Debug.Print`.

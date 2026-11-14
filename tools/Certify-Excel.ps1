@@ -34,7 +34,9 @@ procedure of docs\EXCEL_EVIDENCE.md stays available as a fallback.
 - "Trust access to the VBA project object model" already on: the import
   needs it, and the script never turns it on.
 - A clean checkout of the commit to certify. -RepoRoot may name a generated
-  project; the tools of this checkout then certify that project.
+  project; the tools of this checkout then certify that project. A
+  minimal-tier project has no host-evidence policy: its run is "run only",
+  with every suite and example judged and no host.json written.
 .EXAMPLE
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Certify-Excel.ps1
 .EXAMPLE
@@ -142,6 +144,13 @@ if ($LASTEXITCODE -ne 0 -or -not [string]::IsNullOrWhiteSpace(($dirty | Out-Stri
 $configPath = Join-Path $RepoRoot ".github\repository-profile.json"
 $config = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $policyPath = Join-Path $RepoRoot ".github\excel-evidence-policy.json"
+# A minimal-tier project keeps no host-evidence policy. Its suites still run
+# and are judged against their sources, but no host record applies; the
+# template checkout's policy only names the harness.
+$runOnly = -not (Test-Path -LiteralPath $policyPath)
+if ($runOnly) {
+    $policyPath = Join-Path $toolsRoot ".github\excel-evidence-policy.json"
+}
 $policy = Get-Content -LiteralPath $policyPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $harnessModule = ([string]$policy.entry_point).Split(".")[0]
 
@@ -187,6 +196,10 @@ $script:sessionLog = Join-Path $BundleDir "session.log"
 $startedAt = Get-Timestamp
 Write-Session "Excel certification of candidate $sha"
 Write-Session "Checkout $RepoRoot; bundle $BundleDir; started at $startedAt"
+if ($runOnly) {
+    Write-Session ("Run only: the candidate has no .github\excel-evidence-policy.json (minimal tier), " +
+                   "so no host record applies; harness $harnessModule from the template checkout's policy")
+}
 
 # ----------------------------------------------------------------------------
 # Environment, as found
@@ -504,12 +517,22 @@ Write-Session "Finished at $($session.finished_at)"
 [System.IO.File]::WriteAllText((Join-Path $BundleDir "session.json"),
     ($session | ConvertTo-Json -Depth 5), $utf8NoBom)
 Write-Host ""
-& $Python (Join-Path $toolsRoot "tools\write_excel_evidence.py") --root $RepoRoot --candidate-sha $sha --bundle $BundleDir
+$writerArguments = @((Join-Path $toolsRoot "tools\write_excel_evidence.py"), "--root", $RepoRoot,
+                     "--candidate-sha", $sha, "--bundle", $BundleDir)
+if ($runOnly) {
+    $writerArguments += @("--run-only", "--harness-module", $harnessModule)
+}
+& $Python @writerArguments
 $code = $LASTEXITCODE
 Write-Host ""
 Write-Host "Bundle: $BundleDir"
 if ($code -eq 0) {
-    Write-Host "RESULT=PASS: the bundle validates for candidate $sha; every suite and example passed."
+    if ($runOnly) {
+        Write-Host "RESULT=PASS: run only for candidate $sha; every configured suite and example passed (no host record)."
+    }
+    else {
+        Write-Host "RESULT=PASS: the bundle validates for candidate $sha; every suite and example passed."
+    }
     exit 0
 }
 Write-Host "RESULT=FAIL: see certification.md and session.log in the bundle. Keep the bundle as it is."
