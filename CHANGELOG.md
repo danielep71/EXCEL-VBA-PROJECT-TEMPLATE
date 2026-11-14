@@ -109,7 +109,10 @@ Use only the categories needed by a release.
   `tools/write_excel_evidence.py` writes and validates `host.json` from the
   logs, checks each suite's counts against the constants its source declares,
   fails the run when a configured suite or example was not run (#175), and
-  writes `certification.md`. The new `TestLog` module is the print routine
+  writes `certification.md`. Each suite and example runs through a generated
+  `CertificationRunner` wrapper with an error handler, so a failing suite is
+  recorded and its log closed instead of stopping the run on Visual Basic's
+  modal error window, and the summary names the raised error first (#178). The new `TestLog` module is the print routine
   of every test module: `TestLog.Say` writes to the Immediate window and, while
   a certification log is open, to that suite's log, so a complete report is
   kept without reading the Immediate window; examples keep `Debug.Print`.

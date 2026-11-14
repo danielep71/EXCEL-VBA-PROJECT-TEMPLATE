@@ -138,16 +138,22 @@ def suite_summary(root: Path, sha: str, bundle: Path, item: dict[str, Any], harn
         summary["detail"] = f"log not opened: {entry['opened']}"
         return summary
     log = read_log(bundle, str(entry["log"]))
+    if log is not None:
+        summary["sha256"] = hashlib.sha256((bundle / str(entry["log"])).read_bytes()).hexdigest()
+    if entry["status"] != "RAN":
+        # Named first: a raise can also leave the log unclosed.
+        raised = f"the entry point raised: {entry['error']}"
+        reported = result_of(log) if log is not None else None
+        if reported is not None:
+            raised += f"; its log reports RESULT={reported['verdict']}, failures={reported['failures']}"
+        summary["detail"] = raised
+        return summary
     lost = lost_lines(str(entry["closed"]))
     if log is None:
         summary["detail"] = "log missing from the bundle"
         return summary
-    summary["sha256"] = hashlib.sha256((bundle / str(entry["log"])).read_bytes()).hexdigest()
     if lost is None or lost > 0:
         summary["detail"] = f"lines lost while writing the log: {entry['closed']}"
-        return summary
-    if entry["status"] != "RAN":
-        summary["detail"] = f"the entry point raised: {entry['error']}"
         return summary
     result = result_of(log)
     if result is None:
