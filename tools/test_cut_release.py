@@ -116,6 +116,8 @@ class CutCommandTests(unittest.TestCase):
         code, out, err = self.main("--version", "1.4.0", "--date", "2027-02-01")
         self.assertEqual(code, 0, err)
         self.assertIn("committed locally", out)
+        self.assertIn("git push --set-upstream origin chore/cut-v1.4.0", out)
+        self.assertIn("gh pr create --base main --head chore/cut-v1.4.0", out)
         self.assertEqual(self.git("branch", "--show-current"), "chore/cut-v1.4.0")
         self.assertEqual(self.git("log", "-1", "--format=%s"), "Cut v1.4.0 release candidate")
         self.assertEqual(self.git("show", "HEAD:VERSION"), "1.4.0")

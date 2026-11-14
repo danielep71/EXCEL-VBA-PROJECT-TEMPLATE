@@ -145,8 +145,9 @@ preserved in `docs/PILOT_CERTIFICATION.md`. Those IDs were derived from the
 historical URLs already in the document; no credentials are stored.
 
 The release links of the version in `VERSION` need no classification:
-`compare/vX.Y.Z...HEAD`, `compare/<previous>...vX.Y.Z` and `releases/tag/vX.Y.Z`
-of this repository. They are still probed. A 404 is reported as
+`compare/vX.Y.Z...HEAD`, `releases/tag/vX.Y.Z` and `compare/<previous>...vX.Y.Z`
+of this repository, where `<previous>` is the release just before it in the
+CHANGELOG. They are still probed. A consistent 404, and only a 404, is reported as
 `PENDING_PUBLICATION` (`awaiting-tag`) rather than a deterministic defect, and
 once the tag is published they resolve and pass like any other link. Release
 semantics already fix their exact form, and any other 404 stays a defect.

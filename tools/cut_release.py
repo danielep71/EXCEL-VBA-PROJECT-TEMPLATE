@@ -94,8 +94,10 @@ def cut(options: argparse.Namespace) -> int:
                          root, "pull request")
         print(f"CUT: {branch} pushed and its pull request opened")
     else:
-        print(f"CUT: {branch} committed locally and release semantics pass; review it, then push it "
-              "or rerun with --push")
+        print(f"CUT: {branch} committed locally and release semantics pass. After review, publish it with:\n"
+              f"  git push --set-upstream origin {branch}\n"
+              f"  gh pr create --base {options.base} --head {branch} --title \"Cut v{version} release candidate\" "
+              "--fill")
     return 0
 
 

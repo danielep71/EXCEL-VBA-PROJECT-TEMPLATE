@@ -259,11 +259,23 @@ def awaiting_tag(root: Path) -> Callable[[str], bool]:
         version = (root / "VERSION").read_text(encoding="utf-8").strip()
         profile = json.loads((root / ".github/repository-profile.json").read_text(encoding="utf-8"))
         repository = str(profile["repository"])
+        changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     except (OSError, ValueError, KeyError, TypeError):
         return lambda url: False
-    tag, base = re.escape(f"v{version}"), re.escape(f"https://github.com/{repository}")
-    pattern = re.compile(rf"{base}/(?:compare/(?:{tag}\.\.\.HEAD|v[0-9A-Za-z.+-]+\.\.\.{tag})|releases/tag/{tag})")
-    return lambda url: pattern.fullmatch(url) is not None
+
+    def order(value: str) -> tuple[int, ...]:
+        return tuple(int(part) for part in value.split("."))
+
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        return lambda url: False
+    # Only the release immediately before VERSION is a valid comparison base.
+    earlier = [item for item in re.findall(r"^## \[(\d+\.\d+\.\d+)\] - ", changelog, re.MULTILINE)
+               if order(item) < order(version)]
+    base = f"https://github.com/{repository}"
+    expected = {f"{base}/compare/v{version}...HEAD", f"{base}/releases/tag/v{version}"}
+    if earlier:
+        expected.add(f"{base}/compare/v{max(earlier, key=order)}...v{version}")
+    return lambda url: url in expected
 
 
 def collect(root: Path) -> dict[str, dict[str, Any]]:
@@ -343,7 +355,9 @@ def build_report(
             result = {"status": "EXCEPTED", "attempts": 0, "http_codes": []}
         else:
             result = probe(url, policy, transport, pause)
-            if result["status"] == "PERMANENT_FAILURE" and unpublished(url):
+            # Only a consistent 404 means "not published yet"; 400, 410 and others stay defects.
+            if (result["status"] == "PERMANENT_FAILURE" and set(result["http_codes"]) == {404}
+                    and unpublished(url)):
                 result = {**result, "status": "PENDING_PUBLICATION", "classification": "awaiting-tag"}
         return {
             "id": digest,
