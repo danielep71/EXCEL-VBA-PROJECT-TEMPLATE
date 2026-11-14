@@ -183,7 +183,7 @@ cleanup=PASS`. `TextExample.RunTextExample` is its consumer smoke.
 <!-- template:profile:ui-component:start -->
 For the ui-component reference, also run `ProgressTests.RunProgressTests`; a
 passing Windows run ends with `RESULT=PASS; completeness=COMPLETE; cases=12;
-assertions=79; failures=0; cleanup=PASS` (75 assertions on macOS).
+assertions=83; failures=0; cleanup=PASS` (79 assertions on macOS).
 `ProgressExample.RunProgressExample` is its consumer smoke.
 <!-- template:profile:ui-component:end -->
 

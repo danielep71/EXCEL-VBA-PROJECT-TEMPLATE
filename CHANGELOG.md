@@ -307,6 +307,14 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- A progress session could leave the text `FALSE` in the status bar. Some
+  Excel builds, among them 16.0.20430 on Windows, read a status bar Excel owns
+  back as the String `"FALSE"` instead of the Boolean `False`;
+  `ProgressBegin` saved that text and `ProgressEnd` wrote it back.
+  `ProgressCore.NormalizeStatusBar` now keeps both as Excel's bar, the
+  snapshot and `ProgressTests` read the bar through it, and four assertions
+  cover it (83 on Windows, 79 on macOS). Found by the first Excel
+  certification of the ui-component reference (#177).
 - Label pruning no longer deletes labels in use. With `"prune": true`, the
   label synchronization deleted every live label outside the resolved selection,
   removing it from every issue and pull request, closed ones included, with no

@@ -41,10 +41,12 @@ Attribute VB_Name = "ProgressCore"
 ' COMPATIBILITY
 '   Excel VBA on Windows (VBA6 and VBA7, 32- and 64-bit) and macOS. Windows
 '   times sessions with the performance counter; macOS uses Timer with the
-'   midnight wrap corrected and leaves the cursor unchanged.
+'   midnight wrap corrected and leaves the cursor unchanged. Some Excel
+'   builds read a status bar Excel owns back as the text FALSE rather than
+'   the Boolean False; NormalizeStatusBar keeps both as False.
 '
 ' UPDATED
-'   2026-11-04
+'   2026-11-14
 '
 ' AUTHOR
 '   Daniele Penza
@@ -188,7 +190,7 @@ Public Sub BeginSession( _
     'has a complete picture of the caller's state.
         On Error GoTo BeginFailed
 
-        mSnapshot.StatusBar = Application.StatusBar
+        mSnapshot.StatusBar = NormalizeStatusBar(Application.StatusBar)
         mSnapshot.DisplayStatusBar = Application.DisplayStatusBar
 #If Not Mac Then
         mSnapshot.Cursor = Application.Cursor
@@ -589,6 +591,43 @@ Public Function CurrentText() _
             statusText = statusText & " - " & Format$(ElapsedSeconds(), "0.0") & " s"
         End If
         CurrentText = statusText
+
+End Function
+
+
+Public Function NormalizeStatusBar( _
+    ByVal observed As Variant) _
+    As Variant
+'
+'==============================================================================
+'                              NormalizeStatusBar
+'------------------------------------------------------------------------------
+' PURPOSE
+'   Turn a value read from Application.StatusBar into the form a snapshot
+'   keeps: False when Excel owns the bar, otherwise the caller's text.
+'
+' RETURNS
+'   False for a Boolean, and for the text FALSE in any letter case, which
+'   some Excel builds return instead of the Boolean while they show their
+'   own status text; the text itself otherwise.
+'
+' UPDATED
+'   2026-11-14
+'==============================================================================
+'
+
+'------------------------------------------------------------------------------
+' NORMALIZE
+'------------------------------------------------------------------------------
+    'Writing the text FALSE back would display it, so that text is read as
+    'Excel's ownership; a caller showing FALSE gets Excel's text back.
+        If VarType(observed) = vbBoolean Then
+            NormalizeStatusBar = False
+        ElseIf StrComp(CStr(observed), "FALSE", vbTextCompare) = 0 Then
+            NormalizeStatusBar = False
+        Else
+            NormalizeStatusBar = CStr(observed)
+        End If
 
 End Function
 
