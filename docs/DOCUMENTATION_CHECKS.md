@@ -21,6 +21,9 @@ heading that starts with an emoji gets a leading hyphen. `tools/check_documentat
   shared argument helpers, using Python AST parsing without executing code;
 - registered filename references against tracked targets and document text;
 - registered literal workflow names and named job contexts against their YAML;
+  a job-level call, pinned to a full commit SHA, to the upstream copy of the
+  same workflow also satisfies a named job context, because the called
+  workflow defines that job;
 - registered JSON policy values against their JSON-pointer targets.
 
 The command scanner is not a shell interpreter: it does not execute examples,

@@ -310,6 +310,14 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- A repository that adopts the reusable workflow no longer fails its
+  documentation contracts. Replacing the `repository-integrity` job with a
+  job-level call removed the job that the registered `Repository integrity`
+  reference names. `check_documentation.py` now accepts, in its place, a call
+  pinned to a full commit SHA to the upstream copy of the same workflow, which
+  defines that job; floating refs and other workflow paths still fail. The
+  consumer fixture generator annotates interface `1.0.1` and keeps the caller
+  concurrency group that deadlocked under `1.0.0` (#186).
 - A progress session could leave the text `FALSE` in the status bar. Some
   Excel builds, among them 16.0.20430 on Windows, read a status bar Excel owns
   back as the String `"FALSE"` instead of the Boolean `False`;

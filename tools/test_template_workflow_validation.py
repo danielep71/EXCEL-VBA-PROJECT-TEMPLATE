@@ -104,7 +104,11 @@ class ReusableWorkflowFixtureTests(unittest.TestCase):
                 )
                 canonical_repo = "".join(("danielep71/EXCEL-VBA-", "PROJECT-TEMPLATE"))
                 self.assertIn(
-                    f"uses: {canonical_repo}/.github/workflows/static-checks.yml@{WORKFLOW_SHA} # v1.0.0",
+                    f"uses: {canonical_repo}/.github/workflows/static-checks.yml@{WORKFLOW_SHA} # v1.0.1",
+                    caller,
+                )
+                self.assertIn(
+                    "concurrency:\n  group: static-checks-${{ github.workflow }}-${{ github.ref }}\n",
                     caller,
                 )
                 self.assertIn(f"expected-profile: {profile}", caller)

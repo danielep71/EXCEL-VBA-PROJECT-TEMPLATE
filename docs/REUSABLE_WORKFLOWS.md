@@ -99,6 +99,8 @@ restrictions in [Reuse workflows](https://docs.github.com/en/actions/how-tos/reu
    `contents: read`.
    The identity gate permits this exact upstream reference in workflow files;
    floating refs, other sources and leftover template branding remain rejected.
+   The documentation contract accepts the call in place of the registered
+   `Repository integrity` job, which the called workflow defines.
 4. Under the call's `with`, set `expected-profile` to your initialized profile.
    Keep specialist jobs local, with their own runner and stricter commands.
    Use `needs: generic` when they depend on the generic result; do not use

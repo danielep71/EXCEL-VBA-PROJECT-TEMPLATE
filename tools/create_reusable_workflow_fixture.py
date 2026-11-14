@@ -13,6 +13,9 @@ from pathlib import Path
 import initialize_repository as initializer
 from _gatelib import git_text
 
+# Interface revision the generated caller annotates; independent of the product release.
+INTERFACE_VERSION = "1.0.1"
+
 
 def create_fixture(source: Path, destination: Path, profile: str, workflow_sha: str) -> None:
     if not re.fullmatch(r"[0-9a-f]{40}", workflow_sha):
@@ -29,10 +32,15 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+# The group the 1.0.0 called workflow declared at workflow level. Since 1.0.1
+# the called concurrency is job-level, so this caller group must not deadlock.
+concurrency:
+  group: static-checks-${{{{ github.workflow }}}}-${{{{ github.ref }}}}
+  cancel-in-progress: true
 jobs:
   generic:
     # Workflow interface version, independent of the product release.
-    uses: danielep71/EXCEL-VBA-PROJECT-TEMPLATE/.github/workflows/static-checks.yml@{workflow_sha} # v1.0.0
+    uses: danielep71/EXCEL-VBA-PROJECT-TEMPLATE/.github/workflows/static-checks.yml@{workflow_sha} # v{INTERFACE_VERSION}
     with:
       expected-profile: {profile}
   specialist:
