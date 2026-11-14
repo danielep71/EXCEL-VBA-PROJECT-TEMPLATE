@@ -11,7 +11,10 @@ For the commit checked out in a repository, with a clean working tree:
    model". It never changes any of them;
 3. starts a visible Excel, adds a new workbook and imports every configured
    VBA component of .github\repository-profile.json from the checkout, in
-   role order: internal, public, test, example;
+   role order: internal, public, test, example; then adds a generated
+   CertificationRunner module with one wrapper per suite and example that
+   calls its entry point under an error handler, so a suite that raises is
+   recorded instead of opening the modal "Run-time error" window;
 4. compiles the project (Debug > Compile VBAProject);
 5. runs every test module's entry point, Module.RunModule, the policy's
    harness first, each with its own log opened by TestLog.OpenLog so that
@@ -59,6 +62,7 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
 $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 
 $compileControlId = 578
+$runnerName = "CertificationRunner"
 $xlOpenXMLWorkbookMacroEnabled = 52
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $roleOrder = @("internal", "public", "test", "example")
@@ -291,6 +295,45 @@ try {
     }
 
     # ------------------------------------------------------------------------
+    # Add the certification runner
+    # ------------------------------------------------------------------------
+    # A suite raises its own error when an assertion fails. Called from here
+    # with Application.Run, that error would open Visual Basic's modal
+    # "Run-time error" window and hold the run until someone pressed End,
+    # which also resets every module's state, TestLog's open log included.
+    # A generated module calls each entry point directly under an error
+    # handler and returns RAN or the error, so the run records it and goes on.
+    foreach ($existing in $project.VBComponents) {
+        if ([string]$existing.Name -eq $runnerName) {
+            throw "The project already has a component named $runnerName."
+        }
+    }
+    $runnerLines = @("Option Explicit", "")
+    foreach ($component in @($components | Where-Object {
+                ($_.role -eq "test" -and $_.module -ne "TestLog") -or $_.role -eq "example" })) {
+        $wrapper = "Run_" + $component.module
+        $runnerLines += @(
+            "Public Function $wrapper() As String",
+            "    On Error GoTo Failed",
+            "    $($component.module).Run$($component.module)",
+            "    $wrapper = ""RAN""",
+            "    Exit Function",
+            "Failed:",
+            "    $wrapper = ""ERROR "" & CStr(Err.Number) & "": "" & Err.Description",
+            "End Function",
+            "")
+    }
+    $runner = $project.VBComponents.Add(1)
+    $runner.Name = $runnerName
+    # "Require Variable Declaration" may already have inserted Option Explicit.
+    if ($runner.CodeModule.CountOfLines -gt 0) {
+        $runner.CodeModule.DeleteLines(1, $runner.CodeModule.CountOfLines)
+    }
+    $runner.CodeModule.AddFromString(($runnerLines -join "`r`n"))
+    Write-Session ("Added $runnerName, one error-handling wrapper per suite and example; " +
+                   "it is not part of the candidate's source")
+
+    # ------------------------------------------------------------------------
     # Compile
     # ------------------------------------------------------------------------
     # Debug > Compile VBAProject acts on the VBE's active project and is
@@ -363,7 +406,12 @@ try {
         }
         Write-Session "Running $entry into $logName"
         try {
-            [void](Invoke-Macro -Excel $excel -Qualified $qualified -Procedure $entry)
+            $answer = [string](Invoke-Macro -Excel $excel -Qualified $qualified `
+                -Procedure ($runnerName + ".Run_" + $suite.module))
+            if ($answer -ne "RAN") {
+                throw [System.InvalidOperationException]::new($(if ($answer.StartsWith("ERROR ")) {
+                            $answer.Substring(6) } else { "the runner answered '$answer'" }))
+            }
             $record.status = "RAN"
         }
         catch {
@@ -389,7 +437,12 @@ try {
         $entry = $example.module + ".Run" + $example.module
         $record = [ordered]@{ module = $example.module; entry_point = $entry; status = "NOT_RUN"; error = $null }
         try {
-            [void](Invoke-Macro -Excel $excel -Qualified $qualified -Procedure $entry)
+            $answer = [string](Invoke-Macro -Excel $excel -Qualified $qualified `
+                -Procedure ($runnerName + ".Run_" + $example.module))
+            if ($answer -ne "RAN") {
+                throw [System.InvalidOperationException]::new($(if ($answer.StartsWith("ERROR ")) {
+                            $answer.Substring(6) } else { "the runner answered '$answer'" }))
+            }
             $record.status = "RAN"
             Write-Session "$entry ran without error"
         }

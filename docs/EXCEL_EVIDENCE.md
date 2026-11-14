@@ -189,9 +189,14 @@ It records Windows, Excel version and build, Office bitness, the macro setting
 and *Trust access to the VBA project object model* as found, and changes none
 of them; the import needs that access on. It then starts a visible Excel, adds
 a new workbook, imports every component of `vba.components` from the checkout
-in role order (internal, public, test, example), compiles with **Debug →
-Compile VBAProject**, and runs every test module's `Module.RunModule` entry
-point, the policy's harness first. Each suite prints through `TestLog.Say`,
+in role order (internal, public, test, example), adds a generated
+`CertificationRunner` module, compiles with **Debug → Compile VBAProject**, and
+runs every test module's `Module.RunModule` entry point, the policy's harness
+first. The runner holds one wrapper per suite and example that calls the entry
+point under an error handler: a suite that raises, as every suite does when an
+assertion fails, is recorded with its error instead of opening Visual Basic's
+modal "Run-time error" window, and its log still closes normally. The runner
+is not part of the candidate's source. Each suite prints through `TestLog.Say`,
 whose log the script opens with `TestLog.OpenLog` before the run and closes
 after it, so `harness.log` and `Module.log` hold the complete report with
 `CANDIDATE=` and the SHA as their first line, written by the project itself. It

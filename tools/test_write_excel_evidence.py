@@ -168,6 +168,14 @@ class WriteEvidenceTests(unittest.TestCase):
         self.assertEqual(self.run_writer()[0], 1)
         self.assertIn("raised", self.summary()["suites"][1]["detail"])
 
+    def test_raised_entry_point_is_named_before_log_closing(self) -> None:
+        self.session["suites"][1].update(status="ERROR", error="Regression failed", closed="NONE")
+        self.save_session()
+        self.assertEqual(self.run_writer()[0], 1)
+        detail = self.summary()["suites"][1]["detail"]
+        self.assertIn("the entry point raised: Regression failed", detail)
+        self.assertNotIn("lines lost", detail)
+
     def test_example_error_fails_the_certification(self) -> None:
         self.session["examples"][0].update(status="ERROR", error="Subscript out of range")
         self.save_session()

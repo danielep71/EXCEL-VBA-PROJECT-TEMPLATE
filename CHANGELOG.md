@@ -109,7 +109,10 @@ Use only the categories needed by a release.
   `tools/write_excel_evidence.py` writes and validates `host.json` from the
   logs, checks each suite's counts against the constants its source declares,
   fails the run when a configured suite or example was not run (#175), and
-  writes `certification.md`. The new `TestLog` module is the print routine
+  writes `certification.md`. Each suite and example runs through a generated
+  `CertificationRunner` wrapper with an error handler, so a failing suite is
+  recorded and its log closed instead of stopping the run on Visual Basic's
+  modal error window, and the summary names the raised error first (#178). The new `TestLog` module is the print routine
   of every test module: `TestLog.Say` writes to the Immediate window and, while
   a certification log is open, to that suite's log, so a complete report is
   kept without reading the Immediate window; examples keep `Debug.Print`.
@@ -304,6 +307,14 @@ Use only the categories needed by a release.
 
 ### Fixed
 
+- A progress session could leave the text `FALSE` in the status bar. Some
+  Excel builds, among them 16.0.20430 on Windows, read a status bar Excel owns
+  back as the String `"FALSE"` instead of the Boolean `False`;
+  `ProgressBegin` saved that text and `ProgressEnd` wrote it back.
+  `ProgressCore.NormalizeStatusBar` now keeps both as Excel's bar, the
+  snapshot and `ProgressTests` read the bar through it, and four assertions
+  cover it (83 on Windows, 79 on macOS). Found by the first Excel
+  certification of the ui-component reference (#177).
 - Label pruning no longer deletes labels in use. With `"prune": true`, the
   label synchronization deleted every live label outside the resolved selection,
   removing it from every issue and pull request, closed ones included, with no

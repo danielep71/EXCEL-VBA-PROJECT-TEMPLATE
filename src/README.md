@@ -69,6 +69,10 @@ One session at a time owns these Application properties and restores each at
 workbook and worksheet stay caller-owned and are never changed.
 `ProgressRecover` ends a live session, or restores Excel defaults when a VBA
 reset has discarded the snapshot.
+Some Excel builds read a status bar Excel owns back as the text `FALSE`
+rather than the Boolean `False`. The snapshot treats both as Excel's bar, so
+a session never ends by displaying `FALSE`; a caller whose own text is exactly
+`FALSE` gets Excel's text back instead.
 
 Elapsed time uses the Windows performance counter, declared for VBA7 with
 `PtrSafe` and for legacy VBA without it, because VBA's `Timer` wraps at
