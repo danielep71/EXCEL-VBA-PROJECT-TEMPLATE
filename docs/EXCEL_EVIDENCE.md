@@ -185,6 +185,14 @@ or, from PowerShell, with a generated project as the candidate:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Certify-Excel.ps1 -RepoRoot C:\work\my-project
 ```
 
+A minimal-tier project keeps no `.github/excel-evidence-policy.json`, so no host
+record applies to it. Pointed at such a project, the script runs in **run-only**
+mode: it imports, compiles and runs every suite and example the same way, takes
+the harness entry point from the template checkout's policy, and
+`write_excel_evidence.py --run-only` judges every suite, the harness included,
+against the counts its source declares. It writes `suites.json` and
+`certification.md` and no `host.json`.
+
 It records Windows, Excel version and build, Office bitness, the macro setting
 and *Trust access to the VBA project object model* as found, and changes none
 of them; the import needs that access on. It then starts a visible Excel, adds

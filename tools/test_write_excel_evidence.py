@@ -201,6 +201,36 @@ class WriteEvidenceTests(unittest.TestCase):
         self.assertEqual((example["module"], example["status"]), ("ProjectExample", "FAIL"))
         self.assertIn("RESULT=FAIL", (self.bundle / "certification.md").read_text())
 
+    def run_only(self, *extra: str) -> tuple[int, str, str]:
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = writer.main(["--root", str(self.root), "--candidate-sha", self.sha,
+                                "--bundle", str(self.bundle), "--run-only", *extra])
+        return code, out.getvalue(), err.getvalue()
+
+    def test_run_only_judges_every_suite_without_a_host_record(self) -> None:
+        code, out, _ = self.run_only("--harness-module", "ProjectTests")
+        self.assertEqual(code, 0, out)
+        self.assertFalse((self.bundle / "host.json").exists())
+        text = (self.bundle / "certification.md").read_text()
+        self.assertIn("Host record: NOT APPLICABLE", text)
+        self.assertIn("| `ProjectTests.RunProjectTests (harness)` | PASS | cases=4; assertions=6; cleanup=PASS |", text)
+        self.assertIn("RESULT=PASS", text)
+        self.assertEqual(self.summary()["host_record"], "NOT_APPLICABLE")
+
+    def test_run_only_fails_a_wrong_count_a_missing_example_or_no_harness(self) -> None:
+        self.write_bundle(harness_result=(
+            "RESULT=PASS; completeness=COMPLETE; cases=3; assertions=6; failures=0; cleanup=PASS"))
+        self.assertEqual(self.run_only("--harness-module", "ProjectTests")[0], 1)
+        self.assertIn("source declares 4", self.summary()["suites"][0]["detail"])
+        self.write_bundle()
+        self.session["examples"] = []
+        self.save_session()
+        self.assertEqual(self.run_only("--harness-module", "ProjectTests")[0], 1)
+        self.assertEqual(self.summary()["examples"][0]["status"], "FAIL")
+        code, _, err = self.run_only()
+        self.assertEqual((code, "--harness-module" in err), (2, True))
+
     def test_record_is_never_replaced_and_candidate_must_match(self) -> None:
         (self.bundle / "host.json").write_text("{}")
         code, _, err = self.run_writer()
