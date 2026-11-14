@@ -144,10 +144,18 @@ closed. The canonical policy currently records the 21 exact v1.0.0 pilot URLs
 preserved in `docs/PILOT_CERTIFICATION.md`. Those IDs were derived from the
 historical URLs already in the document; no credentials are stored.
 
-A release candidate may temporarily classify an exact tag-dependent URL as
-`pending-publication` only when its rationale and expiry are reviewed with the
-candidate. After publication, remove that classification and require the normal
-anonymous check. Do not use this mechanism for a public page that should already
+The release links of the version in `VERSION` need no classification:
+`compare/vX.Y.Z...HEAD`, `releases/tag/vX.Y.Z` and `compare/<previous>...vX.Y.Z`
+of this repository, where `<previous>` is the release just before it in the
+CHANGELOG. They are still probed. A consistent 404, and only a 404, is reported as
+`PENDING_PUBLICATION` (`awaiting-tag`) rather than a deterministic defect, and
+once the tag is published they resolve and pass like any other link. Release
+semantics already fix their exact form, and any other 404 stays a defect.
+
+For any other tag-dependent URL, a release candidate may temporarily classify
+that exact URL as `pending-publication`, only when its rationale and expiry are
+reviewed with the candidate. After publication, remove that classification and
+require the normal anonymous check. Do not use this mechanism for a public page that should already
 exist.
 
 ## 🚦 Interpreting Results

@@ -510,6 +510,37 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(report["counts"]["pending_publication"], 1)
         self.assertEqual(report["counts"]["deterministic_public_defects"], 0)
 
+    def test_release_links_of_the_current_version_await_their_tag(self) -> None:
+        repo = "https://github.com/owner/repo"
+        (self.root / "VERSION").write_text("1.4.0\n")
+        (self.root / ".github/repository-profile.json").write_text(json.dumps({"repository": "owner/repo"}))
+        (self.root / "CHANGELOG.md").write_text("## [1.4.0] - 2027-02-01\n\n## [1.3.0] - 2026-11-14\n\n"
+                                                "## [1.2.1] - 2026-09-28\n")
+        pending = [f"{repo}/compare/v1.4.0...HEAD", f"{repo}/compare/v1.3.0...v1.4.0", f"{repo}/releases/tag/v1.4.0"]
+        defects = [f"{repo}/compare/v999.0.0...v1.4.0", f"{repo}/compare/v1.2.1...v1.4.0",
+                   "https://github.com/other/repo/releases/tag/v1.4.0", f"{repo}/blob/v1.4.0/README.md"]
+        (self.root / "README.md").write_text("".join(f"[link]({url})\n" for url in pending + defects))
+        self.policy["network"]["domains"] = {"github.com": "Synthetic forge"}
+        self.save()
+        report = links.build_report(self.root, TODAY, lambda url, timeout: (404, None), lambda seconds: None)
+        statuses = {row["locations"][0]: row["status"] for row in report["links"]}
+        self.assertEqual([statuses[f"README.md:{line}"] for line in range(1, 8)],
+                         ["PENDING_PUBLICATION"] * 3 + ["PERMANENT_FAILURE"] * 4)
+        self.assertEqual(report["counts"]["pending_publication"], 3)
+        self.assertEqual(report["status"], "fail")
+        gone = links.build_report(self.root, TODAY, lambda url, timeout: (410, None), lambda seconds: None)
+        self.assertEqual(gone["counts"]["pending_publication"], 0)
+        published = links.build_report(self.root, TODAY, lambda url, timeout: (200, None), lambda seconds: None)
+        self.assertEqual({row["status"] for row in published["links"]}, {"OK"})
+        first = links.awaiting_tag(self.root)
+        (self.root / "CHANGELOG.md").write_text("## [1.4.0] - 2027-02-01\n")
+        self.assertFalse(links.awaiting_tag(self.root)(pending[1]))
+        self.assertTrue(first(pending[1]) and links.awaiting_tag(self.root)(pending[2]))
+        (self.root / "VERSION").write_text("not-a-version\n")
+        self.assertFalse(links.awaiting_tag(self.root)(pending[0]))
+        (self.root / "VERSION").unlink()
+        self.assertFalse(links.awaiting_tag(self.root)(pending[0]))
+
     def test_classification_cannot_override_local_url_policy(self) -> None:
         cases = (
             ("http://example.org/private-history", "POLICY_BLOCKED", "fail"),

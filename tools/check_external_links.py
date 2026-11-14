@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import http.client
 import ipaddress
+import json
 import re
 import socket
 import ssl
@@ -245,6 +246,38 @@ def probe(
     return {"status": outcome, "attempts": len(statuses), "http_codes": codes}
 
 
+def awaiting_tag(root: Path) -> Callable[[str], bool]:
+    """Match the release links of the version in VERSION, which exist only once its tag is published.
+
+    Those are the CHANGELOG links compare/<tag>...HEAD, compare/<previous>...<tag>
+    and releases/tag/<tag> of this repository. They are still probed: a 404 is
+    reported as PENDING_PUBLICATION instead of a defect, and once the tag is
+    published they resolve and pass like any other link, so no hand-written
+    classification needs adding at the cut or removing after publication.
+    """
+    try:
+        version = (root / "VERSION").read_text(encoding="utf-8").strip()
+        profile = json.loads((root / ".github/repository-profile.json").read_text(encoding="utf-8"))
+        repository = str(profile["repository"])
+        changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+    except (OSError, ValueError, KeyError, TypeError):
+        return lambda url: False
+
+    def order(value: str) -> tuple[int, ...]:
+        return tuple(int(part) for part in value.split("."))
+
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        return lambda url: False
+    # Only the release immediately before VERSION is a valid comparison base.
+    earlier = [item for item in re.findall(r"^## \[(\d+\.\d+\.\d+)\] - ", changelog, re.MULTILINE)
+               if order(item) < order(version)]
+    base = f"https://github.com/{repository}"
+    expected = {f"{base}/compare/v{version}...HEAD", f"{base}/releases/tag/v{version}"}
+    if earlier:
+        expected.add(f"{base}/compare/v{max(earlier, key=order)}...v{version}")
+    return lambda url: url in expected
+
+
 def collect(root: Path) -> dict[str, dict[str, Any]]:
     links: dict[str, dict[str, Any]] = {}
     for path in sorted(tracked_files(root)):
@@ -290,6 +323,7 @@ def build_report(
     links = collect(root)
     exceptions = {item["id"] for item in policy["exceptions"]}
     classifications = {item["id"]: item for item in policy["classifications"]}
+    unpublished = awaiting_tag(root)
 
     def check(item: tuple[str, dict[str, Any]]) -> dict[str, Any]:
         digest, value = item
@@ -321,6 +355,10 @@ def build_report(
             result = {"status": "EXCEPTED", "attempts": 0, "http_codes": []}
         else:
             result = probe(url, policy, transport, pause)
+            # Only a consistent 404 means "not published yet"; 400, 410 and others stay defects.
+            if (result["status"] == "PERMANENT_FAILURE" and set(result["http_codes"]) == {404}
+                    and unpublished(url)):
+                result = {**result, "status": "PENDING_PUBLICATION", "classification": "awaiting-tag"}
         return {
             "id": digest,
             "domain": domain,

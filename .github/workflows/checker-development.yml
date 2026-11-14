@@ -168,6 +168,7 @@ jobs:
           run tools/check_vba_public_api.py --root . --self-test
           run tools/check_local_actions.py --root . --self-test
 
+          run tools/test_cut_release.py -v
           run tools/test_documentation.py -v
           run tools/test_excel_evidence.py -v
           run tools/test_write_excel_evidence.py -v
