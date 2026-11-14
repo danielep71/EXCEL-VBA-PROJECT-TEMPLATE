@@ -384,6 +384,8 @@ def bundle(options: argparse.Namespace) -> int:
     require(identity["template"], "the certification bundle applies to the canonical template only")
     evidence = work / "evidence"
     require((work / "release-evidence.json").is_file(), f"run prepare first: {work} has no release-evidence.json")
+    complete = work / "bundle-complete.json"
+    complete.unlink(missing_ok=True)
     checked(tool(root, "check_release.py", "--root", ".", "--tag", identity["tag"], "--candidate-sha", identity["sha"],
                  "--evidence", str(work / "release-evidence.json"),
                  "--excel-evidence", str(evidence / "host.json"), "--require-tag-ref",
@@ -402,6 +404,9 @@ def bundle(options: argparse.Namespace) -> int:
                  "--manifest", str(out / f"certification-{identity['tag']}.manifest.json"),
                  "--digest", str(out / f"certification-{identity['tag']}.sha256")), root, "bundle verification")
     require(outputs[0].read_bytes() == outputs[1].read_bytes(), "the bundle rebuild is not byte-identical")
+    # Written last: its presence means build, verification and rebuild all passed.
+    write_json(complete, {"tag": identity["tag"], "candidate_sha": identity["sha"],
+                          "bundle_sha256": hashlib.sha256(outputs[0].read_bytes()).hexdigest()})
     print(f"BUNDLED: {outputs[0]} SHA-256 {hashlib.sha256(outputs[0].read_bytes()).hexdigest()}; "
           "verified and deterministic. Sign it next.")
     return 0

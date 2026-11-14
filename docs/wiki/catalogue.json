@@ -834,6 +834,11 @@
       "kind": "script",
       "authority": "docs/PROVISIONING.md"
     },
+    "tools/publish_release.py": {
+      "purpose": "Sign and push the tag, sign the bundle, publish the GitHub Release and run the closeout, with confirmations.",
+      "kind": "script",
+      "authority": "docs/RELEASE_EVIDENCE.md"
+    },
     "tools/release_certification.py": {
       "purpose": "Build or verify deterministic, candidate-bound release certification bundles.",
       "kind": "script",
@@ -908,6 +913,11 @@
       "purpose": "Simulated API fixtures for the settings check: drift, unverified, not applicable and GET-only.",
       "kind": "script",
       "authority": "docs/POST_CREATION_CHECKLIST.md"
+    },
+    "tools/test_publish_release.py": {
+      "purpose": "Simulated git, gh, ssh-keygen and sibling-tool fixtures for release publication.",
+      "kind": "script",
+      "authority": "docs/RELEASE_EVIDENCE.md"
     },
     "tools/test_template_verification_depth.py": {
       "purpose": "Template-only verification-depth fixtures for maintainer tools removed during project generation.",
