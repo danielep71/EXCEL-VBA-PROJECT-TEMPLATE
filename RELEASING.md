@@ -346,6 +346,13 @@ git push origin "refs/tags/$release_tag:refs/tags/$release_tag" || exit $?
 <!-- template:remove:start -->
 ### Canonical-template SSH-signed tag
 
+**One command:** after `tools/prepare_release_evidence.py prepare`, the
+template-only `tools/publish_release.py` performs this tag step, the signed
+certification bundle, the GitHub Release and the closeout, asking for
+confirmation before each publication. See
+[Release evidence](docs/RELEASE_EVIDENCE.md#-assemble-the-evidence-with-one-command).
+The manual procedure follows.
+
 **Do not use the generated-project `git tag -a` command above for the canonical
 template.** The maintainer must have an SSH signing key whose private half
 remains outside the repository and whose public half is registered on GitHub

@@ -100,6 +100,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "create_reusable_workflow_fixture.py": ("utility", "disposable consumer provisioning, not a report gate"),
     "initialize_repository.py": ("utility", "repository provisioning CLI, not a report gate"),
     "prepare_release_evidence.py": ("utility", "release-evidence and certification-bundle assembly, not a report gate"),
+    "publish_release.py": ("utility", "maintainer-confirmed tag, bundle and GitHub Release publication, not a report gate"),
     "write_excel_evidence.py": ("utility", "evidence-bundle record writer, not a report gate"),
     "test_documentation.py": ("test-runner", _UNITTEST),
     "test_excel_evidence.py": ("test-runner", _UNITTEST),
@@ -107,6 +108,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "test_portfolio_quality.py": ("test-runner", _UNITTEST),
     "test_prepare_release_evidence.py": ("test-runner", _UNITTEST),
     "test_provision_repository.py": ("test-runner", _UNITTEST),
+    "test_publish_release.py": ("test-runner", _UNITTEST),
     "test_release_provenance.py": ("test-runner", _UNITTEST),
     "test_repository_settings.py": ("test-runner", _UNITTEST),
     "test_template_verification_depth.py": ("test-runner", _UNITTEST),
@@ -142,6 +144,7 @@ SELF_TEST_EXCLUSIONS = {
     "test_portfolio_quality.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_prepare_release_evidence.py": "Template-only unittest CLI; simulated git, gh and sibling tools",
     "test_provision_repository.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_publish_release.py": "Template-only unittest CLI; simulated git, gh, ssh-keygen and sibling tools",
     "test_release_provenance.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_repository_settings.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_verification_depth.py": "Unittest CLI; focused release-critical failure-path coverage",
@@ -164,6 +167,9 @@ SELF_TEST_EXCLUSIONS = {
     "provision_repository.py": "Simulated provisioning: python tools/test_provision_repository.py -v",
     "prepare_release_evidence.py": (
         "Simulated release fixtures: python tools/test_prepare_release_evidence.py -v; no live GitHub call"
+    ),
+    "publish_release.py": (
+        "Simulated publication fixtures: python tools/test_publish_release.py -v; no live GitHub call"
     ),
     "check_repository_settings.py": "Simulated GitHub API: python tools/test_repository_settings.py -v; no live request",
     "test_workflow_validation.py": "Normal invocation runs authoritative actionlint fixtures",

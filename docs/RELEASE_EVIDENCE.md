@@ -296,9 +296,33 @@ python3 tools/prepare_release_evidence.py bundle --root . --tag vX.Y.Z \
 `bundle` runs the post-tag `check_release.py`, which includes the signature
 check. It writes the certification specification with one unique role per
 record and builds the bundle into `release-work/out/`. It then verifies the
-bundle and rebuilds it, failing unless both builds are identical. Sign the ZIP
-as shown below. The fixtures run offline with
-`python3 tools/test_prepare_release_evidence.py -v`.
+bundle and rebuilds it, failing unless both builds are identical. The fixtures
+run offline with `python3 tools/test_prepare_release_evidence.py -v`.
+
+After `prepare`, one command does the rest:
+
+```bash
+python3 tools/publish_release.py --root . --tag vX.Y.Z \
+  --candidate-sha FULL_CANDIDATE_SHA --work-dir ../release-work \
+  --signing-key ~/.ssh/RELEASE_SIGNING_KEY --redaction-reviewed --wiki-browser-reviewed
+```
+
+It does the following, in order:
+
+1. signs the annotated tag;
+2. runs the post-tag check. If it fails, the local tag is deleted and nothing is pushed;
+3. asks for confirmation, then pushes the tag;
+4. runs `bundle`;
+5. signs the ZIP in the `excel-vba-release-certification` namespace and verifies that signature;
+6. writes `release-work/release-notes.md` from the CHANGELOG section and the evidence;
+7. asks for confirmation, then creates the GitHub Release from the existing tag, titled like its milestone, with the four certification files;
+8. closes that milestone;
+9. dispatches *Release closeout* and waits for a green verdict.
+
+A step whose result already exists is skipped, so after a failure the same
+command resumes. `--yes` answers every confirmation, and the signing key can
+come from `RELEASE_SIGNING_KEY`. The fixtures run offline with
+`python3 tools/test_publish_release.py -v`.
 <!-- template:remove:end -->
 
 Build and locally verify the files after the candidate is frozen and the final

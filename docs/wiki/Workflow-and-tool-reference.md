@@ -48,7 +48,7 @@ for that script's actual arguments; do not assume every script has `--self-test`
 | Release | `check_release.py`, `check_excel_evidence.py`, `release_certification.py`, `_release_closeout.py` | Candidate, actual external records/logs/assets → validation, certification bundle or post-release closeout; release/host/closeout contracts; full tier |
 | Initialization | `initialize_repository.py` | Clean source and explicit values → plan, optional apply, immutable input record |
 | Portfolio | `collect_portfolio_snapshot.py`, `check_portfolio_drift.py`, `report_portfolio_quality.py` | GET-only capture → structural comparison and timestamped quality report; template only |
-| Release assembly | `prepare_release_evidence.py` | Clean candidate, Certify-Excel bundle, `gh` → release evidence before the tag, certification bundle after it; template only |
+| Release assembly | `prepare_release_evidence.py`, `publish_release.py` | Clean candidate, Certify-Excel bundle, `gh`, signing key → release evidence before the tag; signed tag, signed bundle, GitHub Release and closeout after it, with confirmations; template only |
 | Provisioning | `provision_repository.py` | Explicit new target, source SHA, reviewed digest → plan or guarded writes/journal; template only |
 | Reusable fixtures | `create_reusable_workflow_fixture.py` | Explicit profile, destination and immutable provider SHA → disposable caller; template only |
 | Checker development | `checker_development.py`, `check_policy_coverage.py`, `policy_coverage_runner.py`, `dev_check.sh` | Checker sources and fixtures → contract, policy-coverage and local pre-push results; Checker Development; template only |

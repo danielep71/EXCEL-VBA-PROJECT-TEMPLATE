@@ -109,6 +109,12 @@ Use only the categories needed by a release.
   `release-evidence.json` with the host-evidence binding computed. `bundle`
   runs the post-tag check and builds, verifies and rebuilds the certification
   bundle. It never signs, pushes or publishes (#195).
+- `tools/publish_release.py` finishes a canonical release with one command and
+  a confirmation before each publication. It signs the tag and pushes it only
+  after the post-tag check passes, builds and signs the certification bundle,
+  writes the release notes, creates the GitHub Release with the four files,
+  closes the milestone and waits for a green *Release closeout*. A rerun
+  resumes after the last completed step (#196).
 
 ### Changed
 
