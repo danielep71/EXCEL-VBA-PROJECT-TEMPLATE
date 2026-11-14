@@ -51,6 +51,48 @@ A release is valid only when:
 If source changes after certification, the affected evidence is stale and must be
 rerun. Never compensate by manually editing an already-tested artifact.
 
+<!-- template:remove:start -->
+<a id="one-command-canonical-release"></a>
+
+## ⚡ Canonical template: one command
+
+The canonical template is released from the maintainer's Windows machine with
+desktop Excel. It needs `gh` signed in with `delete_repo`, Wiki push credentials
+and the SSH signing key. Run it from a clean checkout of `main`, with the
+release entries already under *Unreleased*:
+
+```bash
+python3 tools/release_template.py --version X.Y.Z --work-dir ../release-X.Y.Z \
+  --maintainer "Maintainer Name" --signing-key ~/.ssh/RELEASE_SIGNING_KEY
+```
+
+It runs the phases below and records them in
+`../release-X.Y.Z/release-state.json`. A finished phase is skipped when the
+command runs again, so after any stop, fix the cause and rerun it unchanged.
+Interrupted phases recover as follows:
+
+- **Cut:** a cut whose push or pull request failed is completed before the merge.
+- **Pilot:** a failed pilot attempt is kept. The next attempt uses
+  `pilot-work-N` and a repository name ending in `-N`.
+- **Evidence:** an interrupted preparation is moved, not deleted, to
+  `release-work.incomplete-N`.
+
+| Phase | Tool | Maintainer action |
+| --- | --- | --- |
+| Cut | `cut_release.py --push`, then the PR is merged once green | Confirm the merge |
+| Interface | Stops if the called workflow differs from the last published pin; publish the next revision first (see below) | None |
+| Excel | `Certify-Excel.ps1` on the candidate | Answer a compile prompt, if Excel shows one |
+| Wiki | `publish_wiki.py` | Confirm the push; confirm the browser review of Home, sidebar and navigation |
+| Pilot | `run_clean_room_pilot.py` | Confirm the pilot's deletion |
+| Links | Dispatches *External documentation links* and waits for green at the candidate | None |
+| Evidence | `prepare_release_evidence.py prepare` | Confirm that the evidence was reviewed for private data |
+| Publish | `publish_release.py`: signed tag, signed bundle, GitHub Release, milestone, closeout | Confirm the tag push and the publication |
+
+`--pilot-record` reuses a finished clean-room journey of the same candidate. The
+numbered sections below remain the authoritative manual procedure, and each
+tool documents its own checks.
+<!-- template:remove:end -->
+
 ## 1. Freeze and identify the candidate
 
 Before a functional release, verify the required branch/tag protection and
