@@ -285,12 +285,16 @@ def run_only(root: Path, sha: str, bundle: Path, harness_module: str) -> tuple[d
     compiled = object_keys(session["compile"], "status detail", "session compile")
     summary = run_summary(root, sha, bundle, config, session, harness_module)
     summary["host_record"] = "NOT_APPLICABLE"
+    # As in the host-record path, a workbook left open is a cleanup failure.
+    closed = session["workbook_closed"] is True
     passed = (imported["status"] == "PASS" and compiled["status"] == "PASS" and bool(summary["suites"])
-              and all(item["status"] == "PASS" for item in summary["suites"] + summary["examples"]))
+              and all(item["status"] == "PASS" for item in summary["suites"] + summary["examples"])
+              and closed)
     lines = [f"# Excel run of {sha} (run only)", "",
              "Host record: NOT APPLICABLE (the candidate has no .github/excel-evidence-policy.json)", "",
              f"Import: {imported['status']} ({imported['detail']})",
-             f"Compile: {compiled['status']} ({compiled['detail']})", "",
+             f"Compile: {compiled['status']} ({compiled['detail']})",
+             f"Cleanup: {'PASS (workbook closed without saving the run)' if closed else 'FAIL (workbook not closed)'}", "",
              f"Environment: Excel {session['excel_version']}, {session['excel_build']}, "
              f"{session['office_bitness']}; {session['os']}", "",
              "| Suite | Status | Detail |", "| --- | --- | --- |"]

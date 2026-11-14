@@ -216,7 +216,17 @@ class WriteEvidenceTests(unittest.TestCase):
         self.assertIn("Host record: NOT APPLICABLE", text)
         self.assertIn("| `ProjectTests.RunProjectTests (harness)` | PASS | cases=4; assertions=6; cleanup=PASS |", text)
         self.assertIn("RESULT=PASS", text)
+        self.assertIn("Cleanup: PASS", text)
         self.assertEqual(self.summary()["host_record"], "NOT_APPLICABLE")
+
+    def test_run_only_fails_when_the_workbook_was_not_closed(self) -> None:
+        self.session["workbook_closed"] = False
+        self.save_session()
+        code, out, _ = self.run_only("--harness-module", "ProjectTests")
+        self.assertEqual(code, 1, out)
+        text = (self.bundle / "certification.md").read_text()
+        self.assertIn("Cleanup: FAIL (workbook not closed)", text)
+        self.assertIn("RESULT=FAIL", text)
 
     def test_run_only_fails_a_wrong_count_a_missing_example_or_no_harness(self) -> None:
         self.write_bundle(harness_result=(

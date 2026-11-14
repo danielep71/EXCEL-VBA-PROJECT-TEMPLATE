@@ -190,7 +190,8 @@ record applies to it. Pointed at such a project, the script runs in **run-only**
 mode: it imports, compiles and runs every suite and example the same way, takes
 the harness entry point from the template checkout's policy, and
 `write_excel_evidence.py --run-only` judges every suite, the harness included,
-against the counts its source declares. It writes `suites.json` and
+against the counts its source declares. A workbook the script could not close
+is a cleanup failure, as in the host-record path. It writes `suites.json` and
 `certification.md` and no `host.json`.
 
 It records Windows, Excel version and build, Office bitness, the macro setting
