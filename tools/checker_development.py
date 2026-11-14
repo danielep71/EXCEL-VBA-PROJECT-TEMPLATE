@@ -103,6 +103,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "prepare_release_evidence.py": ("utility", "release-evidence and certification-bundle assembly, not a report gate"),
     "publish_release.py": ("utility", "maintainer-confirmed tag, bundle and GitHub Release publication, not a report gate"),
     "publish_wiki.py": ("utility", "maintainer-confirmed Wiki publication with byte read-back, not a report gate"),
+    "run_clean_room_pilot.py": ("utility", "live clean-room journey orchestration with a timed record, not a report gate"),
     "write_excel_evidence.py": ("utility", "evidence-bundle record writer, not a report gate"),
     "test_cut_release.py": ("test-runner", _UNITTEST),
     "test_documentation.py": ("test-runner", _UNITTEST),
@@ -115,6 +116,7 @@ CLI_CLASSIFICATION: dict[str, tuple[str, str]] = {
     "test_publish_wiki.py": ("test-runner", _UNITTEST),
     "test_release_provenance.py": ("test-runner", _UNITTEST),
     "test_repository_settings.py": ("test-runner", _UNITTEST),
+    "test_run_clean_room_pilot.py": ("test-runner", _UNITTEST),
     "test_template_verification_depth.py": ("test-runner", _UNITTEST),
     "test_template_workflow_validation.py": ("test-runner", _UNITTEST),
     "test_verification_depth.py": ("test-runner", _UNITTEST),
@@ -153,6 +155,7 @@ SELF_TEST_EXCLUSIONS = {
     "test_publish_wiki.py": "Template-only unittest CLI; simulated Wiki remote and check_wiki.py",
     "test_release_provenance.py": "Unittest CLI; normal invocation runs its fixture suite",
     "test_repository_settings.py": "Unittest CLI; normal invocation runs its fixture suite",
+    "test_run_clean_room_pilot.py": "Template-only unittest CLI; simulated GitHub, git, Excel and sibling tools",
     "test_verification_depth.py": "Unittest CLI; focused release-critical failure-path coverage",
     "test_template_verification_depth.py": (
         "Template-only unittest CLI; maintainer-tool failure-path coverage"
@@ -179,6 +182,9 @@ SELF_TEST_EXCLUSIONS = {
     ),
     "publish_wiki.py": "Simulated Wiki fixtures: python tools/test_publish_wiki.py -v; no live push",
     "cut_release.py": "Temporary-repository fixtures: python tools/test_cut_release.py -v; no live push",
+    "run_clean_room_pilot.py": (
+        "Simulated journey fixtures: python tools/test_run_clean_room_pilot.py -v; no live repository"
+    ),
     "check_repository_settings.py": "Simulated GitHub API: python tools/test_repository_settings.py -v; no live request",
     "test_workflow_validation.py": "Normal invocation runs authoritative actionlint fixtures",
     "create_reusable_workflow_fixture.py": (
