@@ -46,8 +46,10 @@ class Fake:
     """Simulated external commands with a small amount of remote state."""
 
     def __init__(self, *, remote_tag: bool = False, release: bool = False, fail: str = "",
-                 milestone_state: str = "open", closeout: str = "success", milestones: bool = True) -> None:
+                 milestone_state: str = "open", closeout: str = "success", milestones: bool = True,
+                 draft: bool = False, assets: int = 4, other_run: bool = False, verified_tag: str = "v1.3.0") -> None:
         self.remote_tag, self.release, self.fail = remote_tag, release, fail
+        self.draft, self.assets, self.other_run, self.verified_tag = draft, assets, other_run, verified_tag
         self.local_tag = False
         self.milestone_state, self.closeout, self.milestones = milestone_state, closeout, milestones
         self.dispatched = False
@@ -59,46 +61,63 @@ class Fake:
 
     def __call__(self, command: list[str], cwd: Path) -> subprocess.CompletedProcess[bytes]:
         self.commands.append(command)
-        text = " ".join(command)
-        if self.fail and self.fail in text:
+        if self.fail and self.fail in " ".join(command):
             return self.done(command, 1)
-        if command[:2] == ["git", "rev-parse"] and "--verify" in command:
-            return self.done(command, 0 if self.local_tag else 1)
-        if command[:2] == ["git", "rev-parse"]:
-            return self.done(command, out=SHA.encode())
-        if command[:2] == ["git", "status"]:
-            return self.done(command)
-        if command[:2] == ["git", "ls-remote"]:
-            return self.done(command, out=f"{'b' * 40}\trefs/tags/v1.3.0\n".encode() if self.remote_tag else b"")
-        if "tag" in command and "-s" in command:
-            self.local_tag = True
-        if command[:3] == ["git", "tag", "-d"]:
-            self.local_tag = False
-        if command[:2] == ["git", "push"]:
-            self.remote_tag = True
-        if command[0] == "ssh-keygen":
-            Path(command[-1] + ".sig").write_text("signature")
-        if "--build" in command:
-            target = Path(command[command.index("--output-dir") + 1])
-            target.mkdir(parents=True)
-            tag = "v1.3.0"
-            (target / f"certification-{tag}.zip").write_bytes(b"zip")
-            (target / f"certification-{tag}.manifest.json").write_text("{}")
-            (target / f"certification-{tag}.sha256").write_text("digest")
-        if "check_release.py" in text and "--output" in command:
-            Path(command[command.index("--output") + 1]).write_text("{}")
-        if command[:3] == ["gh", "release", "create"]:
-            self.release = True
+        if command[0] == "git":
+            return self.git(command)
         if command[:2] == ["gh", "api"]:
             return self.gh(command)
-        if command[:3] == ["gh", "workflow", "run"]:
-            self.dispatched = True
+        if "--verify-bundle" in command:
+            return self.done(command, out={"status": "pass", "tag": self.verified_tag, "candidate_sha": SHA})
+        self.effects(command)
         return self.done(command)
+
+    def git(self, command: list[str]) -> subprocess.CompletedProcess[bytes]:
+        verb = command[1]
+        if verb == "rev-parse":
+            if "--verify" in command:
+                return self.done(command, 0 if self.local_tag else 1)
+            return self.done(command, out=SHA.encode())
+        if verb == "ls-remote":
+            return self.done(command, out=f"{'b' * 40}\trefs/tags/v1.3.0\n".encode() if self.remote_tag else b"")
+        if "-s" in command:
+            self.local_tag = True
+        elif command[-2:-1] == ["-d"]:
+            self.local_tag = False
+        elif verb == "push":
+            self.remote_tag = True
+        return self.done(command)
+
+    def effects(self, command: list[str]) -> None:
+        """Files and remote state that the simulated tool or gh command leaves behind."""
+        if command[0] == "ssh-keygen":
+            Path(command[-1] + ".sig").write_text("signature")
+        elif "--build" in command:
+            target = Path(command[command.index("--output-dir") + 1])
+            target.mkdir(parents=True)
+            (target / "certification-v1.3.0.zip").write_bytes(b"zip")
+            (target / "certification-v1.3.0.manifest.json").write_text("{}")
+            (target / "certification-v1.3.0.sha256").write_text("digest")
+        elif "check_release.py" in " ".join(command) and "--output" in command:
+            Path(command[command.index("--output") + 1]).write_text("{}")
+        action = tuple(command[1:3])
+        if action == ("release", "create"):
+            self.release, self.draft, self.assets = True, False, 4
+        elif action == ("release", "upload"):
+            self.assets = 4
+        elif action == ("release", "edit"):
+            self.draft = False
+        elif action == ("workflow", "run"):
+            self.dispatched = True
 
     def gh(self, command: list[str]) -> subprocess.CompletedProcess[bytes]:
         endpoint = command[-1] if command[2] != "-X" else command[4]
-        if "/releases/tags/" in endpoint:
-            return self.done(command, 0 if self.release else 1, {"tag_name": "v1.3.0"})
+        if "/releases?per_page" in endpoint:
+            names = ["certification-v1.3.0.zip", "certification-v1.3.0.zip.sig",
+                     "certification-v1.3.0.manifest.json", "certification-v1.3.0.sha256"][:self.assets]
+            release = {"tag_name": "v1.3.0", "draft": self.draft, "assets": [{"name": name} for name in names]}
+            return self.done(command, out=[{"tag_name": "v1.2.1", "draft": False, "assets": []}]
+                             + ([release] if self.release else []))
         if "milestones?state=all" in endpoint:
             items = [{"number": 5, "title": "v1.3.0 — Reference", "state": self.milestone_state}]
             return self.done(command, out=items if self.milestones else [])
@@ -106,11 +125,16 @@ class Fake:
             self.milestone_state = "closed"
             return self.done(command, out={})
         if f"/{tool.CLOSEOUT}/runs" in endpoint:
+            old = {"id": 1, "status": "completed", "display_title": f"Release closeout — v1.3.0 @ {SHA}"}
             if not self.dispatched:
-                return self.done(command, out={"workflow_runs": [{"id": 1, "status": "completed"}]})
-            return self.done(command, out={"workflow_runs": [{
-                "id": 2, "status": "completed", "conclusion": self.closeout,
-                "html_url": f"https://github.com/{REPO}/actions/runs/2"}]})
+                return self.done(command, out={"workflow_runs": [old]})
+            runs = [{"id": 2, "status": "completed", "conclusion": self.closeout,
+                     "display_title": f"Release closeout — v1.3.0 @ {SHA}",
+                     "html_url": f"https://github.com/{REPO}/actions/runs/2"}, old]
+            if self.other_run:
+                runs.insert(0, {"id": 3, "status": "completed", "conclusion": "success",
+                                "display_title": f"Release closeout — v9.9.9 @ {'c' * 40}"})
+            return self.done(command, out={"workflow_runs": runs})
         raise AssertionError(f"unexpected endpoint {endpoint}")
 
 
@@ -174,8 +198,46 @@ class PublishReleaseTests(unittest.TestCase):
         code, out, err = self.main(resumed, "--signing-key", str(self.key), "--redaction-reviewed")
         self.assertEqual(code, 0, err)
         self.assertIn("SKIP: v1.3.0 is already published", out)
-        self.assertIn("SKIP: the GitHub Release v1.3.0 already exists", out)
+        self.assertIn("SKIP: the GitHub Release v1.3.0 is published with all four files", out)
+        self.assertIn("SKIP: the certification bundle is complete", out)
         self.assertFalse(any(command[0] == "ssh-keygen" for command in resumed.commands))
+        self.assertFalse(any("--build" in command for command in resumed.commands))
+
+    def test_interrupted_bundle_is_rebuilt_not_trusted(self) -> None:
+        fake = Fake(remote_tag=True, release=True, milestone_state="closed")
+        self.assertEqual(self.main(fake, "--signing-key", str(self.key), "--redaction-reviewed")[0], 0)
+        marker = self.work / "bundle-complete.json"
+        for damage in ("missing-marker", "changed-zip", "wrong-tag"):
+            with self.subTest(damage=damage):
+                again = Fake(remote_tag=True, release=True, milestone_state="closed",
+                             verified_tag="v0.0.1" if damage == "wrong-tag" else "v1.3.0")
+                if damage == "missing-marker":
+                    marker.unlink()
+                if damage == "changed-zip":
+                    (self.work / "out/certification-v1.3.0.zip").write_bytes(b"tampered")
+                code, out, err = self.main(again, "--signing-key", str(self.key), "--redaction-reviewed")
+                self.assertTrue(any("--build" in command for command in again.commands), out + err)
+                self.assertEqual(code, 0, err)
+                self.assertTrue(marker.is_file())
+
+    def test_interrupted_draft_release_is_completed(self) -> None:
+        fake = Fake(remote_tag=True, release=True, draft=True, assets=2)
+        code, out, err = self.main(fake, "--signing-key", str(self.key), "--redaction-reviewed", "--yes")
+        self.assertEqual(code, 0, err)
+        upload = next(command for command in fake.commands if command[:3] == ["gh", "release", "upload"])
+        self.assertEqual([Path(item).name for item in upload[4:6]],
+                         ["certification-v1.3.0.manifest.json", "certification-v1.3.0.sha256"])
+        self.assertTrue(any(command[:3] == ["gh", "release", "edit"] for command in fake.commands))
+        self.assertFalse(any(command[:3] == ["gh", "release", "create"] for command in fake.commands))
+        published = Fake(remote_tag=True, release=True, draft=True, assets=4)
+        self.assertEqual(self.main(published, "--signing-key", str(self.key), "--yes")[0], 0)
+        self.assertFalse(any(command[:3] == ["gh", "release", "upload"] for command in published.commands))
+
+    def test_closeout_ignores_another_release_run(self) -> None:
+        fake = Fake(remote_tag=True, release=True, closeout="failure", other_run=True)
+        code, _, err = self.main(fake, "--signing-key", str(self.key), "--redaction-reviewed", "--yes")
+        self.assertEqual(code, 1)
+        self.assertIn("concluded failure", err)
 
     def test_failed_post_tag_check_deletes_the_local_tag(self) -> None:
         fake = Fake(fail="--require-tag-ref")
@@ -195,10 +257,10 @@ class PublishReleaseTests(unittest.TestCase):
         for name in ("certification-v1.3.0.zip", "certification-v1.3.0.zip.sig",
                      "certification-v1.3.0.manifest.json", "certification-v1.3.0.sha256"):
             (self.work / "out" / name).write_text("x")
-        code, _, err = self.main(later, "--signing-key", str(self.key), answer="no")
-        self.assertEqual(code, 1)
+        code, _, err = self.main(later, "--signing-key", str(self.key), "--redaction-reviewed", answer="no")
+        self.assertEqual((code, "maintainer's request" in err), (1, True))
         self.assertFalse(later.release)
-        code, out, _ = self.main(Fake(remote_tag=True), "--signing-key", str(self.key), "--yes")
+        code, out, _ = self.main(Fake(remote_tag=True), "--signing-key", str(self.key), "--redaction-reviewed", "--yes")
         self.assertIn("yes (--yes)", out)
 
     def test_signing_key_and_prerequisite_failures(self) -> None:

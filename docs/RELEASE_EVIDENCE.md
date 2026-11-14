@@ -319,8 +319,17 @@ It does the following, in order:
 8. closes that milestone;
 9. dispatches *Release closeout* and waits for a green verdict.
 
-A step whose result already exists is skipped, so after a failure the same
-command resumes. `--yes` answers every confirmation, and the signing key can
+After a failure, the same command resumes. These completed steps are skipped:
+
+- a published tag;
+- a bundle whose completion record and verification match the candidate. Any
+  other bundle is rebuilt;
+- an existing signature;
+- a published release that has all four files.
+
+An interrupted draft release is completed: the missing files are uploaded and
+the draft is published. The script waits only for the closeout run whose name
+carries this tag and candidate. `--yes` answers every confirmation, and the signing key can
 come from `RELEASE_SIGNING_KEY`. The fixtures run offline with
 `python3 tools/test_publish_release.py -v`.
 <!-- template:remove:end -->

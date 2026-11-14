@@ -83,9 +83,31 @@ def publish_tag(root: Path, identity: dict[str, Any], work: Path, key: Path, ass
     evidence.checked(["git", "push", "origin", f"refs/tags/{tag}:refs/tags/{tag}"], root, "tag push")
 
 
+def bundle_complete(root: Path, identity: dict[str, Any], work: Path, bundle: Path) -> bool:
+    """True only for a bundle whose build finished and which still verifies for this candidate."""
+    marker = work / "bundle-complete.json"
+    if not (marker.is_file() and bundle.is_file()):
+        return False
+    record = json.loads(marker.read_text(encoding="utf-8"))
+    if record != {"tag": identity["tag"], "candidate_sha": identity["sha"],
+                  "bundle_sha256": hashlib.sha256(bundle.read_bytes()).hexdigest()}:
+        return False
+    out = bundle.parent
+    report = evidence.run(evidence.tool(root, "release_certification.py", "--verify-bundle", str(bundle),
+                                        "--manifest", str(out / f"certification-{identity['tag']}.manifest.json"),
+                                        "--digest", str(out / f"certification-{identity['tag']}.sha256")), root)
+    if report.returncode != 0:
+        return False
+    verified = json.loads(report.stdout)
+    return bool(verified.get("status") == "pass" and verified.get("tag") == identity["tag"]
+                and verified.get("candidate_sha") == identity["sha"])
+
+
 def sign_bundle(root: Path, identity: dict[str, Any], work: Path, key: Path, reviewed: bool) -> Path:
     bundle = work / "out" / f"certification-{identity['tag']}.zip"
-    if not bundle.is_file():
+    if bundle_complete(root, identity, work, bundle):
+        print("SKIP: the certification bundle is complete and verifies for this candidate")
+    else:
         evidence.bundle(argparse.Namespace(root=root, work_dir=work, tag=identity["tag"],
                                            candidate_sha=identity["sha"], redaction_reviewed=reviewed))
     signature = Path(f"{bundle}.sig")
@@ -138,10 +160,33 @@ def milestone(root: Path, identity: dict[str, Any]) -> dict[str, Any] | None:
     return found[0] if found else None
 
 
+def existing_release(root: Path, repo: str, tag: str) -> dict[str, Any] | None:
+    """The release for the tag, drafts included; drafts are not served by releases/tags/{tag}."""
+    releases = evidence.gh_json(root, f"repos/{repo}/releases?per_page=100")
+    found = [item for item in releases if item.get("tag_name") == tag]
+    return found[0] if found else None
+
+
 def publish_release(root: Path, identity: dict[str, Any], work: Path, bundle: Path, assume_yes: bool) -> None:
     tag, repo = identity["tag"], identity["repository"]
-    if succeeds(root, ["gh", "api", f"repos/{repo}/releases/tags/{tag}"]):
-        print(f"SKIP: the GitHub Release {tag} already exists")
+    out = bundle.parent
+    files = [str(bundle), f"{bundle}.sig", str(out / f"certification-{tag}.manifest.json"),
+             str(out / f"certification-{tag}.sha256")]
+    current = existing_release(root, repo, tag)
+    if current is not None:
+        names = {asset.get("name") for asset in current.get("assets", [])}
+        missing = [path for path in files if Path(path).name not in names]
+        if not current.get("draft") and not missing:
+            print(f"SKIP: the GitHub Release {tag} is published with all four files")
+            return
+        confirm(f"Complete the interrupted GitHub Release {tag} ({len(missing)} file(s) to upload"
+                f"{', then publish the draft' if current.get('draft') else ''})?", assume_yes)
+        if missing:
+            evidence.checked(["gh", "release", "upload", tag, *missing, "--repo", repo, "--clobber"], root,
+                             "asset upload")
+        if current.get("draft"):
+            evidence.checked(["gh", "release", "edit", tag, "--repo", repo, "--draft=false", "--latest"], root,
+                             "draft publication")
         return
     notes = work / "release-notes.md"
     if not notes.is_file():
@@ -149,9 +194,6 @@ def publish_release(root: Path, identity: dict[str, Any], work: Path, bundle: Pa
     found = milestone(root, identity)
     title = str(found["title"]) if found else tag
     confirm(f"Publish the GitHub Release '{title}' with the notes in {notes}?", assume_yes)
-    out = bundle.parent
-    files = [str(bundle), f"{bundle}.sig", str(out / f"certification-{tag}.manifest.json"),
-             str(out / f"certification-{tag}.sha256")]
     evidence.checked(["gh", "release", "create", tag, *files, "--repo", repo, "--verify-tag", "--title", title,
                       "--notes-file", str(notes), "--latest"], root, "GitHub Release creation")
 
@@ -164,9 +206,11 @@ def close_out(root: Path, identity: dict[str, Any], wiki_reviewed: bool) -> str:
     if found.get("state") != "closed":
         evidence.checked(["gh", "api", "-X", "PATCH", f"repos/{repo}/milestones/{found['number']}",
                           "-f", "state=closed"], root, "milestone closing")
-    runs = f"repos/{repo}/actions/workflows/{CLOSEOUT}/runs?per_page=1"
+    runs = f"repos/{repo}/actions/workflows/{CLOSEOUT}/runs?event=workflow_dispatch&per_page=30"
+    # The workflow's run-name is "Release closeout — <tag> @ <candidate>": only that run counts.
+    title = f"{tag} @ {identity['sha']}"
     before = evidence.gh_json(root, runs).get("workflow_runs", [])
-    last = before[0]["id"] if before else 0
+    last = max([int(item["id"]) for item in before] or [0])
     evidence.checked(["gh", "workflow", "run", CLOSEOUT, "--repo", repo, "--ref", "main",
                       "-f", f"tag={tag}", "-f", f"candidate_sha={identity['sha']}",
                       "-f", f"milestone_number={found['number']}",
@@ -174,9 +218,10 @@ def close_out(root: Path, identity: dict[str, Any], wiki_reviewed: bool) -> str:
                       "-f", "expect_prerelease=false", "-f", "allow_not_latest=false"], root, "closeout dispatch")
     for _ in range(POLL_LIMIT):
         time.sleep(POLL_SECONDS)
-        latest = evidence.gh_json(root, runs).get("workflow_runs", [])
-        if latest and latest[0]["id"] != last and latest[0].get("status") == "completed":
-            run = latest[0]
+        mine = [item for item in evidence.gh_json(root, runs).get("workflow_runs", [])
+                if int(item["id"]) > last and title in str(item.get("display_title", ""))]
+        if mine and mine[0].get("status") == "completed":
+            run = mine[0]
             evidence.require(run.get("conclusion") == "success",
                              f"Release closeout concluded {run.get('conclusion')}: {run.get('html_url')}")
             return str(run.get("html_url"))
