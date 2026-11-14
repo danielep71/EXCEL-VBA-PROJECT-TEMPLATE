@@ -39,8 +39,10 @@ Attribute VB_Name = "ProgressTests"
 '
 ' TEST SEAM
 '   Reads the live Application properties before, during and after each
-'   session. TestCleanupDetection is the negative control: it breaks a
-'   restored property and requires the check to report it.
+'   session, the status bar through ProgressCore.NormalizeStatusBar so that
+'   an Excel-owned bar read back as the text FALSE counts as Excel's.
+'   TestCleanupDetection is the negative control: it breaks a restored
+'   property and requires the check to report it.
 '
 ' COMPATIBILITY
 '   Excel VBA on Windows and macOS. Cursor assertions run on Windows only,
@@ -52,7 +54,7 @@ Attribute VB_Name = "ProgressTests"
 '   bar flickers while it runs. ProjectTests keeps covering the shared starter.
 '
 ' UPDATED
-'   2026-11-07
+'   2026-11-14
 '
 ' AUTHOR
 '   Daniele Penza
@@ -75,9 +77,9 @@ Attribute VB_Name = "ProgressTests"
         Private Const TEST_ERROR_SESSION_ACTIVE        As Long = vbObjectError + 2262    'A session was active at suite start
         Private Const EXPECTED_CASES                   As Long = 12                      'Required cases for a complete run
 #If Mac Then
-        Private Const EXPECTED_ASSERTIONS              As Long = 75                      'Required assertions without cursor checks
+        Private Const EXPECTED_ASSERTIONS              As Long = 79                      'Required assertions without cursor checks
 #Else
-        Private Const EXPECTED_ASSERTIONS              As Long = 79                      'Required assertions with four cursor checks
+        Private Const EXPECTED_ASSERTIONS              As Long = 83                      'Required assertions with four cursor checks
 #End If
 
     'Number the failing operations shared by AssertRaised and its helpers.
@@ -898,12 +900,22 @@ Private Sub TestRecover()
         Application.Cursor = xlWait
 #End If
         ProgressFacade.ProgressRecover
-        AssertEqualBoolean "Recover returns the status bar to Excel", True, (VarType(Application.StatusBar) = vbBoolean)
+        AssertEqualBoolean "Recover returns the status bar to Excel", True, (VarType(ProgressCore.NormalizeStatusBar(Application.StatusBar)) = vbBoolean)
         AssertEqualBoolean "Recover turns screen updating on", True, Application.ScreenUpdating
         AssertEqualLong "Recover restores Esc interruption", xlInterrupt, Application.EnableCancelKey
 #If Not Mac Then
         AssertEqualLong "Recover restores the default cursor", xlDefault, Application.Cursor
 #End If
+
+'------------------------------------------------------------------------------
+' READ AN EXCEL-OWNED STATUS BAR
+'------------------------------------------------------------------------------
+    'Some Excel builds read a bar they own back as the text FALSE. A snapshot
+    'must keep it as False, or ending a session would display that text.
+        AssertEqualBoolean "Normalize keeps a Boolean as Excel's bar", True, (VarType(ProgressCore.NormalizeStatusBar(False)) = vbBoolean)
+        AssertEqualBoolean "Normalize reads the text FALSE as Excel's bar", True, (VarType(ProgressCore.NormalizeStatusBar("FALSE")) = vbBoolean)
+        AssertEqualBoolean "Normalize ignores letter case", True, (VarType(ProgressCore.NormalizeStatusBar("false")) = vbBoolean)
+        AssertEqualString "Normalize keeps caller text", "Caller status", CStr(ProgressCore.NormalizeStatusBar("Caller status"))
         RestoreHostUi mSuiteUi
         Exit Sub
 
@@ -1397,7 +1409,7 @@ Private Function CaptureHostUi() _
 ' CAPTURE
 '------------------------------------------------------------------------------
     'Read the same properties, in the same way, as the component snapshots.
-        ui.StatusBar = Application.StatusBar
+        ui.StatusBar = ProgressCore.NormalizeStatusBar(Application.StatusBar)
         ui.DisplayStatusBar = Application.DisplayStatusBar
 #If Not Mac Then
         ui.Cursor = Application.Cursor
