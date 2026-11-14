@@ -181,6 +181,8 @@ class PrepareReleaseEvidenceTests(unittest.TestCase):
         self.assertEqual(checks["excel-host-evidence"]["execution"], "manual")
         self.assertEqual(len(checks["excel-host-evidence"]["sha256"]), 64)
         self.assertIn("Pilot released v0.1.0.", checks["generated-profile-pilots"]["detail"])
+        clone = next(command for command in fake.commands if command[:2] == ["git", "clone"])
+        self.assertIn("core.autocrlf=false", clone)
         wiki = json.loads((evidence / "wiki-publication.json").read_text())
         self.assertEqual((wiki["wiki_commit"], wiki["wiki_parent"]), ("b" * 40, "c" * 40))
         self.assertIn("0 deterministic defects", (evidence / "gate-evidence.md").read_text())
@@ -296,6 +298,20 @@ class PrepareReleaseEvidenceTests(unittest.TestCase):
 
         code, _, err = self.bundle_command(Drifting(self.runs), "--redaction-reviewed")
         self.assertEqual((code, "not byte-identical" in err), (1, True))
+
+    def test_scratch_paths_overlapping_the_checkout_are_refused(self) -> None:
+        for path in (self.root, self.root / "inside", self.root.parent):
+            with self.subTest(path=path), self.assertRaisesRegex(tool.EvidenceError, "overlaps the candidate"):
+                tool.disposable(self.root, path)
+        self.assertTrue((self.root / "VERSION").is_file())
+        scratch = self.work / "scratch"
+        scratch.mkdir(parents=True)
+        tool.disposable(self.root, scratch)
+        self.assertFalse(scratch.exists())
+        self.work = self.root / "work-inside"
+        code, _, err = self.prepare(Fake(self.runs))
+        self.assertEqual((code, "overlaps the candidate checkout" in err), (1, True))
+        self.assertFalse(self.work.exists())
 
     def test_run_boundary_and_failure_without_stderr(self) -> None:
         completed = tool.run([sys.executable, "-c", "print('ok')"], Path("."))

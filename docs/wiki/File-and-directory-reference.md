@@ -175,6 +175,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/prepare_release_evidence.py` / script | Assemble release evidence before the tag and build the certification bundle after it. | X / X / X | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/provision_repository.py` / script | Plan live new-repository settings or apply a reviewed digest with a durable journal. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `tools/publish_release.py` / script | Sign and push the tag, sign the bundle, publish the GitHub Release and run the closeout, with confirmations. | X / X / X | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
+| `tools/publish_wiki.py` / script | Export the Wiki from the candidate, publish it after confirmation and verify a fresh clone byte for byte. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `tools/release_certification.py` / script | Build or verify deterministic, candidate-bound release certification bundles. | R / R / R | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/release_provenance.py` / script | Release helper for complete payloads, build identity and optional SSH verification. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `tools/report_portfolio_quality.py` / script | Produce freshness-aware quality/conformance reports from captured observations. | X / X / X | [docs/PORTFOLIO_QUALITY.md](../../docs/PORTFOLIO_QUALITY.md) |
@@ -189,6 +190,7 @@ An untracked directory is not a Git artifact. Directory retention follows its ch
 | `tools/test_prepare_release_evidence.py` / script | Simulated git, gh and sibling-tool fixtures for release-evidence assembly. | X / X / X | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
 | `tools/test_provision_repository.py` / script | Stateful simulated API fixtures for planning, guarded writes and partial failure. | X / X / X | [docs/PROVISIONING.md](../../docs/PROVISIONING.md) |
 | `tools/test_publish_release.py` / script | Simulated git, gh, ssh-keygen and sibling-tool fixtures for release publication. | X / X / X | [docs/RELEASE_EVIDENCE.md](../../docs/RELEASE_EVIDENCE.md) |
+| `tools/test_publish_wiki.py` / script | Simulated Wiki remote fixtures for publication, removed-page review and read-back. | X / X / X | [docs/WIKI_PUBLICATION.md](../../docs/WIKI_PUBLICATION.md) |
 | `tools/test_release_provenance.py` / script | Release-payload fixtures and ephemeral SSH signing/verification controls. | R / R / R | [docs/RELEASE_PROVENANCE.md](../../docs/RELEASE_PROVENANCE.md) |
 | `tools/test_repository_settings.py` / script | Simulated API fixtures for the settings check: drift, unverified, not applicable and GET-only. | R / R / R | [docs/POST_CREATION_CHECKLIST.md](../../docs/POST_CREATION_CHECKLIST.md) |
 | `tools/test_template_verification_depth.py` / script | Template-only verification-depth fixtures for maintainer tools removed during project generation. | X / X / X | [docs/CHECKER_DEVELOPMENT.md](../../docs/CHECKER_DEVELOPMENT.md) |

@@ -70,9 +70,32 @@ diff and commit with the source change. It does not write to GitHub.
    Record source SHA, wiki SHA, hosted runs, comparison result and web-page
    read-back. A successful push alone is not publication verification.
 
-Commands use Git Bash and run from the clean **template source root**. Replace
-the repository path and review commit before running; the CLI itself never
-fetches, commits, pushes or supplies credentials:
+**One command.** `tools/publish_wiki.py` performs steps 3–6 from a clean
+checkout of the reviewed candidate. It needs Git credentials that can push to the
+Wiki repository:
+
+```bash
+python3 tools/publish_wiki.py --root . --candidate-sha FULL_CANDIDATE_SHA --work-dir ../wiki-work
+```
+
+1. It exports the bundle and clones the published Wiki.
+2. It replaces the published files. A published page that the bundle no longer
+   has is deleted only if `--remove-page NAME` names it as reviewed; otherwise
+   the run stops.
+3. It checks the staged result with `--published-dir`, commits
+   `Publish wiki from <sha>`, asks for confirmation and pushes without force.
+4. It clones the Wiki again, compares it byte for byte, and writes
+   `wiki-work/wiki-publication.json` with the Wiki commit, its parent and the
+   SHA-256 of every file.
+
+When the published Wiki already matches the candidate, nothing is pushed and the
+read-back still runs. The browser review stays manual. The fixtures run offline
+with `python3 tools/test_publish_wiki.py -v`.
+
+The manual procedure follows. Commands use Git Bash and run from the clean
+**template source root**. Replace the repository path and review commit before
+running; `check_wiki.py` itself never fetches, commits, pushes or supplies
+credentials:
 
 ```bash
 git status --short

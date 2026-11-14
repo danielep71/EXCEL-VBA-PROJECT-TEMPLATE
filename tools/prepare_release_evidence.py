@@ -99,6 +99,19 @@ def gh_json(root: Path, endpoint: str) -> Any:
     return json.loads(checked(["gh", "api", endpoint], root, f"gh api {endpoint}"))
 
 
+def disposable(root: Path, path: Path) -> None:
+    """Remove a scratch directory, refusing one that is, contains or lies inside the candidate checkout."""
+    target, source = path.resolve(), root.resolve()
+    require(target != source and source not in target.parents and target not in source.parents,
+            f"refusing to remove {target}: it overlaps the candidate checkout {source}")
+    if target.exists():
+        shutil.rmtree(target)
+
+
+# Wiki clones keep the published bytes even where Git converts line endings on checkout.
+CLONE_LF = ("-c", "core.autocrlf=false", "-c", "core.eol=lf")
+
+
 def tool(root: Path, name: str, *arguments: str) -> list[str]:
     """A sibling tool of the candidate itself, never of another checkout."""
     return [sys.executable, str(root / "tools" / name), *arguments]
@@ -217,9 +230,9 @@ def external_links(root: Path, identity: dict[str, Any], evidence: Path) -> dict
 def wiki_publication(root: Path, identity: dict[str, Any], work: Path, reviewed: bool) -> dict[str, Any]:
     require(reviewed, "confirm the browser review of the published Wiki with --wiki-browser-reviewed")
     clone = work / "wiki-readback"
-    if clone.exists():
-        shutil.rmtree(clone)
-    checked(["git", "clone", "--quiet", f"https://github.com/{identity['repository']}.wiki.git", str(clone)],
+    disposable(root, clone)
+    checked(["git", "clone", "--quiet", *CLONE_LF, f"https://github.com/{identity['repository']}.wiki.git",
+             str(clone)],
             root, "Wiki clone")
     checked(tool(root, "check_wiki.py", "--root", ".", "--published-dir", str(clone)), root,
             "Wiki read-back comparison with the candidate")
@@ -330,6 +343,7 @@ def prepare(options: argparse.Namespace) -> int:
     identity = candidate_identity(root, options.tag, options.candidate_sha)
     evidence = work / "evidence"
     require(not evidence.exists(), f"{evidence} already exists: use a fresh --work-dir")
+    disposable(root, evidence)
     evidence.mkdir(parents=True)
     host = excel_record(root, identity["sha"], options.excel_bundle.resolve(), evidence)
     runs = hosted_runs(root, identity)
@@ -394,8 +408,7 @@ def bundle(options: argparse.Namespace) -> int:
     outputs = []
     for name in ("out", "out-rebuild"):
         target = work / name
-        if target.exists():
-            shutil.rmtree(target)
+        disposable(root, target)
         checked(tool(root, "release_certification.py", "--root", ".", "--build", str(work / "certification-input.json"),
                      "--evidence-dir", str(evidence), "--output-dir", str(target)), root, f"bundle build into {name}")
         outputs.append(target / f"certification-{identity['tag']}.zip")
