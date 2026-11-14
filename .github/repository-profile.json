@@ -330,6 +330,7 @@
       "tools/prepare_release_evidence.py",
       "tools/provision_repository.py",
       "tools/publish_release.py",
+      "tools/publish_wiki.py",
       "tools/report_portfolio_quality.py",
       "tools/requirements-coverage-ci.txt",
       "tools/requirements-dev.txt",
@@ -339,6 +340,7 @@
       "tools/test_prepare_release_evidence.py",
       "tools/test_provision_repository.py",
       "tools/test_publish_release.py",
+      "tools/test_publish_wiki.py",
       "tools/test_template_verification_depth.py",
       "tools/test_template_workflow_validation.py",
       "tools/test_wiki.py"

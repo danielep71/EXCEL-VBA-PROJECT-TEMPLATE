@@ -115,6 +115,11 @@ Use only the categories needed by a release.
   writes the release notes, creates the GitHub Release with the four files,
   closes the milestone and waits for a green *Release closeout*. A rerun
   resumes after the last completed step (#196).
+- `tools/publish_wiki.py` publishes the Wiki from the candidate with one
+  command: export, staged comparison, `Publish wiki from <sha>` commit,
+  confirmation, push without force, then a fresh-clone byte comparison that
+  writes `wiki-publication.json`. Published pages the bundle drops are removed
+  only when named with `--remove-page` (#197).
 
 ### Changed
 

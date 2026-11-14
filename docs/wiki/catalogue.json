@@ -839,6 +839,11 @@
       "kind": "script",
       "authority": "docs/RELEASE_EVIDENCE.md"
     },
+    "tools/publish_wiki.py": {
+      "purpose": "Export the Wiki from the candidate, publish it after confirmation and verify a fresh clone byte for byte.",
+      "kind": "script",
+      "authority": "docs/WIKI_PUBLICATION.md"
+    },
     "tools/release_certification.py": {
       "purpose": "Build or verify deterministic, candidate-bound release certification bundles.",
       "kind": "script",
@@ -918,6 +923,11 @@
       "purpose": "Simulated git, gh, ssh-keygen and sibling-tool fixtures for release publication.",
       "kind": "script",
       "authority": "docs/RELEASE_EVIDENCE.md"
+    },
+    "tools/test_publish_wiki.py": {
+      "purpose": "Simulated Wiki remote fixtures for publication, removed-page review and read-back.",
+      "kind": "script",
+      "authority": "docs/WIKI_PUBLICATION.md"
     },
     "tools/test_template_verification_depth.py": {
       "purpose": "Template-only verification-depth fixtures for maintainer tools removed during project generation.",

@@ -176,6 +176,7 @@ jobs:
           run tools/test_prepare_release_evidence.py -v
           run tools/test_provision_repository.py -v
           run tools/test_publish_release.py -v
+          run tools/test_publish_wiki.py -v
           run tools/test_release_provenance.py -v
           run tools/test_repository_settings.py -v
           run tools/test_template_workflow_validation.py -v
