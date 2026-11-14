@@ -54,6 +54,14 @@ def commands(text: str) -> list[tuple[str, set[str]]]:
     return result
 
 
+def reusable_caller(text: str, target: str) -> bool:
+    # A job-level call to OWNER/REPO/<target>@<full SHA>: the reusable-workflow
+    # adoption path. Floating refs and other workflow paths never qualify.
+    pattern = (rf"^  [A-Za-z0-9_-]+:\s*\n(?:^    .*\n|^\s*\n)*?"
+               rf"^    uses:\s*[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/{re.escape(target)}@[0-9a-f]{{40}}(?:\s|$)")
+    return re.search(pattern, text, re.MULTILINE) is not None
+
+
 def reference_check(root: Path, files: set[str], record: Any) -> None:
     require(isinstance(record, dict), "reference must be an object")
     document, target, token = record.get("document"), record.get("target"), record.get("token")
@@ -70,6 +78,10 @@ def reference_check(root: Path, files: set[str], record: Any) -> None:
             job = record.get("job")
             require(nonempty(job), "job-name reference requires job ID")
             match = re.search(rf"^  {re.escape(job)}:\s*\n((?:^    .*\n|^\s*\n)*)", text, re.MULTILINE)
+            if match is None and reusable_caller(text, target):
+                # An adopter replaced the job with a SHA-pinned call to the
+                # upstream copy of this same workflow, which defines the job.
+                return
             require(match is not None, f"workflow job ID changed: {target}")
             assert match is not None
             text = match[1]
