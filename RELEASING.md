@@ -69,6 +69,13 @@ python3 tools/release_template.py --version X.Y.Z --work-dir ../release-X.Y.Z \
 It runs the phases below and records them in
 `../release-X.Y.Z/release-state.json`. A finished phase is skipped when the
 command runs again, so after any stop, fix the cause and rerun it unchanged.
+Interrupted phases recover as follows:
+
+- **Cut:** a cut whose push or pull request failed is completed before the merge.
+- **Pilot:** a failed pilot attempt is kept. The next attempt uses
+  `pilot-work-N` and a repository name ending in `-N`.
+- **Evidence:** an interrupted preparation is moved, not deleted, to
+  `release-work.incomplete-N`.
 
 | Phase | Tool | Maintainer action |
 | --- | --- | --- |

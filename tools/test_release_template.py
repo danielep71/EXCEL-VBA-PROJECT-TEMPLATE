@@ -35,6 +35,7 @@ class World:
         self.root, self.workflow_changed, self.links_green = root, workflow_changed, links_green
         self.head, self.branch = BASE, "main"
         self.dispatched = False
+        self.open_pr = True
         self.commands: list[list[str]] = []
         self.streamed: list[str] = []
 
@@ -59,7 +60,9 @@ class World:
         if command[1:3] == ["pr", "merge"]:
             self.head, self.branch = CANDIDATE, "main"
         if command[:2] == ["gh", "api"] and "/pulls?head=" in command[-1]:
-            return self.done(command, [{"number": 3, "head": {"sha": "d" * 40}}])
+            return self.done(command, [{"number": 3, "head": {"sha": "d" * 40}}] if self.open_pr else [])
+        if command[1:3] == ["pr", "create"]:
+            self.open_pr = True
         if command[:2] == ["gh", "api"] and "/check-runs" in command[-1]:
             return self.done(command, {"check_runs": [{"name": "Repository integrity", "status": "completed",
                                                        "conclusion": "success"}]})
@@ -81,7 +84,7 @@ class World:
             (work / "clean-room-journey.md").write_text("# journey\n")
             (work / "clean-room-journey.json").write_text(json.dumps({
                 "template_sha": CANDIDATE, "pilot": "owner/vba-cleanroom-pilot-140", "profile": "library",
-                "steps": [{"result": "PASS"}] * 8}))
+                "steps": [{"name": name, "result": "PASS"} for name in journey.JOURNEY_STEPS]}))
         elif name == "prepare_release_evidence.py":
             work = Path(command[command.index("--work-dir") + 1])
             (work / "evidence").mkdir(parents=True)
@@ -138,7 +141,7 @@ class ReleaseTemplateTests(unittest.TestCase):
         self.assertEqual(state["done"], list(tool.PHASES))
         self.assertEqual(state["candidate"], CANDIDATE)
         self.assertTrue(state["wiki_browser_reviewed"] and state["redaction_reviewed"])
-        self.assertIn("8 steps", state["pilot_summary"])
+        self.assertIn("7 steps", state["pilot_summary"])
         self.assertTrue(world.dispatched)
         rerun = World(self.root)
         rerun.head = CANDIDATE
@@ -216,6 +219,32 @@ class ReleaseTemplateTests(unittest.TestCase):
         (self.root / "docs/REUSABLE_WORKFLOWS.md").write_text("no pins\n")
         self.work = self.work.with_name("fresh2")
         self.assertIn("no published interface pin", self.main(World(self.root))[2])
+
+    def test_interrupted_cut_pilot_and_evidence_are_recovered(self) -> None:
+        (self.root / "VERSION").write_text("1.4.0\n")
+        world = World(self.root)
+        world.branch, world.open_pr = "chore/cut-v1.4.0", False
+        (self.work / "pilot-work-1").mkdir(parents=True)
+        (self.work / "release-work" / "evidence").mkdir(parents=True)
+        code, _, err = self.main(world)
+        self.assertEqual(code, 0, err)
+        texts = [" ".join(command) for command in world.commands]
+        self.assertIn("git push --set-upstream origin chore/cut-v1.4.0", texts)
+        self.assertTrue(any(text.startswith("gh pr create") for text in texts))
+        self.assertNotIn("cut_release.py", world.streamed)
+        self.assertTrue((self.work / "pilot-work-2" / "clean-room-journey.md").is_file())
+        self.assertTrue((self.work / "release-work.incomplete-1" / "evidence").is_dir())
+        self.assertTrue((self.work / "release-work" / "release-evidence.json").is_file())
+
+    def test_incomplete_pilot_record_is_refused(self) -> None:
+        record = self.work.parent / "journey" / "clean-room-journey.md"
+        record.parent.mkdir()
+        record.write_text("# journey\n")
+        steps = [{"name": name, "result": "PASS"} for name in journey.JOURNEY_STEPS[:2]]
+        record.with_suffix(".json").write_text(json.dumps({"template_sha": CANDIDATE, "steps": steps}))
+        code, _, err = self.main(World(self.root), "--pilot-record", str(record))
+        self.assertEqual(code, 1)
+        self.assertIn("missing step: Provision", err)
 
     def test_unavailable_prerequisites(self) -> None:
         with patch.object(journey, "on_windows", return_value=False):

@@ -88,6 +88,13 @@ class Release:
                              "the release cut")
         branch = f"chore/cut-v{self.version}"
         if evidence.checked(["git", "branch", "--show-current"], self.root, "branch").decode().strip() == branch:
+            # A cut whose push or PR failed is completed here, so an unchanged rerun recovers.
+            evidence.checked(["git", "push", "--set-upstream", "origin", branch], self.root, "cut branch push")
+            owner = self.repository.split("/")[0]
+            if not evidence.gh_json(self.root, f"repos/{self.repository}/pulls?head={owner}:{branch}&state=open"):
+                evidence.checked(["gh", "pr", "create", "--repo", self.repository, "--base", "main", "--head", branch,
+                                  "--title", f"Cut v{self.version} release candidate", "--fill"], self.root,
+                                 "cut pull request")
             publish_release.confirm(f"Merge the {branch} pull request into main once its checks pass?",
                                     self.options.yes)
             journey_tool.merge_pull_request(self.root, self.root, self.repository, branch)
@@ -133,8 +140,14 @@ class Release:
     def phase_pilot(self) -> str:
         record = self.options.pilot_record
         if record is None:
-            work = self.work / "pilot-work"
-            name = f"vba-cleanroom-pilot-{self.version.replace('.', '')}"
+            # Each attempt gets its own directory and repository: the pilot tool refuses a used work
+            # directory, and a failed pilot repository is kept for inspection.
+            attempt = 1
+            while (self.work / f"pilot-work-{attempt}").exists():
+                attempt += 1
+            work = self.work / f"pilot-work-{attempt}"
+            suffix = "" if attempt == 1 else f"-{attempt}"
+            name = f"vba-cleanroom-pilot-{self.version.replace('.', '')}{suffix}"
             self.interactive(self.python("run_clean_room_pilot.py", "--template-root", ".", "--template-sha",
                                          self.state["candidate"], "--owner", self.repository.split("/")[0],
                                          "--name", name, "--work-dir", str(work),
@@ -143,8 +156,11 @@ class Release:
         data = json.loads(record.with_suffix(".json").read_text(encoding="utf-8"))
         evidence.require(data.get("template_sha") == self.state["candidate"],
                          "the clean-room record belongs to another candidate")
-        evidence.require(all(row.get("result") == "PASS" for row in data.get("steps", [])) and data.get("steps"),
-                         "the clean-room record has a failed or missing step")
+        passed = [row.get("name") for row in data.get("steps", []) if row.get("result") == "PASS"]
+        missing = [name for name in journey_tool.JOURNEY_STEPS if name not in passed]
+        failed = [str(row.get("name")) for row in data.get("steps", []) if row.get("result") != "PASS"]
+        evidence.require(not missing and not failed,
+                         "the clean-room record has a failed or missing step: " + "; ".join(failed + missing))
         self.state["pilot_record"] = str(record)
         self.state["pilot_summary"] = (f"Live clean-room pilot {data['pilot']} ({data['profile']}) completed "
                                        f"{len(data['steps'])} steps from the template to a closed-out v0.1.0 release; "
@@ -167,6 +183,12 @@ class Release:
 
     def phase_evidence(self) -> str:
         work = self.work / "release-work"
+        if work.exists() and not (work / "release-evidence.json").is_file():
+            # An interrupted preparation is kept aside, never deleted, and prepared again from scratch.
+            attempt = 1
+            while (self.work / f"release-work.incomplete-{attempt}").exists():
+                attempt += 1
+            work.rename(self.work / f"release-work.incomplete-{attempt}")
         if not (work / "release-evidence.json").is_file():
             self.interactive(self.python("prepare_release_evidence.py", "prepare", "--root", ".", "--tag", self.tag,
                                          "--candidate-sha", self.state["candidate"], "--work-dir", str(work),

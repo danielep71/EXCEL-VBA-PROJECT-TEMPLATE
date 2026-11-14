@@ -44,6 +44,16 @@ from typing import Any, Callable
 import prepare_release_evidence as evidence
 import publish_release
 
+# The mandatory journey, in order; a record is complete only when every step passed.
+JOURNEY_STEPS = (
+    "Create the repository from the template",
+    "Initialize the profile and merge the setup pull request",
+    "Provision: plan, then apply the approved digest",
+    "Set the Actions settings and pass the live settings check",
+    "Cut v0.1.0 and merge the cut",
+    "Certify the release candidate in Excel",
+    "Evidence, annotated tag, GitHub Release and closeout",
+)
 POLL_SECONDS = 15
 POLL_LIMIT = 80
 ACTIONS_SETTINGS = (
@@ -327,13 +337,8 @@ def run(options: argparse.Namespace) -> int:
     journey = Journey(pilot.work, {"template_sha": pilot.sha, "pilot": pilot.repository,
                                    "profile": options.profile, "governance_tier": "full",
                                    "started_utc": now().isoformat(timespec="seconds"), "cleanup": options.cleanup})
-    steps = (("Create the repository from the template", pilot.create),
-             ("Initialize the profile and merge the setup pull request", pilot.initialize),
-             ("Provision: plan, then apply the approved digest", pilot.provision),
-             ("Set the Actions settings and pass the live settings check", pilot.settings),
-             ("Cut v0.1.0 and merge the cut", pilot.cut),
-             ("Certify the release candidate in Excel", pilot.certify),
-             ("Evidence, annotated tag, GitHub Release and closeout", pilot.release))
+    steps = tuple(zip(JOURNEY_STEPS, (pilot.create, pilot.initialize, pilot.provision, pilot.settings,
+                                      pilot.cut, pilot.certify, pilot.release)))
     failed = True
     try:
         for name, action in steps:
