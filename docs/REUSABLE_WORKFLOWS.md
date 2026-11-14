@@ -53,11 +53,15 @@ disposable and are never consumer pins or merge candidates.
 > level, so the caller may keep any workflow-level group.
 
 **Moving a pin from `1.0.0` to `1.0.1`** is a coupled caller-tool migration.
-The `1.0.1` workflow also runs `tools/test_repository_settings.py` and
-`tools/test_write_excel_evidence.py` and installs the quality tools from
-`tools/requirements-quality-ci.txt`. A repository generated before v1.3.0
-takes those files, and the scripts they test, from the v1.3.0 template in
-the same reviewed pull request as the new pin.
+The `1.0.1` workflow runs gate scripts, tests and quality configuration that a
+repository generated from an earlier snapshot may lack, among them
+`tools/check_documentation.py`, `tools/test_repository_settings.py` and
+`tools/test_write_excel_evidence.py`, and it installs its quality tools from
+`tools/requirements-quality-ci.txt`. Copying single files is not supported. In
+the same reviewed pull request as the new pin, bring the caller's `tools/`
+gate scripts and tests, the `.github/` policy files they read and
+`pyproject.toml` to the v1.3.0 template, then pass the full local gate before
+the hosted run.
 
 | Surface | Contract |
 | --- | --- |
