@@ -154,14 +154,31 @@ jobs:
               text,
               re.MULTILINE,
           )
-          if match is None:
+          if match is not None:
+              print(match.group("base"))
+              raise SystemExit(0)
+          # The initial release links straight to its tag and has no comparison.
+          initial = re.search(
+              rf"^\[{re.escape(version)}\]:\s+\S+/releases/tag/{re.escape(tag)}\s*$",
+              text,
+              re.MULTILINE,
+          )
+          others = [
+              item
+              for item in re.findall(r"^## \[(\d+\.\d+\.\d+)\] - ", text, re.MULTILINE)
+              if item != version
+          ]
+          if initial is None or others:
               raise SystemExit("released comparison link is unavailable")
-          print(match.group("base"))
           PY
           )"
-          gh api --paginate --slurp \
-            "repos/$GITHUB_REPOSITORY/compare/$previous...$CLOSEOUT_TAG" \
-            > "$evidence/compare.json"
+          if [[ -z "$previous" ]]; then
+            printf '{}\n' > "$evidence/compare.json"
+          else
+            gh api --paginate --slurp \
+              "repos/$GITHUB_REPOSITORY/compare/$previous...$CLOSEOUT_TAG" \
+              > "$evidence/compare.json"
+          fi
 
           echo "evidence=$evidence" >> "$GITHUB_OUTPUT"
 
