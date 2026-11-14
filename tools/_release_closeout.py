@@ -691,8 +691,12 @@ def markdown_report(report: dict[str, Any]) -> str:
         ),
         (
             "Comparison link",
-            report["comparison"]["status"] in {"ahead", "identical"},
-            f"{report['comparison']['previous_tag']} → {report['tag']}",
+            (report["comparison"]["status"] in {"ahead", "identical"})
+            if report["comparison"]["previous_tag"] is not None
+            else not any(row["control"] == "comparison-link" for row in report["findings"]),
+            f"{report['comparison']['previous_tag']} → {report['tag']}"
+            if report["comparison"]["previous_tag"] is not None
+            else f"first release; links to {report['tag']}",
         ),
         (
             "Milestone membership",
@@ -914,6 +918,8 @@ def exercise_review_regressions(failures: list[str]) -> None:
         report = build_report(fixture_options(root, snapshot_path, candidate))
         if report["status"] != "pass" or report["comparison"]["previous_tag"] is not None:
             failures.append("initial-release: a first release linked to its tag was not accepted")
+        elif "| Comparison link | PASS | first release; links to v1.2.3 |" not in markdown_report(report):
+            failures.append("initial-release: the summary did not render the first release as passing")
 
     with tempfile.TemporaryDirectory(prefix="release-closeout-initial-later-") as raw:
         root, snapshot_path, candidate = fixture(Path(raw), "## [1.2.2] - 2026-09-01\n\n" + initial)
